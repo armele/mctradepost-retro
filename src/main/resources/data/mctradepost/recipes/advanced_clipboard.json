@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+      "WPW",
+      "LBL",
+      " W "
+    ],
+    "key": {
+      "W": { "item": "minecraft:paper" },
+      "P": { "item": "minecraft:iron_ingot" },
+      "L": { "item": "minecraft:leather" },
+      "B": { "item": "minecolonies:clipboard" }
+    },
+    "result": {
+      "item": "mctradepost:advanced_clipboard"
+    }
+}
+  

@@ -1,0 +1,68 @@
+package com.deathfrog.mctradepost.item;
+
+import org.jetbrains.annotations.NotNull;
+
+import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
+import com.minecolonies.api.colony.IColonyView;
+import com.minecolonies.api.items.component.ColonyId;
+import com.minecolonies.api.util.constant.TranslationConstants;
+import com.minecolonies.core.items.ItemClipboard;
+
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+
+public class AdvancedClipboardItem extends ItemClipboard {
+    
+    public AdvancedClipboardItem(Properties properties) {
+        super(properties);
+    }
+
+    /**
+     * Handles mid air use.
+     *
+     * @param worldIn  the world
+     * @param playerIn the player
+     * @param hand     the hand
+     * @return the result
+     */
+    @Override
+    @NotNull
+    public InteractionResultHolder<ItemStack> use(
+            final Level worldIn,
+            final Player playerIn,
+            final InteractionHand hand)
+    {
+        final ItemStack clipboard = playerIn.getItemInHand(hand);
+
+        if (!worldIn.isClientSide) {
+            return new InteractionResultHolder<>(InteractionResult.SUCCESS, clipboard);
+        }
+
+        openWindow(clipboard, worldIn, playerIn);
+
+        return new InteractionResultHolder<>(InteractionResult.SUCCESS, clipboard);
+    }   
+    
+    /**
+     * Opens the clipboard window if there is a valid colony linked
+     * @param stack the item
+     * @param player the player entity opening the window
+     */
+    private static void openWindow(ItemStack stack, Level world, Player player)
+    {        
+        final IColonyView colonyView = ColonyId.readColonyViewFromItemStack(stack);
+        if (colonyView != null)
+        {
+            new AdvancedWindowClipBoard(colonyView).open();
+        }
+        else
+        {
+            player.displayClientMessage(Component.translatableEscape(TranslationConstants.COM_MINECOLONIES_CLIPBOARD_NEED_COLONY), true);
+        }
+    }    
+}
