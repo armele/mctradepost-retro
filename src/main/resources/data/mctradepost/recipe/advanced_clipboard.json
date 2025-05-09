@@ -1,18 +1,20 @@
 {
     "type": "minecraft:crafting_shaped",
-    "pattern": [
-      "WPW",
-      "LBL",
-      " W "
-    ],
+    "category": "equipment",
     "key": {
       "W": { "item": "minecraft:paper" },
       "P": { "item": "minecraft:iron_ingot" },
       "L": { "item": "minecraft:leather" },
       "B": { "item": "minecolonies:clipboard" }
     },
+    "pattern": [
+      "WPW",
+      "LBL",
+      " W "
+    ],
     "result": {
-      "item": "mctradepost:advanced_clipboard"
+      "count": 1,
+      "id": "mctradepost:advanced_clipboard"
     }
 }
   

@@ -123,7 +123,15 @@ dependencies {
     compileOnly name: 'minecolonies-0.0.11-1.21.1alpha'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/minecolonies-1.21.1-ALPHA.jar')
 
-    compileOnly 'com.ldtteam:blockui:1.0.192-1.21.1-snapshot'  // use the actual filename without .jar
+    compileOnly name: 'blockui-1.0.199-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/blockui-1.0.199-1.21.1-snapshot')    
+
+    compileOnly name: 'structurize-1.0.773-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/structurize-1.0.773-1.21.1-snapshot')    
+
+    compileOnly name: 'domum-ornamentum-1.0.213-snapshot-main'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/domum-ornamentum-1.0.213-snapshot-maint')    
+
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

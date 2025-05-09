@@ -112,6 +112,41 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
         return isPlayer;
     }
 
+    protected void addToFilteredRequests(IRequestManager manager, ArrayList<IRequest<?>> filteredRequests, IRequest<?> request)
+    {
+        if (isPlayerRequest(request)) {
+            filteredRequests.add(request);
+        }
+
+        if (request.hasChildren()) {
+            
+            for (final Object o : request.getChildren())
+            {
+                if (o instanceof IToken<?>)
+                {
+                    final IToken<?> iToken = (IToken<?>) o;
+                    final IRequest<?> childRequest = manager.getRequestForToken(iToken);
+
+                    if (childRequest != null)
+                    {
+                        addToFilteredRequests(manager, filteredRequests, childRequest);
+                    }
+                }
+            }
+        }
+    }
+
+    protected ArrayList<IRequest<?>> filterRequests(IRequestManager manager, IBuildingView buildingView, ArrayList<IRequest<?>> requests)
+    {
+        final ArrayList<IRequest<?>> filteredRequests = Lists.newArrayList();
+
+        requests.forEach(request -> {
+            addToFilteredRequests(manager, filteredRequests, request);
+        });
+
+        return filteredRequests;
+    }
+
     @Override
     public ImmutableList<IRequest<?>> getOpenRequestsFromBuilding(final IBuildingView building)
     {
@@ -161,7 +196,9 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
 
             // Advanced clipboard functionality - only show requests to be fulfilled by the player
             if (playerOnly) {
-                requests.removeIf(req -> !isPlayerRequest(req));
+                final ArrayList<IRequest<?>> filteredRequests = filterRequests(requestManager, building, requests);
+                requests.clear();
+                requests.addAll(filteredRequests);
             }
 
             final BlockPos playerPos = Minecraft.getInstance().player.blockPosition();

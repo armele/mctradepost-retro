@@ -5,8 +5,10 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.items.component.ColonyId;
+import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.core.items.ItemClipboard;
+import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
@@ -14,7 +16,11 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+
+import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
 
 public class AdvancedClipboardItem extends ItemClipboard {
     
@@ -48,6 +54,32 @@ public class AdvancedClipboardItem extends ItemClipboard {
         return new InteractionResultHolder<>(InteractionResult.SUCCESS, clipboard);
     }   
     
+    @Override
+    @NotNull
+    public InteractionResult useOn(final UseOnContext ctx)
+    {
+        final ItemStack clipboard = ctx.getPlayer().getItemInHand(ctx.getHand());
+
+        final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());
+
+        if (entity instanceof TileEntityColonyBuilding buildingEntity)
+        {
+            buildingEntity.writeColonyToItemStack(clipboard);
+
+            if (!ctx.getLevel().isClientSide)
+            {
+                MessageUtils.format(COM_MINECOLONIES_CLIPBOARD_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
+            }
+        }
+        else if (ctx.getLevel().isClientSide)
+        {
+            openWindow(clipboard, ctx.getLevel(), ctx.getPlayer());
+        }
+
+        return InteractionResult.SUCCESS;
+    }
+
+
     /**
      * Opens the clipboard window if there is a valid colony linked
      * @param stack the item
