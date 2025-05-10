@@ -2,11 +2,17 @@ package com.deathfrog.mctradepost;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
+import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
+import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
+import com.minecolonies.api.blocks.ModBlocks;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -37,9 +43,10 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 /*
- * TODO:
+ * 
  */
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -57,6 +64,8 @@ public class MCTradePostMod
 
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
+
+    public static MCTPBaseBlockHut blockHutMarketplace;
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -103,6 +112,8 @@ public class MCTradePostMod
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
+        ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
 
     }
 
@@ -156,7 +167,49 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void onRegisterItemDecorations(final RegisterItemDecorationsEvent event)
         {
+            LOGGER.info("Registering item decorations");
             event.register(MCTradePostMod.ADVANCED_CLIPBOARD, new AdvancedClipBoardDecorator());
-        }        
+        }      
+            
+        @SubscribeEvent
+        public static void registerBlocks(RegisterEvent event)
+        {
+            if (event.getRegistryKey().equals(Registries.BLOCK))
+            {
+                LOGGER.info("Registering blocks");
+                ClientModEvents.registerBlocks(event.getRegistry(Registries.BLOCK));
+            }
+        }
+
+        /**
+         * Initializes {@link ModBlocks} with the block instances.
+         *
+         * @param registry The registry to register the new blocks.
+         */
+        public static void registerBlocks(final Registry<Block> registry)
+        {
+            MCTradePostMod.blockHutMarketplace = new BlockHutMarketplace().registerMCTPHutBlock(registry);
+        }
+
+
+        @SubscribeEvent
+        public static void registerItems(RegisterEvent event)
+        {
+            if (event.getRegistryKey().equals(Registries.ITEM))
+            {
+                LOGGER.info("Registering items");
+                ClientModEvents.registerBlockItem(event.getRegistry(Registries.ITEM));
+            }
+        }  
+        
+        /**
+         * Initializes the registry with the relevant item produced by the relevant blocks.
+         *
+         * @param registry The item registry to add the items too.
+         */
+        public static void registerBlockItem(final Registry<Item> registry)
+        {
+            MCTradePostMod.blockHutMarketplace.registerBlockItem(registry, new Item.Properties());
+        }    
     }
 }

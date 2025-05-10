@@ -58,6 +58,7 @@ public class AdvancedClipboardItem extends ItemClipboard {
     @NotNull
     public InteractionResult useOn(final UseOnContext ctx)
     {
+        @SuppressWarnings("null")
         final ItemStack clipboard = ctx.getPlayer().getItemInHand(ctx.getHand());
 
         final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());

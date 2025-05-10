@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.network.chat.Component;
 
 import com.google.common.collect.Lists;
 import com.minecolonies.api.util.Log;
@@ -201,7 +200,9 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
                 requests.addAll(filteredRequests);
             }
 
+            @SuppressWarnings("null")
             final BlockPos playerPos = Minecraft.getInstance().player.blockPosition();
+            
             requests.sort(Comparator.comparing((IRequest<?> request) -> request.getRequester().getLocation().getInDimensionLocation()
                     .distSqr(new Vec3i(playerPos.getX(), playerPos.getY(), playerPos.getZ())))
                 .thenComparingInt((IRequest<?> request) -> request.getId().hashCode()));
