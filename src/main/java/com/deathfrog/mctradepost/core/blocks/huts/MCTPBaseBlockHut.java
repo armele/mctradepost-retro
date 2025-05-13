@@ -61,6 +61,7 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
      * @param rotMir  the mirror used.
      * @param style   the style of the building
      */
+
     public void onBlockPlacedByBuildTool(
       @NotNull final Level worldIn,
       @NotNull final BlockPos pos,
@@ -72,6 +73,13 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
       final String blueprintPath)
     {
         final BlockEntity tileEntity = worldIn.getBlockEntity(pos);
+
+        if (tileEntity != null) {
+            MCTradePostMod.LOGGER.info("Placing hut of type {}", tileEntity.getClass().getName());
+        } else {
+             MCTradePostMod.LOGGER.info("Attempting to place a null tile entity.");
+        }
+
         if (tileEntity instanceof final MCTPTileEntityColonyBuilding hut)
         {
             hut.setRotationMirror(rotMir);

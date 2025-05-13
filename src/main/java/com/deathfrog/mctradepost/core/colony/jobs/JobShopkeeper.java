@@ -42,4 +42,5 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     {
         return ModModelTypes.SHOPKEEPER_ID;
     }
+
 }

@@ -38,6 +38,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -122,7 +123,6 @@ public class MCTradePostMod
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
-
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
@@ -235,6 +235,15 @@ public class MCTradePostMod
             }
         }
 
+        @SubscribeEvent
+        public static void registerEntities(RegisterEvent event)
+        {
+            if (event.getRegistryKey().equals(Registries.ENTITY_TYPE))
+            {
+                LOGGER.info("Registering entities");
+            }
+        }
+
         /**
          * Initializes {@link ModBlocks} with the block instances.
          *
@@ -265,5 +274,9 @@ public class MCTradePostMod
         {
             MCTradePostMod.blockHutMarketplace.registerBlockItem(registry, new Item.Properties());
         }    
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+
+        }
     }
 }

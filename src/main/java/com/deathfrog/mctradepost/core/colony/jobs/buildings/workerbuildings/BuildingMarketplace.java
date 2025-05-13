@@ -45,6 +45,8 @@ public class BuildingMarketplace extends AbstractBuilding
     /**
      * Description string of the building.
      */
+    // TODO: Consistency between building (MARKETPLACE) and job (SHOPKEEPER)
+    // TODO: Upgrading the building throws an exception - possibly due to schematics not implemented as a data pack.
     private static final String SHOPKEEPER = "shopkeeper";
 
 

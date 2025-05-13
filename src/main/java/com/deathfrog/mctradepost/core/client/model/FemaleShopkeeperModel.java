@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.core.client.model;
 
 import com.minecolonies.api.client.render.modeltype.CitizenModel;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
-
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
@@ -135,5 +134,6 @@ public class FemaleShopkeeperModel extends CitizenModel<AbstractEntityCitizen> {
         head.getChild("PointHat").visible = entity.getPose() != Pose.SLEEPING && displayHat(entity);
         body.getChild("Potion1").visible = entity.getPose() != Pose.SLEEPING;
         body.getChild("IngredientPouch").visible = entity.getPose() != Pose.SLEEPING;
-    }    
+    }
+    
 }
