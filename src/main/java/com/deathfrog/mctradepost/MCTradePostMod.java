@@ -3,17 +3,23 @@ package com.deathfrog.mctradepost;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
+import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
+import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
+import com.deathfrog.mctradepost.core.client.model.FemaleShopkeeperModel;
+import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
+import com.deathfrog.mctradepost.core.event.ClientRegistryHandler;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.minecolonies.api.blocks.ModBlocks;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.food.FoodProperties;
@@ -22,7 +28,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
@@ -33,8 +38,9 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -44,9 +50,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
-
 /*
- * 
  */
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -56,7 +60,7 @@ public class MCTradePostMod
     // Define mod id in a common place for everything to reference
     public static final String MODID = "mctradepost";
     // Directly reference a slf4j logger
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
     // Create a Deferred Register to hold Blocks which will all be registered under the "examplemod" namespace
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "examplemod" namespace
@@ -109,9 +113,13 @@ public class MCTradePostMod
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
+        
+        // Add a listener for the completion of the load.
+        modEventBus.addListener(this::onLoadComplete);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
 
@@ -120,14 +128,8 @@ public class MCTradePostMod
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
-        LOGGER.info("HELLO FROM COMMON SETUP");
+        LOGGER.info("MCTradePost common setup");
 
-        if (Config.logDirtBlock)
-            LOGGER.info("DIRT BLOCK >> {}", BuiltInRegistries.BLOCK.getKey(Blocks.DIRT));
-
-        LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
-
-        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
     }
 
     // Add the example block item to the building blocks tab
@@ -143,10 +145,35 @@ public class MCTradePostMod
         }
     }
 
+    private void onLoadComplete(final FMLLoadCompleteEvent event) {
+        LOGGER.info("MCTradePost loaded");
+    }
+
+    /**
+     * This method is called by the RegisterEvent which is fired after all registries have been populated.
+     * We use this to manually register the custom BuildingEntry objects with MineColonies.
+     * @param event The RegisterEvent which called this method.
+     */
+    /* 
+    private void onRegisterEvent(RegisterEvent event) {
+        if (!registeredMinecoloniesEntries) {
+            MCTradePostMod.LOGGER.info("Attempting to inject custom BuildingEntry objects into MineColonies at step {}.", event.getRegistryKey());
+
+            int numRegistered = ModBuildingsInitializer.registerBuildingsManually();
+            if (numRegistered > 0) {
+                registeredMinecoloniesEntries = true;
+                MCTradePostMod.LOGGER.info("Registered {} custom BuildingEntry objects with MineColonies", numRegistered);
+            } else {
+                MCTradePostMod.LOGGER.info("None regstered yet.");
+            }
+        }
+    }
+    */
+
     // You can use SubscribeEvent and let the Event Bus discover methods to call
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
-    {
+    {   
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
     }
@@ -155,12 +182,39 @@ public class MCTradePostMod
     @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents
     {
+        @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event)
+        public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event)
         {
-            // Some client setup code
-            LOGGER.info("HELLO FROM CLIENT SETUP");
-            LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+            MCTradePostMod.LOGGER.info("Registering layer definitions.");
+            event.registerLayerDefinition(ClientRegistryHandler.MALE_SHOPKEEPER, MaleShopkeeperModel::createMesh);
+            event.registerLayerDefinition(ClientRegistryHandler.FEMALE_SHOPKEEPER, FemaleShopkeeperModel::createMesh);
+        }
+
+        @SubscribeEvent
+        public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+            LOGGER.info("Handling model initialization");
+            var modelSet = event.getEntityModels();
+            
+            // Build a lightweight fake context using what's available
+            var dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+            var itemRenderer = Minecraft.getInstance().getItemRenderer();
+            var blockRenderer = Minecraft.getInstance().getBlockRenderer();
+            var resourceManager = Minecraft.getInstance().getResourceManager();
+            var font = Minecraft.getInstance().font;
+            ItemInHandRenderer itemInHandRenderer = Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer();
+
+            var context = new EntityRendererProvider.Context(
+                dispatcher,
+                itemRenderer,
+                blockRenderer,
+                itemInHandRenderer, 
+                resourceManager,
+                modelSet,
+                font
+            );
+
+            ModModelTypeInitializer.init(context);
         }
 
         @OnlyIn(Dist.CLIENT)
@@ -177,7 +231,7 @@ public class MCTradePostMod
             if (event.getRegistryKey().equals(Registries.BLOCK))
             {
                 LOGGER.info("Registering blocks");
-                ClientModEvents.registerBlocks(event.getRegistry(Registries.BLOCK));
+                ClientModEvents.registerBlocks(event.getRegistry(Registries.BLOCK));     
             }
         }
 

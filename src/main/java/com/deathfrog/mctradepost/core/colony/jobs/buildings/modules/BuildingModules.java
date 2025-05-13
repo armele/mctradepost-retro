@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
 
-import com.deathfrog.mctradepost.api.colony.buildings.jobs.ModJobs;
+import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
@@ -41,7 +41,7 @@ public class BuildingModules
       * Economic
       */
     public static final BuildingEntry.ModuleProducer<CraftingWorkerBuildingModule,WorkerBuildingModuleView> SHOPKEEPER_WORK          =
-      new BuildingEntry.ModuleProducer<>("shopkeeper_work", () -> new CraftingWorkerBuildingModule(ModJobs.shopkeeper.get(), Skill.Dexterity, Skill.Mana, false, (b) -> 1),
+      new BuildingEntry.ModuleProducer<>("shopkeeper_work", () -> new CraftingWorkerBuildingModule(MCTPModJobs.shopkeeper.get(), Skill.Dexterity, Skill.Mana, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
     
 

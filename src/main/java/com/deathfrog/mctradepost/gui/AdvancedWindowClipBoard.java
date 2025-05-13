@@ -74,6 +74,7 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
     private void togglePlayerOnly()
     {
         this.playerOnly = !this.playerOnly;
+        MCTradePostMod.LOGGER.info("Player Only filter set to: " + this.playerOnly);
     }
 
     /**
@@ -143,6 +144,9 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
             addToFilteredRequests(manager, filteredRequests, request);
         });
 
+        MCTradePostMod.LOGGER.debug("Requests filtered. Number of original requests: {}, Number of filtered requests: {}", requests.size(), filteredRequests.size());
+
+
         return filteredRequests;
     }
 
@@ -181,7 +185,7 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
                     request = requestManager.getRequestForToken(request.getParent());
                 }
 
-                //TOTEST: Use toggle setting and integrate with isPlayer  
+                //TODO: Test use toggle setting and integrate with isPlayer  
                 if (request != null && !requests.contains(request))
                 {
                     requests.add(request);

@@ -39,7 +39,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAICrafting<JobShopkeep
     /**
      * Initialize the stone smeltery and add all his tasks.
      *
-     * @param alchemistJob the job he has.
+     * @param shopkeeperJob the job he has.
      */
     @SuppressWarnings("unchecked")
     public EntityAIWorkShopkeeper(@NotNull final JobShopkeeper shopkeeperJob)

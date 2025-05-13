@@ -4,16 +4,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.tileentities.MCTPTileEntityColonyBuilding;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
+import com.ldtteam.structurize.api.RotationMirror;
 import com.minecolonies.api.blocks.AbstractBlockHut;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 
 public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut> {
 
@@ -42,4 +47,38 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
         }
         return building;
     }
+
+    /**
+     * Event-Handler for placement of this block.
+     * <p>
+     * Override for custom logic.
+     *
+     * @param worldIn the word we are in.
+     * @param pos     the position where the block was placed.
+     * @param state   the state the placed block is in.
+     * @param placer  the player placing the block.
+     * @param stack   the itemstack from where the block was placed.
+     * @param rotMir  the mirror used.
+     * @param style   the style of the building
+     */
+    public void onBlockPlacedByBuildTool(
+      @NotNull final Level worldIn,
+      @NotNull final BlockPos pos,
+      final BlockState state,
+      final LivingEntity placer,
+      final ItemStack stack,
+      final RotationMirror rotMir,
+      final String style,
+      final String blueprintPath)
+    {
+        final BlockEntity tileEntity = worldIn.getBlockEntity(pos);
+        if (tileEntity instanceof final MCTPTileEntityColonyBuilding hut)
+        {
+            hut.setRotationMirror(rotMir);
+            hut.setPackName(style);
+            hut.setBlueprintPath(blueprintPath);
+        }
+
+        setPlacedBy(worldIn, pos, state, placer, stack);
+    }    
 }

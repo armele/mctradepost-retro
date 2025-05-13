@@ -8,19 +8,10 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
 /**
- * Class of the Beekeeper job.
+ * Class of the Shopkeeper job.
  */
 public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, JobShopkeeper>
 {
-    /**
-     * The value where when reached the counter check returns true. 100 ticks * 4 = 1 ingame day.
-     */
-    public static final int COUNTER_TRIGGER = 4;
-
-    /**
-     * The counting variable.
-     */
-    private int counter = 0;
 
     /**
      * Initialize citizen data.
@@ -44,25 +35,6 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     public EntityAIWorkShopkeeper generateAI()
     {
         return new EntityAIWorkShopkeeper(this);
-    }
-
-    /**
-     * Tick the bee interaction counter to determine the time when the interaction gets triggered.
-     */
-    public void tickNoBees()
-    {
-        if (counter < 100) // to prevent unnecessary high counter when ignored by player
-        {
-            counter++;
-        }
-    }
-
-    /**
-     * Reset the bee interaction counter.
-     */
-    public void resetCounter()
-    {
-        counter = 0;
     }
 
     @Override

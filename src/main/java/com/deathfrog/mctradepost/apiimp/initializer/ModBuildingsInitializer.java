@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.buildings.views.EmptyView;
+
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.BuildingModules;
@@ -27,7 +29,7 @@ public final class ModBuildingsInitializer
         ModBuildings.marketplace = DEFERRED_REGISTER.register(ModBuildings.MARKETPLACE_ID, () -> new BuildingEntry.Builder()
           .setBuildingBlock(MCTradePostMod.blockHutMarketplace)
           .setBuildingProducer(BuildingMarketplace::new).setBuildingViewProducer(() -> EmptyView::new)
-          .setRegistryName(MCTradePostMod.blockHutMarketplace.getRegistryName())
+          .setRegistryName(ResourceLocation.parse(MCTradePostMod.MODID + ":" + ModBuildings.MARKETPLACE_ID))
           .addBuildingModuleProducer(BuildingModules.SHOPKEEPER_WORK)
           .createBuildingEntry());
     }

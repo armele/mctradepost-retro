@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.client.render;
 
+import javax.annotation.Nonnull;
+
 import com.minecolonies.api.colony.ICitizenDataView;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.items.component.ColonyId;
@@ -18,8 +20,9 @@ public class AdvancedClipBoardDecorator implements IItemDecorator {
     private        long        lastChange;
 
     @Override
-    public boolean render(GuiGraphics graphics, Font font, ItemStack stack, int xOffset, int yOffset)
+    public boolean render(@Nonnull GuiGraphics graphics, @Nonnull Font font,@Nonnull ItemStack stack, int xOffset, int yOffset)
     {
+        @SuppressWarnings("null")
         final long gametime = Minecraft.getInstance().level.getGameTime();
 
         if (lastChange != gametime && gametime % 40 == 0)

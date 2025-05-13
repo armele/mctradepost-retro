@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings;
 
+import com.ldtteam.structurize.api.RotationMirror;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IGenericRecipe;
@@ -35,7 +36,7 @@ public class BuildingMarketplace extends AbstractBuilding
 
     public BuildingMarketplace(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
-        // TODO: Replace with whatever blocks should be retained by the building.
+        setRotationMirror(RotationMirror.NONE);
         keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.shears.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
         keepX.put(itemStack ->  itemStack.getItem() == Items.NETHER_WART, new Tuple<>(16, false));
         keepX.put(itemStack -> ItemStackUtils.hasEquipmentLevel(itemStack, ModEquipmentTypes.axe.get(), TOOL_LEVEL_WOOD_OR_GOLD, getMaxEquipmentLevel()), new Tuple<>(1, true));
