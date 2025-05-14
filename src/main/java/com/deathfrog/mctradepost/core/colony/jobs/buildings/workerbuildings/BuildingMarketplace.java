@@ -46,7 +46,7 @@ public class BuildingMarketplace extends AbstractBuilding
      * Description string of the building.
      */
     // TODO: Consistency between building (MARKETPLACE) and job (SHOPKEEPER)
-    // TODO: Upgrading the building throws an exception - possibly due to schematics not implemented as a data pack.
+    // TODO: Worker has no face...
     private static final String SHOPKEEPER = "shopkeeper";
 
 
@@ -66,13 +66,14 @@ public class BuildingMarketplace extends AbstractBuilding
     @Override
     public void registerBlockPosition(@NotNull final BlockState block, @NotNull final BlockPos pos, @NotNull final Level world)
     {
+        // MCTradePostMod.LOGGER.info("Registering Block Position: " + block + " at " + pos);
         super.registerBlockPosition(block, pos, world);
     }
 
     @Override
     public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
-
+        super.deserializeNBT(provider, compound);
     }
 
     @Override

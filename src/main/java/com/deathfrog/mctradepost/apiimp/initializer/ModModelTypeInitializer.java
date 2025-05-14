@@ -16,7 +16,7 @@ public class ModModelTypeInitializer
     }
 
     // TODO: Design shopkeeper textures and models  
-
+    // TODO: Set up and record shopkeeper sounds.  Investigate ModSoundEvents.
 
     public static void init(final EntityRendererProvider.Context context)
     {

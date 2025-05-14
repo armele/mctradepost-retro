@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.api.colony.buildings.jobs;
 
+import java.util.ArrayList;
+import java.util.List;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import net.minecraft.resources.ResourceLocation;
@@ -17,6 +19,14 @@ public final class MCTPModJobs
     private MCTPModJobs()
     {
         throw new IllegalStateException("Tried to initialize: ModJobs but this is a Utility class.");
+    }
+
+    public static List<ResourceLocation> getJobs()
+    {
+        List<ResourceLocation> jobs = new ArrayList<>() { };
+        jobs.add(SHOPKEEPER_ID);
+        
+        return jobs;
     }
 }
 

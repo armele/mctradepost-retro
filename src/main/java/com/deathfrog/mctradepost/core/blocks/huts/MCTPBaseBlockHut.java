@@ -77,14 +77,17 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
         if (tileEntity != null) {
             MCTradePostMod.LOGGER.info("Placing hut of type {}", tileEntity.getClass().getName());
         } else {
-             MCTradePostMod.LOGGER.info("Attempting to place a null tile entity.");
+            MCTradePostMod.LOGGER.info("Attempting to place a null tile entity.");
         }
 
         if (tileEntity instanceof final MCTPTileEntityColonyBuilding hut)
         {
+            MCTradePostMod.LOGGER.info("Rotation mirror: {}; pack name: {}; blueprint path: {}", rotMir, style, blueprintPath);
             hut.setRotationMirror(rotMir);
             hut.setPackName(style);
             hut.setBlueprintPath(blueprintPath);
+        } else {
+            MCTradePostMod.LOGGER.info("Wrong instance to place a tile entity of type {}", tileEntity.getClass().getName());
         }
 
         setPlacedBy(worldIn, pos, state, placer, stack);
