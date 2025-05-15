@@ -138,6 +138,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private long computeItemValue(ItemStack stack, int amount)
     {
+        // TODO: Item Exchange Rate
         int value = 1;
 
         return value * amount;
@@ -156,15 +157,13 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         final double skillMultiplier = skillMultiplier();
         // final Level world = building.getColony().getWorld();
 
-        // TODO: Item Exchange Rate
-        // TODO: Increment global variable — for example:
         building.getModule(STATS_MODULE).incrementBy(ITEM_USED + ";" + item.getDescriptionId(), 1);
 
         // TODO: Compute sales values and record them somewhere.
         long sellvalue = computeItemValue(item, 1);
         sellvalue = Math.round(sellvalue * skillMultiplier);
 
-        // TODO: Build GUI for ECON module.
+        // TODO: Build GUI for ECON module in which Increment global variable for value generated.
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(MCTPBuildingModules.ECON_MODULE + ";" + item.getDescriptionId(), 1);
 
     }

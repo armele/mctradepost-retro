@@ -183,6 +183,7 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event)
         {
+            // Register the layer definitions
             MCTradePostMod.LOGGER.info("Registering layer definitions.");
             event.registerLayerDefinition(ClientRegistryHandler.MALE_SHOPKEEPER, MaleShopkeeperModel::createMesh);
             event.registerLayerDefinition(ClientRegistryHandler.FEMALE_SHOPKEEPER, FemaleShopkeeperModel::createMesh);

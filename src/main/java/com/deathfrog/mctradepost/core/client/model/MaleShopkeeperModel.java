@@ -119,6 +119,7 @@ public class MaleShopkeeperModel  extends CitizenModel<AbstractEntityCitizen> {
     @Override
     public void setupAnim(@NotNull final AbstractEntityCitizen entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch)
     {
+        // MCTradePostMod.LOGGER.info("Rendering model for: Male");
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         head.getChild("glasses").visible = isWorking(entity);
         head.getChild("PointHat").visible = displayHat(entity);

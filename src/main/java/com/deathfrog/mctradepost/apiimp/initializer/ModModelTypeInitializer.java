@@ -14,15 +14,16 @@ public class ModModelTypeInitializer
         throw new IllegalStateException("Tried to initialize: MCTradePost.ModModelTypeInitializer but this is a Utility class.");
     }
 
-    // TODO: Design shopkeeper textures and models  
     // TODO: Set up and record shopkeeper sounds.  Investigate ModSoundEvents.
 
     public static void init(final EntityRendererProvider.Context context)
     {
         final IModelTypeRegistry reg = IModelTypeRegistry.getInstance();
 
-        ModModelTypes.SHOPKEEPER = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_MODEL_ID, 1, new MaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.MALE_SHOPKEEPER)), 
+        ModModelTypes.SHOPKEEPER = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_MODEL_ID, 1, 
+            new MaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.MALE_SHOPKEEPER)), 
             new FemaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.FEMALE_SHOPKEEPER)));
+            
         reg.register(ModModelTypes.SHOPKEEPER);
     }
 }

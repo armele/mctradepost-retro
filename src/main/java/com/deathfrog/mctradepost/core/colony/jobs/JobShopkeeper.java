@@ -4,7 +4,6 @@ import net.minecraft.resources.ResourceLocation;
 
 import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
-import com.minecolonies.api.client.render.modeltype.ISimpleModelType;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
@@ -41,6 +40,8 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     @Override
     public ResourceLocation getModel()
     {
+        // MCTradePostMod.LOGGER.info("Getting JobShopkeeper model {}", ModModelTypes.SHOPKEEPER_MODEL_ID);
+        // MCTradePostMod.LOGGER.warn("Model load trace", new Exception("Model trace"));
         return ModModelTypes.SHOPKEEPER_MODEL_ID;
     }
 

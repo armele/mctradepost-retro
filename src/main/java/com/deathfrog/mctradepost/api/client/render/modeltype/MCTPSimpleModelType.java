@@ -30,6 +30,8 @@ public class MCTPSimpleModelType extends SimpleModelType {
      */
     public ResourceLocation getTexture(@NotNull final AbstractEntityCitizen entityCitizen)
     {
+        // return super.getTexture(entityCitizen);
+        
         String style = entityCitizen.getEntityData().get(DATA_STYLE);
 
         final int moddedTextureId = (entityCitizen.getTextureId() % getNumTextures()) + 1;

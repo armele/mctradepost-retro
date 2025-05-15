@@ -48,7 +48,6 @@ public class BuildingMarketplace extends AbstractBuilding
     /**
      * Description string of the building.
      */
-    // TODO: Worker has no face...
     private static final String MARKETPLACE = "marketplace";
 
     /**
