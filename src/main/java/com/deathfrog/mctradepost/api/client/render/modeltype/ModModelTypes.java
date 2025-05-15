@@ -7,7 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 public final class ModModelTypes
 {
 
-    public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.parse(MCTradePostMod.MODID +":shopkeeper");
+    public static final ResourceLocation SHOPKEEPER_MODEL_ID = ResourceLocation.parse(MCTradePostMod.MODID +":shopkeeper");
 
     public static IModelType SHOPKEEPER;
 

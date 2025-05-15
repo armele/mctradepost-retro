@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 import com.deathfrog.mctradepost.api.client.render.modeltype.MCTPSimpleModelType;
 import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.minecolonies.api.client.render.modeltype.registry.IModelTypeRegistry;
-
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import com.deathfrog.mctradepost.core.client.model.FemaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
@@ -22,9 +21,8 @@ public class ModModelTypeInitializer
     {
         final IModelTypeRegistry reg = IModelTypeRegistry.getInstance();
 
-        ModModelTypes.SHOPKEEPER = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_ID, 1, new MaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.MALE_SHOPKEEPER)), 
+        ModModelTypes.SHOPKEEPER = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_MODEL_ID, 1, new MaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.MALE_SHOPKEEPER)), 
             new FemaleShopkeeperModel(context.bakeLayer(ClientRegistryHandler.FEMALE_SHOPKEEPER)));
         reg.register(ModModelTypes.SHOPKEEPER);
-
     }
 }
