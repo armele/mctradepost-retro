@@ -50,8 +50,8 @@ public class MCTPBuildingModules
         () -> new WorkerBuildingModule(MCTPModJobs.shopkeeper.get(), Skill.Creativity, Skill.Knowledge, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 
-    public static final BuildingEntry.ModuleProducer<BuildingStatisticsModule, EconModuleView> ECON_MODULE = new BuildingEntry.ModuleProducer<>(
-      "econ_module", BuildingStatisticsModule::new,
+    public static final BuildingEntry.ModuleProducer<BuildingEconModule, EconModuleView> ECON_MODULE = new BuildingEntry.ModuleProducer<>(
+      "econ_module", BuildingEconModule::new,
       () -> EconModuleView::new);
 
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =

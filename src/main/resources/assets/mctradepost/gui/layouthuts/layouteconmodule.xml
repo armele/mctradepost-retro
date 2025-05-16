@@ -1,0 +1,21 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+    <image source="mctradepost:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+    <text size="130 11" pos="30 14" textalign="MIDDLE" color="black" label="$(com.mctradepost.core.gui.modules.econ)"/>
+    <view size="200 243" pos="0 0">
+        <dropdown id="intervals"
+                  size="129 17"
+                  pos="30 30"
+                  maxContentHeight="75"
+                  dropDownSize="140 75"
+                  source="mctradepost:textures/gui/builderhut/builder_button_medium_large.png"
+                  color="black">
+            <button id="button" size="129 17" pos="0 0" source="mctradepost:textures/gui/builderhut/builder_button_medium_large.png" color="black"
+                         label="$(com.mctradepost.coremod.gui.interval.yesterday)"/>
+        </dropdown>
+        <text size="70 11" pos="20 55" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
+        <text size="60 11" pos="90 55" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
+        <text size="70 11" pos="20 70" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.cash.generated)"/>
+        <text size="60 11" pos="90 70" textalign="MIDDLE_RIGHT" color="black" id="totalcash"/>
+    </view>
+</window>

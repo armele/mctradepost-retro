@@ -8,6 +8,14 @@
     "entity.shopkeeper.noitems": "The shopkeeper has no items to sell at the marketplace.",
     "entity.shopkeeper.brokenframe": "One of the shopkeeper's display frames is broken. Please repair the building.",
     "com.mctradepost.gui.visiblestatus.shopkeeper": "Selling Items",
-    "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables"
+    "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
+    "com.mctradepost.core.gui.modules.econ": "Economics",
+    "com.mctradepost.coremod.gui.interval.yesterday": "Yesterday",
+    "com.mctradepost.coremod.gui.interval.lastweek": "Last Week",
+    "com.mctradepost.coremod.gui.interval.100days": "Last Month",
+    "com.mctradepost.coremod.gui.interval.alltime": "All Time",
+    "com.mctradepost.core.gui.modules.econ.empty" : "No statistics available.",
+    "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
+    "com.mctradepost.coremod.gui.econ.cash.generated" : "Income"
 }
   

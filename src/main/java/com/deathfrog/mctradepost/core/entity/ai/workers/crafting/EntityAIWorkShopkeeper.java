@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
@@ -16,6 +17,7 @@ import com.minecolonies.api.util.constant.translation.RequestSystemTranslationCo
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingComposter;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
+import com.mojang.blaze3d.platform.Window;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -78,7 +80,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     /**
      * Id in compostable map for list.
      */
-    public static final String SELLABLE_LIST = "sellables";  // Was "COMPOSTABLE_LIST"
+    public static final String SELLABLE_LIST = "inventory";  // Was "COMPOSTABLE_LIST" (Note, the value here ends up getting used as the icon for the UI tab.)
 
         @NonNls
     public static final String REQUESTS_TYPE_SELLABLE_UI = "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables";
@@ -136,7 +138,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * @param amount the amount of the item in the stack.
      * @return the computed value of the item stack.
      */
-    private long computeItemValue(ItemStack stack, int amount)
+    private int computeItemValue(ItemStack stack, int amount)
     {
         // TODO: Item Exchange Rate
         int value = 1;
@@ -159,13 +161,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         building.getModule(STATS_MODULE).incrementBy(ITEM_USED + ";" + item.getDescriptionId(), 1);
 
-        // TODO: Compute sales values and record them somewhere.
-        long sellvalue = computeItemValue(item, 1);
-        sellvalue = Math.round(sellvalue * skillMultiplier);
+        int sellvalue = computeItemValue(item, 1);
+        sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
-        // TODO: Build GUI for ECON module in which Increment global variable for value generated.
-        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(MCTPBuildingModules.ECON_MODULE + ";" + item.getDescriptionId(), 1);
-
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue);
     }
 
     /**
@@ -248,9 +248,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         final BuildingMarketplace building = this.building;
-        Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
+        // Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
 
-        MCTradePostMod.LOGGER.info("Deciding what to do. Display shelves: {}", displayShelves.size());
+        // MCTradePostMod.LOGGER.info("Deciding what to do. Display shelves: {}", displayShelves.size());
 
         // First pass: Find any empty item frame (considered available to fill)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
