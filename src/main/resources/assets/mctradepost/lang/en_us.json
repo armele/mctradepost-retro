@@ -16,6 +16,7 @@
     "com.mctradepost.coremod.gui.interval.alltime": "All Time",
     "com.mctradepost.core.gui.modules.econ.empty" : "No statistics available.",
     "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
-    "com.mctradepost.coremod.gui.econ.cash.generated" : "Income"
+    "com.mctradepost.coremod.gui.econ.cash.generated" : "Income",
+    "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items"
 }
   

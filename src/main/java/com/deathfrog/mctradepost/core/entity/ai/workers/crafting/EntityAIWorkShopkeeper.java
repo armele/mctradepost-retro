@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.DisplayCase;
@@ -13,11 +14,8 @@ import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.api.util.constant.translation.RequestSystemTranslationConstants;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
-import com.minecolonies.core.colony.buildings.workerbuildings.BuildingComposter;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
-import com.mojang.blaze3d.platform.Window;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -34,8 +32,6 @@ import static com.minecolonies.api.util.constant.Constants.*;
 import com.minecolonies.api.crafting.ItemStorage;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-
 import static com.minecolonies.api.util.constant.StatisticsConstants.ITEM_USED;
 import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STATS_MODULE;
 
@@ -46,7 +42,7 @@ import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STA
 public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeeper, BuildingMarketplace>
 {
     /**
-     * Base xp gain for the composter.
+     * Base xp gain for the shopkeeper.
      */
     private static final double BASE_XP_GAIN = 1;
 
@@ -78,15 +74,15 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     private static final int SELLTIME = 60;
 
     /**
-     * Id in compostable map for list.
+     * Id for the list of sellable items.
      */
-    public static final String SELLABLE_LIST = "inventory";  // Was "COMPOSTABLE_LIST" (Note, the value here ends up getting used as the icon for the UI tab.)
+    public static final String SELLABLE_LIST = "inventory";  // Note, the value here ends up getting used as the icon for the UI tab.
 
         @NonNls
     public static final String REQUESTS_TYPE_SELLABLE_UI = "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables";
 
     /**
-     * Composting icon
+     * Worker status icon
      */
     private final static VisibleCitizenStatus SELLING =
       new VisibleCitizenStatus(ResourceLocation.parse(MCTradePostMod.MODID + ":textures/icons/work/shopkeeper.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
@@ -106,7 +102,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
           new AITarget(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
           new AITarget(START_WORKING, this::decideWhatToDo, 1),
           new AITarget(CRAFT, this::sellFromDisplay, 5),
-          new AITarget(COMPOSTER_FILL, this::fillDisplays, 10)
+          new AITarget(COMPOSTER_FILL, this::fillDisplays, 10) // AI states are defined where we can't touch them. Reuse this one.
         );
         worker.setCanPickUpLoot(true);
     }
@@ -140,8 +136,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private int computeItemValue(ItemStack stack, int amount)
     {
-        // TODO: Item Exchange Rate
-        int value = 1;
+        int value = ItemValueRegistry.getValue(stack);
+
+        if (value == 0) {
+            MCTradePostMod.LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
+        }
 
         return value * amount;
     }
@@ -221,10 +220,10 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             {
                 worker.getCitizenData()
                   .createRequestAsync(new StackList(itemList,
-                    RequestSystemTranslationConstants.REQUESTS_TYPE_COMPOSTABLE,
+                    BuildingMarketplace.REQUESTS_TYPE_SELLABLE,
                     Constants.STACKSIZE,
                     1,
-                    building.getSetting(BuildingComposter.MIN).getValue()));
+                    building.getSetting(BuildingMarketplace.MIN).getValue()));
             }
         }
 
@@ -266,7 +265,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     this.currentTarget = displayLocation;
                     setDelay(DECIDE_DELAY);
                     worker.getCitizenData().setVisibleStatus(SELLING);
-                    return COMPOSTER_FILL;
+                    return COMPOSTER_FILL;       // AI states are defined where we can't touch them. Reuse this one.
                 }
             }
         }
@@ -340,15 +339,15 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             if (!item.isEmpty())
             {
                 // "Sell" the item — remove it from the frame
-                frame.setItem(ItemStack.EMPTY);
+                frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
+                sellItem(item);                         // Calculate the value of the item and credit it to the economic module and stats module.
+                displayCase.setStack(ItemStack.EMPTY);  // Note that the display case is empty
+                displayCase.setTickcount(-1);           // Reset the timer.
 
                 // Add experience, stats, etc.
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 incrementActionsDoneAndDecSaturation();
 
-                sellItem(item);
-                displayCase.setStack(ItemStack.EMPTY);
-                displayCase.setTickcount(-1);
             }
         }
 

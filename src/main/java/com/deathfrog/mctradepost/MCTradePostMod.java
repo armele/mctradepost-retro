@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.model.FemaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ClientRegistryHandler;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.minecolonies.api.blocks.ModBlocks;
@@ -41,6 +42,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -119,14 +121,13 @@ public class MCTradePostMod
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
-        ModSoundEvents.SOUND_EVENTS.register(modEventBus);       
+        ModSoundEvents.SOUND_EVENTS.register(modEventBus);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
         LOGGER.info("MCTradePost common setup");
-
     }
 
     // Add the example block item to the building blocks tab
@@ -143,7 +144,7 @@ public class MCTradePostMod
     }
 
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
-        LOGGER.info("MCTradePost loaded");
+        LOGGER.info("MCTradePost onLoadComplete");  
     }
 
     /**
@@ -173,6 +174,24 @@ public class MCTradePostMod
     {   
         // Do something when the server starts
         LOGGER.info("HELLO from server starting");
+    }
+
+    @SubscribeEvent
+    public void onServerStarted(ServerStartedEvent event)
+    {   
+        // Derive the value of all items
+        LOGGER.info("Server has started.");
+        ItemValueRegistry.generateValues();
+        ItemValueRegistry.logValues();
+    }
+
+    @EventBusSubscriber(modid = MCTradePostMod.MODID)
+    public class ServerEventHandler {
+
+        @SubscribeEvent
+        public static void onServerStarting(ServerStartingEvent event) {
+            MCTradePostMod.LOGGER.info("Server starting.");
+        }
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

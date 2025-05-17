@@ -35,6 +35,7 @@ public final class ModBuildingsInitializer
           .addBuildingModuleProducer(MCTPBuildingModules.SHOPKEEPER_WORK)
           .addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_SELLABLE)
           .addBuildingModuleProducer(MCTPBuildingModules.ECON_MODULE)
+          .addBuildingModuleProducer(MCTPBuildingModules.ECON_SETTINGS)
           .addBuildingModuleProducer(BuildingModules.MIN_STOCK)
           .addBuildingModuleProducer(BuildingModules.STATS_MODULE)          
           .createBuildingEntry());

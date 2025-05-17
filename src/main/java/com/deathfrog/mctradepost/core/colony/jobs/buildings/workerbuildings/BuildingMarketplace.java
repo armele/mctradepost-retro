@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings;
 
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IGenericRecipe;
 import com.minecolonies.api.crafting.registry.CraftingType;
@@ -8,11 +9,15 @@ import com.minecolonies.api.items.ModItems;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
+import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
@@ -35,7 +40,6 @@ import java.util.Set;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
 /**
- * TODO: Sales report item similar to clipboard that displays item sold statistics.
  * Class of the marketplace building.
  */
 public class BuildingMarketplace extends AbstractBuilding
@@ -44,6 +48,8 @@ public class BuildingMarketplace extends AbstractBuilding
     public BuildingMarketplace(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
     }
+
+    public static final String REQUESTS_TYPE_SELLABLE = "com.mctradepost.coremod.request.sellable";
 
     /**
      * Description string of the building.
@@ -60,6 +66,10 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     private final Map<BlockPos, DisplayCase> displayShelfContents = new HashMap<>();
 
+    /**
+     * Key for min remainder at warehouse.
+     */
+    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, ResourceLocation.parse(MCTradePostMod.MODID + ":warehousemin"));
 
     /**
      * Return a list of display shelves assigned to this hut.

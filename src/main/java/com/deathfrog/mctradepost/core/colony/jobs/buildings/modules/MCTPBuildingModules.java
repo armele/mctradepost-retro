@@ -2,14 +2,16 @@ package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.api.entity.citizen.Skill;
-import com.minecolonies.core.colony.buildings.modules.BuildingStatisticsModule;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
+import com.minecolonies.core.colony.buildings.modules.SettingsModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
+import com.minecolonies.core.colony.buildings.moduleviews.SettingsModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 
 
@@ -54,10 +56,17 @@ public class MCTPBuildingModules
       "econ_module", BuildingEconModule::new,
       () -> EconModuleView::new);
 
+    // TODO: Repair the setting label (possibly requiring a custom gui XML, which in turn requires a custom view and window class).
+    public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
+      new BuildingEntry.ModuleProducer<>("marketplace_settings",
+        () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)),
+        () -> SettingsModuleView::new);
+
+    // TODO: Customize the sellable item list to display the sell value.
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new ItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
         () -> () -> new ItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
-          (buildingView) -> IColonyManager.getInstance().getCompatibilityManager().getCompostInputs()));
+          (buildingView) -> ItemValueRegistry.getSellableItems()));
     
     /**
      * Storage
