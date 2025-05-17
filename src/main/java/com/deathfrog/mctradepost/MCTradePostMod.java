@@ -182,7 +182,7 @@ public class MCTradePostMod
         // Derive the value of all items
         LOGGER.info("Server has started.");
         ItemValueRegistry.generateValues();
-        ItemValueRegistry.logValues();
+        // ItemValueRegistry.logValues();
     }
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID)

@@ -79,10 +79,11 @@ public class ItemValueRegistry
     private static int appraiseRecipeListForItem(Item item, RecipeManager recipeManager, Set<Recipe<?>> visited, Level level, int depth) {
         int value = 0;
         
-        //if ("minecraft:gold_ingot".equals(item.toString())) {
+        // Retaining this for investigation of non-intuitive value calculations.
+        if ("modname:item".equals(item.toString())) {
             MCTradePostMod.LOGGER.warn("At depth {}, Invoking tracking for item: {}", depth,item);
             startTracking = true;
-        //}
+        }
 
         if (startTracking) {
             MCTradePostMod.LOGGER.warn("At depth {}, start appraiseRecipeListForItem for item: {}", depth,item);
@@ -93,9 +94,15 @@ public class ItemValueRegistry
             value = getValue(item);
         } else {
             List<RecipeHolder<?>> recipes = recipeManager.getRecipes().stream()
-                .filter(r -> r.value().getResultItem(level.registryAccess()).getItem().equals(item))
-                .filter(r -> !(r.value() instanceof SmithingRecipe))
-                .filter(r -> !(r.value() instanceof BlastingRecipe))
+                // .filter(r -> r.value().getResultItem(level.registryAccess()).getItem().equals(item))
+                .filter(r -> {
+                    ItemStack result = r.value().getResultItem(level.registryAccess());
+                    return result != null && !result.isEmpty() && result.getItem().equals(item);
+                })
+                .filter(r -> (r.value().getType() == RecipeType.CRAFTING) 
+                    ||  (r.value().getType() == RecipeType.SMELTING) 
+                    ||  (r.value().getType() == RecipeType.CAMPFIRE_COOKING)
+                    ||  (r.value().getType() == RecipeType.STONECUTTING))
                 .collect(Collectors.toList());
 
             // If recipes exists to create this thing, appraise the value of the thing from the sum of its recipe parts.
@@ -138,7 +145,9 @@ public class ItemValueRegistry
         }  
 
         if (visited.contains(recipe)) {
-             MCTradePostMod.LOGGER.warn("Circular recipe dependency at Depth {}: recipe {}", depth, recipe);
+            if (startTracking) {
+                MCTradePostMod.LOGGER.warn("Circular recipe dependency at Depth {}: recipe {}", depth, recipe);
+            }
             total = 0;
             return total;   
         } else {
@@ -216,7 +225,7 @@ public class ItemValueRegistry
         int value = 0;
 
         switch(rarity) {
-            case COMMON -> value = 3;
+            case COMMON -> value = 1;
             case UNCOMMON -> value = 5;
             case RARE -> value = 8;
             case EPIC -> value = 13;
@@ -288,6 +297,8 @@ public class ItemValueRegistry
     /**
      * Loads the default item values from the item_values.json file in the resources directory.
      * These values are used to seed the item value registry.
+     * 
+     * File is created based on ATM10 recipe lists.
      */
     private static void loadInitialValuesFromJson() {
         try {
@@ -304,9 +315,9 @@ public class ItemValueRegistry
             for (Map.Entry<String, Integer> entry : jsonValues.entrySet()) {
                 ResourceLocation rl = ResourceLocation.tryParse(entry.getKey());
                 if (rl != null && BuiltInRegistries.ITEM.containsKey(rl)) {
-                    itemValues.put(BuiltInRegistries.ITEM.get(rl), entry.getValue());
+                    itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
                 } else {
-                    MCTradePostMod.LOGGER.warn("Invalid item or unknown key: {}", entry.getKey());
+                    // MCTradePostMod.LOGGER.warn("Invalid item or unknown key: {}", entry.getKey());
                 }
             }
         } catch (Exception e) {
@@ -315,6 +326,6 @@ public class ItemValueRegistry
         }
 
         MCTradePostMod.LOGGER.info("Item seed values loaded.");
-        logValues();
+        // logValues();
     }    
 } 

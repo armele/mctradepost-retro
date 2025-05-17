@@ -57,12 +57,13 @@ public class MCTPBuildingModules
       () -> EconModuleView::new);
 
     // TODO: Repair the setting label (possibly requiring a custom gui XML, which in turn requires a custom view and window class).
+    // TODO: The settings window will also be where spend takes place.
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
       new BuildingEntry.ModuleProducer<>("marketplace_settings",
         () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)),
         () -> SettingsModuleView::new);
 
-    // TODO: Customize the sellable item list to display the sell value.
+    // TODO: [Enhancement] Customize the sellable item list to display the sell value.
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new ItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
         () -> () -> new ItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
