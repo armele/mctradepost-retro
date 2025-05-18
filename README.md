@@ -1,5 +1,6 @@
 MC Trade Post
 =======
+
 **Description**
 
 This mod extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function.
@@ -20,6 +21,7 @@ Advanced Clipboard - Just like the regular clipboard but with a button that filt
 Marketplace Hut Block - Block implementation of the item above.
 
 =======
+
 **Compatibility Reference**
 
 mctradepost-0.0.4 -> MineColonies 1.1.950 (Minecraft 1.21.1)
@@ -32,6 +34,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 
 =======
+
 **Current Status**
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
@@ -53,6 +56,7 @@ Express shipping (intracolony and inter-colony) - faster item transport. Faster 
 Marketplace implementation for selling items.
 
 =======
+
 **Additional Resources**
 
 Community Documentation: https://docs.neoforged.net/  
