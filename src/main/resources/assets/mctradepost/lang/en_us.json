@@ -7,6 +7,7 @@
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
     "entity.shopkeeper.noitems": "The shopkeeper has no items to sell at the marketplace.",
     "entity.shopkeeper.brokenframe": "One of the shopkeeper's display frames is broken. Please repair the building.",
+    "entity.shopkeeper.noframes": "No display frames were found for the shopkeeper to use.",
     "com.mctradepost.gui.visiblestatus.shopkeeper": "Selling Items",
     "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
     "com.mctradepost.core.gui.modules.econ": "Economics",
@@ -17,6 +18,7 @@
     "com.mctradepost.core.gui.modules.econ.empty" : "No statistics available.",
     "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
     "com.mctradepost.coremod.gui.econ.cash.generated" : "Income",
-    "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items"
+    "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items",
+    "com.minecolonies.coremod.setting.marketplace_settings" : "Marketplace Settings"
 }
   

@@ -129,9 +129,12 @@ public class BuildingMarketplace extends AbstractBuilding
         if (displayShelfContents.containsKey(pos)) {
             List<ItemFrame> frames = colony.getWorld().getEntitiesOfClass(ItemFrame.class, new AABB(pos));
 
+            // If a new frame can be found at the expected position, use it.
             if (!frames.isEmpty()) {
                 displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
+            // Otherwise, issue a message about the missing frame.
             } else {
+                // TODO: Put some delay logic on the sending of this message so it isn't a constant spam.
                 displayShelfContents.put(pos, new DisplayCase(pos, null));
                 MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
                 MessageUtils.format("entity.shopkeeper.brokenframe").sendTo(getColony()).forAllPlayers();
@@ -165,6 +168,20 @@ public class BuildingMarketplace extends AbstractBuilding
         }
     }
 
+    /**
+     * Initialize the display shelf locations based on what is tagged in the structure.
+     * This makes the building look for the correct number of display shelves even if some are missing.
+     * That way a "repair" action will fix the problem.
+     */
+    public void identifyExpectedShelfPositions() {
+        // We want any tagged display locations nto be added into the displayShelfContents if not already there.
+        final List<BlockPos> shelfLocations = getLocationsFromTag("display_shelf");
+
+        for (BlockPos pos : shelfLocations)
+        {
+            displayShelfContents.putIfAbsent(pos, new DisplayCase(pos, null));
+        }
+    }
 
     /**
      * Deserializes the NBT data for the building, restoring its state from the provided CompoundTag.
@@ -178,20 +195,8 @@ public class BuildingMarketplace extends AbstractBuilding
     public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         super.deserializeNBT(provider, compound);
-        displayShelfContents.clear();
 
-        final List<BlockPos> shelfLocations = getLocationsFromTag("display_shelf");
-        MCTradePostMod.LOGGER.info("Shelf locations, as reported by structure tagging: {}", shelfLocations.size());
-
-        // Initialize the display shelf locations based on what is tagged in the structure.
-        // This makes the building look for the correct number of display shelves even if some are missing.
-        // That way a "repair" action will fix the problem.
-        for (BlockPos pos : shelfLocations)
-        {
-            displayShelfContents.put(pos, new DisplayCase(pos, null));
-        }
-
-        // Then fill in those locations with the saved items.
+        // Fill in display shelf locations with the saved items.
         ListTag shelfTagList = compound.getList(TAG_DISPLAYSHELVES, Tag.TAG_COMPOUND);
         for (int i = 0; i < shelfTagList.size(); ++i)
         {

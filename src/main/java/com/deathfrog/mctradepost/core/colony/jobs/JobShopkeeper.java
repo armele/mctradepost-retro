@@ -40,6 +40,11 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     @Override
     public ResourceLocation getModel()
     {
+        // TODO: Fix [17May2025 13:09:20.953] [Render thread/WARN] [net.minecraft.client.renderer.texture.TextureManager/]: Failed to load texture: mctradepost:textures/entity/citizen/default/shopkeepermale1_b.png
+        // java.io.FileNotFoundException: mctradepost:textures/entity/citizen/default/shopkeepermale1_b.png
+        // TODO: Fix [18May2025 08:30:35.970] [Render thread/WARN] [net.minecraft.client.renderer.texture.TextureManager/]: Failed to load texture: mctradepost:textures/entity/citizen/default/shopkeepermale1_w.png
+        // java.io.FileNotFoundException: mctradepost:textures/entity/citizen/default/shopkeepermale1_w.png
+        
         // MCTradePostMod.LOGGER.info("Getting JobShopkeeper model {}", ModModelTypes.SHOPKEEPER_MODEL_ID);
         // MCTradePostMod.LOGGER.warn("Model load trace", new Exception("Model trace"));
         return ModModelTypes.SHOPKEEPER_MODEL_ID;

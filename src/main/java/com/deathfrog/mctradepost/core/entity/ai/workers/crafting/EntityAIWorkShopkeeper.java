@@ -26,6 +26,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
+import java.util.Map;
+
 import com.minecolonies.api.util.InventoryUtils;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.minecolonies.api.util.constant.Constants.*;
@@ -37,7 +39,8 @@ import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STA
 
 
 /**
- * Handles the Marketplace.
+ * Handles the Shopkeeper AI.  The shopkeeper works in the Marketplace.
+ * 
  */
 public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeeper, BuildingMarketplace>
 {
@@ -86,6 +89,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private final static VisibleCitizenStatus SELLING =
       new VisibleCitizenStatus(ResourceLocation.parse(MCTradePostMod.MODID + ":textures/icons/work/shopkeeper.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
+
+    private final static VisibleCitizenStatus COMMUTING =
+      new VisibleCitizenStatus(ResourceLocation.parse(MCTradePostMod.MODID + ":textures/icons/work/shopkeeper_commute.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
 
     /**
      * Constructor for the AI
@@ -238,21 +244,33 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private IAIState decideWhatToDo()
     {
-        worker.getCitizenData().setVisibleStatus(VisibleCitizenStatus.WORKING);
+
+        worker.getCitizenData().setVisibleStatus(COMMUTING);
 
         if (!walkToBuilding())
         {
             setDelay(2);
             return getState();
         }
+        
+        worker.getCitizenData().setVisibleStatus(VisibleCitizenStatus.WORKING);
 
         final BuildingMarketplace building = this.building;
-        // Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
 
+        building.identifyExpectedShelfPositions();
+
+        Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
         // MCTradePostMod.LOGGER.info("Deciding what to do. Display shelves: {}", displayShelves.size());
 
+        if (displayShelves.isEmpty()) {
+            MCTradePostMod.LOGGER.warn("No display frames were found for the shopkeeper to use.");
+            MessageUtils.format("entity.shopkeeper.noframes").sendTo(building.getColony()).forAllPlayers();
+            setDelay(DECIDE_DELAY);
+            return PAUSED;
+        }
+
         // First pass: Find any empty item frame (considered available to fill)
-        for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
+        for (final BlockPos displayLocation : displayShelves.keySet())
         {
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
             final Level world = building.getColony().getWorld();
@@ -294,25 +312,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                         return CRAFT;
                     } else if (ticks >= 0) {
                         displayCase.setTickcount(ticks + 1);
-                    } else { // Something got put in the display frame but not by the builder.  Remove it!
-                        ItemStack frameItem = frame.getItem();
-                        if (!frameItem.isEmpty())
-                        {
-                            // Remove the item from the frame
-                            frame.setItem(ItemStack.EMPTY);
-
-                            // Attempt to insert into the worker's inventory
-                            ItemStack leftover = InventoryUtils.addItemStackToItemHandlerWithResult(worker.getInventoryCitizen(), frameItem);
-
-                            // If inventory is full and there are leftovers, drop it at the worker's feet
-                            if (!leftover.isEmpty()) {
-                                InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
-                            }
-
-                            MCTradePostMod.LOGGER.info("Shopkeeper removed unauthorized item {} from display at {}", frameItem, pos);
-
-                        }
-
+                    } else { 
+                        // We are going to rely on sellFromDisplay (from CRAFT state) to take the item out.
+                        this.currentTarget = pos;
+                        setDelay(DECIDE_DELAY);
+                        worker.getCitizenData().setVisibleStatus(SELLING);
+                        return CRAFT;
                     }
 
                 }
@@ -325,6 +330,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
     /**
      * The AI will now remove the item from the display stand that he found full on his building and "sell" it, adding experience and stats.
+     * Triggered from the CRAFT state.
      * @return the next IAIState after doing this
      */
     private IAIState sellFromDisplay()
@@ -338,16 +344,33 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             ItemStack item = frame.getItem();
             if (!item.isEmpty())
             {
-                // "Sell" the item — remove it from the frame
-                frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
-                sellItem(item);                         // Calculate the value of the item and credit it to the economic module and stats module.
+                final List<ItemStorage> list = building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
+
+                if (list.contains(new ItemStorage(item)))
+                {
+                    // "Sell" the item — remove it from the frame
+                    frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
+                    sellItem(item);                         // Calculate the value of the item and credit it to the economic module and stats module.
+
+                    // Add experience, stats, etc.
+                    worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+                    incrementActionsDoneAndDecSaturation();                    
+                } else {
+                    // Remove the invalid item from the frame
+                    frame.setItem(ItemStack.EMPTY);
+
+                    // Attempt to insert into the worker's inventory
+                    ItemStack leftover = InventoryUtils.addItemStackToItemHandlerWithResult(worker.getInventoryCitizen(), item);
+
+                    // If inventory is full and there are leftovers, drop it at the worker's feet
+                    if (!leftover.isEmpty()) {
+                        InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
+                    }
+
+                    MCTradePostMod.LOGGER.info("Shopkeeper removed unauthorized item {} from display at {}", item, currentTarget);
+                }
                 displayCase.setStack(ItemStack.EMPTY);  // Note that the display case is empty
                 displayCase.setTickcount(-1);           // Reset the timer.
-
-                // Add experience, stats, etc.
-                worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-                incrementActionsDoneAndDecSaturation();
-
             }
         }
 

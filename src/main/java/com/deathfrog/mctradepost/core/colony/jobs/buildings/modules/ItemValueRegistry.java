@@ -28,6 +28,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 public class ItemValueRegistry
 {
     private static final Map<Item, Integer> itemValues = new ConcurrentHashMap<>();
+
     private static boolean configured = false;
     private static boolean startTracking = false;
 
@@ -50,7 +51,6 @@ public class ItemValueRegistry
         Level level = server.overworld();
         RecipeManager recipeManager = level.getRecipeManager();
 
-        // TODO: Cut back on the logging once satisfied with the value system.
         for (Item item : BuiltInRegistries.ITEM)
         {
             if (itemValues.containsKey(item)) {
@@ -279,6 +279,24 @@ public class ItemValueRegistry
     }
 
     /**
+     * Retrieves a set of item keys representing sellable items.
+     * Logs an error message if the item values map is empty.
+     *
+     * @return a set of strings representing the keys of sellable items.
+     */
+    public static Set<String> getSellableItemKeys()
+    {
+        if (itemValues.isEmpty())
+        {
+            MCTradePostMod.LOGGER.error("getSellableItemKeys called when itemValues is empty");
+        }
+        return itemValues.entrySet().stream()
+            .filter(e -> e.getValue() > 0)
+            .map(e -> e.getKey().toString())
+            .collect(Collectors.toSet());
+    }
+
+    /**
      * Logs all known item values to the mod logger.
      */    
     public static void logValues() {
@@ -327,5 +345,10 @@ public class ItemValueRegistry
 
         MCTradePostMod.LOGGER.info("Item seed values loaded.");
         // logValues();
+    }
+
+    /* In theory this should only be called on the client side after deserializing... */
+    public static void deserializedSellableItem(String s, int value) {
+        itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(ResourceLocation.parse(s)), value);
     }    
 } 

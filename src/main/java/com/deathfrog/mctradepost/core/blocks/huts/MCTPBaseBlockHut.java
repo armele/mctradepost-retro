@@ -77,7 +77,7 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
         if (tileEntity != null) {
             MCTradePostMod.LOGGER.info("Placing hut of type {}", tileEntity.getClass().getName());
         } else {
-            MCTradePostMod.LOGGER.info("Attempting to place a null tile entity.");
+            MCTradePostMod.LOGGER.error("Attempting to place a null tile entity.");
         }
 
         if (tileEntity instanceof final MCTPTileEntityColonyBuilding hut)

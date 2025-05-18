@@ -83,6 +83,7 @@ public class WindowEconModule extends AbstractModuleWindow
      */
     private void updateStats()
     {
+        // TODO: Add current balance field.
         int itemCount = getStatFor(ITEM_SOLD, selectedInterval);
         final Text countLabel = findPaneOfTypeByID("itemcount", Text.class);
         countLabel.setText(Component.literal(itemCount + ""));   
