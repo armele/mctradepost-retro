@@ -1,5 +1,4 @@
-# MC Trade Post
-=======
+# MC Trade Post  
 
 ## Description
 
@@ -41,7 +40,7 @@ These frames should be mounted in empty (air) blocks tagged with the "display_sh
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
 ### Roadmap (Roughly Prioritized)
-
+External configurability
 Interface for spending earned income.  
 - Unlock subsequent levels of the merchant building  
 - Summon traders  

@@ -41,6 +41,9 @@ import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
+import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -348,7 +351,7 @@ public class MCTradePostMod
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
         
-    // TODO: Get the block hut registered with the JEI.
+
     public static MCTPBaseBlockHut blockHutMarketplace;
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
@@ -400,7 +403,12 @@ public class MCTradePostMod
         modEventBus.addListener(this::onLoadComplete);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        // TODO: Once working, refactor into server/client/common pattern.
+        MCTPConfig.register(modContainer);
+
+        // This will use NeoForge's ConfigurationScreen to display this mod's configs
+        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
@@ -424,7 +432,6 @@ public class MCTradePostMod
             event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
         }
 
-        // TODO: Test Marketplace from creative mode tab and JEI
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(MCTradePostMod.blockHutMarketplace);
         }        

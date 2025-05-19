@@ -19,6 +19,14 @@
     "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
     "com.mctradepost.coremod.gui.econ.cash.generated" : "Income",
     "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items",
-    "com.minecolonies.coremod.setting.marketplace_settings" : "Marketplace Settings"
+    "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Warehouse Minimum",
+    "mctradepost.configuration.marketplace": "Marketplace Settings",
+    "mctradepost.configuration.marketplaceLevel3.tooltip": "‡ Required to Unlock Marketplace Level 3",
+    "mctradepost.configuration.marketplaceLevel3": "Unlock Level 3",
+    "mctradepost.configuration.title": "MC Trade Post Settings",
+    "mctradepost.configuration.section.mctradepost.common.toml": "mctradepost.toml",
+    "mctradepost.configuration.section.mctradepost.common.toml.title": "TOML TITLE PLACEHOLDER",
+    "mctradepost.configuration.marketplace.button": "BUTTON PLACEHOLDER",
+    "mctradepost.configuration.marketplace.tooltip": "TOOLTIP PLACEHOLDER"
 }
   

@@ -56,7 +56,7 @@ public class MCTPBuildingModules
       "econ_module", BuildingEconModule::new,
       () -> EconModuleView::new);
 
-    // TODO: Repair the setting label (possibly requiring a custom gui XML, which in turn requires a custom view and window class).
+    // TODO: TEST: Repair the setting label
     // TODO: The settings window will also be where spend takes place.
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
       new BuildingEntry.ModuleProducer<>("marketplace_settings",

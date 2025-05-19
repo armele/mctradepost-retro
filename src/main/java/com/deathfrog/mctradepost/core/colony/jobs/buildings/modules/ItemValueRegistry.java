@@ -64,6 +64,8 @@ public class ItemValueRegistry
 
             startTracking = false;
         }
+
+        MCTradePostMod.LOGGER.info("Finished configuring theItemValueRegistry.");
     }
 
     /**
