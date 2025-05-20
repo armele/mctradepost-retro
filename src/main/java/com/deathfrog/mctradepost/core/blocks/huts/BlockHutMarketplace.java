@@ -4,6 +4,7 @@ package com.deathfrog.mctradepost.core.blocks.huts;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 
+
 public class BlockHutMarketplace extends MCTPBaseBlockHut {
     public BlockHutMarketplace() {
         super();

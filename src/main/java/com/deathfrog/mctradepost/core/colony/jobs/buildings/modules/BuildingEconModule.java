@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
 
 
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
@@ -71,5 +72,14 @@ public class BuildingEconModule extends AbstractBuildingModule implements IPersi
         {
             markDirty();
         }
+    }
+
+    /**
+     * Returns the total balance for the building.
+     * @return the total balance.
+     */
+    public int getTotalBalance()
+    {
+        return statisticsManager.getStatTotal(WindowEconModule.CURRENT_BALANCE);
     }
 }

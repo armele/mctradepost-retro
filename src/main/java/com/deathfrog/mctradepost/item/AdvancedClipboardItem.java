@@ -2,14 +2,20 @@ package com.deathfrog.mctradepost.item;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
 import com.minecolonies.api.colony.IColonyView;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.items.component.ColonyId;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.core.items.ItemClipboard;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -19,6 +25,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
 
@@ -58,25 +65,42 @@ public class AdvancedClipboardItem extends ItemClipboard {
     @NotNull
     public InteractionResult useOn(final UseOnContext ctx)
     {
-        @SuppressWarnings("null")
-        final ItemStack clipboard = ctx.getPlayer().getItemInHand(ctx.getHand());
+        Player player = ctx.getPlayer();
 
+        if (player == null) {
+            MCTradePostMod.LOGGER.error("Player is null while attempting to use the AdvancedClipboardItem.");
+            return InteractionResult.PASS;
+        }
+
+        final ItemStack clipboard = player.getItemInHand(ctx.getHand());
         final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());
 
-        if (entity instanceof TileEntityColonyBuilding buildingEntity)
-        {
-            buildingEntity.writeColonyToItemStack(clipboard);
 
-            if (!ctx.getLevel().isClientSide)
-            {
-                MessageUtils.format(COM_MINECOLONIES_CLIPBOARD_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
+        if (entity != null && entity instanceof TileEntityColonyBuilding buildingEntity)
+        {
+            IBuilding building = buildingEntity.getBuilding(); 
+            final int mintingLevel = MCTPConfig.mintingLevel.get();
+            
+            if (building instanceof BuildingMarketplace marketplace && marketplace.getBuildingLevel() >= mintingLevel) {
+                ItemStack coins = marketplace.mintCoins(player, 1);
+                if (!coins.isEmpty()) {
+                    player.addItem(coins);
+                    return InteractionResult.SUCCESS;
+                }                
+            } else {
+                buildingEntity.writeColonyToItemStack(clipboard);
+
+                if (!ctx.getLevel().isClientSide)
+                {
+                    MessageUtils.format(COM_MINECOLONIES_CLIPBOARD_COLONY_SET, buildingEntity.getColony().getName()).sendTo(ctx.getPlayer());
+                }
             }
         }
         else if (ctx.getLevel().isClientSide)
         {
             openWindow(clipboard, ctx.getLevel(), ctx.getPlayer());
         }
-
+    
         return InteractionResult.SUCCESS;
     }
 

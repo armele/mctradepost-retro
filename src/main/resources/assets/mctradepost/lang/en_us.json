@@ -17,16 +17,21 @@
     "com.mctradepost.coremod.gui.interval.alltime": "All Time",
     "com.mctradepost.core.gui.modules.econ.empty" : "No statistics available.",
     "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
+    "com.mctradepost.coremod.gui.econ.currentbalance" : "Curr. Balance",
     "com.mctradepost.coremod.gui.econ.cash.generated" : "Income",
     "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items",
     "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Warehouse Minimum",
     "mctradepost.configuration.marketplace": "Marketplace Settings",
-    "mctradepost.configuration.marketplaceLevel3.tooltip": "‡ Required to Unlock Marketplace Level 3",
-    "mctradepost.configuration.marketplaceLevel3": "Unlock Level 3",
+    "mctradepost.configuration.tradeCoinValue.tooltip": "What is the value of a single trade coin?",
+    "mctradepost.configuration.tradeCoinValue": "Value of a Trade Coin (‡)",
+    "mctradepost.configuration.mintingLevel.tooltip": "At what level can the marketplace begin minting coins?",
+    "mctradepost.configuration.mintingLevel": "Marketplace Mint Level",
     "mctradepost.configuration.title": "MC Trade Post Settings",
     "mctradepost.configuration.section.mctradepost.common.toml": "mctradepost.toml",
-    "mctradepost.configuration.section.mctradepost.common.toml.title": "TOML TITLE PLACEHOLDER",
-    "mctradepost.configuration.marketplace.button": "BUTTON PLACEHOLDER",
-    "mctradepost.configuration.marketplace.tooltip": "TOOLTIP PLACEHOLDER"
+    "mctradepost.configuration.section.mctradepost.common.toml.title": "MC Trade Post Configuration",
+    "mctradepost.configuration.marketplace.button": "Edit...",
+    "mctradepost.configuration.marketplace.tooltip": "Edit settings for the Marketplace Hut and it's Economic Features.",
+    "item.mctradepost.mctp_coin": "Trade Coin (‡)",
+    "mctradepost.marketplace.nsf": "Not enough funds to mint coins."
 }
   

@@ -62,6 +62,7 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
      * @param style   the style of the building
      */
 
+    @SuppressWarnings("null")
     public void onBlockPlacedByBuildTool(
       @NotNull final Level worldIn,
       @NotNull final BlockPos pos,

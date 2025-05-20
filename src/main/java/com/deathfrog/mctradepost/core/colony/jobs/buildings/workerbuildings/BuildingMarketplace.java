@@ -11,7 +11,6 @@ import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -20,6 +19,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,6 +29,9 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.BuildingEconModule;
+import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -135,7 +138,7 @@ public class BuildingMarketplace extends AbstractBuilding
                 displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
             // Otherwise, issue a message about the missing frame.
             } else {
-                // TODO: Put some delay logic on the sending of this message so it isn't a constant spam.
+                // TODO: [Enhancement] Put some delay logic on the sending of this message so it isn't a constant spam.
                 displayShelfContents.put(pos, new DisplayCase(pos, null));
                 MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
                 MessageUtils.format("entity.shopkeeper.brokenframe").sendTo(getColony()).forAllPlayers();
@@ -210,6 +213,56 @@ public class BuildingMarketplace extends AbstractBuilding
     }
 
     /**
+     * Mints a given number of trade coins, removing the corresponding amount of value from the building's economy.
+     * @param player the player using the minting function (not used, but required for later potential functionality)
+     * @param coinsToMint the number of coins to mint
+     * @return a stack of the minted coins
+     */
+    public ItemStack mintCoins(Player player, int coinsToMint) {
+        int coinValue = MCTPConfig.tradeCoinValue.get();
+        ItemStack coinStack = ItemStack.EMPTY;
+
+        if (coinsToMint > 0) {
+            int valueToRemove = coinsToMint * coinValue;
+
+            BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
+            if (valueToRemove < econ.getTotalBalance()) {
+                coinStack = new ItemStack(MCTradePostMod.MCTP_COIN.get(), coinsToMint);
+                econ.incrementBy(WindowEconModule.CURRENT_BALANCE, -valueToRemove);
+                econ.markDirty();
+            } else {
+                MessageUtils.format("mctradepost.marketplace.nsf").sendTo(player);
+            }
+        }
+
+        return coinStack;
+    }      
+
+
+    /**
+     * Deposits a given stack of trade coins into the building's economy, adding the corresponding amount of value to the economy.
+     * @param player the player using the depositing function (not used, but required for later potential functionality)
+     * @param coinsToDeposit the stack of coins to deposit
+     */
+    public void depositCoins(Player player, ItemStack coinsToDeposit) {
+        int coinValue = MCTPConfig.tradeCoinValue.get();
+
+        if (coinsToDeposit.getCount() > 0) {
+            int valueToAdd = coinsToDeposit.getCount() * coinValue;
+
+            BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
+
+            econ.incrementBy(WindowEconModule.CURRENT_BALANCE, valueToAdd);
+            econ.markDirty();
+
+            // Now remove the coins from the player's inventory
+            coinsToDeposit.setCount(0);
+            player.getInventory().setChanged();
+        }
+    }     
+
+
+    /**
      * Serializes the NBT data for the building, including the display shelf contents.
      * The display shelf contents are stored in a list of CompoundTags, where each CompoundTag
      * contains the BlockPos of the display shelf and the ItemStack of the item in that shelf.
@@ -231,6 +284,7 @@ public class BuildingMarketplace extends AbstractBuilding
         compound.put(TAG_DISPLAYSHELVES, shelfTagList);
         return compound;
     }
+
 
     public static class CraftingModule extends AbstractCraftingBuildingModule.Crafting
     {

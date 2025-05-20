@@ -13,9 +13,11 @@
             <button id="button" size="129 17" pos="0 0" source="mctradepost:textures/gui/builderhut/builder_button_medium_large.png" color="black"
                          label="$(com.mctradepost.coremod.gui.interval.yesterday)"/>
         </dropdown>
-        <text size="70 11" pos="20 55" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
-        <text size="60 11" pos="90 55" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
+        <text size="70 11" pos="20 55" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.currentbalance)"/>
+        <text size="60 11" pos="90 55" textalign="MIDDLE_RIGHT" color="black" id="currentbalance"/>
         <text size="70 11" pos="20 70" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.cash.generated)"/>
         <text size="60 11" pos="90 70" textalign="MIDDLE_RIGHT" color="black" id="totalcash"/>
+        <text size="70 11" pos="20 85" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
+        <text size="60 11" pos="90 85" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
     </view>
 </window>

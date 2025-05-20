@@ -170,7 +170,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
-        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue);
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue);    // Cash generated (over all time)
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue);   // Current balance (decremented when coins are minted)
     }
 
     /**

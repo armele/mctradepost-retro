@@ -34,7 +34,9 @@ public class WindowEconModule extends AbstractModuleWindow
 
     public static final String ITEM_SOLD = "item.sold";
     public static final String CASH_GENERATED = "cash.generated";
+    public static final String CURRENT_BALANCE = "current.balance";
     public static final String PARTIAL_ECON_MODIFIER_NAME = "com.mctradepost.coremod.gui.econ.";
+
     /**
      * Util tags.
      */
@@ -83,15 +85,20 @@ public class WindowEconModule extends AbstractModuleWindow
      */
     private void updateStats()
     {
-        // TODO: Add current balance field.
+
+        int currentBalance = getStatFor(CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
+        final Text balanceLabel = findPaneOfTypeByID("currentbalance", Text.class);
+        NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
+        String formattedSales = "‡" + formatter.format(currentBalance);        
+        balanceLabel.setText(Component.literal(formattedSales));  
+
         int itemCount = getStatFor(ITEM_SOLD, selectedInterval);
         final Text countLabel = findPaneOfTypeByID("itemcount", Text.class);
         countLabel.setText(Component.literal(itemCount + ""));   
 
         int cashGenerated = getStatFor(CASH_GENERATED, selectedInterval);
         final Text cashLabel = findPaneOfTypeByID("totalcash", Text.class);
-        NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
-        String formattedSales = "‡" + formatter.format(cashGenerated);        
+        formattedSales = "‡" + formatter.format(cashGenerated);        
         cashLabel.setText(Component.literal(formattedSales));  
 
         MCTradePostMod.LOGGER.info("Stats: {} items sold, {} cash generated (formatted as {})", itemCount, cashGenerated, formattedSales);

@@ -4,7 +4,7 @@
 
 This mod extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function.
 
-MC Trade Post introduces an economic system which allows the selling of excess items for Minecash (‡). These accounts can be used for a variety of purposes, such as bribing raiders to leave the town alone, and unlocking additional upgrades and features.  
+MC Trade Post introduces an economic system which allows the selling of excess items for Trade Coins (‡). These coins can be used for a variety of purposes, such as bribing raiders to leave the town alone, unlocking vacations and resorts at which your colonists can improve stats and get happier, and other additional upgrades and features.
 
 ### In-Game How-To
 
@@ -14,10 +14,15 @@ Craft a Marketplace hut. Using the build tool, choose the "Economics" style from
 
 Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.  
 Advanced Clipboard - Just like the regular clipboard but with a button that filters the outstanding needs down to only those expected to be fulfilled by a player.  
+Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut. The hut must be upgraded, first! Trade Coins will (eventually) be used as the basis for triggering most Trade Post mod features.
 
 ### Custom Blocks
 
 Marketplace Hut Block - Block implementation of the item above.  
+
+### Configuration
+The value of a Trade Coin can be configured.
+The level of the marketplace required to mint coins can be configured.
 
 ## Installation
 
@@ -27,7 +32,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 ### Compatibility Reference
 
-mctradepost-0.0.4 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
+mctradepost-0.1.003 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
 
 ## Building Design Reference
 ### Marketplace
@@ -40,7 +45,7 @@ These frames should be mounted in empty (air) blocks tagged with the "display_sh
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
 ### Roadmap (Roughly Prioritized)
-External configurability
+
 Interface for spending earned income.  
 - Unlock subsequent levels of the merchant building  
 - Summon traders  
@@ -55,7 +60,7 @@ Express shipping (intracolony and inter-colony) - faster item transport. Faster 
 ### Complete
 
 Marketplace implementation for selling items.  
-
+Ability to turn income into coin items (and vice-versa).
 
 ## Additional Resources
 

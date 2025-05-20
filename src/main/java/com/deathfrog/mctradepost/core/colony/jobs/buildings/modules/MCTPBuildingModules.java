@@ -56,8 +56,8 @@ public class MCTPBuildingModules
       "econ_module", BuildingEconModule::new,
       () -> EconModuleView::new);
 
-    // TODO: TEST: Repair the setting label
-    // TODO: The settings window will also be where spend takes place.
+
+    // TODO: Make marketplace level 3 upgrade conditional (see Minecolonies research datapack tutorial).
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
       new BuildingEntry.ModuleProducer<>("marketplace_settings",
         () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)),

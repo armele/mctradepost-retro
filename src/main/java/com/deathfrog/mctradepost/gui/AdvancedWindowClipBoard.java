@@ -12,7 +12,6 @@ import com.minecolonies.api.colony.requestsystem.resolver.retrying.IRetryingRequ
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.core.client.gui.AbstractWindowRequestTree;
 import com.minecolonies.core.network.messages.server.colony.UpdateRequestStateMessage;
-import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
@@ -76,18 +75,6 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
     {
         this.playerOnly = !this.playerOnly;
         MCTradePostMod.LOGGER.info("Player Only filter set to: " + this.playerOnly);
-
-        try{      
-            // TODO: Remove when testing complete.
-            if (MCTPConfig.SPEC.isLoaded()) {
-                MCTradePostMod.LOGGER.info("Confirmed SPEC is loaded.");
-                MCTradePostMod.LOGGER.info("Configured value for marketplaceLevel3 is: ", MCTPConfig.marketplaceLevel3.get());
-            } else {
-                MCTradePostMod.LOGGER.info("SPEC is not loaded.");   
-            }
-        } catch (Exception e) {
-            MCTradePostMod.LOGGER.error("Error getting config value for itemCost", e);
-        }
     }
 
     /**

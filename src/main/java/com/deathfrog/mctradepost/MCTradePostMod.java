@@ -15,6 +15,8 @@ import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ClientRegistryHandler;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
+import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.minecolonies.api.blocks.ModBlocks;
 import com.mojang.logging.LogUtils;
@@ -28,6 +30,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -36,14 +39,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -351,6 +352,8 @@ public class MCTradePostMod
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
         
+    public static final DeferredItem<CoinItem> MCTP_COIN = ITEMS.register("mctp_coin", 
+        () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
     public static MCTPBaseBlockHut blockHutMarketplace;
 
@@ -403,7 +406,6 @@ public class MCTradePostMod
         modEventBus.addListener(this::onLoadComplete);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
-        // TODO: Once working, refactor into server/client/common pattern.
         MCTPConfig.register(modContainer);
 
         // This will use NeoForge's ConfigurationScreen to display this mod's configs
@@ -444,11 +446,19 @@ public class MCTradePostMod
     @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
     public class NetworkHandler {
 
+        /**
+         * Handles the registration of network payload handlers for the mod.
+         * This method is invoked when the RegisterPayloadHandlersEvent is fired,
+         * allowing the mod to set up its network communication protocols.
+         *
+         * @param event The event that provides the registrar for registering payload handlers.
+         */
         @SubscribeEvent
         public static void onNetworkRegistry(final RegisterPayloadHandlersEvent event) {
             // Sets the current network version
             final PayloadRegistrar registrar = event.registrar("1");
 
+            // Register the payload handler for the ItemValuePacket - used to update the client with the list (and value) of sellable items.
             registrar.playBidirectional(
                 ItemValuePacket.TYPE,
                 ItemValuePacket.STREAM_CODEC,
@@ -457,41 +467,17 @@ public class MCTradePostMod
                     ItemValuePacket::handleDataInServerOnMain
                 )
             );        
+
+            // Register the payload handler for the ConfigurationPacket - used to update the client with configurations they need to be aware of.
+            registrar.playBidirectional(
+                ConfigurationPacket.TYPE,
+                ConfigurationPacket.STREAM_CODEC,
+                new DirectionalPayloadHandler<>(
+                    ConfigurationPacket::handleDataInClientOnMain,
+                    ConfigurationPacket::handleDataInServerOnMain
+                )
+            );              
         }
-
-        /**
-         * This event fires on server-side both at initial world load and whenever a new player
-         * joins the server (with getPlayer() != null), and also on datapack reload (with null).
-         * Note that at this point the client has not yet received the recipes/tags.
-         *
-         * @param event {@link net.neoforged.neoforge.event.OnDatapackSyncEvent}
-         *   
-        @SubscribeEvent(priority = EventPriority.LOWEST)
-        public static void onDataPackSync(final OnDatapackSyncEvent event)
-        {
-            final MinecraftServer server = event.getPlayerList().getServer();
-            final GameProfile owner = server.getSingleplayerProfile();
-
-            if (event.getPlayer() == null)
-            {
-                // for a reload event, we also want to rebuild various lists (mirroring FMLServerStartedEvent)
-                ItemValueRegistry.generateValues();
-
-                // and then finally update every player with the results
-                for (final ServerPlayer player : event.getPlayerList().getPlayers())
-                {
-                    if (player.getGameProfile() != owner)   // don't need to send them in SP, or LAN owner
-                    {
-                        ItemValuePacket.sendPacketsToPlayer(player);
-                    }
-                }
-            }
-            else if (event.getPlayer().getGameProfile() != owner)
-            {
-                ItemValuePacket.sendPacketsToPlayer(event.getPlayer());
-            }
-        }       
-        */
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)
         public class ServerLoginHandler {
@@ -501,6 +487,7 @@ public class MCTradePostMod
                 if (event.getEntity() instanceof ServerPlayer player) {
                     MCTradePostMod.LOGGER.debug("Synchronizing information to new player: {} ", player);
                     ItemValuePacket.sendPacketsToPlayer(player);
+                    ConfigurationPacket.sendPacketsToPlayer(player);
                 }
             }
         }
