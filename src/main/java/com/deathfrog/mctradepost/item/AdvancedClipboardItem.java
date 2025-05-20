@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
 import com.minecolonies.api.colony.IColonyView;
@@ -15,7 +14,6 @@ import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.core.items.ItemClipboard;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -25,8 +23,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
 
 public class AdvancedClipboardItem extends ItemClipboard {

@@ -32,6 +32,9 @@
     "mctradepost.configuration.marketplace.button": "Edit...",
     "mctradepost.configuration.marketplace.tooltip": "Edit settings for the Marketplace Hut and it's Economic Features.",
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
-    "mctradepost.marketplace.nsf": "Not enough funds to mint coins."
+    "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
+    "com.mctradepost.research.effects.blockhutmarketplace2.description": "Allows the upgrade of the Marketplace Hut to Level 2.",
+    "com.mctradepost.research.effects.blockhutmarketplace3.description": "Allows the upgrade of the Marketplace Hut to Level 3.",
+    "com.mctradepost.research.effects.blockhutmarketplace5.description": "Allows the upgrade of the Marketplace Hut to Level 5."
 }
   

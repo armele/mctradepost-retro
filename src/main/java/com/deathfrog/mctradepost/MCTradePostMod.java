@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost;
 
+import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.sounds.ModSoundEvents;
@@ -26,12 +28,16 @@ import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
@@ -53,11 +59,14 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
+import com.deathfrog.mctradepost.core.entity.CoinEntity;
 /*
  */
+import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 
 // TODO: To register a sound in Minecraft, you'll need to add a sound event to the game's sounds.json file. You can do this by adding your custom sound events within the assets/minecraft/sounds.json file of your resource pack or mod. You'll also need to place the audio file (usually in .ogg format) in the correct directory (e.g., resources/assets/mod-id/sounds). 
 /* MISSING SOUNDS:
@@ -348,11 +357,24 @@ public class MCTradePostMod
 
     // Create a Deferred Register to hold Items which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
+    
+    // Create a Deferred Register to hold Entities which will all be registered under the "mctradepost" namespace
+    public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
 
+    
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE =
+            ENTITIES.register("coin_entity", () ->
+                EntityType.Builder.<CoinEntity>of(CoinEntity::new, MobCategory.MISC)
+                    .sized(0.25f, 0.25f)    // Size of the entity (like an ItemEntity)
+                    .clientTrackingRange(8) // Reasonable for item-like entities
+                    .updateInterval(10)     // Sync rate
+                    .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "coin_entity").toString())
+            );
         
-    public static final DeferredItem<CoinItem> MCTP_COIN = ITEMS.register("mctp_coin", 
+    public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
     public static MCTPBaseBlockHut blockHutMarketplace;
@@ -360,14 +382,6 @@ public class MCTradePostMod
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
-    // Creates a new Block with the id "examplemod:example_block", combining the namespace and path
-    // public static final DeferredBlock<Block> EXAMPLE_BLOCK = BLOCKS.registerSimpleBlock("example_block", BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
-    
-    // Creates a new BlockItem with the id "examplemod:example_block", combining the namespace and path
-    // public static final DeferredItem<BlockItem> EXAMPLE_BLOCK_ITEM = ITEMS.registerSimpleBlockItem("example_block", EXAMPLE_BLOCK);
-
-    // Creates a new food item with the id "examplemod:example_id", nutrition 1 and saturation 2
-    // public static final DeferredItem<Item> EXAMPLE_ITEM = ITEMS.registerSimpleItem("example_item", new Item.Properties().food(new FoodProperties.Builder().alwaysEdible().nutrition(1).saturationModifier(2f).build()));
 
     // Creates a creative tab with the id "examplemod:example_tab" for the example item, that is placed after the combat tab
     /* 
@@ -389,8 +403,13 @@ public class MCTradePostMod
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
+        
         // Register the Deferred Register to the mod event bus so items get registered
         ITEMS.register(modEventBus);
+       
+        // Register the Deferred Register to the mod event bus so entities get registered
+        ENTITIES.register(modEventBus);
+        
         // Register the Deferred Register to the mod event bus so tabs get registered
         CREATIVE_MODE_TABS.register(modEventBus);
 
@@ -533,6 +552,12 @@ public class MCTradePostMod
             MCTradePostMod.LOGGER.info("Registering layer definitions.");
             event.registerLayerDefinition(ClientRegistryHandler.MALE_SHOPKEEPER, MaleShopkeeperModel::createMesh);
             event.registerLayerDefinition(ClientRegistryHandler.FEMALE_SHOPKEEPER, FemaleShopkeeperModel::createMesh);
+        }
+
+        @OnlyIn(Dist.CLIENT)
+        @SubscribeEvent
+        public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
         }
 
         @SubscribeEvent

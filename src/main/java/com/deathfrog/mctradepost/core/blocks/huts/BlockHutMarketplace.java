@@ -20,4 +20,8 @@ public class BlockHutMarketplace extends MCTPBaseBlockHut {
         return ModBuildings.marketplace.get();
     }
 
+    public void handleRitual() {
+        
+    }
+
 }

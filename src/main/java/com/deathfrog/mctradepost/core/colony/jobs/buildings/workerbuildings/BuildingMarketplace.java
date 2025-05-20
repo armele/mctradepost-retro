@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings;
 
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IGenericRecipe;
@@ -32,10 +33,12 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.event.wishingwell.RitualData;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +51,7 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
+    protected RitualData ritualData = new RitualData();
 
     public BuildingMarketplace(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
@@ -107,6 +111,14 @@ public class BuildingMarketplace extends AbstractBuilding
     public int getMaxBuildingLevel()
     {
         return CONST_DEFAULT_MAX_BUILDING_LEVEL;
+    }
+
+    /**
+     * Gets the ritual data for this marketplace, which tracks the state of wishing wells within the colony.
+     * @return the ritual data for this marketplace.
+     */
+    public RitualData getRitualData() {
+        return ritualData;
     }
 
     @Override
@@ -209,6 +221,8 @@ public class BuildingMarketplace extends AbstractBuilding
             displayShelfContents.put(contents.getPos(), contents);
         }
 
+        ritualData.deserializeNBT(provider, compound);
+
         syncDisplayFramesWithSavedItems();
     }
 
@@ -227,7 +241,7 @@ public class BuildingMarketplace extends AbstractBuilding
 
             BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
             if (valueToRemove < econ.getTotalBalance()) {
-                coinStack = new ItemStack(MCTradePostMod.MCTP_COIN.get(), coinsToMint);
+                coinStack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), coinsToMint);
                 econ.incrementBy(WindowEconModule.CURRENT_BALANCE, -valueToRemove);
                 econ.markDirty();
             } else {
@@ -261,6 +275,33 @@ public class BuildingMarketplace extends AbstractBuilding
         }
     }     
 
+    /**
+     * Finds the nearest BuildingMarketplace to the given BlockPos in the given Level,
+     * assuming BlockPos is located inside a colony.
+     * 
+     * @param level the level to search in
+     * @param pos the BlockPos to search near
+     * @return the nearest BuildingMarketplace, or null if none is found
+     */
+    public static BuildingMarketplace getMarketplaceFromPos(Level level, BlockPos pos) {
+        // Check if inside a MineColonies colony
+        BuildingMarketplace closestMarketplace = null;
+        IColonyManager colonyManager = IColonyManager.getInstance();
+        IColony colony = colonyManager.getColonyByPosFromWorld(level, pos);
+        
+        if (colony != null) {
+            // Find the nearest BuildingMarketplace
+            closestMarketplace = colony.getBuildingManager()
+                .getBuildings()
+                .values()
+                .stream()
+                .filter(b -> b instanceof BuildingMarketplace)
+                .map(b -> (BuildingMarketplace) b)
+                .min(Comparator.comparingDouble(market -> market.getPosition().distSqr(pos)))
+                .orElse(null);
+        }
+        return closestMarketplace;
+    }
 
     /**
      * Serializes the NBT data for the building, including the display shelf contents.
@@ -282,6 +323,9 @@ public class BuildingMarketplace extends AbstractBuilding
         }
 
         compound.put(TAG_DISPLAYSHELVES, shelfTagList);
+
+        ritualData.serializeNBT(provider);
+
         return compound;
     }
 
