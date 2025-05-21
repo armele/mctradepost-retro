@@ -17,7 +17,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
-public class RitualData implements INBTSerializable<CompoundTag> {
+public class WellLocations implements INBTSerializable<CompoundTag> {
     private final Map<BlockPos, WishingWellHandler.RitualState> activeRituals = new HashMap<>();
     private final Set<BlockPos> knownWells = new HashSet<>();
 

@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:rotten_flesh",
+  "effect_type": "slay",
+  "target" : "minecraft:zombie",
+  "radius": 100,
+  "coin_cost": 1
+}

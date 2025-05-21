@@ -27,6 +27,12 @@ repositories {
         name 'LDTTeam - Modding'
         url 'https://ldtteam.jfrog.io/ldtteam/modding/'
     } 
+    maven {
+        // location of the maven that hosts JEI files since January 2023
+        name = "Jared's maven"
+        url = "https://maven.blamejared.com/"
+
+    }
 }
 
 base {
@@ -132,6 +138,14 @@ dependencies {
     compileOnly name: 'domum-ornamentum-1.0.213-snapshot-main'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/domum-ornamentum-1.0.213-snapshot-maint')    
 
+    // compileOnly name: 'jei-1.21.1-neoforge-19.21.1.304'  // use the actual filename without .jar
+    // localRuntime files('../Minecolonies/build/libs/jei-1.21.1-neoforge-19.21.1.304')    
+    // JEI for compile-time access (does not bundle)
+    compileOnly("mezz.jei:jei-1.21.1-neoforge-api:19.21.1.304")
+    compileOnly("mezz.jei:jei-1.21.1-neoforge:19.21.1.304")
+
+    // Optional: Add runtime for dev env only
+    runtimeOnly("mezz.jei:jei-1.21.1-neoforge:19.21.1.304")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

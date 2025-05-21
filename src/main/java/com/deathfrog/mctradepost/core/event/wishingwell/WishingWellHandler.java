@@ -3,6 +3,9 @@ package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -10,16 +13,17 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -85,7 +89,7 @@ public class WishingWellHandler {
      * @param marketplace The marketplace building containing the wishing wells.
      */
     protected static void processMarketplaceRituals(ServerLevel level, BuildingMarketplace marketplace) {
-        RitualData data = marketplace.getRitualData();
+        WellLocations data = marketplace.getRitualData();
         Set<BlockPos> wells = data.getKnownWells();
         Map<BlockPos, RitualState> rituals = data.getActiveRituals();
 
@@ -102,21 +106,21 @@ public class WishingWellHandler {
                     .collect(Collectors.toList());
 
             if (!coinItems.isEmpty() && !companionItems.isEmpty()) {
-                ItemEntity coin = coinItems.get(0);
+                // ItemEntity coin = coinItems.get(0);
                 ItemEntity companion = companionItems.get(0);
 
                 Item companionItem = companion.getItem().getItem();
                 BlockPos center = pos.immutable();
 
-                triggerEffect(level, center, companionItem);
-
                 RitualState state = rituals.computeIfAbsent(center, k -> new RitualState());
-                state.coins += coin.getItem().getCount();
+                state.coins = coinItems.stream().mapToInt(e -> e.getItem().getCount()).sum();
                 state.lastUsed = System.currentTimeMillis();
 
-                coin.discard();
-                companion.discard();
-                rituals.remove(pos);
+                if (triggerEffect(level, state, center, companionItem)) {
+                    coinItems.stream().forEach(e -> e.discard());
+                    companion.discard();
+                    rituals.remove(pos);                    
+                }
 
                 MCTradePostMod.LOGGER.info("Wishing well activated at {} with companion item {}", center, companionItem);
             }
@@ -149,6 +153,15 @@ public class WishingWellHandler {
     public static void registerWell(BuildingMarketplace marketplace, BlockPos pos) {
         Set<BlockPos> wells = marketplace.getRitualData().getKnownWells();
         wells.add(pos);
+
+        ServerLevel level = (ServerLevel) marketplace.getColony().getWorld();
+
+        // Additional particles and sound
+        level.sendParticles(ParticleTypes.GLOW,
+            pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
+            20, 0.5, 0.5, 0.5, 0.1);
+        level.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0f, 1.0f);
+
         MCTradePostMod.LOGGER.info("Registered wishing well at {}", pos);
     }
 
@@ -165,7 +178,7 @@ public class WishingWellHandler {
             wells.remove(pos);
             MCTradePostMod.LOGGER.info("Removed invalid wishing well at {}", pos);
         } else {
-            MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
+            // MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
         }
     }
 
@@ -213,7 +226,7 @@ public class WishingWellHandler {
                 BlockState state = level.getBlockState(base);
 
                 if (!(state.getBlock() instanceof LiquidBlock) || !state.getFluidState().is(FluidTags.WATER)) {
-                    MCTradePostMod.LOGGER.info("This is not water at {} during well structure identification.", base);
+                    // MCTradePostMod.LOGGER.info("This is not water at {} during well structure identification.", base);
                     return false;
                 }
             }
@@ -225,7 +238,7 @@ public class WishingWellHandler {
                 if (dx >= -1 && dx <= 0 && dz >= -1 && dz <= 0) continue; // Skip 2x2 center
                 BlockPos ring = center.offset(dx, 0, dz);
                 if (!level.getBlockState(ring).is(Blocks.STONE_BRICKS)) {
-                    MCTradePostMod.LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
+                    // MCTradePostMod.LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
                     return false;
                 }
             }
@@ -234,7 +247,45 @@ public class WishingWellHandler {
         return true;
     }
 
-    // TODO: Refactor as a datapack-configurable structure.
+
+    /**
+     * Process a ritual slay effect at the given BlockPos within the ServerLevel.
+     * This will remove all entities of the specified type within the given radius.
+     * @param level the ServerLevel to process the ritual in
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the target entity type and radius
+     * 
+     * @return true if the ritual was triggered, false otherwise
+     */
+    private static boolean processRitualSlay(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {    
+
+        EntityType<?> entityType = ritual.getEntityType();
+        // MCTradePostMod.LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
+
+        if (entityType == null) {
+            return false;
+        }
+
+        List<? extends Entity> targets = null;
+        Double radius = (double) ritual.radius();
+
+        if (radius < 0) {
+            // Global purge: all loaded entities of this type
+            targets = level.getEntities(entityType, entity -> entity.getType().equals(entityType));
+        } else {
+            // Local purge
+            targets = level.getEntities(entityType, new AABB(pos).inflate(radius), entity ->
+                entity.getType().equals(entityType));
+        }
+        
+        targets.forEach(Entity::discard);
+
+        MCTradePostMod.LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}", ritual.target(), pos, radius, targets.size());
+        showRitualEffect(level, pos);
+
+        return true;
+    }
+
     // TOOD: Get configured rituals to show in the JEI or a custom mod book.
     // TODO: [Enhancement] Include ritual effect in that configuration.
 
@@ -248,14 +299,33 @@ public class WishingWellHandler {
      * @param level the server level where the ritual is taking place
      * @param pos the position of the wishing well
      * @param companionItem the item thrown into the wishing well alongside the coin
+     * 
+     * @return true if the ritual was triggered, false otherwise
      */
-    private static void triggerEffect(ServerLevel level, BlockPos pos, Item companionItem) {
-        if (companionItem == Items.ROTTEN_FLESH) {
-            level.getEntitiesOfClass(Zombie.class, new AABB(pos).inflate(16))
-                    .forEach(z -> z.discard());
-            MCTradePostMod.LOGGER.info("Zombie purge ritual completed at {}", pos);
-            showRitualEffect(level, pos);
+    private static boolean triggerEffect(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
+        MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} coins", pos, companionItem, state.coins);    
+        Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
+
+        for (RitualDefinitionHelper ritual : rituals) {
+            Item effectCompanion = BuiltInRegistries.ITEM.get(ritual.companionItem());
+
+            if (effectCompanion.equals(companionItem)) {
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
+                    if (ritual.requiredCoins() > state.coins) {
+                        return false;
+                    }
+
+                    return processRitualSlay(level, pos, ritual);
+                }
+            }
+
+            // TODO: Implement other rituals.
+            // TODO: After all known ritual types processed, if the companion item is not recognized, log an unknown ritual item message and dispose of the extra item somehow.
         }
+
+        return false;
+
+        /*
         else if (companionItem == Items.IRON_SWORD) {
             // TODO: Implement raid termination.
             MCTradePostMod.LOGGER.info("Raid suppression ritual triggered at {}", pos);
@@ -266,6 +336,7 @@ public class WishingWellHandler {
             MCTradePostMod.LOGGER.info("Unknown ritual item {} at {}", companionItem, pos);
             showRitualEffect(level, pos);
         }
+        */
     }
 
     static public class RitualState {

@@ -27,3 +27,7 @@ Test broken structures cannot be used
 Test valid structures generate appropriate ritual.
 
 Test in-progress incomplete rituals persist across server reboots.
+
+# JEI
+ Verify ritual recipes appear.
+ Verify the mod loads WITHOUT JEI installed.

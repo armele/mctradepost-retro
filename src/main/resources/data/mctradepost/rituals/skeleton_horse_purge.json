@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:saddle",
+  "effect_type": "slay",
+  "target" : "minecraft:skeleton_horse",
+  "radius": 100,
+  "coin_cost": 2
+}

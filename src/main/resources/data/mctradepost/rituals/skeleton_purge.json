@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:bone",
+  "effect_type": "slay",
+  "target" : "minecraft:skeleton",
+  "radius": 100,
+  "coin_cost": 1
+}

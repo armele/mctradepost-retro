@@ -33,7 +33,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
-import com.deathfrog.mctradepost.core.event.wishingwell.RitualData;
+import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
-    protected RitualData ritualData = new RitualData();
+    protected WellLocations ritualData = new WellLocations();
 
     public BuildingMarketplace(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
@@ -119,7 +119,7 @@ public class BuildingMarketplace extends AbstractBuilding
      * Gets the ritual data for this marketplace, which tracks the state of wishing wells within the colony.
      * @return the ritual data for this marketplace.
      */
-    public RitualData getRitualData() {
+    public WellLocations getRitualData() {
         return ritualData;
     }
 

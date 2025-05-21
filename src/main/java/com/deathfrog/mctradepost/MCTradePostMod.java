@@ -14,10 +14,13 @@ import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ClientRegistryHandler;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.minecolonies.api.blocks.ModBlocks;
 import com.mojang.logging.LogUtils;
 
@@ -180,8 +183,12 @@ public class MCTradePostMod
 {
     // Define mod id in a common place for everything to reference
     public static final String MODID = "mctradepost";
+
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    // Create a Gson instance
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     // Create a Deferred Register to hold Blocks which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -248,7 +255,8 @@ public class MCTradePostMod
         // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
-
+        NeoForge.EVENT_BUS.register(RitualReloadListener.class);
+        
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
         
