@@ -89,6 +89,8 @@ public class BuildingMarketplace extends AbstractBuilding
         return ImmutableList.copyOf(displayShelfContents.keySet());
     }
 
+    // TODO: Building upgrades are not currently being locked behind a research wall.  Investigate the handling of the Research Effects.
+
     /**
      * Returns the map of display shelf positions to their contents.
      * The positions are the BlockPos of the block that the item frame is attached to.

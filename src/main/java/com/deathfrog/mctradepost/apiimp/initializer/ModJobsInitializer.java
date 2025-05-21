@@ -3,12 +3,10 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
-import com.minecolonies.api.colony.jobs.ModJobs;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.jobs.views.CrafterJobView;
 
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
@@ -40,7 +38,6 @@ public final class ModJobsInitializer
      */
     private static DeferredHolder<JobEntry, JobEntry> register(final DeferredRegister<JobEntry> deferredRegister, final String path, final Supplier<JobEntry> supplier)
     {
-        ModJobs.jobs.add(ResourceLocation.parse(MCTradePostMod.MODID + ":" + path));
         return deferredRegister.register(path, supplier);
     }    
 }

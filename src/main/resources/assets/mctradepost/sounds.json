@@ -1,0 +1,491 @@
+{
+  "environment.cash_register": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:environment/cash_register",
+        "stream": false
+      }
+    ]
+  },
+  "citizen.shopkeeper.female1.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female2.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female3.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female4.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male1.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male2.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male3.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male3/badhousing",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male4.badhousing": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/badhousing",
+        "stream": false
+      }
+    ]
+  },
+  "citizen.shopkeeper.female1.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female2.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female3.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female4.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male1.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male2.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male3.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male4.interaction": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+  "citizen.shopkeeper.female1.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female2.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female3.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female4.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/female1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male1.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male2.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male3.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male4.general": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/rightaway",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/whatisit",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/okay",
+        "stream": false
+      },
+      {
+        "name": "mctradepost:mob/citizen/male1/hi",
+        "stream": false
+      }
+    ]
+  },
+  "citizen.shopkeeper.female1.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female2.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female3.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.female4.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/female1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male1.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male2.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male3.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male3/sick",
+        "stream": false
+      }
+    ]
+  },
+    "citizen.shopkeeper.male4.sick": {
+    "category": "neutral",
+    "sounds": [
+      {
+        "name": "mctradepost:mob/citizen/male1/sick",
+        "stream": false
+      }
+    ]
+  }
+}

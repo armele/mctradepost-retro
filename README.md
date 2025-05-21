@@ -2,7 +2,7 @@
 
 ## Description
 
-This mod extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function.
+This mod extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function. MineColonies base functionality is not altered. The team supporting MineColonies has created a great mod that has provided hours of fun, and inspired these small additions.
 
 MC Trade Post introduces an economic system which allows the selling of excess items for Trade Coins (‡). These coins can be used for a variety of purposes, such as bribing raiders to leave the town alone, unlocking vacations and resorts at which your colonists can improve stats and get happier, and other additional upgrades and features.
 
@@ -39,7 +39,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 ### Compatibility Reference
 
-mctradepost-0.2.001 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
+mctradepost-0.2.004 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
 
 ## Building Design Reference
 ### Marketplace
@@ -67,6 +67,8 @@ Pet shops, pet functions, pet-related colony roles.
 In-Game Instructions
 Assembling colonies into collections (empire, state, etc.)  
 Express shipping (intracolony and inter-colony) - faster item transport. Faster people transport.  
+Advanced Guard Towers (prevent mob spawning within an area of effect).
+Autominting + Delivery to warehouse of coins?
 
 ### Complete
 

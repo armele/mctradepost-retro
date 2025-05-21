@@ -1,16 +1,10 @@
 package com.deathfrog.mctradepost.core.entity;
 
 
-import java.util.Comparator;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler;
 import com.deathfrog.mctradepost.item.CoinItem;
-import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
-import com.minecolonies.core.colony.ColonyManager;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
@@ -98,8 +92,7 @@ public class CoinEntity extends ItemEntity implements ItemSupplier {
 
         level.addFreshEntity(coin);
 
-        // TODO: Remove once tested.
-        MCTradePostMod.LOGGER.info("Replaced dropped coin with CoinEntity at {}", coin.blockPosition());
+        // MCTradePostMod.LOGGER.info("Replaced dropped coin with CoinEntity at {}", coin.blockPosition());
     }    
 
     @Override

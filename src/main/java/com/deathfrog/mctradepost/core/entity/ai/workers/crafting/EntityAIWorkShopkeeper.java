@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
@@ -18,8 +19,11 @@ import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
@@ -330,6 +334,20 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     }
 
     /**
+     * Triggers a visual effect (enchant particles) and sound (cash register) at the given position. Used to simulate the AI selling an item from a display stand.
+     * @param pos the position of the effect
+     */
+    private void triggerEffect(BlockPos pos) {
+        ServerLevel level = (ServerLevel) building.getColony().getWorld();
+
+        // Additional particles and sound
+        level.sendParticles(ParticleTypes.POOF,
+            pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
+            20, 0.5, 0.5, 0.5, 0.1);
+        level.playSound(null, pos, MCTPModSoundEvents.CASH_REGISTER, SoundSource.NEUTRAL, 0.8f, 1.0f);
+    }
+
+    /**
      * The AI will now remove the item from the display stand that he found full on his building and "sell" it, adding experience and stats.
      * Triggered from the CRAFT state.
      * @return the next IAIState after doing this
@@ -352,7 +370,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     // "Sell" the item — remove it from the frame
                     frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
                     sellItem(item);                         // Calculate the value of the item and credit it to the economic module and stats module.
-
+                    triggerEffect(currentTarget);
                     // Add experience, stats, etc.
                     worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                     incrementActionsDoneAndDecSaturation();                    
@@ -418,16 +436,18 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
             if (frame.getItem().isEmpty())
             {
-                frame.setItem(heldItem.copy());           // Show the item
-                displayCase.setStack(heldItem.copy());    // Record what the case is holding (for persistance)
+                ItemStack placed = heldItem.copy();
+                frame.setItem(placed);           // Show the item
+                displayCase.setStack(placed);    // Record what the case is holding (for persistance)
                 displayCase.setTickcount(0);    // Start countdown for this display shelf
 
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 this.incrementActionsDoneAndDecSaturation();
 
-                // Remove from inventory (simulate placing it in the world)
+                // Decrement the stack in inventory
+                heldItem.shrink(1);
                 worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-
+                
                 incrementActionsDone();
             }
         }
