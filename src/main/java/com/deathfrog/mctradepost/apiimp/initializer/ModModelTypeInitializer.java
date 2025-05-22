@@ -14,8 +14,6 @@ public class ModModelTypeInitializer
         throw new IllegalStateException("Tried to initialize: MCTradePost.ModModelTypeInitializer but this is a Utility class.");
     }
 
-    // TODO: Set up and record shopkeeper sounds.  Investigate ModSoundEvents.
-
     public static void init(final EntityRendererProvider.Context context)
     {
         final IModelTypeRegistry reg = IModelTypeRegistry.getInstance();

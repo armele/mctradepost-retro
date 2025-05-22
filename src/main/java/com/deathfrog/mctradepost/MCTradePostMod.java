@@ -29,6 +29,7 @@ import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -199,6 +200,7 @@ public class MCTradePostMod
     // Create a Deferred Register to hold Entities which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
 
+    public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
     
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
@@ -220,17 +222,14 @@ public class MCTradePostMod
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
-
     // Creates a creative tab with the id "examplemod:example_tab" for the example item, that is placed after the combat tab
-    /* 
-    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> EXAMPLE_TAB = CREATIVE_MODE_TABS.register("example_tab", () -> CreativeModeTab.builder()
-            .title(Component.translatable("itemGroup.examplemod")) //The language key for the title of your CreativeModeTab
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TRADEPOST_TAB = CREATIVE_MODE_TABS.register(CREATIVE_TRADEPOST_TABNAME, () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup:mctradepost")) //The language key for the title of your CreativeModeTab
             .withTabsBefore(CreativeModeTabs.COMBAT)
-            .icon(() -> EXAMPLE_ITEM.get().getDefaultInstance())
+            .icon(() -> MCTP_COIN_ITEM.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                output.accept(EXAMPLE_ITEM.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
+                output.accept(MCTP_COIN_ITEM.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
             }).build());
-    */
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
@@ -286,15 +285,20 @@ public class MCTradePostMod
     {
 
         if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
+            // No-op placeholde for future use.
         }
 
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
+            // No-op placeholder for future use.
         }
 
-        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            event.accept(MCTradePostMod.blockHutMarketplace);
-        }        
+        TRADEPOST_TAB.unwrapKey().ifPresent(key -> {
+            if (event.getTabKey().equals(key)) {
+                event.accept(MCTradePostMod.blockHutMarketplace);
+                event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
+            }
+        });
+
     }
 
     private void onLoadComplete(final FMLLoadCompleteEvent event) {

@@ -1,4 +1,5 @@
 {
+    "itemGroup:mctradepost" : "MC Trade Post",
     "item.mctradepost.advanced_clipboard": "Advanced Clipboard",
     "block.mctradepost.blockhutmarketplace": "Marketplace Hut",
     "com.mctradepost.building.marketplace": "Marketplace Hut",
@@ -29,7 +30,11 @@
     "mctradepost.configuration.title": "MC Trade Post Settings",
     "mctradepost.configuration.section.mctradepost.common.toml": "mctradepost.toml",
     "mctradepost.configuration.section.mctradepost.common.toml.title": "MC Trade Post Configuration",
-    "mctradepost.configuration.marketplace.button": "Edit...",
+    "mctradepost.configuration.baseSelltime": "Time to sell items (in ticks)",
+    "mctradepost.configuration.baseSelltime.tooltip": "How long should the marketplace take to sell items? (in ticks)",
+    "mctradepost.configuration.registerSoundChance": "Cash Register Sound Chance",
+    "mctradepost.configuration.registerSoundChance.tooltip": "What is the chance that a cash register will play a sound when aan item is sold?",
+    "mctradepost.configuration.marketplace.button": "Edit",
     "mctradepost.configuration.marketplace.tooltip": "Edit settings for the Marketplace Hut and it's Economic Features.",
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",

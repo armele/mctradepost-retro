@@ -39,7 +39,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 ### Compatibility Reference
 
-mctradepost-0.2.004 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
+mctradepost-0.3.003 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
 
 ## Building Design Reference
 ### Marketplace
@@ -53,17 +53,24 @@ A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) wit
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 "Wishing Well" Interface for spending earned income (IN PROGRESS)
+- Rituals driven by datapack (completed)
+- Integrated with JEI (completed)
 
 ### Roadmap (Roughly Prioritized)
 
 Implement Coin Usage
 - Unlock subsequent levels of the merchant building  
-- Summon traders  
-- Add trader recipes  
+- Ritual: Summon traders  
+- Research: Add trader recipes
+- Research: Unlock resort
+- Ritual: Summoning
+
 Happiness based on colony wealth per citizen  
 Leisure time / resorts / vacations (Resort hut w/custom needs items; travel agency hut)  
 Huts to allow skill-up in non-primary/secondary stats.  
 Pet shops, pet functions, pet-related colony roles.  
+- Sheepdog able to gather mobs and herd them to a given location.
+- Other pets with happiness impact.
 In-Game Instructions
 Assembling colonies into collections (empire, state, etc.)  
 Express shipping (intracolony and inter-colony) - faster item transport. Faster people transport.  

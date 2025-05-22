@@ -57,7 +57,7 @@ public class MCTPBuildingModules
       () -> EconModuleView::new);
 
 
-    // TODO: Make marketplace level 3 upgrade conditional (see Minecolonies research datapack tutorial).
+    // TODO: Make marketplace level 3 upgrade conditional (see Minecolonies research datapack tutorial). Building upgrades are not currently being locked behind a research wall.  Investigate the handling of the Research Effects.
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
       new BuildingEntry.ModuleProducer<>("marketplace_settings",
         () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)),

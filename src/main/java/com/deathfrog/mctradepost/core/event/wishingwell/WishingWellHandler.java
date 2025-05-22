@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -14,7 +13,6 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -247,6 +245,16 @@ public class WishingWellHandler {
         return true;
     }
 
+    /**
+     * Process a ritual summon effect at the given BlockPos within the ServerLevel.
+     * This will summon entities of the specified type at or near the target location.
+     *
+     * @param level the ServerLevel to process the ritual in
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the target entity type and summon count
+     * 
+     * @return true if the ritual was triggered, false otherwise
+     */
 
     /**
      * Process a ritual slay effect at the given BlockPos within the ServerLevel.
@@ -286,8 +294,7 @@ public class WishingWellHandler {
         return true;
     }
 
-    // TOOD: Get configured rituals to show in the JEI or a custom mod book.
-    // TODO: [Enhancement] Include ritual effect in that configuration.
+
 
     /**
      * Triggers an effect based on the companion item thrown into the wishing well.
@@ -310,6 +317,10 @@ public class WishingWellHandler {
             Item effectCompanion = BuiltInRegistries.ITEM.get(ritual.companionItem());
 
             if (effectCompanion.equals(companionItem)) {
+                /* 
+                 * To add a new ritual *type*, it needs an entry here (with associated handler function) 
+                 * and in the RitualDefintionHelper class (to set up the JEI with the description)
+                 */
                 if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
                     if (ritual.requiredCoins() > state.coins) {
                         return false;
@@ -319,24 +330,11 @@ public class WishingWellHandler {
                 }
             }
 
-            // TODO: Implement other rituals.
+            // TODO: Implement other rituals (Raid Termination, Weather)
             // TODO: After all known ritual types processed, if the companion item is not recognized, log an unknown ritual item message and dispose of the extra item somehow.
         }
 
         return false;
-
-        /*
-        else if (companionItem == Items.IRON_SWORD) {
-            // TODO: Implement raid termination.
-            MCTradePostMod.LOGGER.info("Raid suppression ritual triggered at {}", pos);
-            showRitualEffect(level, pos);
-        }
-        else {
-            // TODO: Implement other rituals.
-            MCTradePostMod.LOGGER.info("Unknown ritual item {} at {}", companionItem, pos);
-            showRitualEffect(level, pos);
-        }
-        */
     }
 
     static public class RitualState {

@@ -17,7 +17,6 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
 
 /**
  * BOWindow for the Marketplace hut
- * // TODO: Implement spending options (like "bribe raiders")
  */
 public class WindowEconModule extends AbstractModuleWindow
 {

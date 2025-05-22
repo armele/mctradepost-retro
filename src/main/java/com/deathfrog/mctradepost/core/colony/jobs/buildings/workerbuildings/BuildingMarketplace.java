@@ -89,8 +89,6 @@ public class BuildingMarketplace extends AbstractBuilding
         return ImmutableList.copyOf(displayShelfContents.keySet());
     }
 
-    // TODO: Building upgrades are not currently being locked behind a research wall.  Investigate the handling of the Research Effects.
-
     /**
      * Returns the map of display shelf positions to their contents.
      * The positions are the BlockPos of the block that the item frame is attached to.
@@ -152,10 +150,16 @@ public class BuildingMarketplace extends AbstractBuilding
                 displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
             // Otherwise, issue a message about the missing frame.
             } else {
-                // TODO: [Enhancement] Put some delay logic on the sending of this message so it isn't a constant spam.
-                displayShelfContents.put(pos, new DisplayCase(pos, null));
-                MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
-                MessageUtils.format("entity.shopkeeper.brokenframe").sendTo(getColony()).forAllPlayers();
+                List<BlockPos> expectedPositions = getDisplayShelfPositions();
+
+                // If this is no longer an expected shelf position (building has been relocated, for example), remove it.
+                if (!expectedPositions.contains(pos)) {
+                    displayShelfContents.remove(pos);
+                } else {
+                    // TODO: [Enhancement] Put some delay logic on the sending of this message so it isn't a constant spam.
+                    displayShelfContents.put(pos, new DisplayCase(pos, null));
+                    MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
+                }
             }       
         } else {
             MCTradePostMod.LOGGER.warn("Looking for a display shelf at {}", pos);
@@ -190,17 +194,28 @@ public class BuildingMarketplace extends AbstractBuilding
      * Initialize the display shelf locations based on what is tagged in the structure.
      * This makes the building look for the correct number of display shelves even if some are missing.
      * That way a "repair" action will fix the problem.
+     * 
+     * @return a list of block positions that are tagged as display shelves
      */
-    public void identifyExpectedShelfPositions() {
+    public List<BlockPos> identifyExpectedShelfPositions() {
         // We want any tagged display locations nto be added into the displayShelfContents if not already there.
         final List<BlockPos> shelfLocations = getLocationsFromTag("display_shelf");
+        return shelfLocations;
+    }
 
+    /**
+     * This method is used to initialize the displayShelfContents map with all tagged display locations in the structure.
+     * It is called when the building is initialized, and ensures that any missing display shelves are marked as such.
+     * This is important because it allows the building to correctly track the display shelves and their contents, even if some are missing.
+     */
+    public void markExpectedShelfPositionsAsShelfLocations()
+    {
+        List<BlockPos> shelfLocations = identifyExpectedShelfPositions();
         for (BlockPos pos : shelfLocations)
         {
             displayShelfContents.putIfAbsent(pos, new DisplayCase(pos, null));
         }
     }
-
     /**
      * Deserializes the NBT data for the building, restoring its state from the provided CompoundTag.
      * Clears the current display shelf contents and repopulates it using the data from the NBT.

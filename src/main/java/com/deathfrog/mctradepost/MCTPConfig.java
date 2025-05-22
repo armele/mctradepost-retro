@@ -29,6 +29,8 @@ public class MCTPConfig
     // Server side Neoforge-managed configurations.
     public static final ConfigValue<Integer> tradeCoinValue;
     public static final ConfigValue<Integer> mintingLevel;
+    public static final ConfigValue<Integer> baseSelltime;
+    public static final ConfigValue<Double>  registerSoundChance;
 
     static {
         BUILDER.push("marketplace");
@@ -40,6 +42,14 @@ public class MCTPConfig
         mintingLevel = BUILDER
             .comment("At what building level can the Marketplace mint coins?")
             .define("mintingLevel", 2);
+
+        baseSelltime = BUILDER
+            .comment("How quickly do items sell from the Marketplace?")
+            .define("baseSelltime", 200);
+
+        registerSoundChance = BUILDER
+            .comment("How likely is a sold item to make a cash register sound?")
+            .define("registerSoundChance", .05);
 
         BUILDER.pop();
 

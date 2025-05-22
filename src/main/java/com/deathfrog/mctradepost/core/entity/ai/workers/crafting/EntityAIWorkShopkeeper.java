@@ -1,7 +1,9 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
@@ -77,8 +79,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private static final int AFTER_TASK_DELAY = 3;
 
-    // TODO: Make the base sell time configurable
-    private static final int SELLTIME = 60;
+    // The base sell time for selling displayed items.
+    private static final int SELLTIME = MCTPConfig.baseSelltime.get();;
 
     /**
      * Id for the list of sellable items.
@@ -262,7 +264,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         final BuildingMarketplace building = this.building;
 
-        building.identifyExpectedShelfPositions();
+        building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
         // MCTradePostMod.LOGGER.info("Deciding what to do. Display shelves: {}", displayShelves.size());
@@ -344,7 +346,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         level.sendParticles(ParticleTypes.POOF,
             pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
             20, 0.5, 0.5, 0.5, 0.1);
-        level.playSound(null, pos, MCTPModSoundEvents.CASH_REGISTER, SoundSource.NEUTRAL, 0.8f, 1.0f);
+
+        double chanceOfChaChing = MCTPConfig.registerSoundChance.get();
+        SoundUtils.playSoundWithChance(level, null, pos, MCTPModSoundEvents.CASH_REGISTER, SoundSource.NEUTRAL, chanceOfChaChing,0.8f, 1.0f);
     }
 
     /**
