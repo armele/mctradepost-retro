@@ -2,9 +2,11 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
+import com.minecolonies.core.colony.jobs.views.DefaultJobView;
 import com.minecolonies.core.colony.jobs.views.CrafterJobView;
 
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -25,6 +27,12 @@ public final class ModJobsInitializer
         MCTPModJobs.shopkeeper = register(DEFERRED_REGISTER, MCTPModJobs.SHOPKEEPER_ID.getPath(), () -> new JobEntry.Builder()
           .setJobProducer(JobShopkeeper::new)
           .setJobViewProducer(() -> CrafterJobView::new)
+          .setRegistryName(MCTPModJobs.SHOPKEEPER_ID)
+          .createJobEntry());
+
+        MCTPModJobs.guestservices = register(DEFERRED_REGISTER, MCTPModJobs.GUESTSERVICES_ID.getPath(), () -> new JobEntry.Builder()
+          .setJobProducer(JobGuestServices::new)
+          .setJobViewProducer(() -> DefaultJobView::new)
           .setRegistryName(MCTPModJobs.SHOPKEEPER_ID)
           .createJobEntry());
     }

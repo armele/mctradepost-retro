@@ -12,10 +12,10 @@
     "instant": false,
     "requirements": [
         {
-        "items": {
-            "count": 10,
-            "item": "mctradepost:mctp_coin"
-        }
+            "items": {
+                "count": 10,
+                "item": "mctradepost:mctp_coin"
+            }
         }
     ],
     "effects": [

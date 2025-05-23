@@ -2,7 +2,7 @@
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.item.CoinItem;

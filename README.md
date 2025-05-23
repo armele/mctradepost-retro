@@ -41,6 +41,13 @@ Note that MineColonies and its dependencies must be present to work.
 
 mctradepost-0.3.003 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
 
+## Style Packs
+### Economic
+This style pack has the default building designs for the new hut blocks introduced by MC Trade Post
+
+### Hills
+This style pack has buildings designed for use in hilly terrain, with relatively small footprints.
+
 ## Building Design Reference
 ### Marketplace
 The marketplace building should have two item frames or glowing item frames for each level of the building.

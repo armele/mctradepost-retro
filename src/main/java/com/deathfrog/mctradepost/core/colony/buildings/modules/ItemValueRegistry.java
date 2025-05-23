@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
+package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -29,8 +29,23 @@ public class ItemValueRegistry
 {
     private static final Map<Item, Integer> itemValues = new ConcurrentHashMap<>();
 
+    // TODO: Make configurable.
+    // Temporary hack to bring down server start speeds.
+    private static final Set<String> allowedMods = new HashSet<>(Arrays.asList("minecraft", "minecolonies", "mctradepost"));
+
     private static boolean configured = false;
     private static boolean startTracking = false;
+
+    /**
+     * Configures the ItemValueRegistry by loading initial values from a JSON file
+     * and estimating values for all registered items using available recipes.
+     * If the registry has already been configured, the method logs a message and returns.
+     * The method logs an error if attempted before a server is started.
+     * Each item's value is determined by appraising the recipes from the recipe manager.
+     * 
+     * Allowing it to process all recipes on a large server (like ATM10) makes it take 
+     * so long that server start-up fails.
+     */
 
     public static void generateValues()
     {
@@ -52,7 +67,13 @@ public class ItemValueRegistry
         RecipeManager recipeManager = level.getRecipeManager();
 
         for (Item item : BuiltInRegistries.ITEM)
-        {
+        {   
+            ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
+
+            if (!allowedMods.contains(key.getNamespace())) {
+                continue;
+            }
+
             if (itemValues.containsKey(item)) {
                 MCTradePostMod.LOGGER.info("Skipping '{}'", item.toString());
                 continue;
@@ -334,10 +355,17 @@ public class ItemValueRegistry
 
             for (Map.Entry<String, Integer> entry : jsonValues.entrySet()) {
                 ResourceLocation rl = ResourceLocation.tryParse(entry.getKey());
-                if (rl != null && BuiltInRegistries.ITEM.containsKey(rl)) {
-                    itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
-                } else {
-                    // MCTradePostMod.LOGGER.warn("Invalid item or unknown key: {}", entry.getKey());
+
+                if (rl != null) {
+                    if (!allowedMods.contains(rl.getNamespace())) {
+                        continue;
+                    }
+
+                    if (BuiltInRegistries.ITEM.containsKey(rl)) {
+                        itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
+                    } else {
+                        // MCTradePostMod.LOGGER.warn("Invalid item or unknown key: {}", entry.getKey());
+                    }
                 }
             }
         } catch (Exception e) {

@@ -7,8 +7,11 @@ import org.jetbrains.annotations.NotNull;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 public class ModBuildings {
-    public static final String MARKETPLACE_ID      = "marketplace";
+    public static final String MARKETPLACE_ID = "marketplace";
+    public static final String RESORT_ID      = "resort";
+
     public static DeferredHolder<BuildingEntry, BuildingEntry> marketplace;
+    public static DeferredHolder<BuildingEntry, BuildingEntry> resort;
 
     private ModBuildings()
     {
@@ -19,7 +22,8 @@ public class ModBuildings {
     public static AbstractBlockHut<?>[] getHuts()
     {
         return new AbstractBlockHut[] {
-            MCTradePostMod.blockHutMarketplace
+            MCTradePostMod.blockHutMarketplace,
+            MCTradePostMod.blockHutResort
         };
     }    
 }

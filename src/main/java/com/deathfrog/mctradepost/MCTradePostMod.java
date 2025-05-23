@@ -2,18 +2,18 @@ package com.deathfrog.mctradepost;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
-import com.deathfrog.mctradepost.core.client.model.FemaleShopkeeperModel;
-import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
-import com.deathfrog.mctradepost.core.event.ClientRegistryHandler;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -218,6 +218,7 @@ public class MCTradePostMod
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
     public static MCTPBaseBlockHut blockHutMarketplace;
+    public static MCTPBaseBlockHut blockHutResort;
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -256,49 +257,39 @@ public class MCTradePostMod
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(RitualReloadListener.class);
         
-        // Register the item to a creative tab
-        modEventBus.addListener(this::addCreative);
-        
         // Add a listener for the completion of the load.
         modEventBus.addListener(this::onLoadComplete);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         MCTPConfig.register(modContainer);
 
-        // This will use NeoForge's ConfigurationScreen to display this mod's configs
-        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
-
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
         MCTPModSoundEvents.SOUND_EVENTS.register(modEventBus);
+
+
+
+        LOGGER.info("MCTradePost mod initialized.");
+    }
+
+    /**
+     * This method is called on the client side only.
+     * It is responsible for setting up the client side configuration screen.
+     * The configuration screen is created by registering a IConfigScreenFactory 
+     * with the mod container. This factory is used to create the configuration screen
+     * for this mod.
+     */
+    @OnlyIn(Dist.CLIENT)
+    private void clientSideInitializations(ModContainer modContainer) {
+        // This will use NeoForge's ConfigurationScreen to display this mod's configs
+        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
         LOGGER.info("MCTradePost common setup");
-    }
-
-    // Add items to their creative tabs.
-    private void addCreative(BuildCreativeModeTabContentsEvent event)
-    {
-
-        if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
-            // No-op placeholde for future use.
-        }
-
-        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
-            // No-op placeholder for future use.
-        }
-
-        TRADEPOST_TAB.unwrapKey().ifPresent(key -> {
-            if (event.getTabKey().equals(key)) {
-                event.accept(MCTradePostMod.blockHutMarketplace);
-                event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
-            }
-        });
-
     }
 
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
@@ -399,14 +390,38 @@ public class MCTradePostMod
     @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents
     {
+
+        // Add items to their creative tabs.
+        @OnlyIn(Dist.CLIENT)
+        @SubscribeEvent
+        private static void addCreative(BuildCreativeModeTabContentsEvent event)
+        {
+
+            if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
+                // No-op placeholde for future use.
+            }
+
+            if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+                // No-op placeholder for future use.
+            }
+
+            TRADEPOST_TAB.unwrapKey().ifPresent(key -> {
+                if (event.getTabKey().equals(key)) {
+                    event.accept(MCTradePostMod.blockHutMarketplace);
+                    event.accept(MCTradePostMod.blockHutResort);
+                    event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
+                }
+            });
+
+        }
+
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event)
         {
             // Register the layer definitions
-            MCTradePostMod.LOGGER.info("Registering layer definitions.");
-            event.registerLayerDefinition(ClientRegistryHandler.MALE_SHOPKEEPER, MaleShopkeeperModel::createMesh);
-            event.registerLayerDefinition(ClientRegistryHandler.FEMALE_SHOPKEEPER, FemaleShopkeeperModel::createMesh);
+            MCTradePostMod.LOGGER.info("Registering model definitions.");
+            ModelRegistryHandler.registerModels(event);
         }
 
         @OnlyIn(Dist.CLIENT)
@@ -415,6 +430,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
         }
 
+        @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
             LOGGER.info("Handling model initialization");
@@ -475,8 +491,9 @@ public class MCTradePostMod
          */
         public static void registerBlocks(final Registry<Block> registry)
         {
-            LOGGER.info("Registering the block hut marketplace.");
+            LOGGER.info("Registering custom block huts.");
             MCTradePostMod.blockHutMarketplace = new BlockHutMarketplace().registerMCTPHutBlock(registry);
+            MCTradePostMod.blockHutResort = new BlockHutResort().registerMCTPHutBlock(registry);
         }
 
 
@@ -498,6 +515,9 @@ public class MCTradePostMod
         public static void registerBlockItem(final Registry<Item> registry)
         {
             MCTradePostMod.blockHutMarketplace.registerBlockItem(registry, new Item.Properties());
+            MCTradePostMod.blockHutResort.registerBlockItem(registry, new Item.Properties());
+            TileEntityInitializer.initializeTileEntities();
+            ModBuildingsInitializer.initializeBuildings();
         }
     }
 }

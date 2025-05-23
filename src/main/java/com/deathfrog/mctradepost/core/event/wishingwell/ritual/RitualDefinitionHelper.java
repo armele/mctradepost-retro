@@ -31,7 +31,7 @@ public class RitualDefinitionHelper  {
        ResourceLocation entityTypeId = null;
 
         try {
-            entityTypeId = ResourceLocation.parse(this.ritualDefinition.target());
+            entityTypeId = ResourceLocation.parse(this.ritualDefinition.target());  // Intentional use of parse.
         } catch (IllegalArgumentException e) {
             MCTradePostMod.LOGGER.warn("Unknown target entity type {} identified in ritual with companion item: {}", this.ritualDefinition.target(), this.ritualDefinition.companionItem());
             return null;

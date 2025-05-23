@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
+package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;

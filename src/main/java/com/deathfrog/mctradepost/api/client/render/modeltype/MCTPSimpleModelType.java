@@ -10,6 +10,9 @@ import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+
 import static com.minecolonies.api.entity.citizen.AbstractEntityCitizen.DATA_TEXTURE_SUFFIX;
 import static com.minecolonies.api.entity.citizen.AbstractEntityCitizen.DATA_STYLE;
 
@@ -28,6 +31,7 @@ public class MCTPSimpleModelType extends SimpleModelType {
      * @param entityCitizen The citizen in question to get the path.
      * @return The path to the citizen.
      */
+    @OnlyIn(Dist.CLIENT)
     public ResourceLocation getTexture(@NotNull final AbstractEntityCitizen entityCitizen)
     {
         // return super.getTexture(entityCitizen);
@@ -37,12 +41,12 @@ public class MCTPSimpleModelType extends SimpleModelType {
         final int moddedTextureId = (entityCitizen.getTextureId() % getNumTextures()) + 1;
         final String textureIdentifier =
           getName().getPath() + (entityCitizen.isFemale() ? "female" : "male") + moddedTextureId + entityCitizen.getEntityData().get(DATA_TEXTURE_SUFFIX);
-        final ResourceLocation modified = ResourceLocation.parse(MCTradePostMod.MODID + ":" + ISimpleModelType.BASE_FOLDER + style + "/" + textureIdentifier + ".png");
+        final ResourceLocation modified = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ISimpleModelType.BASE_FOLDER + style + "/" + textureIdentifier + ".png");
         if (Minecraft.getInstance().getResourceManager().getResource(modified).isPresent())
         {
             return modified;
         }
 
-        return ResourceLocation.parse(MCTradePostMod.MODID + ":" + ISimpleModelType.BASE_FOLDER + ISimpleModelType.DEFAULT_FOLDER + "/" + textureIdentifier + ".png");
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ISimpleModelType.BASE_FOLDER + ISimpleModelType.DEFAULT_FOLDER + "/" + textureIdentifier + ".png");
     }    
 }

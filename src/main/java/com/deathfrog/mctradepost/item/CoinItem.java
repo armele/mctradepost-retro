@@ -3,7 +3,7 @@ package com.deathfrog.mctradepost.item;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;

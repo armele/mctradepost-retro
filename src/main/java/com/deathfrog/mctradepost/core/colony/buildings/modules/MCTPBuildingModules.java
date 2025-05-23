@@ -1,8 +1,8 @@
-package com.deathfrog.mctradepost.core.colony.jobs.buildings.modules;
+package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.api.entity.citizen.Skill;
@@ -69,6 +69,14 @@ public class MCTPBuildingModules
         () -> () -> new ItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
           (buildingView) -> ItemValueRegistry.getSellableItems()));
     
+    /**
+     * Leisure
+     */
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> GUESTSERVICES_WORK          =
+      new BuildingEntry.ModuleProducer<>("guestservices_work", 
+        () -> new WorkerBuildingModule(MCTPModJobs.shopkeeper.get(), Skill.Adaptability, Skill.Intelligence, false, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
+
     /**
      * Storage
      */

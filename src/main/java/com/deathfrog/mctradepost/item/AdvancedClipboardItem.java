@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -24,6 +24,38 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
+
+// TODO: Fix exception
+
+/*
+ * net.minecraft.ReportedException: Ticking/Updating BO screen
+	at TRANSFORMER/minecraft@1.21.1/net.minecraft.client.gui.screens.Screen.wrapScreenError(Screen.java:456) ~[client-1.21.1-20240808.144430-srg.jar%23632!/:?]
+	at TRANSFORMER/minecraft@1.21.1/net.minecraft.client.Minecraft.tick(Minecraft.java:1828) ~[client-1.21.1-20240808.144430-srg.jar%23632!/:?]
+	at TRANSFORMER/minecraft@1.21.1/net.minecraft.client.Minecraft.runTick(Minecraft.java:1161) ~[client-1.21.1-20240808.144430-srg.jar%23632!/:?]
+	at TRANSFORMER/minecraft@1.21.1/net.minecraft.client.Minecraft.run(Minecraft.java:807) ~[client-1.21.1-20240808.144430-srg.jar%23632!/:?]
+	at TRANSFORMER/minecraft@1.21.1/net.minecraft.client.main.Main.main(Main.java:230) ~[client-1.21.1-20240808.144430-srg.jar%23632!/:?]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source) ~[?:?]
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source) ~[?:?]
+	at MC-BOOTSTRAP/fml_loader@4.0.39/net.neoforged.fml.loading.targets.CommonLaunchHandler.runTarget(CommonLaunchHandler.java:136) ~[loader-4.0.39.jar%23107!/:4.0]
+	at MC-BOOTSTRAP/fml_loader@4.0.39/net.neoforged.fml.loading.targets.CommonLaunchHandler.clientService(CommonLaunchHandler.java:124) ~[loader-4.0.39.jar%23107!/:4.0]
+	at MC-BOOTSTRAP/fml_loader@4.0.39/net.neoforged.fml.loading.targets.CommonClientLaunchHandler.runService(CommonClientLaunchHandler.java:32) ~[loader-4.0.39.jar%23107!/:4.0]
+	at MC-BOOTSTRAP/fml_loader@4.0.39/net.neoforged.fml.loading.targets.CommonLaunchHandler.lambda$launchService$4(CommonLaunchHandler.java:118) ~[loader-4.0.39.jar%23107!/:4.0]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.LaunchServiceHandlerDecorator.launch(LaunchServiceHandlerDecorator.java:30) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.LaunchServiceHandler.launch(LaunchServiceHandler.java:53) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.LaunchServiceHandler.launch(LaunchServiceHandler.java:71) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.Launcher.run(Launcher.java:103) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.Launcher.main(Launcher.java:74) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.BootstrapLaunchConsumer.accept(BootstrapLaunchConsumer.java:26) [modlauncher-11.0.4.jar%23112!/:?]
+	at MC-BOOTSTRAP/cpw.mods.modlauncher@11.0.4/cpw.mods.modlauncher.BootstrapLaunchConsumer.accept(BootstrapLaunchConsumer.java:23) [modlauncher-11.0.4.jar%23112!/:?]
+	at cpw.mods.bootstraplauncher@2.0.2/cpw.mods.bootstraplauncher.BootstrapLauncher.run(BootstrapLauncher.java:210) [bootstraplauncher-2.0.2.jar:?]
+	at cpw.mods.bootstraplauncher@2.0.2/cpw.mods.bootstraplauncher.BootstrapLauncher.main(BootstrapLauncher.java:69) [bootstraplauncher-2.0.2.jar:?]
+Caused by: java.lang.NullPointerException: Cannot invoke "com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView.getJobDisplayName()" because the return value of "com.minecolonies.api.colony.buildings.views.IBuildingView.getModuleViewMatching(java.lang.Class, java.util.function.Predicate)" is null
+	at TRANSFORMER/minecolonies@1.1.972-1.21.1-snapshot/com.minecolonies.core.colony.requestsystem.resolvers.PublicWorkerCraftingProductionResolver.getRequesterDisplayName(PublicWorkerCraftingProductionResolver.java:142) ~[minecolonies-1.1.972-1.21.1-snapshot.jar%23894!/:1.1.972-1.21.1-snapshot]
+	at TRANSFORMER/minecolonies@1.1.972-1.21.1-snapshot/com.minecolonies.core.client.gui.AbstractWindowRequestTree$1.updateElement(AbstractWindowRequestTree.java:337) ~[minecolonies-1.1.972-1.21.1-snapshot.jar%23894!/:1.1.972-1.21.1-snapshot]
+	at TRANSFORMER/blockui@1.0.199-1.21.1-snapshot/com.ldtteam.blockui.views.ScrollingListContainer.refreshElementPanes(ScrollingListContainer.java:166) ~[blockui-1.0.199-1.21.1-snapshot.jar%23688!/:1.0.199-1.21.1-snapshot]
+	at TRANSFORMER/blockui@1.0.199-1.21.1-snapshot/com.ldtteam.blockui.views.ScrollingList.refreshElementPanes(ScrollingList.java:142) ~[blockui-1.0.199-1.21.1-snapshot.jar%23688!/:1.0.199-1.21.1-snapshot]
+ */
+
 
 public class AdvancedClipboardItem extends ItemClipboard {
     

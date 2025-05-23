@@ -10,11 +10,11 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 public final class MCTPModJobs
 {
 
-    public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.parse(MCTradePostMod.MODID + ":shopkeeper");
-
+    public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID,"shopkeeper");
+    public static final ResourceLocation GUESTSERVICES_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID,"guestservices");
 
     public static DeferredHolder<JobEntry, JobEntry> shopkeeper;
-
+    public static DeferredHolder<JobEntry, JobEntry> guestservices;
 
     private MCTPModJobs()
     {
@@ -25,7 +25,7 @@ public final class MCTPModJobs
     {
         List<ResourceLocation> jobs = new ArrayList<>() { };
         jobs.add(SHOPKEEPER_ID);
-        
+        jobs.add(GUESTSERVICES_ID);        
         return jobs;
     }
 }

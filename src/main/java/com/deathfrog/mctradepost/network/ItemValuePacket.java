@@ -3,7 +3,7 @@ package com.deathfrog.mctradepost.network;
 import java.util.Map;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.registries.BuiltInRegistries;

@@ -1,9 +1,12 @@
 {
     "itemGroup:mctradepost" : "MC Trade Post",
     "item.mctradepost.advanced_clipboard": "Advanced Clipboard",
+    "block.mctradepost.blockhutresort": "Resort Hut",
     "block.mctradepost.blockhutmarketplace": "Marketplace Hut",
-    "com.mctradepost.building.marketplace": "Marketplace Hut",
+    "com.mctradepost.building.marketplace": "Marketplace",
     "com.mctradepost.building.marketplace.desc": "A place to turn your unwanted resources into ... something.",
+    "com.mctradepost.building.resort": "Resort",
+    "com.mctradepost.building.resort.desc": "Come relax, have a drink, and let go of some stress.",
     "com.mctradepost.job.shopkeeper": "Shopkeeper",
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
     "entity.shopkeeper.noitems": "The shopkeeper has no items to sell at the marketplace.",

@@ -1,0 +1,15 @@
+{
+"version": 1,
+"pack-format": 1,
+"desc": "Style Pack for Hilly Terrain",
+"authors":
+    [
+    "Corenne"
+    ],
+"mods":
+    [
+    "structurize", "mctradepost"
+    ],
+"name": "Hills",
+"icon": "tradepost.png"
+}

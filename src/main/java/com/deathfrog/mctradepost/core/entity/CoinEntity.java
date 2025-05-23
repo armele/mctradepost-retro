@@ -2,7 +2,7 @@ package com.deathfrog.mctradepost.core.entity;
 
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler;
 import com.deathfrog.mctradepost.item.CoinItem;
 import net.minecraft.core.BlockPos;

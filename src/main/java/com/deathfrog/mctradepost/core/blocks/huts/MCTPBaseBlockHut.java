@@ -24,7 +24,7 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
 
     public MCTPBaseBlockHut registerMCTPHutBlock(final Registry<Block> registry)
     {
-        Registry.register(registry, ResourceLocation.parse(MCTradePostMod.MODID + ":" + getHutName()), this);
+        Registry.register(registry, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, getHutName()), this);
         return this;
     }
 
@@ -34,7 +34,7 @@ public abstract class MCTPBaseBlockHut extends AbstractBlockHut<MCTPBaseBlockHut
      */
     public ResourceLocation getRegistryName()
     {
-        return ResourceLocation.parse(MCTradePostMod.MODID + ":" + getHutName());
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, getHutName());
     }    
 
     @Nullable

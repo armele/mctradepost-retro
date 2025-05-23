@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings;
+package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -30,9 +30,10 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.BuildingEconModule;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.google.common.collect.ImmutableList;
 
@@ -60,11 +61,6 @@ public class BuildingMarketplace extends AbstractBuilding
     public static final String REQUESTS_TYPE_SELLABLE = "com.mctradepost.coremod.request.sellable";
 
     /**
-     * Description string of the building.
-     */
-    private static final String MARKETPLACE = "marketplace";
-
-    /**
      * Tag to store the display shelf list.
      */
     private static final String TAG_DISPLAYSHELVES = "displayshelves";
@@ -77,7 +73,7 @@ public class BuildingMarketplace extends AbstractBuilding
     /**
      * Key for min remainder at warehouse.
      */
-    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, ResourceLocation.parse(MCTradePostMod.MODID + ":warehousemin"));
+    public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "warehousemin"));
 
     /**
      * Return a list of display shelves assigned to this hut.
@@ -104,7 +100,7 @@ public class BuildingMarketplace extends AbstractBuilding
     @Override
     public String getSchematicName()
     {
-        return MARKETPLACE;
+        return ModBuildings.MARKETPLACE_ID;
     }
 
     @Override

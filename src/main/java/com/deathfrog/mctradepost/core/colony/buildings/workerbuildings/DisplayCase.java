@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings;
+package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.UUID;
 

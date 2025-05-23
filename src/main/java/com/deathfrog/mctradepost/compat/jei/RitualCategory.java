@@ -77,8 +77,6 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
         ItemStack companion = new ItemStack(BuiltInRegistries.ITEM.get(recipe.companionItem()));
         ItemStack coin = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), recipe.requiredCoins());
 
-        // IDrawable badRitualPic = guiHelper.createDrawable(ResourceLocation.parse(recipe.getRitualTexture()), 0, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE);
-
         MCTradePostMod.LOGGER.info("Setting up ritual in the JEI for companion item: {}", recipe.companionItem());
 
         builder.addSlot(RecipeIngredientRole.INPUT, 0, 0)
@@ -122,7 +120,7 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
         
         // Adds the ritual effect icon, if present.
         try {
-            ritualOutcomePicture = ResourceLocation.parse(recipe.getRitualTexture());
+            ritualOutcomePicture = ResourceLocation.parse(recipe.getRitualTexture());  // Intentional use of parse
             IDrawableBuilder ritualPic = guiHelper.drawableBuilder(ritualOutcomePicture, 0, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE);
             ritualPic.setTextureSize(RITUAL_ICON_SIZE, RITUAL_ICON_SIZE);
             builder.addDrawable(ritualPic.build(), WIDTH - RITUAL_ICON_SIZE, 0);

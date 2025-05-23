@@ -13,7 +13,11 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.IItemDecorator;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
 
+
+@OnlyIn(Dist.CLIENT)
 public class AdvancedClipBoardDecorator implements IItemDecorator {
     private static IColonyView colonyView;
     private static boolean     render = false;

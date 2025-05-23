@@ -24,7 +24,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static com.minecolonies.api.util.constant.WindowConstants.CLIPBOARD_TOGGLE;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
 
+
+@OnlyIn(Dist.CLIENT)
 public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
     public static final String ADVANCED_CLIPBOARD_TOGGLE = "playeronly";
 

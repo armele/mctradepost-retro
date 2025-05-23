@@ -8,11 +8,10 @@ import com.minecolonies.core.colony.buildings.views.EmptyView;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 
 
 public final class ModBuildingsInitializer
@@ -26,18 +25,30 @@ public final class ModBuildingsInitializer
 
     static
     {
+
+    }
+
+    public static void initializeBuildings() {
         MCTPBuildingModules.init();
         
         ModBuildings.marketplace = DEFERRED_REGISTER.register(ModBuildings.MARKETPLACE_ID, () -> new BuildingEntry.Builder()
           .setBuildingBlock(MCTradePostMod.blockHutMarketplace)
           .setBuildingProducer(BuildingMarketplace::new).setBuildingViewProducer(() -> EmptyView::new)
-          .setRegistryName(ResourceLocation.parse(MCTradePostMod.MODID + ":" + ModBuildings.MARKETPLACE_ID))
+          .setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.MARKETPLACE_ID))
           .addBuildingModuleProducer(MCTPBuildingModules.SHOPKEEPER_WORK)
           .addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_SELLABLE)
           .addBuildingModuleProducer(MCTPBuildingModules.ECON_MODULE)
           .addBuildingModuleProducer(MCTPBuildingModules.ECON_SETTINGS)
           .addBuildingModuleProducer(BuildingModules.MIN_STOCK)
           .addBuildingModuleProducer(BuildingModules.STATS_MODULE)          
+          .createBuildingEntry());
+
+        ModBuildings.resort = DEFERRED_REGISTER.register(ModBuildings.RESORT_ID, () -> new BuildingEntry.Builder()
+          .setBuildingBlock(MCTradePostMod.blockHutResort)
+          .setBuildingProducer(BuildingMarketplace::new).setBuildingViewProducer(() -> EmptyView::new)
+          .setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID))
+          .addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK)
+          // TODO: Add other modules as needed.
           .createBuildingEntry());
     }
 }

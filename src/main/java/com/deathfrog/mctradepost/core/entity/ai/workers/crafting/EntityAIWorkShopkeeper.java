@@ -5,11 +5,11 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.ItemValueRegistry;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.modules.MCTPBuildingModules;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.BuildingMarketplace;
-import com.deathfrog.mctradepost.core.colony.jobs.buildings.workerbuildings.DisplayCase;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
@@ -94,10 +94,10 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * Worker status icon
      */
     private final static VisibleCitizenStatus SELLING =
-      new VisibleCitizenStatus(ResourceLocation.parse(MCTradePostMod.MODID + ":textures/icons/work/shopkeeper.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
+      new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/shopkeeper.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
 
     private final static VisibleCitizenStatus COMMUTING =
-      new VisibleCitizenStatus(ResourceLocation.parse(MCTradePostMod.MODID + ":textures/icons/work/shopkeeper_commute.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
+      new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/shopkeeper_commute.png"), "com.mctradepost.gui.visiblestatus.shopkeeper");
 
     /**
      * Constructor for the AI

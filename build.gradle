@@ -126,8 +126,8 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
-    compileOnly name: 'minecolonies-0.0.11-1.21.1alpha'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/minecolonies-1.21.1-ALPHA.jar')
+    compileOnly name: 'minecolonies-1.1.972-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.972-1.21.1-snapshot.jar')
 
     compileOnly name: 'blockui-1.0.199-1.21.1-snapshot'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/blockui-1.0.199-1.21.1-snapshot')    

@@ -13,7 +13,11 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.world.entity.Pose;
 import org.jetbrains.annotations.NotNull;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
 
+
+@OnlyIn(Dist.CLIENT)
 public class MaleShopkeeperModel  extends CitizenModel<AbstractEntityCitizen> {
 
     public MaleShopkeeperModel(final ModelPart part)

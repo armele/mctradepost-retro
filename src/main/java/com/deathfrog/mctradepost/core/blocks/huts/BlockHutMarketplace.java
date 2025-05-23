@@ -6,22 +6,21 @@ import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 
 
 public class BlockHutMarketplace extends MCTPBaseBlockHut {
+
+    public static final String HUT_NAME = "blockhutmarketplace";
+
     public BlockHutMarketplace() {
         super();
     }
 
     @Override
     public String getHutName() {
-        return "blockhutmarketplace";
+        return HUT_NAME;
     }
 
     @Override
     public BuildingEntry getBuildingEntry() {
         return ModBuildings.marketplace.get();
-    }
-
-    public void handleRitual() {
-        
     }
 
 }
