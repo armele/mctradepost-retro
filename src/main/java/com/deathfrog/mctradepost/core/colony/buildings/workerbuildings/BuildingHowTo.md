@@ -19,8 +19,11 @@ Add the building class itself:
 - src\main\java\com\deathfrog\mctradepost\core\colony\jobs\buildings\workerbuildings\
 - Extend AbstractBuilding
 - Associate the building and its hut block in ModBuildingsInitializer (static block)
+-- Add the translation key to en_us.json: "com." + key.getNamespace() + ".job." + key.getPath();
 -- This is also where you designate what modules the building will support once built.
 -- Define at least a new WorkerBuildingModule in MCTPBuildingModules.java specifying the primary stats.
+-- If the building serializes any data, create a view that deserializes it to the client, and associate that view with the building in ModBuildingsInitializer.
+
 
 Add any custom buildng modules that are needed:
 - Define new modules in MCTPBuildingModules

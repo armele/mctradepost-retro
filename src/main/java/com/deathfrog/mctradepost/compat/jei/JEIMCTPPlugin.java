@@ -19,6 +19,8 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+// TODO: Make JEI optional.  Currently reports as required from CurseForge
+
 @mezz.jei.api.JeiPlugin
 public class JEIMCTPPlugin implements IModPlugin
 {

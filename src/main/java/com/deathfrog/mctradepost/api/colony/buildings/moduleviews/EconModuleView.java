@@ -1,32 +1,15 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.ldtteam.blockui.views.BOWindow;
-import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
-import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
-import com.minecolonies.core.colony.managers.StatisticsManager;
-
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import com.minecolonies.core.colony.buildings.moduleviews.BuildingStatisticsModuleView;
 
 /**
  * Building statistic module.
  */
-public class EconModuleView extends AbstractBuildingModuleView
+public class EconModuleView extends BuildingStatisticsModuleView
 {
-    /**
-     * List of all beds.
-     */
-    private StatisticsManager statisticsManager = new StatisticsManager();
-
-    @Override
-    public void deserialize(final @NotNull RegistryFriendlyByteBuf buf)
-    {
-        statisticsManager.deserialize(buf);
-    }
-
-    @Override
+   @Override
     public String getIcon()
     {
         // MCTradePostMod.LOGGER.warn("Module icon load trace", new Exception("Module icon load trace"));
@@ -39,18 +22,9 @@ public class EconModuleView extends AbstractBuildingModuleView
         return "com.mctradepost.core.gui.modules.econ";
     }
 
-    /**
-     * Get the statistic manager of the building.
-     * @return the manager.
-     */
-    public IStatisticsManager getBuildingStatisticsManager()
-    {
-        return statisticsManager;
-    }
-
     @Override
     public BOWindow getWindow()
     {
-        return new WindowEconModule(getBuildingView(), statisticsManager);
+        return new WindowEconModule(getBuildingView(), this.getBuildingStatisticsManager());
     }
 }

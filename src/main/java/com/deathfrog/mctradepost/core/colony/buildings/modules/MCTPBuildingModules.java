@@ -74,7 +74,7 @@ public class MCTPBuildingModules
      */
     public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> GUESTSERVICES_WORK          =
       new BuildingEntry.ModuleProducer<>("guestservices_work", 
-        () -> new WorkerBuildingModule(MCTPModJobs.shopkeeper.get(), Skill.Adaptability, Skill.Intelligence, false, (b) -> 1),
+        () -> new WorkerBuildingModule(MCTPModJobs.guestservices.get(), Skill.Adaptability, Skill.Intelligence, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 
     /**
@@ -102,9 +102,5 @@ public class MCTPBuildingModules
     /**
      * Mystic
      */
-
-    public static void init() {
-
-    }
 }
 

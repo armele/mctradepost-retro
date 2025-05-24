@@ -20,7 +20,7 @@ public class BlockHutMarketplace extends MCTPBaseBlockHut {
 
     @Override
     public BuildingEntry getBuildingEntry() {
-        return ModBuildings.marketplace.get();
+        return ModBuildings.marketplace;
     }
 
 }

@@ -4,6 +4,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import com.minecolonies.core.colony.managers.StatisticsManager;
 
@@ -20,7 +21,7 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
  */
 public class WindowEconModule extends AbstractModuleWindow
 {
-    private StatisticsManager statsManager = null;
+    private IStatisticsManager statsManager = null;
     /**
      * Drop down list for interval.
      */
@@ -41,7 +42,7 @@ public class WindowEconModule extends AbstractModuleWindow
      */
     private static final String ECONWINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layouteconmodule.xml";
 
-    public WindowEconModule(IBuildingView building, StatisticsManager statsManager) {
+    public WindowEconModule(IBuildingView building, IStatisticsManager statsManager) {
         super(building, MCTradePostMod.MODID + ECONWINDOW_RESOURCE_SUFFIX);
         this.statsManager = statsManager;
     }

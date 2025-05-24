@@ -10,7 +10,7 @@ import net.minecraft.core.BlockPos;
 
 public class BuildingResort extends AbstractBuilding {
 
-    protected BuildingResort(@NotNull IColony colony, BlockPos pos) {
+    public BuildingResort(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
     }
 

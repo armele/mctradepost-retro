@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
@@ -61,6 +60,7 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -179,6 +179,9 @@ import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 [18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.danger
 
  */
+
+// TODO: Add in the nice cosmetics that show in the CurseForge mods list (or at least determine how)
+
 @Mod(MCTradePostMod.MODID)
 public class MCTradePostMod
 {
@@ -217,8 +220,10 @@ public class MCTradePostMod
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
-    public static MCTPBaseBlockHut blockHutMarketplace;
-    public static MCTPBaseBlockHut blockHutResort;
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutMarketplace = BLOCKS.register(BlockHutMarketplace.HUT_NAME, () -> new BlockHutMarketplace());
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutResort = BLOCKS.register(BlockHutResort.HUT_NAME, () -> new BlockHutResort());
+    //public static MCTPBaseBlockHut blockHutMarketplace;
+    //public static MCTPBaseBlockHut blockHutResort;
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -265,7 +270,7 @@ public class MCTradePostMod
 
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
-        ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);
+        // ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);  // NETSYNC: Building registration at this point with static initialization, server load fails due to early access of objects.
         MCTPModSoundEvents.SOUND_EVENTS.register(modEventBus);
 
 
@@ -289,7 +294,9 @@ public class MCTradePostMod
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
-        LOGGER.info("MCTradePost common setup");
+        LOGGER.info("MCTradePost common setup");    
+        // NETSYNC: Building registration at this point with explicit initialization, server load fails due to "Cannot register new entries to DeferredRegister after RegisterEvent has been fired. "
+
     }
 
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
@@ -407,8 +414,8 @@ public class MCTradePostMod
 
             TRADEPOST_TAB.unwrapKey().ifPresent(key -> {
                 if (event.getTabKey().equals(key)) {
-                    event.accept(MCTradePostMod.blockHutMarketplace);
-                    event.accept(MCTradePostMod.blockHutResort);
+                    event.accept(MCTradePostMod.blockHutMarketplace.get());
+                    event.accept(MCTradePostMod.blockHutResort.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                 }
             });
@@ -491,9 +498,9 @@ public class MCTradePostMod
          */
         public static void registerBlocks(final Registry<Block> registry)
         {
-            LOGGER.info("Registering custom block huts.");
-            MCTradePostMod.blockHutMarketplace = new BlockHutMarketplace().registerMCTPHutBlock(registry);
-            MCTradePostMod.blockHutResort = new BlockHutResort().registerMCTPHutBlock(registry);
+            LOGGER.info("Registering custom blocks.");
+            // MCTradePostMod.blockHutMarketplace = new BlockHutMarketplace().registerMCTPHutBlock(registry);
+            // MCTradePostMod.blockHutResort = new BlockHutResort().registerMCTPHutBlock(registry);
         }
 
 
@@ -514,10 +521,9 @@ public class MCTradePostMod
          */
         public static void registerBlockItem(final Registry<Item> registry)
         {
-            MCTradePostMod.blockHutMarketplace.registerBlockItem(registry, new Item.Properties());
-            MCTradePostMod.blockHutResort.registerBlockItem(registry, new Item.Properties());
+            MCTradePostMod.blockHutMarketplace.get().registerBlockItem(registry, new Item.Properties());
+            MCTradePostMod.blockHutResort.get().registerBlockItem(registry, new Item.Properties());
             TileEntityInitializer.initializeTileEntities();
-            ModBuildingsInitializer.initializeBuildings();
         }
     }
 }

@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-
 import com.google.common.collect.Lists;
 import com.minecolonies.api.util.Log;
 import org.jetbrains.annotations.NotNull;

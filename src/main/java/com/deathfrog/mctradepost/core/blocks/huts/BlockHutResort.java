@@ -76,7 +76,7 @@ public class BlockHutResort extends MCTPBaseBlockHut{
 
     @Override
     public BuildingEntry getBuildingEntry() {
-        return ModBuildings.resort.get();
+        return ModBuildings.resort;
     }
     
 }

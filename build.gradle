@@ -69,6 +69,7 @@ runs {
         // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
         systemProperty 'forge.enabledGameTestNamespaces', project.mod_id    
         workingDirectory = file("run")  
+        // workingDirectory = file("C:\\Users\\amele\\curseforge\\minecraft\\Instances\\All the Mods 10 - ATM10")
     }
 
     server {
@@ -129,11 +130,11 @@ dependencies {
     compileOnly name: 'minecolonies-1.1.972-1.21.1-snapshot'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.972-1.21.1-snapshot.jar')
 
-    compileOnly name: 'blockui-1.0.199-1.21.1-snapshot'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/blockui-1.0.199-1.21.1-snapshot')    
+    compileOnly name: 'blockui-1.0.200-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/blockui-1.0.200-1.21.1-snapshot')    
 
-    compileOnly name: 'structurize-1.0.773-1.21.1-snapshot'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/structurize-1.0.773-1.21.1-snapshot')    
+    compileOnly name: 'structurize-1.0.775-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/structurize-1.0.775-1.21.1-snapshot')    
 
     compileOnly name: 'domum-ornamentum-1.0.213-snapshot-main'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/domum-ornamentum-1.0.213-snapshot-maint')    

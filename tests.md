@@ -1,6 +1,12 @@
 # Tests
 
-# Marketplace
+## Basic
+Verify mod loads in singleplayer local.
+- Verify world starts.
+Verify mod loads on dedicated server.
+- Verify world starts.
+
+## Marketplace
 
 Test shopkeeper ability to place items in frames for selling.
 - Identify broken frames
@@ -15,7 +21,7 @@ Test ability to withdraw Trade Coins using the Advanced Clipboard
 - Coin generated
 - Coin able to be redeposited
 
-# Wishing Well
+## Wishing Well
 
 Test structure identification
 - Right-click thrown coin
@@ -28,6 +34,12 @@ Test valid structures generate appropriate ritual.
 
 Test in-progress incomplete rituals persist across server reboots.
 
-# JEI
+## Advanced Clipboard
+Able to register it against the colony.
+Able to see everything on the regular clipboard.
+Able to trim down to player-only items.
+Able to extract coins from the marketplace hut block
+
+## JEI
  Verify ritual recipes appear.
  Verify the mod loads WITHOUT JEI installed.
