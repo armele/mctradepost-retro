@@ -5,14 +5,7 @@ import java.util.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.minecolonies.api.colony.ICitizenData;
-import com.minecolonies.api.colony.ICivilianData;
-import com.minecolonies.api.colony.IVisitorData;
-import com.minecolonies.api.colony.jobs.IJob;
-import com.minecolonies.api.sounds.EventType;
-
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;

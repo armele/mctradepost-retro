@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
-import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
@@ -20,13 +19,11 @@ import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.minecolonies.api.blocks.ModBlocks;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -37,7 +34,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
@@ -70,117 +66,8 @@ import com.deathfrog.mctradepost.core.entity.CoinEntity;
  */
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 
-// TODO: Add missing sounds
-/* MISSING SOUNDS:
-
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.noise
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.gotobed
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.badweather
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.lowsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.highsaturation
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.goodhousing
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.greeting
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.farewell
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.missingequipment
-[18May2025 16:38:30.045] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.happy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.unhappy
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.success
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male1.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female1.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male2.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female2.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male3.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female3.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.male4.danger
-[18May2025 16:38:30.046] [Render thread/WARN] [net.minecraft.client.sounds.SoundEngine/]: Missing sound for event: mctradepost:citizen.shopkeeper.female4.danger
-
- */
-
-// TODO: Add in the nice cosmetics that show in the CurseForge mods list (or at least determine how)
+// TODO: Add missing sounds (anything mapped to replaceme.ogg)
+// TODO: [Enhancement] Add in the nice cosmetics that show in the CurseForge mods list (or at least determine how)
 
 @Mod(MCTradePostMod.MODID)
 public class MCTradePostMod
@@ -241,8 +128,6 @@ public class MCTradePostMod
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
     {
-        // Register the commonSetup method for modloading
-        modEventBus.addListener(this::commonSetup);
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
@@ -262,6 +147,10 @@ public class MCTradePostMod
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(RitualReloadListener.class);
         
+
+        // Add a listener for the common setup event.
+        modEventBus.addListener(this::onCommonSetup);
+
         // Add a listener for the completion of the load.
         modEventBus.addListener(this::onLoadComplete);
 
@@ -291,16 +180,22 @@ public class MCTradePostMod
         modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
     }
 
-    private void commonSetup(final FMLCommonSetupEvent event)
+    private void onCommonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
-        LOGGER.info("MCTradePost common setup");    
+        LOGGER.info("MCTradePost common setup (placeholder)");    
         // NETSYNC: Building registration at this point with explicit initialization, server load fails due to "Cannot register new entries to DeferredRegister after RegisterEvent has been fired. "
-
     }
 
+    /**
+     * This method is called on both the client and server side after the mod has finished loading.
+     * It is responsible for injecting the sound events from MCTradePost into MineColonies' CITIZEN_SOUND_EVENTS.
+     * This is a temporary solution until sounds in MineColonies have the flexibility to look up sound events from other modpacks.
+     */
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
-        LOGGER.info("MCTradePost onLoadComplete");  
+        LOGGER.info("MCTradePost onLoadComplete"); 
+        MCTradePostMod.LOGGER.info("Injecting sounds.");  // TODO: Test - do we reach this?
+        MCTPModSoundEvents.injectSounds();  // These need to be injected both on client (to play) and server (to register)
     }
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
@@ -379,10 +274,9 @@ public class MCTradePostMod
      */
     @SubscribeEvent
     public void onWorldLoad(LevelEvent.Load event) {
-        if (event.getLevel().isClientSide()) {
-            MCTPModSoundEvents.injectSounds();
-        }
+
     }
+
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID)
     public class ServerEventHandler {
@@ -478,7 +372,6 @@ public class MCTradePostMod
             if (event.getRegistryKey().equals(Registries.BLOCK))
             {
                 LOGGER.info("Registering blocks");
-                ClientModEvents.registerBlocks(event.getRegistry(Registries.BLOCK));     
             }
         }
 
@@ -489,41 +382,6 @@ public class MCTradePostMod
             {
                 LOGGER.info("Registering entities");
             }
-        }
-
-        /**
-         * Initializes {@link ModBlocks} with the block instances.
-         *
-         * @param registry The registry to register the new blocks.
-         */
-        public static void registerBlocks(final Registry<Block> registry)
-        {
-            LOGGER.info("Registering custom blocks.");
-            // MCTradePostMod.blockHutMarketplace = new BlockHutMarketplace().registerMCTPHutBlock(registry);
-            // MCTradePostMod.blockHutResort = new BlockHutResort().registerMCTPHutBlock(registry);
-        }
-
-
-        @SubscribeEvent
-        public static void registerItems(RegisterEvent event)
-        {
-            if (event.getRegistryKey().equals(Registries.ITEM))
-            {
-                LOGGER.info("Registering items");
-                ClientModEvents.registerBlockItem(event.getRegistry(Registries.ITEM));
-            }
-        }  
-        
-        /**
-         * Initializes the registry with the relevant item produced by the relevant blocks.
-         *
-         * @param registry The item registry to add the items too.
-         */
-        public static void registerBlockItem(final Registry<Item> registry)
-        {
-            MCTradePostMod.blockHutMarketplace.get().registerBlockItem(registry, new Item.Properties());
-            MCTradePostMod.blockHutResort.get().registerBlockItem(registry, new Item.Properties());
-            TileEntityInitializer.initializeTileEntities();
         }
     }
 }

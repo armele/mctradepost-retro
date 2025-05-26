@@ -6,8 +6,6 @@ import com.ldtteam.blockui.views.DropDownList;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
-import com.minecolonies.core.colony.managers.StatisticsManager;
-
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 

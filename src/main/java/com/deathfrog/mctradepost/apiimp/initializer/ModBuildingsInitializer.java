@@ -29,27 +29,7 @@ public final class ModBuildingsInitializer
 
     static
     {
-        /*
-          ModBuildings.marketplace = DEFERRED_REGISTER.register(ModBuildings.MARKETPLACE_ID, () -> new BuildingEntry.Builder()
-          .setBuildingBlock(MCTradePostMod.blockHutMarketplace)
-          .setBuildingProducer(BuildingMarketplace::new).setBuildingViewProducer(() -> MarketplaceView::new)
-          .setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.MARKETPLACE_ID))
-          //.addBuildingModuleProducer(MCTPBuildingModules.SHOPKEEPER_WORK)
-          //.addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_SELLABLE)
-          //.addBuildingModuleProducer(MCTPBuildingModules.ECON_MODULE)
-          //.addBuildingModuleProducer(MCTPBuildingModules.ECON_SETTINGS)
-          //.addBuildingModuleProducer(BuildingModules.MIN_STOCK)
-          //.addBuildingModuleProducer(BuildingModules.STATS_MODULE)          
-          .createBuildingEntry());
 
-        ModBuildings.resort = DEFERRED_REGISTER.register(ModBuildings.RESORT_ID, () -> new BuildingEntry.Builder()
-          .setBuildingBlock(MCTradePostMod.blockHutResort)
-          .setBuildingProducer(BuildingMarketplace::new).setBuildingViewProducer(() -> EmptyView::new)
-          .setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID))
-          //.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK)
-          // TODO: Add other modules as needed.
-          .createBuildingEntry());
-          */
     }
 
     /**
@@ -89,7 +69,11 @@ public final class ModBuildingsInitializer
             resortBuilder.setBuildingViewProducer(() -> EmptyView::new);
             resortBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID));
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             // TODO: Add other modules as needed.
+            // Minimim stock module
+            // Stats module for drinks served.
 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 

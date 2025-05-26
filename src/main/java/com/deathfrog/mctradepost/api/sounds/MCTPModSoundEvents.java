@@ -19,7 +19,7 @@ public final class MCTPModSoundEvents
     public static final SoundEvent CASH_REGISTER = MCTPModSoundEvents.getSoundID("environment.cash_register");
 
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MCTradePostMod.MODID);
-    public static Map<String, Map<EventType, List<Tuple<SoundEvent, SoundEvent>>>> MCTP_CITIZEN_SOUND_EVENTS = new HashMap<>();
+    public static Map<String, Map<EventType, List<Tuple<SoundEvent, SoundEvent>>>> MCTP_CITIZEN_SOUND_EVENTS = new HashMap<>();     // These will be injected into MineColonies' CITIZEN_SOUND_EVENTS
 
     /**
      * Private constructor to hide the implicit public one.
@@ -50,6 +50,8 @@ public final class MCTPModSoundEvents
                 final List<Tuple<SoundEvent, SoundEvent>> individualSounds = new ArrayList<>();
                 for (int i = 1; i <= 4; i++)
                 {
+                    MCTradePostMod.LOGGER.info("Registering sound event: " + ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".genderplaceholder." + event.getId());
+
                     final SoundEvent maleSoundEvent =
                       MCTPModSoundEvents.getSoundID(ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".male" + i + "." + event.getId());
                     final SoundEvent femaleSoundEvent =
@@ -81,6 +83,12 @@ public final class MCTPModSoundEvents
      * This is a temporary solution until sounds in MineColonies have the flexibility to look up sound events from other modpacks.
      */
     public static void injectSounds() {
-        ModSoundEvents.CITIZEN_SOUND_EVENTS.putAll(MCTP_CITIZEN_SOUND_EVENTS);
+        if (MCTP_CITIZEN_SOUND_EVENTS.isEmpty()) {
+            MCTradePostMod.LOGGER.info("There are no sounds to inject.");
+        } else {
+            int size = MCTP_CITIZEN_SOUND_EVENTS.size();
+            MCTradePostMod.LOGGER.info("Injecting {} sound events.", size);
+            ModSoundEvents.CITIZEN_SOUND_EVENTS.putAll(MCTP_CITIZEN_SOUND_EVENTS);
+        }
     }
 }

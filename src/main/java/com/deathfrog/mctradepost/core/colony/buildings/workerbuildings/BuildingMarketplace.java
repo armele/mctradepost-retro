@@ -221,7 +221,7 @@ public class BuildingMarketplace extends AbstractBuilding
      * @param compound The CompoundTag containing the serialized state of the building.
      */
     // @Override
-    public void XdeserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
+    public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
         super.deserializeNBT(provider, compound);
 
@@ -316,8 +316,6 @@ public class BuildingMarketplace extends AbstractBuilding
         return closestMarketplace;
     }
 
-    // TODO: Fix signature of serializeNBT and deserializeNBT after our view network issues are resolved.
-
     /**
      * Serializes the NBT data for the building, including the display shelf contents.
      * The display shelf contents are stored in a list of CompoundTags, where each CompoundTag
@@ -327,7 +325,7 @@ public class BuildingMarketplace extends AbstractBuilding
      * @return The serialized CompoundTag containing the state of the building.
      */
     // @Override
-    public CompoundTag XserializeNBT(@NotNull final HolderLookup.Provider provider)
+    public CompoundTag serializeNBT(@NotNull final HolderLookup.Provider provider)
     {
         final CompoundTag compound = super.serializeNBT(provider);
         final ListTag shelfTagList = new ListTag();
@@ -343,7 +341,6 @@ public class BuildingMarketplace extends AbstractBuilding
 
         return compound;
     }
-
 
     public static class CraftingModule extends AbstractCraftingBuildingModule.Crafting
     {
@@ -380,4 +377,6 @@ public class BuildingMarketplace extends AbstractBuilding
             return recipes;
         }
     }
+
+
 }

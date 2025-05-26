@@ -11,7 +11,7 @@
     "instant": true,
     "requirements": [
         {
-            "type": "mctradepost:building",
+            "type": "minecolonies:building",
             "building": "marketplace",
             "level": 1
         }

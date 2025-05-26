@@ -4,14 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
+
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
 public final class MCTPModJobs
 {
 
-    public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID,"shopkeeper");
-    public static final ResourceLocation GUESTSERVICES_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID,"guestservices");
+    public static final String SHOPKEEPER_TAG = "shopkeeper";
+    public static final String GUESTSERVICES_TAG = "guestservices";
+
+    public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, SHOPKEEPER_TAG);
+    public static final ResourceLocation GUESTSERVICES_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, GUESTSERVICES_TAG);
 
     public static DeferredHolder<JobEntry, JobEntry> shopkeeper;
     public static DeferredHolder<JobEntry, JobEntry> guestservices;

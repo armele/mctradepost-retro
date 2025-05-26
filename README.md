@@ -59,30 +59,42 @@ A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) wit
 ## Current Status
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
-"Wishing Well" Interface for spending earned income (IN PROGRESS)
-- Rituals driven by datapack (completed)
-- Integrated with JEI (completed)
+
+Building: Resort [In Progress]
+Leisure time / resorts / vacations (Resort hut w/custom needs items)  
+- Research: Unlock Resort
+- Job: Guest Services [In Progress]
+- Job: Mixologist
+- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital)
+- Huts to allow skill-up in non-primary/secondary stats.  
+
+
 
 ### Roadmap (Roughly Prioritized)
 
-Implement Coin Usage
-- Unlock subsequent levels of the merchant building  
-- Ritual: Summon traders  
-- Research: Add trader recipes
-- Research: Unlock resort
-- Ritual: Summoning
-
-Happiness based on colony wealth per citizen  
-Leisure time / resorts / vacations (Resort hut w/custom needs items; travel agency hut)  
-Huts to allow skill-up in non-primary/secondary stats.  
-Pet shops, pet functions, pet-related colony roles.  
-- Sheepdog able to gather mobs and herd them to a given location.
-- Other pets with happiness impact.
-In-Game Instructions
+Logic: Enable building level locking
+Building: Pet Shop (enables pet functions, pet-related colony roles.)
+Pets: animal fetchers
+Pets: happiness multiplier
+Pets: burnout mitigator
+Pets: sickness decreased
+Pets: scarecrow effect
+Building Effect: Visitor pathing to marketplace
+Building Effect: Happiness based on colony wealth per citizen  
+Item: In-Game Instructions
+Building Effect: Autominting + Delivery to warehouse of coins?
+Wishing Well Rituals: Weather changing
+Wishing Well Rituals: Summon Trader
+Research: Unlock Trader Recipes
+Jobs: Orchards
+Jobs: Bartender / brewmaster / mixologist at resort
+Building: Recycling
+Building Effect: Disenchanting
+Building: Train station (allows intra-colony trade)
 Assembling colonies into collections (empire, state, etc.)  
-Express shipping (intracolony and inter-colony) - faster item transport. Faster people transport.  
+
+Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).
-Autominting + Delivery to warehouse of coins?
 
 ### Complete
 

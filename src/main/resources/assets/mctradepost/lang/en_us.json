@@ -10,6 +10,9 @@
     "com.mctradepost.job.shopkeeper": "Shopkeeper",
     "com.mctradepost.job.guestservices": "Guest Services",
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
+    "mctradepost:guestservices.job.desc": "Need a vacation? Service here is the best.",
+    "mctradepost:shopkeeper.skills.desc": "Helps make sales faster.",
+    "mctradepost:guestservices.skills.desc": "Helps serve faster.",
     "entity.shopkeeper.noitems": "The shopkeeper has no items to sell at the marketplace.",
     "entity.shopkeeper.brokenframe": "One of the shopkeeper's display frames is broken. Please repair the building.",
     "entity.shopkeeper.noframes": "No display frames were found for the shopkeeper to use.",
@@ -45,6 +48,7 @@
     "com.mctradepost.research.effects.blockhutmarketplace2.description": "Allows the upgrade of the Marketplace Hut to Level 2.",
     "com.mctradepost.research.effects.blockhutmarketplace3.description": "Allows the upgrade of the Marketplace Hut to Level 3.",
     "com.mctradepost.research.effects.blockhutmarketplace5.description": "Allows the upgrade of the Marketplace Hut to Level 5.",
-    "jei.mctradepost.rituals": "Wishing Well Rituals"
+    "jei.mctradepost.rituals": "Wishing Well Rituals",
+    "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full."
 }
   

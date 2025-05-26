@@ -33,7 +33,7 @@ public final class ModJobsInitializer
         MCTPModJobs.guestservices = register(DEFERRED_REGISTER, MCTPModJobs.GUESTSERVICES_ID.getPath(), () -> new JobEntry.Builder()
           .setJobProducer(JobGuestServices::new)
           .setJobViewProducer(() -> DefaultJobView::new)
-          .setRegistryName(MCTPModJobs.SHOPKEEPER_ID)
+          .setRegistryName(MCTPModJobs.GUESTSERVICES_ID)
           .createJobEntry());
     }
 
