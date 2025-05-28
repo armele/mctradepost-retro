@@ -22,6 +22,5 @@
             "mctradepost:effects/blockhutmarketplace2": 2
         }
     ],
-    "icon": "mctradepost:blockhutmarketplace",
-    "remove": false
+    "icon": "mctradepost:blockhutmarketplace"
 }

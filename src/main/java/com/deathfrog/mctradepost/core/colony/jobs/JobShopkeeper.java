@@ -2,13 +2,12 @@ package com.deathfrog.mctradepost.core.colony.jobs;
 
 import net.minecraft.resources.ResourceLocation;
 
-import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
 
-// TODO: Multiplayer the non-hosting player cannot interact with the Shopkeeper (new after fixing sounds)
+// TODO: Test - Multiplayer the non-hosting player cannot interact with the Shopkeeper (new after fixing sounds)
 /**
  * Class of the Shopkeeper job.
  * 
@@ -45,7 +44,8 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     {
         // MCTradePostMod.LOGGER.info("Getting JobShopkeeper model {}", ModModelTypes.SHOPKEEPER_MODEL_ID);
         // MCTradePostMod.LOGGER.warn("Model load trace", new Exception("Model trace"));
-        return ModModelTypes.SHOPKEEPER_MODEL_ID;
+        // return ModModelTypes.SHOPKEEPER_MODEL_ID;
+        return super.getModel();
     }
 
 

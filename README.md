@@ -10,6 +10,13 @@ MC Trade Post introduces an economic system which allows the selling of excess i
 
 Craft a Marketplace hut. Using the build tool, choose the "Economics" style from the MC Trade Post mod, and contruct the Marketplace as you would any other hut. Interactions for the MC Trade Post mod are handled primarily in the Marketplace interface on that hut block.  
 
+### Buildings
+#### Marketplace
+Gives you a place for a Shopkeeper to work. They will sell various trinkets (configured in the hut block) to the visitors in the colony, generating Trade Coins (‡).
+
+#### Resort
+A resort attracts your citizens who are feeling overworked. Guest Services will tend to vacationing citizens, who can relax and repair their adverse stat, and generate some Trade Coins (‡) for the colony while taking a break from work.
+
 ### Custom Items
 
 Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.  
@@ -60,14 +67,13 @@ A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) wit
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
-Building: Resort [In Progress]
+Building: Resort [In Progress:Development]
 Leisure time / resorts / vacations (Resort hut w/custom needs items)  
 - Research: Unlock Resort
-- Job: Guest Services [In Progress]
+- Job: Guest Services [In Progress:Development]
 - Job: Mixologist
-- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital)
+- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital) [In Progress:Development]
 - Huts to allow skill-up in non-primary/secondary stats.  
-
 
 
 ### Roadmap (Roughly Prioritized)
@@ -79,7 +85,6 @@ Pets: happiness multiplier
 Pets: burnout mitigator
 Pets: sickness decreased
 Pets: scarecrow effect
-Building Effect: Visitor pathing to marketplace
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
 Building Effect: Autominting + Delivery to warehouse of coins?

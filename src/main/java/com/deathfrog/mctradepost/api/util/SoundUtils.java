@@ -22,6 +22,8 @@ public class SoundUtils {
      * @param volume      volume of the sound.
      */
 
+    public static final float BASIC_VOLUME = 1.0f;
+
     /**
      * Get a random between 1 and 100.
      */

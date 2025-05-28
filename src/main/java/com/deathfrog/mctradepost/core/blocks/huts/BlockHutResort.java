@@ -59,11 +59,10 @@ If the building is meant to be unlocked via research or progression, set that up
 
 // TODO: For building unlock effects see CustomRecipe.isUnlockEffectResearched for a possible workaround to Minecolonies framework appearing to not handle effects on non-minecolonies buildings.
 // TODO: Check organization of Economic Style (Icon leads only to marketplace, resort present but separate)
-// TODO: Custom block item and recipe for "lounging chair"
-// TODO: Custom block item and recipe for "drink table"
-// TODO: Custom item for "marguarita"
-// TODO: Adjust the recipe for blockhutresort to use the "marguarita"
-// TODO: Consider EntityAISickTask as a model for when  workers decide to take a vacation.
+// TODO: RESORT Custom block item and recipe for "lounging chair"
+// TODO: RESORT Custom block item and recipe for "drink table"
+// TODO: RESORT Custom item for "marguarita"
+// TODO: RESORT Adjust the recipe for blockhutresort to use the "marguarita"
 
 public class BlockHutResort extends MCTPBaseBlockHut{
 

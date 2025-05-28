@@ -3,8 +3,6 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
-import com.minecolonies.core.colony.buildings.views.EmptyView;
-
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -13,6 +11,7 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -58,28 +57,25 @@ public final class ModBuildingsInitializer
             marketBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
             ModBuildings.marketplace = marketBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.MARKETPLACE_ID), ModBuildings.marketplace);
-            });
 
+            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
+                registry.register(ModBuildings.marketplace.getRegistryName(), ModBuildings.marketplace);
+            });
+    
 
             BuildingEntry.Builder resortBuilder = new BuildingEntry.Builder();
             resortBuilder.setBuildingBlock(MCTradePostMod.blockHutResort.get());
             resortBuilder.setBuildingProducer(BuildingResort::new);
-            resortBuilder.setBuildingViewProducer(() -> EmptyView::new);
+            resortBuilder.setBuildingViewProducer(() -> ResortView::new);
             resortBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID));
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
             resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
-            // TODO: Add other modules as needed.
-            // Minimim stock module
-            // Stats module for drinks served.
-
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID), ModBuildings.resort);
-            });            
+                registry.register(ModBuildings.resort.getRegistryName(), ModBuildings.resort);
+            });
         }
         
 

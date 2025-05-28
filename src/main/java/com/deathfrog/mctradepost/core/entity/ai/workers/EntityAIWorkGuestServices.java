@@ -2,9 +2,11 @@ package com.deathfrog.mctradepost.core.entity.ai.workers;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
+import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.ICitizenData;
@@ -19,16 +21,17 @@ import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
-import com.minecolonies.core.datalistener.model.Disease;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
-import com.minecolonies.core.entity.ai.workers.util.Patient;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.api.util.Tuple;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.util.constant.StatisticsConstants.ITEM_USED;
+import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STATS_MODULE;
 
 /* Heavily inspired by, and modeled after, EntityAIWorkHealer
  * @see com.minecolonies.core.entity.ai.workers.EntityAIWorkHealer
@@ -37,7 +40,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     /**
      * The current patient.
      */
-    private Patient currentGuest = null;
+    private Vacationer currentGuest = null;
 
     /**
      * Base xp gain for a guest services worker.
@@ -54,7 +57,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public EntityAIWorkGuestServices(@NotNull final JobGuestServices job)
     {
-        // TODO: TEST JobGuestServcies AI
+        // TODO: TEST JobGuestServices AI
         super(job);
         super.registerTargets(
           new AITarget(IDLE, START_WORKING, 1),
@@ -73,26 +76,28 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
      * 
      * @param building the building of the guest.
      * @param guest    the patient to serve.
-     * @param disease  the disease to cure.
+     * 
      * @return the next state to go to.
      */
-    private IAIState decideToServe(BuildingResort building, Patient guest, Disease disease) {
+    private IAIState decideToServe(BuildingResort building, Vacationer guest) {
         final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
         
-        for (final ItemStorage cure : disease.cureItems())
+        for (final ItemStorage cure : guest.getRemedyItems())
         {
-            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Disease.hasCureItem(cure)))
+            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(cure)))
             {
-                if (InventoryUtils.getCountFromBuilding(building, Disease.hasCureItem(cure)) >= cure.getAmount())
+                if (InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(cure)) >= cure.getAmount())
                 {
-                    needsCurrently = new Tuple<>(Disease.hasCureItem(cure), cure.getAmount());
+                    // MCTradePostMod.LOGGER.info("Guest services needs cure materials.");
+
+                    needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(cure), cure.getAmount());
                     return GATHERING_REQUIRED_MATERIALS;
                 }
                 boolean hasCureRequested = false;
                 for (final IRequest<? extends Stack> request : list)
                 {
-                    if (Disease.isCureItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
                     {
                         hasCureRequested = true;
                         break;
@@ -100,7 +105,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 }
                 for (final IRequest<? extends Stack> request : completed)
                 {
-                    if (Disease.isCureItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
                     {
                         hasCureRequested = true;
                         break;
@@ -108,7 +113,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 }
                 if (!hasCureRequested)
                 {
-                    guest.setState(Patient.PatientState.NEW);
+                    guest.setState(Vacationer.VacationState.CHECKED_IN);
                     break;
                 }
             }
@@ -124,42 +129,83 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         }
 
         // TODO: Implement stat-specific "cures"
-        // Walk to each relaxation station.
-        // Dispense drinks and hot towels to guests nearby.
 
         final BuildingResort resort = building;
-        for (final AbstractEntityCitizen citizen : WorldUtil.getEntitiesWithinBuilding(world, AbstractEntityCitizen.class, building,
-            cit -> cit.getCitizenData() != null && cit.getCitizenData().getCitizenDiseaseHandler().isSick()))
+
+        // Assume guests already on the guest list are not at the resort, unless we find them there in the next step.
+        for (final Vacationer guest : building.getGuests())
         {
-            resort.checkOrCreateGuestFile(citizen.getCivilianID());
+            // MCTradePostMod.LOGGER.info("Guest list includes: {}", guest.getCivilianId());
+            guest.setCurrentlyAtResort(false);
         }
 
-        for (final Patient guest : resort.getGuests())
+        for (final AbstractEntityCitizen citizen : WorldUtil.getEntitiesWithinBuilding(world, AbstractEntityCitizen.class, building,
+            cit -> cit.getCitizenData() != null))
         {
-            final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getId());
-            if (guestData == null || !guestData.getEntity().isPresent() || (guestData.getEntity().isPresent() && !guestData.getEntity().get().getCitizenData().getCitizenDiseaseHandler().isSick()))
+            Vacationer guest = resort.checkOrCreateGuestFile(citizen.getCivilianID());
+            // Guests who made a reservation and are now in the building are set to "PRESENT"
+            if (guest.getState() == Vacationer.VacationState.RESERVED) {
+                guest.setState(Vacationer.VacationState.CHECKED_IN);
+            }
+
+            guest.setCurrentlyAtResort(true);
+        }
+
+        // There are no guests on the guest list, even after evaluating the people in the building.
+        if (resort.getGuests().isEmpty())
+        {
+            // MCTradePostMod.LOGGER.info("No guests on the guest list.");
+            return WANDER;
+        }
+
+        for (final Vacationer guest : resort.getGuests())
+        {
+            final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getCivilianId());
+            if (guestData == null || !guestData.getEntity().isPresent())
             {
                 resort.removeGuestFile(guest);
                 continue;
             }
-            final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
-            final Disease disease = citizen.getCitizenData().getCitizenDiseaseHandler().getDisease();
 
-            if (guest.getState() == Patient.PatientState.NEW)
+            final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
+
+            if (guest.getBurntSkill() == null || guest.getState() == Vacationer.VacationState.CHECKED_OUT)
+            {
+                // MCTradePostMod.LOGGER.info("Checking out guest {} ({}), who has no burnt skill.", citizen.getName(), citizen.getCivilianID());
+
+                resort.removeGuestFile(guest);
+                continue;
+            }
+
+            // Guest services does not make house calls! If they aren't currently at the resort, ignore them.
+            if (!guest.isCurrentlyAtResort()) {
+                // MCTradePostMod.LOGGER.info("Ignoring guest {} ({}), who is not currently at the resort.", citizen.getName(), citizen.getCivilianID());
+
+                continue;
+            }
+
+            /*
+            MCTradePostMod.LOGGER.info("Worker {} is figuring out what to do with guest {}, who is {}.", 
+                worker.getName(), 
+                citizen.getName(), 
+                guest.isCurrentlyAtResort() ? guest.getState() : "ABSENT");
+            */
+
+            if (guest.getState() == Vacationer.VacationState.CHECKED_IN)
             {
                 this.currentGuest = guest;
                 return REQUEST_CURE;
             }
 
-            if (guest.getState() == Patient.PatientState.REQUESTED)
+            if (guest.getState() == Vacationer.VacationState.REQUESTED)
             {
-                if (disease == null)
+                if (guest.getBurntSkill() == null)
                 {
-                    this.currentGuest = guest;
-                    return CURE;
+                    this.currentGuest = null;
+                    return DECIDE;
                 }
 
-                if (hasCureInInventory(disease, worker.getInventoryCitizen()) || hasCureInInventory(disease, building.getItemHandlerCap()))
+                if (hasCureInInventory(guest, worker.getInventoryCitizen()) || hasCureInInventory(guest, building.getItemHandlerCap()))
                 {
                     this.currentGuest = guest;
                     return CURE;
@@ -167,8 +213,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 
                 if (citizen.getInventoryCitizen().hasSpace())
                 {
-                    IAIState servestate = decideToServe(building, guest, disease);
-                    if (!servestate.equals(null))
+                    IAIState servestate = decideToServe(building, guest);
+                    if (servestate != null)
                     {
                         return servestate;
                     }
@@ -179,20 +225,22 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 }
             }
 
-            if (guest.getState() == Patient.PatientState.TREATED)
+            if (guest.getState() == Vacationer.VacationState.TREATED)
             {
-                if (disease == null)
+                if (guest.getBurntSkill() == null)
                 {
-                    this.currentGuest = guest;
-                    return CURE;
+                    this.currentGuest = null;
+                    return DECIDE;
                 }
 
-                if (!hasCureInInventory(disease, citizen.getInventoryCitizen()))
+                if (!hasCureInInventory(guest, citizen.getInventoryCitizen()))
                 {
-                    guest.setState(Patient.PatientState.NEW);
+                    guest.setState(Vacationer.VacationState.REQUESTED);
                     return DECIDE;
                 }
             }
+
+            // Note that we are intentionally ignoring BROWSER here.
         }
 
         return getState();
@@ -211,8 +259,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return DECIDE;
         }
 
-        final ICitizenData data = building.getColony().getCitizenManager().getCivilian(currentGuest.getId());
-        if (data == null || !data.getEntity().isPresent() || !data.getEntity().get().getCitizenData().getCitizenDiseaseHandler().isSick())
+        final ICitizenData data = building.getColony().getCitizenManager().getCivilian(currentGuest.getCivilianId());
+        if (data == null || !data.getEntity().isPresent() || !currentGuest.isCurrentlyAtResort())
         {
             currentGuest = null;
             return DECIDE;
@@ -221,13 +269,15 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         final EntityCitizen citizen = (EntityCitizen) data.getEntity().get();
         if (!walkToSafePos(citizen.blockPosition()))
         {
+            currentGuest.setState(Vacationer.VacationState.REQUESTED);
             return REQUEST_CURE;
         }
 
-        final Disease disease = citizen.getCitizenData().getCitizenDiseaseHandler().getDisease();
-        if (disease == null)
+        final BuildingResort resort = building;
+        final Vacationer guest = resort.getGuestFile(currentGuest.getCivilianId());
+        if (guest == null)
         {
-            currentGuest.setState(Patient.PatientState.REQUESTED);
+            currentGuest.setState(Vacationer.VacationState.BROWSING);
             currentGuest = null;
             return DECIDE;
         }
@@ -235,15 +285,15 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
 
-        for (final ItemStorage cure : disease.cureItems())
+        for (final ItemStorage cure : guest.getRemedyItems())
         {
-            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Disease.hasCureItem(cure))
-                  && InventoryUtils.getCountFromBuilding(building, Disease.hasCureItem(cure)) <= 0)
+            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(cure))
+                  && InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(cure)) <= 0)
             {
                 boolean hasRequest = false;
                 for (final IRequest<? extends Stack> request : list)
                 {
-                    if (Disease.isCureItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
                     {
                         hasRequest = true;
                         break;
@@ -251,7 +301,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 }
                 for (final IRequest<? extends Stack> request : completed)
                 {
-                    if (Disease.isCureItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
                     {
                         hasRequest = true;
                         break;
@@ -264,7 +314,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             }
         }
 
-        currentGuest.setState(Patient.PatientState.REQUESTED);
+        currentGuest.setState(Vacationer.VacationState.REQUESTED);
         currentGuest = null;
         return DECIDE;
     }
@@ -282,8 +332,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return DECIDE;
         }
 
-        final ICitizenData data = building.getColony().getCitizenManager().getCivilian(currentGuest.getId());
-        if (data == null || !data.getEntity().isPresent() || !data.getEntity().get().getCitizenData().getCitizenDiseaseHandler().isSick())
+        final ICitizenData data = building.getColony().getCitizenManager().getCivilian(currentGuest.getCivilianId());
+        if (data == null || !data.getEntity().isPresent() || !currentGuest.isCurrentlyAtResort())
         {
             currentGuest = null;
             return DECIDE;
@@ -295,24 +345,25 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return CURE;
         }
 
-        final Disease disease = citizen.getCitizenData().getCitizenDiseaseHandler().getDisease();
-        if (disease == null)
+        BuildingResort resort = building;
+        final Vacationer guest = resort.getGuestFile(currentGuest.getCivilianId());
+        if (guest == null)
         {
             currentGuest = null;
-            citizen.heal(10);
-            worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
             return DECIDE;
         }
 
-        if (!hasCureInInventory(disease, worker.getInventoryCitizen()))
+        if (!hasCureInInventory(guest, worker.getInventoryCitizen()))
         {
-            if (hasCureInInventory(disease, building.getItemHandlerCap()))
+            if (hasCureInInventory(guest, building.getItemHandlerCap()))
             {
-                for (final ItemStorage cure : disease.cureItems())
+                for (final ItemStorage cure : guest.getRemedyItems())
                 {
-                    if (InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), Disease.hasCureItem(cure)) < cure.getAmount())
+                    if (InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(cure)) < cure.getAmount())
                     {
-                        needsCurrently = new Tuple<>(Disease.hasCureItem(cure), 1);
+                        // MCTradePostMod.LOGGER.info("Guest services needs cure materials.");
+
+                        needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(cure), 1);
                         return GATHERING_REQUIRED_MATERIALS;
                     }
                 }
@@ -321,11 +372,11 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return DECIDE;
         }
 
-        if (!hasCureInInventory(disease, citizen.getInventoryCitizen()))
+        if (!hasCureInInventory(guest, citizen.getInventoryCitizen()))
         {
-            for (final ItemStorage cure : disease.cureItems())
+            for (final ItemStorage cure : guest.getRemedyItems())
             {
-                if (InventoryUtils.getItemCountInItemHandler(citizen.getInventoryCitizen(), Disease.hasCureItem(cure)) < cure.getAmount())
+                if (InventoryUtils.getItemCountInItemHandler(citizen.getInventoryCitizen(), Vacationer.hasRemedyItem(cure)) < cure.getAmount())
                 {
                     if (!citizen.getInventoryCitizen().hasSpace())
                     {
@@ -335,15 +386,21 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                     }
                     InventoryUtils.transferXOfFirstSlotInItemHandlerWithIntoNextFreeSlotInItemHandler(
                       worker.getInventoryCitizen(),
-                      Disease.hasCureItem(cure),
+                      Vacationer.hasRemedyItem(cure),
                       cure.getAmount(), citizen.getInventoryCitizen()
                     );
+
+                    building.getModule(STATS_MODULE).incrementBy(ITEM_USED + ";" + cure.getItemStack().getDescriptionId(), 1);
+
+                    // MCTradePostMod.LOGGER.info("Vacationer {} has been given a cure.", citizen.getName());
                 }
             }
         }
 
+        // MCTradePostMod.LOGGER.info("Worker {} has treated guest {}.", worker.getName(), citizen.getName());
+
         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-        currentGuest.setState(Patient.PatientState.TREATED);
+        currentGuest.setState(Vacationer.VacationState.TREATED);
         currentGuest = null;
         return DECIDE;
     }
@@ -376,17 +433,16 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
 
     /**
-     * Check if the cure for a certain illness is in the inv.
-     *
-     * @param disease the disease to check.
+     * Check if the remedy for this guest is in the inventory.
+     * 
      * @param handler the inventory to check.
      * @return true if so.
      */
-    private boolean hasCureInInventory(final Disease disease, final IItemHandler handler)
+    private boolean hasCureInInventory(final Vacationer guest, final IItemHandler handler)
     {
-        for (final ItemStorage cure : disease.cureItems())
+        for (final ItemStorage cure : guest.getRemedyItems())
         {
-            if (InventoryUtils.getItemCountInItemHandler(handler, Disease.hasCureItem(cure)) < cure.getAmount())
+            if (InventoryUtils.getItemCountInItemHandler(handler, Vacationer.hasRemedyItem(cure)) < cure.getAmount())
             {
                 return false;
             }

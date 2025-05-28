@@ -11,17 +11,17 @@
     "autostart": false,
     "instant": false,
     "requirements": [
-        {
-        "items": {
-            "count": 5,
-            "item": "mctradepost:mctp_coin"
-        }
-        }
     ],
+    "costs": [
+        {
+            "count": 5,
+            "item": "mctradepost:mctp_coin"        
+        }
+    ]
+    ,
     "effects": [
         {
             "mctradepost:effects/blockhutmarketplace3": 3
         }
-    ],
-    "remove": false
+    ]
 }

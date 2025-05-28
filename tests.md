@@ -5,6 +5,8 @@ Verify mod loads in singleplayer local.
 - Verify world starts.
 Verify mod loads on dedicated server.
 - Verify world starts.
+Verify the configuration screen is available.
+Verify a configuration change syncs between client and server in multiplayer (for example, trade coin value).
 
 ## Marketplace
 

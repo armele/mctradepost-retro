@@ -6,9 +6,10 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
-import com.minecolonies.core.colony.jobs.views.DefaultJobView;
 import com.minecolonies.core.colony.jobs.views.CrafterJobView;
 
+import net.minecraft.core.Registry;
+import net.minecraft.server.level.ServerLevel;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
@@ -32,7 +33,7 @@ public final class ModJobsInitializer
 
         MCTPModJobs.guestservices = register(DEFERRED_REGISTER, MCTPModJobs.GUESTSERVICES_ID.getPath(), () -> new JobEntry.Builder()
           .setJobProducer(JobGuestServices::new)
-          .setJobViewProducer(() -> DefaultJobView::new)
+          .setJobViewProducer(() -> CrafterJobView::new)
           .setRegistryName(MCTPModJobs.GUESTSERVICES_ID)
           .createJobEntry());
     }
@@ -46,6 +47,16 @@ public final class ModJobsInitializer
      */
     private static DeferredHolder<JobEntry, JobEntry> register(final DeferredRegister<JobEntry> deferredRegister, final String path, final Supplier<JobEntry> supplier)
     {
+        MCTradePostMod.LOGGER.info("Registering job: " + path);
         return deferredRegister.register(path, supplier);
-    }    
+    }
+        
+    public static void logRegisteredJobEntries(ServerLevel level) {
+        Registry<JobEntry> jobRegistry = level.registryAccess().registryOrThrow(CommonMinecoloniesAPIImpl.JOBS);
+
+        MCTradePostMod.LOGGER.info("=== Registered JobEntry objects in MineColonies ===");
+        for (JobEntry entry : jobRegistry) {
+            MCTradePostMod.LOGGER.info("JobEntry ID: {}", jobRegistry.getKey(entry));
+        }
+    }
 }

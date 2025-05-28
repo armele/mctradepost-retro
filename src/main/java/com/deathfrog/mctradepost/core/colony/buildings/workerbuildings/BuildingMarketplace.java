@@ -2,16 +2,22 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.IVisitorData;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
-import com.minecolonies.api.colony.jobs.registry.JobEntry;
-import com.minecolonies.api.crafting.IGenericRecipe;
-import com.minecolonies.api.crafting.registry.CraftingType;
-import com.minecolonies.api.items.ModItems;
+import com.minecolonies.api.entity.ai.statemachine.states.IState;
+import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
+import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
-import com.minecolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+import com.minecolonies.core.entity.ai.visitor.EntityAIVisitor.VisitorState;
+import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import com.minecolonies.core.entity.visitor.VisitorCitizen;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -38,12 +44,13 @@ import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nonnull;
 
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
@@ -53,6 +60,13 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
 public class BuildingMarketplace extends AbstractBuilding
 {
     protected WellLocations ritualData = new WellLocations();
+
+    protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
+    protected int advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
+
+    // Keep a list of who the resort has "advertized" to (who has had the EntityAIShoppingTask added to their AI)
+    // This is deliberately global across all marketplaces.
+    protected static List<IVisitorData> advertisingList = new ArrayList<>();
 
     public BuildingMarketplace(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
@@ -66,9 +80,14 @@ public class BuildingMarketplace extends AbstractBuilding
     private static final String TAG_DISPLAYSHELVES = "displayshelves";
 
     /**
+     * Structurize tag identifying where display shelves are expected to be.
+     */
+    private static final String STRUCT_TAG_DISPLAY_SELF = "display_shelf";
+
+    /**
      * Map of shelf locations and contents.
      */
-    private final Map<BlockPos, DisplayCase> displayShelfContents = new HashMap<>();
+    private final Map<BlockPos, DisplayCase> displayShelfContents = new ConcurrentHashMap<>();
 
     /**
      * Key for min remainder at warehouse.
@@ -134,7 +153,7 @@ public class BuildingMarketplace extends AbstractBuilding
     /**
      * Called when the colony's world is loaded and the display frame that was at the given position is not found.
      * If the display frame exists in the world, it will be updated to reflect the current items in the display shelf contents.
-     * If the display frame does not exist, it is marked as broken and a message is sent to all players in the colony.
+     * 
      * @param pos The position of the display shelf.
      */
     public void lostShelfAtDisplayPos(BlockPos pos) {
@@ -144,17 +163,19 @@ public class BuildingMarketplace extends AbstractBuilding
             // If a new frame can be found at the expected position, use it.
             if (!frames.isEmpty()) {
                 displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
-            // Otherwise, issue a message about the missing frame.
+                // Otherwise, issue a message about the missing frame.
             } else {
-                List<BlockPos> expectedPositions = getDisplayShelfPositions();
+                List<BlockPos> expectedPositions = getLocationsFromTag(STRUCT_TAG_DISPLAY_SELF);
 
                 // If this is no longer an expected shelf position (building has been relocated, for example), remove it.
                 if (!expectedPositions.contains(pos)) {
                     displayShelfContents.remove(pos);
                 } else {
-                    // TODO: [Enhancement] Put some delay logic on the sending of this message so it isn't a constant spam.
                     displayShelfContents.put(pos, new DisplayCase(pos, null));
-                    MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
+                    if (this.isBuilt()) {  // Only send this if the building is built, otherwise it will be ignored.
+                        MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);                        
+                    }
+
                 }
             }       
         } else {
@@ -342,41 +363,96 @@ public class BuildingMarketplace extends AbstractBuilding
         return compound;
     }
 
-    public static class CraftingModule extends AbstractCraftingBuildingModule.Crafting
-    {
-        /**
-         * Create a new module.
-         *
-         * @param jobEntry the entry of the job.
-         */
-        public CraftingModule(final JobEntry jobEntry)
-        {
-            super(jobEntry);
+    /**
+     * Called every tick that the colony updates.
+     * 
+     * @param colony the colony that this building is a part of
+     */
+    @Override
+    public void onColonyTick(IColony colony) {
+        super.onColonyTick(colony);
+        advertisingCooldown--;
+
+        if (advertisingCooldown > 0)
+            return;
+
+        List<Integer> visitorIDs = new ArrayList<Integer>();
+
+        MCTradePostMod.LOGGER.info("Looking for a tavern to advertise at.");
+
+        // Once the marketplace is built, visitors start thinking about shopping...
+        // Note: approach below for finding tavern mimics EventHandler.onEntityConverted 
+        final BlockPos tavernPos = colony.getBuildingManager().getRandomBuilding(b -> !b.getModulesByType(TavernBuildingModule.class).isEmpty());
+        if (tavernPos != null) {
+            // MCTradePostMod.LOGGER.info("Tavern module found - collecting visitor IDs.");
+            final IBuilding tavern = colony.getBuildingManager().getBuilding(tavernPos);
+            TavernBuildingModule tavernModule = tavern.getFirstModuleOccurance(TavernBuildingModule.class);
+            visitorIDs.addAll(tavernModule.getExternalCitizens());
         }
 
-        @Override
-        public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
-        {
-            if (!super.isRecipeCompatible(recipe))
-                return false;
+        for (Integer visitorID : visitorIDs) {
+            IVisitorData visitor = (IVisitorData) colony.getVisitorManager().getVisitor(visitorID);
 
-            return recipe.getPrimaryOutput().getItem() == ModItems.magicpotion;
+            if (visitor != null && !advertisingList.contains(visitor)) {
+                // MCTradePostMod.LOGGER.info("Adding visitor to advertising list.");
+                VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();
+
+                ITickRateStateMachine<IState> stateMachine = vitizen.getEntityStateController();
+                EntityAIShoppingTask task = new EntityAIShoppingTask(visitor, this);
+                stateMachine.addTransition(new TickingTransition<>(VisitorState.IDLE, task::goShopping, () -> VisitorState.WANDERING, 150));
+                stateMachine.addTransition(new TickingTransition<>(VisitorState.WANDERING, task::goShopping, () -> VisitorState.IDLE, 150));
+
+                advertisingList.add(visitor);
+            }
         }
 
-        @Override
-        public Set<CraftingType> getSupportedCraftingTypes()
-        {
-            return Collections.emptySet();
-        }
-
-        @Override
-        public @NotNull List<IGenericRecipe> getAdditionalRecipesForDisplayPurposesOnly(@NotNull final Level world)
-        {
-            final List<IGenericRecipe> recipes = new ArrayList<>(super.getAdditionalRecipesForDisplayPurposesOnly(world));
-
-            return recipes;
-        }
+        advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
     }
 
+    /**
+     * Calculate the chance of a visitor shopping at this marketplace based on its building level and the global config setting MCTPConfig.shoppingChance.
+     * 
+     * @return the chance of a visitor shopping at this marketplace
+     */
+    public int shoppingChance() {
+        int shoppingChance = MCTPConfig.shoppingChance.get();
+        return this.getBuildingLevel() * shoppingChance;
+    }
+
+    /* EntityAIShoppingTask */
+    public class EntityAIShoppingTask {
+        IVisitorData visitor = null;
+        BuildingMarketplace marketplace = null;
+        private static final int ONE_HUNDRED = 100;
+        private static final Random rand = new Random();
+
+        public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace) {
+            this.visitor = visitor;
+            this.marketplace = marketplace;
+        }
+
+        /**
+         * Directs the visitor entity to walk to the marketplace location.
+         * Utilizes the EntityNavigationUtils to navigate the entity within the dimension.
+         * 
+         * @return true if navigation was successful, false otherwise.
+         */
+        private boolean goShopping()
+        {
+            // No shopping at night.
+            if (!WorldUtil.isDayTime(marketplace.getColony().getWorld())) {
+                return true;
+            }
+
+            if (marketplace.shoppingChance() > rand.nextDouble() * ONE_HUNDRED) {
+                // MCTradePostMod.LOGGER.info("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
+                return EntityNavigationUtils.walkToPos(visitor.getEntity().get(), marketplace.getLocation().getInDimensionLocation(), 3, true);
+            } else {
+                // MCTradePostMod.LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName());
+                return true;
+            }
+
+        } 
+    }
 
 }

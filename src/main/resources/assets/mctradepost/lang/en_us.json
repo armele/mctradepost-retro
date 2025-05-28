@@ -40,7 +40,9 @@
     "mctradepost.configuration.baseSelltime": "Time to sell items (in ticks)",
     "mctradepost.configuration.baseSelltime.tooltip": "How long should the marketplace take to sell items? (in ticks)",
     "mctradepost.configuration.registerSoundChance": "Cash Register Sound Chance",
-    "mctradepost.configuration.registerSoundChance.tooltip": "What is the chance that a cash register will play a sound when aan item is sold?",
+    "mctradepost.configuration.registerSoundChance.tooltip": "What is the chance that a cash register will play a sound when an item is sold?",
+    "mctradepost.configuration.shoppingChance": "Visitor Shopping Chance",
+    "mctradepost.configuration.shoppingChance.tooltip": "What is the percentage chance (per marketplace level) that a visitor will shop at the marketplace?",
     "mctradepost.configuration.marketplace.button": "Edit",
     "mctradepost.configuration.marketplace.tooltip": "Edit settings for the Marketplace Hut and it's Economic Features.",
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
@@ -49,6 +51,8 @@
     "com.mctradepost.research.effects.blockhutmarketplace3.description": "Allows the upgrade of the Marketplace Hut to Level 3.",
     "com.mctradepost.research.effects.blockhutmarketplace5.description": "Allows the upgrade of the Marketplace Hut to Level 5.",
     "jei.mctradepost.rituals": "Wishing Well Rituals",
-    "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full."
+    "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
+    "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",
+    "com.mctradepost.resort.burnout": "All Work and No Play"
 }
   

@@ -15,7 +15,7 @@ import java.util.*;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
 /**
- * BOWindow for the Marketplace hut
+ * BOWindow for the Marketplace hut's ECON module.
  */
 public class WindowEconModule extends AbstractModuleWindow
 {

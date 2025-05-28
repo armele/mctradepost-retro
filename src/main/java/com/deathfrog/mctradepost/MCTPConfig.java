@@ -31,6 +31,7 @@ public class MCTPConfig
     public static final ConfigValue<Integer> mintingLevel;
     public static final ConfigValue<Integer> baseSelltime;
     public static final ConfigValue<Double>  registerSoundChance;
+    public static final ConfigValue<Integer> shoppingChance;
 
     static {
         BUILDER.push("marketplace");
@@ -50,6 +51,10 @@ public class MCTPConfig
         registerSoundChance = BUILDER
             .comment("How likely is a sold item to make a cash register sound?")
             .define("registerSoundChance", .05);
+
+        shoppingChance = BUILDER
+            .comment("What chance, per building level, do visitors have of shopping here?")
+            .define("shoppingChance", 2);
 
         BUILDER.pop();
 

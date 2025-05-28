@@ -43,6 +43,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
@@ -67,7 +68,7 @@ import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 
 // TODO: Add missing sounds (anything mapped to replaceme.ogg)
-// TODO: [Enhancement] Add in the nice cosmetics that show in the CurseForge mods list (or at least determine how)
+// TODO: PUBLISHING [Enhancement] Add in the nice cosmetics that show in the CurseForge mods list (or at least determine how)
 
 @Mod(MCTradePostMod.MODID)
 public class MCTradePostMod
@@ -156,7 +157,8 @@ public class MCTradePostMod
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         MCTPConfig.register(modContainer);
-
+        clientSideInitializations(modContainer);                            // Environment enforcement is handled inside this method.
+        
         ModJobsInitializer.DEFERRED_REGISTER.register(modEventBus);        
         TileEntityInitializer.BLOCK_ENTITIES.register(modEventBus);
         // ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);  // NETSYNC: Building registration at this point with static initialization, server load fails due to early access of objects.
@@ -174,10 +176,11 @@ public class MCTradePostMod
      * with the mod container. This factory is used to create the configuration screen
      * for this mod.
      */
-    @OnlyIn(Dist.CLIENT)
     private void clientSideInitializations(ModContainer modContainer) {
         // This will use NeoForge's ConfigurationScreen to display this mod's configs
-        modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        if (FMLEnvironment.dist.isClient()) {
+            modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);   
+        }
     }
 
     private void onCommonSetup(final FMLCommonSetupEvent event)
@@ -194,7 +197,7 @@ public class MCTradePostMod
      */
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
         LOGGER.info("MCTradePost onLoadComplete"); 
-        MCTradePostMod.LOGGER.info("Injecting sounds.");  // TODO: Test - do we reach this?
+        MCTradePostMod.LOGGER.info("Injecting sounds."); 
         MCTPModSoundEvents.injectSounds();  // These need to be injected both on client (to play) and server (to register)
     }
 
@@ -274,7 +277,15 @@ public class MCTradePostMod
      */
     @SubscribeEvent
     public void onWorldLoad(LevelEvent.Load event) {
+        /*
+        MCTradePostMod.LOGGER.info("Dumping jobs registry.");
 
+        if (event.getLevel() instanceof ServerLevel) {
+            ModJobsInitializer.logRegisteredJobEntries((ServerLevel) event.getLevel());
+        } else {
+            MCTradePostMod.LOGGER.info("Skipping job dump - not server level.");
+        }
+        */
     }
 
 

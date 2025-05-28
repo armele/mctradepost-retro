@@ -5,33 +5,55 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Iterator;
 import org.jetbrains.annotations.NotNull;
 import com.google.common.collect.ImmutableList;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
+import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
+import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
-import com.minecolonies.core.entity.ai.workers.util.Patient;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 
+/* 
+ * Inspired on, and modeled after, a combination of the Hospital and Restaurant
+ * 
+ */
 public class BuildingResort extends AbstractBuilding {
     protected final static String GUEST_TAG_ID = "guests";
-    protected final static int ADVERTISING_COOLDOWN_MAX = 60; // In colony ticks
+    protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
     protected int advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
+    protected final static String RELAXATION_STATION_TAG = "relaxation_station";
+
+    /**
+     * Whether we did init tags
+     */
+    private boolean initTags = false;
+
+    /**
+     * Sitting positions
+     */
+    private List<BlockPos> sitPositions;
+
+    /**
+     * Current sitting index
+     */
+    private int lastSitting = 0;
 
     // Keep a list of who the resort has "advertized" to (who has had the
     // EntityAIBurnoutTask added to their AI)
-    protected List<EntityCitizen> advertisingList = new ArrayList<>();
+    // This is deliberately global across all resorts.
+    protected static List<EntityCitizen> advertisingList = new ArrayList<>();
 
-    private final Map<Integer, Patient> guests = new HashMap<Integer, Patient>();
+    private final Map<Integer, Vacationer> guests = new ConcurrentHashMap<Integer, Vacationer>();
 
     public BuildingResort(@NotNull IColony colony, BlockPos pos) {
         super(colony, pos);
@@ -42,11 +64,38 @@ public class BuildingResort extends AbstractBuilding {
         return ModBuildings.RESORT_ID;
     }
 
-    public void checkOrCreateGuestFile(int citizenId) {
-        if (!this.guests.containsKey(citizenId)) {
-            this.guests.put(citizenId, new Patient(citizenId));
+    /**
+     * Make a reservation for a given guest
+     * @param guest the guest to reserve a room for
+     * If the guest is already in the guest list, update their status to reserved
+     * If the guest is not in the guest list, add them with a reserved status
+     */
+    public void makeReservation(Vacationer guest) {
+        if (this.guests.containsKey(guest.getCivilianId())) {
+            // TODO: RESORT remove after testing.
+            MCTradePostMod.LOGGER.info("Updated existing reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
+            Vacationer existingGuest = this.guests.get(guest.getCivilianId());
+            existingGuest.setState(Vacationer.VacationState.RESERVED);
+        } else {
+            // TODO: RESORT remove after testing.
+            MCTradePostMod.LOGGER.info("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
+            guest.setState(Vacationer.VacationState.RESERVED);
+            this.guests.put(guest.getCivilianId(), guest);
         }
 
+    }
+
+    /**
+     * Check if a guest file exists for the given citizen ID, and if not, create it.
+     * @param citizenId the ID of the citizen to check/create a guest file for
+     * @return the guest file for the given citizen ID
+     */
+    public Vacationer checkOrCreateGuestFile(int citizenId) {
+        if (!this.guests.containsKey(citizenId)) {
+            this.guests.put(citizenId, new Vacationer(citizenId));
+        }
+
+        return this.guests.get(citizenId);
     }
 
     /**
@@ -62,7 +111,7 @@ public class BuildingResort extends AbstractBuilding {
         if (advertisingCooldown > 0)
             return;
 
-        /* Once the marketplace is built, citizens start thinking about vacations... */
+        /* Once the resort is built, citizens start thinking about vacations... */
         colony.getCitizenManager().getCitizens().forEach(citizen -> {
             Optional<AbstractEntityCitizen> citizenEntity = citizen.getEntity();
             if (citizenEntity.isPresent() && citizenEntity.get() instanceof EntityCitizen) {
@@ -72,11 +121,13 @@ public class BuildingResort extends AbstractBuilding {
                     if (!advertisingList.contains(advertisingTarget)) {
                         // Citizens who have jobs get the EntityAIBurnoutTask added to their AI
                         @SuppressWarnings("unused")
-                        EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);
+                        EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task to the AI automatically
                         advertisingList.add(advertisingTarget);
 
                         // TODO: Remove after testing complete
                         MCTradePostMod.LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
+
+                        burnoutTask.setVacationStatus(guests.get(citizenEntity.get().getCivilianID()));
                     }
                 }
 
@@ -103,10 +154,10 @@ public class BuildingResort extends AbstractBuilding {
         ListTag guestTagList = compound.getList(GUEST_TAG_ID, 10);
 
         for (int i = 0; i < guestTagList.size(); ++i) {
-            CompoundTag patientCompound = guestTagList.getCompound(i);
-            int guestId = patientCompound.getInt("id");
+            CompoundTag vacationCompound = guestTagList.getCompound(i);
+            int guestId = vacationCompound.getInt("id");
             if (!this.guests.containsKey(guestId)) {
-                this.guests.put(guestId, new Patient(patientCompound));
+                this.guests.put(guestId, new Vacationer(vacationCompound));
             }
         }
     }
@@ -121,7 +172,7 @@ public class BuildingResort extends AbstractBuilding {
    public CompoundTag serializeNBT(@NotNull HolderLookup.Provider provider) {
       CompoundTag compound = super.serializeNBT(provider);
       ListTag guestTagList;
-      Iterator<Patient> guestIterator;
+      Iterator<Vacationer> guestIterator;
       CompoundTag guestCompound;
 
       if (!this.guests.isEmpty()) {
@@ -129,7 +180,7 @@ public class BuildingResort extends AbstractBuilding {
          guestIterator = this.guests.values().iterator();
 
          while(guestIterator.hasNext()) {
-            Patient guest = guestIterator.next();
+            Vacationer guest = guestIterator.next();
             guestCompound = new CompoundTag();
             guest.write(guestCompound);
             guestTagList.add(guestCompound);
@@ -141,15 +192,56 @@ public class BuildingResort extends AbstractBuilding {
       return compound;
     }
 
-    public List<Patient> getGuests() {
+    /**
+     * Reads the tag positions
+     */
+    public void initTagPositions()
+    {
+        if (initTags)
+        {
+            return;
+        }
+
+        sitPositions = getLocationsFromTag(RELAXATION_STATION_TAG);
+        initTags = !sitPositions.isEmpty();
+    }
+
+    /**
+     * Gets the next sitting position to use for eating, just keeps iterating the aviable positions, so we do not have to keep track of who is where.
+     *
+     * @return eating position to sit at
+     */
+    public BlockPos getNextSittingPosition()
+    {
+        initTagPositions();
+
+        if (sitPositions.isEmpty())
+        {
+            MCTradePostMod.LOGGER.warn("No relaxation stations found in this resort.");
+            return null;
+        }
+
+        lastSitting++;
+
+        if (lastSitting >= sitPositions.size())
+        {
+            lastSitting = 0;
+        }
+
+        return sitPositions.get(lastSitting);
+    }
+
+    public List<Vacationer> getGuests() {
         return ImmutableList.copyOf(this.guests.values());
     }
 
-    public void removeGuestFile(Patient guest) {
-        this.guests.remove(guest.getId());
+    public Vacationer getGuestFile(int civilianId) {
+        return this.guests.get(civilianId);
     }
 
-    // TODO: Set the visible status icon appropriately:
-    // citizen.getCitizenData().setVisibleStatus(VisibleCitizenStatus.SICK);
+    public void removeGuestFile(Vacationer guest) {
+        guest.setState(VacationState.CHECKED_OUT);
+        this.guests.remove(guest.getCivilianId());
+    }
 
 }
