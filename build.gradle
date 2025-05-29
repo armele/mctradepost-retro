@@ -61,7 +61,7 @@ runs {
         // You can set various levels here.
         // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
         systemProperty 'forge.logging.console.level', 'debug'
-
+        
         modSource project.sourceSets.main
     }
 
@@ -127,8 +127,8 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
-    compileOnly name: 'minecolonies-1.1.977-1.21.1-snapshot'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.977-1.21.1-snapshot.jar')
+    compileOnly name: 'minecolonies-1.1.978-1.21.1-snapshot'  // use the actual filename without .jar
+    localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.978-1.21.1-snapshot.jar')
 
     compileOnly name: 'blockui-1.0.200-1.21.1-snapshot'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/blockui-1.0.200-1.21.1-snapshot')    

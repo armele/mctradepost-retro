@@ -175,6 +175,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         int sellvalue = computeItemValue(item, 1);
         sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
+        // TODO: MARKETPLACE Move economic total to town hall level.
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue);    // Cash generated (over all time)
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue);   // Current balance (decremented when coins are minted)

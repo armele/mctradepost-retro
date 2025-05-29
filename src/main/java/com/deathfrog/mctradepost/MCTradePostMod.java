@@ -129,7 +129,6 @@ public class MCTradePostMod
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
     {
-
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
         

@@ -1,23 +1,29 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 import java.util.Iterator;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -28,8 +34,10 @@ import net.minecraft.nbt.ListTag;
  * 
  */
 public class BuildingResort extends AbstractBuilding {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     protected final static String GUEST_TAG_ID = "guests";
-    protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
+    protected final static int ADVERTISING_COOLDOWN_MAX = MCTPConfig.advertisingCooldown.get();      // In colony ticks (500 regular ticks)
     protected int advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
     protected final static String RELAXATION_STATION_TAG = "relaxation_station";
 
@@ -48,10 +56,10 @@ public class BuildingResort extends AbstractBuilding {
      */
     private int lastSitting = 0;
 
-    // Keep a list of who the resort has "advertized" to (who has had the
+    // Keep a map of who the resort has "advertized" to (who has had the
     // EntityAIBurnoutTask added to their AI)
     // This is deliberately global across all resorts.
-    protected static List<EntityCitizen> advertisingList = new ArrayList<>();
+    protected static Map<EntityCitizen, EntityAIBurnoutTask> advertisingMap = new HashMap<EntityCitizen, EntityAIBurnoutTask>();
 
     private final Map<Integer, Vacationer> guests = new ConcurrentHashMap<Integer, Vacationer>();
 
@@ -71,18 +79,10 @@ public class BuildingResort extends AbstractBuilding {
      * If the guest is not in the guest list, add them with a reserved status
      */
     public void makeReservation(Vacationer guest) {
-        if (this.guests.containsKey(guest.getCivilianId())) {
-            // TODO: RESORT remove after testing.
-            MCTradePostMod.LOGGER.info("Updated existing reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
-            Vacationer existingGuest = this.guests.get(guest.getCivilianId());
-            existingGuest.setState(Vacationer.VacationState.RESERVED);
-        } else {
-            // TODO: RESORT remove after testing.
-            MCTradePostMod.LOGGER.info("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
-            guest.setState(Vacationer.VacationState.RESERVED);
-            this.guests.put(guest.getCivilianId(), guest);
-        }
-
+        LOGGER.trace("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
+        guest.setState(Vacationer.VacationState.RESERVED);
+        guest.setResort(this);
+        this.guests.put(guest.getCivilianId(), guest);
     }
 
     /**
@@ -106,33 +106,51 @@ public class BuildingResort extends AbstractBuilding {
     @Override
     public void onColonyTick(IColony colony) {
         super.onColonyTick(colony);
+
+        // Clear out the guests list when there is no worker here, or the building is destroyed, etc. and don't do any of the advertising logic.
+        if (this.getBuildingLevel() <= 0
+              || !this.hasModule(WorkerBuildingModule.class)
+              || this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get()).getAssignedCitizen().isEmpty())
+        {
+            for (Vacationer guest : guests.values()) {
+                removeGuestFile(guest.getCivilianId());
+            }
+            return;
+        }
+
         advertisingCooldown--;
 
         if (advertisingCooldown > 0)
             return;
 
+
         /* Once the resort is built, citizens start thinking about vacations... */
         colony.getCitizenManager().getCitizens().forEach(citizen -> {
             Optional<AbstractEntityCitizen> citizenEntity = citizen.getEntity();
-            if (citizenEntity.isPresent() && citizenEntity.get() instanceof EntityCitizen) {
+            if (citizenEntity.isPresent() && citizenEntity.get() instanceof EntityCitizen && !citizenEntity.get().isDead()) {
                 EntityCitizen advertisingTarget = (EntityCitizen) citizenEntity.get();
 
                 if (citizen.getJob() != null) {
-                    if (!advertisingList.contains(advertisingTarget)) {
+                    if (!advertisingMap.containsKey(advertisingTarget)) {
                         // Citizens who have jobs get the EntityAIBurnoutTask added to their AI
-                        @SuppressWarnings("unused")
+
                         EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task to the AI automatically
-                        advertisingList.add(advertisingTarget);
+                        advertisingMap.put(advertisingTarget, burnoutTask);
 
                         // TODO: Remove after testing complete
-                        MCTradePostMod.LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
+                        LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
 
-                        burnoutTask.setVacationStatus(guests.get(citizenEntity.get().getCivilianID()));
+                        // burnoutTask.setVacationStatus(guests.get(citizenEntity.get().getCivilianID()));
                     }
                 }
 
             }
         });
+
+        // Another wave of ads!  Reset the resistedAds flag
+        for (EntityAIBurnoutTask burnoutTask : advertisingMap.values()) {
+            burnoutTask.setResistedAds(false);  // Reset the resistedAds flag
+        }
 
         advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
     }
@@ -239,9 +257,23 @@ public class BuildingResort extends AbstractBuilding {
         return this.guests.get(civilianId);
     }
 
-    public void removeGuestFile(Vacationer guest) {
-        guest.setState(VacationState.CHECKED_OUT);
-        this.guests.remove(guest.getCivilianId());
+    /**
+     * Removes the guest file for the given citizen ID from the resort's
+     * records.  If the guest is currently checked in, this will "check them out"
+     * and remove their information from the map.
+     *
+     * @param civilianId the ID of the citizen to check out
+     */
+    public void removeGuestFile(int civilianId) {
+        Vacationer guest = guests.get(civilianId);
+
+        if (guest != null) {
+            MCTradePostMod.LOGGER.trace("Checking out guest {}.", civilianId);
+            guest.setBurntSkill(null);
+            guest.setState(VacationState.CHECKED_OUT);
+            guest.setResort(null);
+            guests.remove(civilianId);            
+        }
     }
 
 }

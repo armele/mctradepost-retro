@@ -37,6 +37,11 @@ Currently implemented or in-progress:
 - Kill all zombies nearby (1 Coin + Zombie Flesh)
 - Terminate an in progress raid (1 Coin + 1 Iron Sword) NOT YET FULLY IMPLEMENTED
 
+### Citizen Behaviors
+Citizens who have been worked too hard (low Adverse skill) will occassionally go on vacation, where their Adverse skill is repaired, and some income for the colony is generated.
+
+### Visitor Behaviors
+Visitors will go shopping at the marketplace, once built.
 
 ## Installation
 
@@ -67,18 +72,22 @@ A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) wit
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
-Building: Resort [In Progress:Development]
+Economics: 
+- Refactor to be at the town hall level.
+- Update resort logic to generate some income.
+
+Building: Resort [In Progress: Multiplayer Testing]
 Leisure time / resorts / vacations (Resort hut w/custom needs items)  
-- Research: Unlock Resort
-- Job: Guest Services [In Progress:Development]
+- Introduce stat-specific recipes
+- Job: Guest Services [In Progress:Testing]
 - Job: Mixologist
-- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital) [In Progress:Development]
-- Huts to allow skill-up in non-primary/secondary stats.  
+- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital) [Complete]
+- Huts to allow skill-up in non-primary/secondary stats.  [Complete]
 
 
 ### Roadmap (Roughly Prioritized)
 
-Logic: Enable building level locking
+Logic: Enable building level locking and implement for new buildings.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier

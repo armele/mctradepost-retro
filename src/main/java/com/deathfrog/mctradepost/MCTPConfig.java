@@ -27,11 +27,20 @@ public class MCTPConfig
     public static final ModConfigSpec SPEC;
 
     // Server side Neoforge-managed configurations.
+    // Marketplace settings
     public static final ConfigValue<Integer> tradeCoinValue;
     public static final ConfigValue<Integer> mintingLevel;
     public static final ConfigValue<Integer> baseSelltime;
     public static final ConfigValue<Double>  registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
+
+    // Resort settings
+    public static final ConfigValue<Double>  vacationMaxChance;
+    public static final ConfigValue<Integer> advertisingCooldown;
+    public static final ConfigValue<Integer> maxAdSaturation;
+    public static final ConfigValue<Integer> vacationSusceptibilityThreshold;
+    public static final ConfigValue<Integer> vacationImmunityThreshold;
+    public static final ConfigValue<Integer> vacationHealing;
 
     static {
         BUILDER.push("marketplace");
@@ -55,6 +64,34 @@ public class MCTPConfig
         shoppingChance = BUILDER
             .comment("What chance, per building level, do visitors have of shopping here?")
             .define("shoppingChance", 2);
+
+        BUILDER.pop();
+
+        BUILDER.push("resort");
+
+        vacationMaxChance = BUILDER
+            .comment("Maximum percentage chance of a citizen going on a vacation.")
+            .define("vacationMaxChance", .20);
+
+        maxAdSaturation = BUILDER
+            .comment("How much advertising can a citizen withstand before being lured onto a vacation? Negative value disables vacations.")
+            .define("maxAdSaturation", 12000);
+
+        advertisingCooldown = BUILDER
+            .comment("How many ticks must pass between advertising attempts (which may result in vacations)?")
+            .define("advertisingCooldown", 300);
+
+        vacationSusceptibilityThreshold = BUILDER
+            .comment("Under what stat level do citizens become more susceptible to advertising?")
+            .define("vacationSusceptibilityThreshold", 10);
+
+        vacationImmunityThreshold = BUILDER
+            .comment("At what stat level do citizens become immune to advertising?")
+            .define("vacationImmunityThreshold", 20);
+
+        vacationHealing = BUILDER
+            .comment("How many stat points will a single vacation restore?")
+            .define("vacationHealing", 2);
 
         BUILDER.pop();
 

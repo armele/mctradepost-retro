@@ -75,7 +75,7 @@ public class ItemValueRegistry
             }
 
             if (itemValues.containsKey(item)) {
-                MCTradePostMod.LOGGER.info("Skipping '{}'", item.toString());
+                // MCTradePostMod.LOGGER.info("Skipping '{}'", item.toString());
                 continue;
             }
             MCTradePostMod.LOGGER.info("Processing '{}'", item.toString());

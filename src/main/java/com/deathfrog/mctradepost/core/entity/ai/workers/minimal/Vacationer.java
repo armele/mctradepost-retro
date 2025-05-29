@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.Skill;
 
@@ -22,7 +23,9 @@ public class Vacationer {
     private VacationState state;
     public static final String BURNOUT_NAME = "com.mctradepost.resort.burnout";
     protected Skill burntSkill;
-
+    protected int targetLevel = -1;
+    protected BuildingResort resort =  null;
+    
     boolean currentlyAtResort = false;
 
     public enum VacationState {
@@ -51,6 +54,7 @@ public class Vacationer {
       this.state = VacationState.values()[vacationCompound.getInt("status")];
       String skillname = vacationCompound.getString("skill");
       this.burntSkill = skillname.length() == 0 ? null : Skill.valueOf(skillname);
+      this.targetLevel = vacationCompound.getInt("targetLevel");
    }
 
    public int getCivilianId() {
@@ -69,6 +73,7 @@ public class Vacationer {
       compoundNBT.putInt("id", this.civilianId);
       compoundNBT.putInt("status", this.state.ordinal());
       compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name());
+      compoundNBT.putInt("targetLevel", targetLevel);
    }
 
     public Skill getBurntSkill() {
@@ -157,4 +162,54 @@ public class Vacationer {
         return Objects.equals(new ItemStorage(stack), cure);
     }
 
+    /**
+     * Returns the target level for the burnout condition being repaired.
+     * @return the target level for the burnout condition.
+     */
+    public int getTargetLevel() {
+        return targetLevel;
+    }
+
+    /**
+     * Sets the target level for the burnout condition being repaired.
+     * @param targetLevel the target level for the burnout condition.
+     */
+    public void setTargetLevel(int targetLevel) {
+        this.targetLevel = targetLevel;
+    }
+    
+    /**
+     * Assigns a resort to this vacationer.
+     * 
+     * @param resort the resort to be assigned.
+     */
+
+    public void setResort(BuildingResort resort) {
+        this.resort = resort;
+    }
+
+    /**
+     * Gets the resort assigned to this vacationer.
+     * @return the assigned resort.
+     */
+    public BuildingResort getResort() {
+        return resort;
+    }
+
+    /**
+     * Resets the state of this vacationer.  This is used to
+     * clear out the state when the AI is reset.
+     */
+    public void reset() {
+        this.state = VacationState.CHECKED_OUT;
+        this.burntSkill = null;
+        this.targetLevel = 0;
+        this.currentlyAtResort = false;
+
+        if (resort != null) {
+            resort.removeGuestFile(civilianId);
+        }
+
+        this.resort = null;
+    }
 }

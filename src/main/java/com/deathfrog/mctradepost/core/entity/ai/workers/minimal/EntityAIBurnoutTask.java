@@ -3,6 +3,9 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 import java.util.List;
 import java.util.Random;
 
+import org.slf4j.Logger;
+
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -29,6 +32,7 @@ import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.other.SittingEntity;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -39,11 +43,13 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
 public class EntityAIBurnoutTask  {
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     protected EntityCitizen citizen;
     protected ICitizenData citizenData;
-    protected Vacationer vacationStatus = null;
+    protected Vacationer vacationTracker = null;
     protected BlockPos seatLocation = null;
+    protected boolean resistedAds = true;
 
     /**
      * Worker status icon
@@ -54,9 +60,12 @@ public class EntityAIBurnoutTask  {
     /* What do we consider maximum advertizing saturation? 
     *  This is the point at which a citizen is virtually guaranteed to burn out. 
     */
-    // TODO: RESORT Make these configurable.  Negative value to disable.
-    protected int MAX_AD_SATURATION = 12000;
-    protected int VACATION_STAT_THRESHOLD = 10;
+  
+    protected static final int MAX_AD_SATURATION = MCTPConfig.maxAdSaturation.get();                        // Denominator to determine vacation chance.
+    protected int VACATION_SUSCEPTIBILITY_THRESHOLD = MCTPConfig.vacationSusceptibilityThreshold.get();     // Under this stat level citizen is more susceptible to advertising.
+    protected int VACATION_IMMUNITY_THRESHOLD = MCTPConfig.vacationImmunityThreshold.get();                 // Under this stat level citizen is more susceptible to advertising.
+    protected int VACATION_HEALING = MCTPConfig.vacationHealing.get();                                      // The number of skill-ups a single vacation will get you. (Also used to scale XP applied)
+    protected double MAX_VACATION_CHANCE = MCTPConfig.vacationMaxChance.get();                              // The maximum chance of a vacation.
 
     /**
      * Min distance to resort before trying to find a relaxation station.
@@ -73,16 +82,15 @@ public class EntityAIBurnoutTask  {
     protected int adSaturationLevel = 0;
 
     /**
-     * Get a random between 1 and 100.
+     * Get a random between 0 and 1.
      */
-    private static final int ONE_HUNDRED = 100;
     private static final Random rand = new Random();
 
 
     private Skill skillToHeal = null;
 
     /**
-     * The different types of AIStates related to eating.
+     * The different types of AIStates related to going on vacation.
      */
     public enum VacationState implements IState
     {
@@ -96,6 +104,11 @@ public class EntityAIBurnoutTask  {
         WANDER
     }
 
+    static 
+    {
+
+    }
+
     /* Modelled after EntityAISickTask */
     public EntityAIBurnoutTask(EntityCitizen citizen)  {
         // Implement burnout AI and integrate it into citizen states.
@@ -106,7 +119,7 @@ public class EntityAIBurnoutTask  {
         this.skillToHeal = determineSkillToHeal();
 
         if (skillToHeal == null)  {
-            MCTradePostMod.LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal."); 
+            LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal."); 
         }
 
         ITickRateStateMachine<IState> ai = citizen.getCitizenAI();
@@ -151,8 +164,16 @@ public class EntityAIBurnoutTask  {
      * @return the best resort for the citizen to visit
      */
     protected BuildingResort getBestResort() {
-        BlockPos bestResortLocation = getBestResortLocation();
-        IBuilding resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
+        BuildingResort resort = null;
+        
+        // The best resort is the one where the reservation exists.
+        if (vacationTracker != null && vacationTracker.getResort() != null) {
+            resort = vacationTracker.getResort();
+        } else {
+            // Otherwise, find the closest.
+            BlockPos bestResortLocation = getBestResortLocation();
+            resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation); 
+        }
         
         return (BuildingResort) resort;
     }
@@ -172,7 +193,7 @@ public class EntityAIBurnoutTask  {
             return 0;
         }
 
-        double statmultiplier = VACATION_STAT_THRESHOLD / citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
+        double statmultiplier = VACATION_SUSCEPTIBILITY_THRESHOLD / citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
         statmultiplier = Math.max(statmultiplier, 1);
 
         int adPower = (int) Math.max(resort.getBuildingLevel() * statmultiplier, 1);
@@ -187,10 +208,25 @@ public class EntityAIBurnoutTask  {
      */
     private boolean isBurntOut()
     {   
-        // They already needed a vacation!
-        if (vacationStatus != null) {
+        if (MAX_AD_SATURATION < 0) {    // This logic is disabled.
+            return false;
+        }
+
+        // If they are sick, cancel any vacation they may have had.
+        if (citizenData.getCitizenDiseaseHandler().isSick()) {
+            reset();
+            return false;
+        }
+
+        if (isResistedAds()) {
+            // Don't burn out - but also don't reset their ad saturation level (no reset)
+            return false;
+        }
+
+        // They already needed a vacation.  Unless they've checked out, continue it.
+        if (vacationTracker != null) {
             // They've recently gone on vacation and been checked out.  Clear them out, and signal no new vacation yet!
-            if (vacationStatus.getState() == Vacationer.VacationState.CHECKED_OUT) {
+            if (vacationTracker.getState() == Vacationer.VacationState.CHECKED_OUT) {
                 reset();
                 return false;
             }
@@ -202,40 +238,51 @@ public class EntityAIBurnoutTask  {
             skillToHeal = determineSkillToHeal();
         }
 
+        int currentSkillLevel = 0;
+
         // This probably means they are unemployed - no need for a vacation!
         if (skillToHeal == null) {
-            MCTradePostMod.LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal."); 
-            return false;
-        }
-
-
-        final IColony colony = citizenData.getColony();
-        int burnoutChance = 0;
-
-        // TODO: RESORT Add logic here such that if the adverse skill is > some threshold, there is no chance of burnout.
-        adSaturationLevel += calcAdvertisingPower();
-
-        if (MAX_AD_SATURATION < 0) {
+            LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal."); 
+            reset();
             return false;
         } else {
-            burnoutChance = (int) Math.ceil((double)adSaturationLevel / (double)MAX_AD_SATURATION);
+            currentSkillLevel = citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
+            if (currentSkillLevel >= VACATION_IMMUNITY_THRESHOLD) {
+                // This citizen doesn't need a vacation, they're doing great!
+                reset();
+                return false;
+            }
         }
 
+        final IColony colony = citizenData.getColony();
+        double burnoutChance = 0.0;
+
+        adSaturationLevel += calcAdvertisingPower();
+
+        burnoutChance = Math.ceil((double)adSaturationLevel / (double)MAX_AD_SATURATION);
+        burnoutChance = Math.min(MAX_VACATION_CHANCE, burnoutChance);
+
         // The higher the burnout chance the more likely the citizen will burn out.
-        if ((rand.nextDouble() * ONE_HUNDRED) < burnoutChance)
+        double roll = rand.nextDouble();
+        if (roll <= burnoutChance)
         {
             BuildingResort resort = getBestResort();
-            vacationStatus = new Vacationer(citizen.getCivilianID(), skillToHeal);
-            resort.makeReservation(vacationStatus);
-
-            MCTradePostMod.LOGGER.info("Someone needs a vacation! {}. To fix: {}", citizen.getName(), skillToHeal);
+            vacationTracker = new Vacationer(citizen.getCivilianID(), skillToHeal);
+            vacationTracker.setTargetLevel(currentSkillLevel + VACATION_HEALING);
+            resort.makeReservation(vacationTracker);
+    
+            LOGGER.trace("Someone needs a vacation! {}. To fix: {} (rolled {} with a chance of {})"
+                , citizen.getName(), skillToHeal, roll, burnoutChance);
 
             citizen.getCitizenData().setVisibleStatus(VACATION);
 
-            // Do we need reset logic?
             return true;
+        } else {
+            // Set this resistance flag here to prevent burnout checks until another wave of ads from the resort.
+            setResistedAds(true);
         }
 
+        // No reset here intentionally - letting adSaturation build up.
         return false;
     }
 
@@ -246,8 +293,8 @@ public class EntityAIBurnoutTask  {
      */
     private IState checkForCure()
     {
-        if (vacationStatus != null) {
-            for (final ItemStorage cure : vacationStatus.getRemedyItems())
+        if (vacationTracker != null) {
+            for (final ItemStorage cure : vacationTracker.getRemedyItems())
             {
                 final int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(citizen, Vacationer.hasRemedyItem(cure));
                 if (slot == -1)
@@ -286,21 +333,21 @@ public class EntityAIBurnoutTask  {
 
         if (resort == null || resort.getPosition() == null)
         {
-            if (vacationStatus == null)
+            if (vacationTracker == null)
             {
                 // Burnout has been cleared somewhere...
                 reset();
                 return CitizenAIState.IDLE;
             }
-            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO_RESORT, vacationStatus.name(), vacationStatus.getRemedyString()),
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NO_RESORT, vacationTracker.name(), vacationTracker.getRemedyString()),
               Component.translatable(NO_RESORT),
               ChatPriority.BLOCKING));
 
             return VacationState.WANDER;
         }
-        else if (vacationStatus != null)
+        else if (vacationTracker != null)
         {
-            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NEED_VACATION, vacationStatus.name(), vacationStatus.getRemedyString()),
+            citizenData.triggerInteraction(new StandardInteraction(Component.translatable(NEED_VACATION, vacationTracker.name(), vacationTracker.getRemedyString()),
               Component.translatable(NEED_VACATION),
               ChatPriority.BLOCKING));
         }
@@ -322,7 +369,7 @@ public class EntityAIBurnoutTask  {
             return VacationState.SEARCH_RESORT;
         }
 
-        // MCTradePostMod.LOGGER.info("Vacationer {} is walking to the resort.", citizen.getName());
+        LOGGER.trace("Vacationer {} is walking to the resort.", citizen.getName());
 
         if (EntityNavigationUtils.walkToPos(citizen, bestResortLocation, MIN_DIST_TO_RESORT, true))
         {
@@ -346,7 +393,7 @@ public class EntityAIBurnoutTask  {
             return VacationState.SEARCH_RESORT;
         }
 
-        // MCTradePostMod.LOGGER.info("Vacationer {} is waiting for their remedy.", citizen.getName());
+        LOGGER.trace("Vacationer {} is waiting for their remedy.", citizen.getName());
 
         final IState state = checkForCure();
         if (state == VacationState.APPLY_CURE)
@@ -379,7 +426,7 @@ public class EntityAIBurnoutTask  {
             return VacationState.CHECK_FOR_CURE;
         }
 
-        if (this.vacationStatus == null)
+        if (this.vacationTracker == null)
         {
             reset();
             return CitizenAIState.IDLE;
@@ -394,7 +441,7 @@ public class EntityAIBurnoutTask  {
         }
 
 
-        final List<ItemStorage> list = vacationStatus.getRemedyItems();
+        final List<ItemStorage> list = vacationTracker.getRemedyItems();
         if (!list.isEmpty())
         {
             // citizen.setItemInHand(InteractionHand.MAIN_HAND, list.get(citizen.getRandom().nextInt(list.size())).getItemStack());
@@ -412,12 +459,11 @@ public class EntityAIBurnoutTask  {
             }
         }
 
-        // TODO: RESORT Evaluate the speed of this.  
         // TODO: RESORT [Enhancement] Make research to scale this.
         IBuilding resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
         int resortHealSpeed = resort.getBuildingLevel();
 
-        citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, 1, citizenData);
+        citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, VACATION_HEALING * 10, citizenData);
         int currentLevel = citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
 
         citizen.swing(InteractionHand.MAIN_HAND);
@@ -425,11 +471,10 @@ public class EntityAIBurnoutTask  {
         new CircleParticleEffectMessage(citizen.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, currentLevel)
             .sendToTrackingEntity(citizen);
 
-        // MCTradePostMod.LOGGER.info("Vacationer {} has applied their remedy: Now at level {} of {}", citizen.getName(), currentLevel, VACATION_STAT_THRESHOLD);
+        LOGGER.trace("Vacationer {} has applied their remedy: Now at level {} of {}"
+            , citizen.getName(), currentLevel, vacationTracker.getTargetLevel());
 
-        // TODO: RESORT Record Healing Stats here.
-
-        if (currentLevel < VACATION_STAT_THRESHOLD)
+        if (currentLevel < vacationTracker.getTargetLevel())
         {
             return VacationState.APPLY_CURE;
         }
@@ -444,20 +489,26 @@ public class EntityAIBurnoutTask  {
     private void cure()
     {
 
-        if (vacationStatus != null)
+        LOGGER.trace("Vacationer {} is relaxed!", citizen.getName());
+
+        if (vacationTracker != null)
         {
-            for (final ItemStorage cure : vacationStatus.getRemedyItems())
+            for (final ItemStorage cure : vacationTracker.getRemedyItems())
             {
                 final int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(citizen, Vacationer.hasRemedyItem(cure));
                 if (slot != -1)
                 {
+                    LOGGER.trace("Remedy item removed.");
                     citizenData.getInventory().extractItem(slot, 1, false);
                 }
             }
+            // TODO: RESORT Record Healing Stats here.
+            vacationTracker.reset();
         }
 
         citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         citizen.setHealth(citizen.getMaxHealth());
+        
         reset();
     }
 
@@ -481,17 +532,17 @@ public class EntityAIBurnoutTask  {
                 }
 
                 if (seatLocation != null) {
-                    // MCTradePostMod.LOGGER.info("Vacationer {} has a seat assignment, and is walking to their seat.", citizen.getName());
+                    LOGGER.trace("Vacationer {} has a seat assignment, and is walking to their seat.", citizen.getName());
 
                     if (!EntityNavigationUtils.walkToPos(citizen, seatLocation, 1, true)) {
                         return VacationState.FIND_EMPTY_STATION;
                     } 
 
-                    // MCTradePostMod.LOGGER.info("Vacationer {} takes a seat at {}", citizen.getName(), seatLocation);
+                    LOGGER.trace("Vacationer {} takes a seat at {}", citizen.getName(), seatLocation);
                     SittingEntity.sitDown(seatLocation, citizen, Constants.TICKS_SECOND * 60);
                 }
             } else {
-                MCTradePostMod.LOGGER.warn("Best resort location at {} is not a resort. Maybe it was moved or destroyed?", bestResortLocation);
+                LOGGER.warn("Best resort location at {} is not a resort. Maybe it was moved or destroyed?", bestResortLocation);
                 reset();
                 return CitizenAIState.IDLE;
             }
@@ -500,12 +551,43 @@ public class EntityAIBurnoutTask  {
         return VacationState.WAIT_FOR_CURE;
     }
 
-    public Vacationer getVacationStatus() {
-        return this.vacationStatus;
+    /**
+     * Retrieves the vacation tracker associated with this citizen.
+     *
+     * @return the vacation tracker.
+     */
+    public Vacationer getVacationTracker() {
+        return this.vacationTracker;
     }
 
-    public void setVacationStatus(Vacationer vacationStatus) {
-        this.vacationStatus = vacationStatus;
+    /**
+     * Sets the vacation tracker for this citizen.  This is used to manage the
+     * citizen's burnout state, and the AI which drives the citizen to seek
+     * out a resort to cure that burnout.
+     *
+     * @param vacationTracker the new vacation tracker for this citizen.
+     */
+    public void setVacationStatus(Vacationer vacationTracker) {
+        this.vacationTracker = vacationTracker;
+    }
+
+    /**
+     * Whether the citizen has resisted advertisements (i.e. ignored the call to go to the resort)
+     * @return true if the citizen has resisted ads, false if they have not
+     */
+    public boolean isResistedAds() {
+        return this.resistedAds;
+    }
+
+    /**
+     * Sets the state indicating whether the citizen has resisted advertisements.
+     *
+     * @param resistedAds true if the citizen has resisted ads, false otherwise
+     * @return the updated state of resistedAds
+     */
+    public boolean setResistedAds(boolean resistedAds) {
+        this.resistedAds = resistedAds;
+        return this.resistedAds;
     }
 
     /**
@@ -514,8 +596,12 @@ public class EntityAIBurnoutTask  {
     private void reset()
     {
         adSaturationLevel = 0;
-        vacationStatus = null;
+        if (vacationTracker != null) {
+            vacationTracker.reset();
+        }
+        vacationTracker = null;
         seatLocation = null;
+        resistedAds = true;
         citizen.releaseUsingItem();
         citizen.stopUsingItem();
         citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);

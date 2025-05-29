@@ -378,7 +378,7 @@ public class BuildingMarketplace extends AbstractBuilding
 
         List<Integer> visitorIDs = new ArrayList<Integer>();
 
-        MCTradePostMod.LOGGER.info("Looking for a tavern to advertise at.");
+        // MCTradePostMod.LOGGER.info("Looking for a tavern to advertise at.");
 
         // Once the marketplace is built, visitors start thinking about shopping...
         // Note: approach below for finding tavern mimics EventHandler.onEntityConverted 
