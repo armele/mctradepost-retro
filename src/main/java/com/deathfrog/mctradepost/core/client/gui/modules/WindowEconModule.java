@@ -32,7 +32,8 @@ public class WindowEconModule extends AbstractModuleWindow
 
     public static final String ITEM_SOLD = "item.sold";
     public static final String CASH_GENERATED = "cash.generated";
-    public static final String CURRENT_BALANCE = "current.balance";
+    public static final String COINS_MINTED = "coins.minted";
+    public static final String CURRENT_BALANCE = "current_balance";
     public static final String PARTIAL_ECON_MODIFIER_NAME = "com.mctradepost.coremod.gui.econ.";
 
     /**
@@ -67,12 +68,12 @@ public class WindowEconModule extends AbstractModuleWindow
         updateStats();
     }
 
-    private int getStatFor(String id, String intervalArg) {
-        int stat = statsManager.getStatTotal(id);
+    private int getStatFor(IStatisticsManager statsMan, String id, String intervalArg) {
+        int stat = statsMan.getStatTotal(id);
         int interval = INTERVAL.get(intervalArg);
         if (interval > 0)
         {
-            stat = statsManager.getStatsInPeriod(id, buildingView.getColony().getDay() - interval, buildingView.getColony().getDay());
+            stat = statsMan.getStatsInPeriod(id, buildingView.getColony().getDay() - interval, buildingView.getColony().getDay());
         }
 
         return stat;     
@@ -84,17 +85,17 @@ public class WindowEconModule extends AbstractModuleWindow
     private void updateStats()
     {
 
-        int currentBalance = getStatFor(CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
+        int currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
         final Text balanceLabel = findPaneOfTypeByID("currentbalance", Text.class);
         NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
         String formattedSales = "‡" + formatter.format(currentBalance);        
         balanceLabel.setText(Component.literal(formattedSales));  
 
-        int itemCount = getStatFor(ITEM_SOLD, selectedInterval);
+        int itemCount = getStatFor(statsManager, ITEM_SOLD, selectedInterval);
         final Text countLabel = findPaneOfTypeByID("itemcount", Text.class);
         countLabel.setText(Component.literal(itemCount + ""));   
 
-        int cashGenerated = getStatFor(CASH_GENERATED, selectedInterval);
+        int cashGenerated = getStatFor(statsManager, CASH_GENERATED, selectedInterval);
         final Text cashLabel = findPaneOfTypeByID("totalcash", Text.class);
         formattedSales = "‡" + formatter.format(cashGenerated);        
         cashLabel.setText(Component.literal(formattedSales));  

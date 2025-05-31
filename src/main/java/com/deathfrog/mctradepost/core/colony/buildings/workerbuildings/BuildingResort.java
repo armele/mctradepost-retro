@@ -18,8 +18,15 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutT
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.buildings.modules.ICraftingBuildingModule;
+import com.minecolonies.api.colony.jobs.registry.JobEntry;
+import com.minecolonies.api.crafting.IGenericRecipe;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.util.CraftingUtils;
+import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.api.util.OptionalPredicate;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.AbstractCraftingBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
@@ -28,6 +35,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 /* 
  * Inspired on, and modeled after, a combination of the Hospital and Restaurant
@@ -40,6 +51,9 @@ public class BuildingResort extends AbstractBuilding {
     protected final static int ADVERTISING_COOLDOWN_MAX = MCTPConfig.advertisingCooldown.get();      // In colony ticks (500 regular ticks)
     protected int advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
     protected final static String RELAXATION_STATION_TAG = "relaxation_station";
+
+    public final static String VACATIONS_COMPLETED = "vacations.completed";  // Used for stats.
+    public final static String TREATS_SERVED = "treats.served";              // Used for stats.
 
     /**
      * Whether we did init tags
@@ -137,7 +151,6 @@ public class BuildingResort extends AbstractBuilding {
                         EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task to the AI automatically
                         advertisingMap.put(advertisingTarget, burnoutTask);
 
-                        // TODO: Remove after testing complete
                         LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
 
                         // burnoutTask.setVacationStatus(guests.get(citizenEntity.get().getCivilianID()));
@@ -275,5 +288,41 @@ public class BuildingResort extends AbstractBuilding {
             guests.remove(civilianId);            
         }
     }
+    public static class CraftingModule extends AbstractCraftingBuildingModule.Crafting
+    {
+        /**
+         * The min percentage something has to have of qualifying tags to be craftable by this worker.
+         */
+        private static final double MIN_PERCENTAGE_TO_CRAFT = 0.50;
 
+        /**
+         * Create a new module.
+         *
+         * @param jobEntry the entry of the job.
+         */
+        public CraftingModule(final JobEntry jobEntry)
+        {
+            super(jobEntry);
+        }
+
+        @NotNull
+        @Override
+        public OptionalPredicate<ItemStack> getIngredientValidator()
+        {
+            // How do we populate the ingredient validator.
+            return CraftingUtils.getIngredientValidatorBasedOnTags(MCTPModJobs.BARTENDER_TAG)
+                    .combine(super.getIngredientValidator());
+        }
+
+        @Override
+        public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
+        {
+            if (!super.isRecipeCompatible(recipe)) return false;
+
+            final Optional<Boolean> isRecipeAllowed = CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, MCTPModJobs.BARTENDER_TAG);
+            if (isRecipeAllowed.isPresent()) return isRecipeAllowed.get();
+
+            return false;
+        }
+    }
 }

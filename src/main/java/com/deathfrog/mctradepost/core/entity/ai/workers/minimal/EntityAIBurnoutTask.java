@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
+import com.deathfrog.mctradepost.api.util.StatsUtil;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
@@ -271,13 +273,16 @@ public class EntityAIBurnoutTask  {
             vacationTracker.setTargetLevel(currentSkillLevel + VACATION_HEALING);
             resort.makeReservation(vacationTracker);
     
-            LOGGER.trace("Someone needs a vacation! {}. To fix: {} (rolled {} with a chance of {})"
+            LOGGER.info("Someone needs a vacation! {}. To fix: {} (rolled {} with a chance of {})"
                 , citizen.getName(), skillToHeal, roll, burnoutChance);
 
             citizen.getCitizenData().setVisibleStatus(VACATION);
 
             return true;
         } else {
+            LOGGER.trace("Someone is happy under their capitalist yoke! {}. (rolled {} with a chance of {})"
+                , citizen.getName(), roll, burnoutChance);
+
             // Set this resistance flag here to prevent burnout checks until another wave of ads from the resort.
             setResistedAds(true);
         }
@@ -502,7 +507,11 @@ public class EntityAIBurnoutTask  {
                     citizenData.getInventory().extractItem(slot, 1, false);
                 }
             }
-            // TODO: RESORT Record Healing Stats here.
+            StatsUtil.trackStat(vacationTracker.getResort(), BuildingResort.VACATIONS_COMPLETED , 1);
+
+            int incomeGenerated = MCTPConfig.vacationIncome.get() * MCTPConfig.tradeCoinValue.get();
+            citizenData.getColony().getStatisticsManager().incrementBy(WindowEconModule.CURRENT_BALANCE, incomeGenerated, citizenData.getColony().getDay());
+
             vacationTracker.reset();
         }
 

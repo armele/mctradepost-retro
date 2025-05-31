@@ -41,6 +41,7 @@ public class MCTPConfig
     public static final ConfigValue<Integer> vacationSusceptibilityThreshold;
     public static final ConfigValue<Integer> vacationImmunityThreshold;
     public static final ConfigValue<Integer> vacationHealing;
+    public static final ConfigValue<Integer> vacationIncome;
 
     static {
         BUILDER.push("marketplace");
@@ -92,6 +93,10 @@ public class MCTPConfig
         vacationHealing = BUILDER
             .comment("How many stat points will a single vacation restore?")
             .define("vacationHealing", 2);
+
+        vacationIncome = BUILDER
+            .comment("Trade Coin (‡) generated per vacation.")
+            .define("vacationIncome", 1);
 
         BUILDER.pop();
 

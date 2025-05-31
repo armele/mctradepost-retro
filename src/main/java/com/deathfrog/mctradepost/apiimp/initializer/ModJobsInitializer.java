@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.core.colony.jobs.JobBartender;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
@@ -35,6 +36,12 @@ public final class ModJobsInitializer
           .setJobProducer(JobGuestServices::new)
           .setJobViewProducer(() -> CrafterJobView::new)
           .setRegistryName(MCTPModJobs.GUESTSERVICES_ID)
+          .createJobEntry());
+
+        MCTPModJobs.bartender = register(DEFERRED_REGISTER, MCTPModJobs.BARTENDER_ID.getPath(), () -> new JobEntry.Builder()
+          .setJobProducer(JobBartender::new)
+          .setJobViewProducer(() -> CrafterJobView::new)
+          .setRegistryName(MCTPModJobs.BARTENDER_ID)
           .createJobEntry());
     }
 

@@ -28,12 +28,6 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
     protected void apply(@Nonnull Map<ResourceLocation, JsonElement> objectMap,@Nonnull  ResourceManager resourceManager,@Nonnull  ProfilerFiller profiler) {
         rituals.clear();
 
-        /*
-        objectMap.forEach((id, json) -> {
-            RitualDefinition.CODEC.decode(JsonOps.INSTANCE, json).result().ifPresent(pair -> rituals.put(id, pair.getFirst()));
-        });
-        */
-
         objectMap.forEach((id, json) -> {
             RitualDefinition.CODEC.decode(JsonOps.INSTANCE, json).result().ifPresent(pair -> {
                 RitualDefinition def = pair.getFirst();

@@ -70,6 +70,8 @@ public final class ModBuildingsInitializer
             resortBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID));
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
             resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
+            resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_WORK);
+            resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.RESORT_CRAFT);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 

@@ -38,7 +38,7 @@ Define the Job(s) associated with the Building
 - Register that job in ModJobsInitializer
 - Give it a constant ID and add it to the job list in MCTPModJobs
 - Assuming it has a custom AI (next step), hook into that at NewJob.generateAI()
-- Associate it with the models (later step) that animate the worker at ModModelTypeInitializer
+- Associate it with the models (later step) that animate the worker at ModModelTypeInitializer OR override getModel in the Job class to call its super().
 
 Define the AI associated with the Job
 - Create a new class at src\main\java\com\deathfrog\mctradepost\core\entity\ai\workers\ overriding AbstractEntityAIInteract<JobClass, BuildingClass>

@@ -10,6 +10,8 @@
     "com.mctradepost.job.shopkeeper": "Shopkeeper",
     "com.mctradepost.job.guestservices": "Guest Services",
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
+    "com.mctradepost.job.bartender": "Bartender",
+    "mctradepost:bartender.job.desc": "A friend to all, the maker of relaxing concoctions.",
     "mctradepost:guestservices.job.desc": "Need a vacation? Service here is the best.",
     "mctradepost:shopkeeper.skills.desc": "Helps make sales faster.",
     "mctradepost:guestservices.skills.desc": "Helps serve faster.",
@@ -27,6 +29,7 @@
     "com.mctradepost.coremod.gui.econ.item.sold" : "Items Sold",
     "com.mctradepost.coremod.gui.econ.currentbalance" : "Curr. Balance",
     "com.mctradepost.coremod.gui.econ.cash.generated" : "Income",
+    "com.mctradepost.coremod.gui.econ.coins.minted" : "Coins Minted",
     "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items",
     "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Warehouse Minimum",
     "mctradepost.configuration.marketplace": "Marketplace Settings",
@@ -67,6 +70,9 @@
     "jei.mctradepost.rituals": "Wishing Well Rituals",
     "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
     "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",
-    "com.mctradepost.resort.burnout": "All Work and No Play"
+    "com.mctradepost.resort.burnout": "All Work and No Play",
+    "com.minecolonies.coremod.gui.townhall.stats.current_balance": "‡ Impact: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.treats.served": "Treats Served: %d"
 }
   

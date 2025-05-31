@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.StatsUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
@@ -66,7 +67,6 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public EntityAIWorkGuestServices(@NotNull final JobGuestServices job)
     {
-        // TODO: TEST JobGuestServices AI
         super(job);
         super.registerTargets(
           new AITarget(IDLE, START_WORKING, 1),
@@ -148,8 +148,6 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         {
             return DECIDE;
         }
-
-        // TODO: Implement stat-specific "cures"
 
         final BuildingResort resort = building;
 
@@ -310,7 +308,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return REQUEST_CURE;
         }
 
-        // TODO: Refactor as "orderIfNotOutstanding and move to DECIDE"
+        // TODO: [Refactoring] Refactor as "orderIfNotOutstanding and move to DECIDE"
         final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
 
@@ -427,6 +425,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                       Vacationer.hasRemedyItem(remedy),
                       remedy.getAmount(), citizen.getInventoryCitizen()
                     );
+
+                    StatsUtil.trackStat(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
                 }
             }
         }

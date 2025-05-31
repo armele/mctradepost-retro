@@ -276,8 +276,11 @@ public class BuildingMarketplace extends AbstractBuilding
             BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
             if (valueToRemove < econ.getTotalBalance()) {
                 coinStack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), coinsToMint);
+                econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
                 econ.incrementBy(WindowEconModule.CURRENT_BALANCE, -valueToRemove);
                 econ.markDirty();
+
+                this.getColony().getStatisticsManager().incrementBy(WindowEconModule.CURRENT_BALANCE, -valueToRemove, this.getColony().getDay());
             } else {
                 MessageUtils.format("mctradepost.marketplace.nsf").sendTo(player);
             }

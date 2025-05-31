@@ -3,16 +3,22 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
+import com.minecolonies.api.colony.jobs.ModJobs;
 import com.minecolonies.api.entity.citizen.Skill;
+import com.minecolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.colony.buildings.modules.SettingsModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
+import com.minecolonies.core.colony.buildings.moduleviews.CraftingModuleView;
+import com.minecolonies.core.colony.buildings.moduleviews.DOCraftingModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.SettingsModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingSawmill;
 
 
 public class MCTPBuildingModules
@@ -76,6 +82,13 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("guestservices_work", 
         () -> new WorkerBuildingModule(MCTPModJobs.guestservices.get(), Skill.Adaptability, Skill.Creativity, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
+
+    public static final BuildingEntry.ModuleProducer<CraftingWorkerBuildingModule,WorkerBuildingModuleView> BARTENDER_WORK          =
+      new BuildingEntry.ModuleProducer<>("bartender_work", () -> new CraftingWorkerBuildingModule(MCTPModJobs.bartender.get(), Skill.Agility, Skill.Focus, false, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
+
+    public static final BuildingEntry.ModuleProducer<BuildingResort.CraftingModule,CraftingModuleView> RESORT_CRAFT         =
+      new BuildingEntry.ModuleProducer<>("bartender_craft", () -> new BuildingResort.CraftingModule(MCTPModJobs.bartender.get()), () -> CraftingModuleView::new);
 
     /**
      * Storage

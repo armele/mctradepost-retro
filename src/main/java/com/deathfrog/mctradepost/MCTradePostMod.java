@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.items.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
@@ -197,7 +198,10 @@ public class MCTradePostMod
     private void onLoadComplete(final FMLLoadCompleteEvent event) {
         LOGGER.info("MCTradePost onLoadComplete"); 
         MCTradePostMod.LOGGER.info("Injecting sounds."); 
-        MCTPModSoundEvents.injectSounds();  // These need to be injected both on client (to play) and server (to register)
+        MCTPModSoundEvents.injectSounds();              // These need to be injected both on client (to play) and server (to register)
+
+        MCTradePostMod.LOGGER.info("Injecting crafting rules.");
+        MCTPCraftingSetup.injectCraftingRules();        
     }
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
