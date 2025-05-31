@@ -17,6 +17,13 @@ Gives you a place for a Shopkeeper to work. They will sell various trinkets (con
 #### Resort
 A resort attracts your citizens who are feeling overworked. Guest Services will tend to vacationing citizens, who can relax and repair their adverse stat, and generate some Trade Coins (‡) for the colony while taking a break from work.
 
+### Jobs
+The Shopkeeper works in the Marketplace, keeping the shelves stocked and ordering up new supply as needed.
+
+Guest Services staffs the resort, finding out what the vacationers need to relax, and bringing it to them.
+
+The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
+
 ### Custom Items
 
 Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.  
@@ -25,7 +32,9 @@ Trade Coin - These coins can be minted from the marketplace by sneak-right-click
 
 ### Custom Blocks
 
-Marketplace Hut Block - Block implementation of the item above.  
+Marketplace Hut Block - Block implementation of the Marketplace building.
+
+Resort Hut Block - Block implementation of the Resort building.
 
 ### Configuration
 The value of a Trade Coin can be configured.
@@ -72,17 +81,8 @@ A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) wit
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
-Economics: 
-- Refactor to be at the town hall level.
-- Update resort logic to generate some income.
-
-Building: Resort [In Progress: Multiplayer Testing]
-Leisure time / resorts / vacations (Resort hut w/custom needs items)  
-- Introduce stat-specific recipes
-- Job: Guest Services [In Progress:Testing]
-- Job: Mixologist
-- Citizen Action: "Burnout" (like an illness, but causes them to go to the resort instead of the hospital) [Complete]
-- Huts to allow skill-up in non-primary/secondary stats.  [Complete]
+Resort:
+- Introduce stat-specific recipes (currently a "placeholder" recipe is used for testing)
 
 
 ### Roadmap (Roughly Prioritized)
