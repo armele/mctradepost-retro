@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
@@ -112,7 +113,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
           new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::blockingLogic, TICKS_SECOND),
           new AITarget(IDLE, START_WORKING, 1),
           new AITarget(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
-          new AITarget(START_WORKING, this::decideWhatToDo, 1),
+          new AITarget(START_WORKING, this::decideWhatToDo, 10),
           new AITarget(CRAFT, this::sellFromDisplay, 5),
           new AITarget(COMPOSTER_FILL, this::fillDisplays, 10) // AI states are defined where we can't touch them. Reuse this one.
         );
@@ -276,8 +277,37 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             return PAUSED;
         }
 
+        IAIState nextState = null;
+
+        if (building.hasWorkerOpenRequests(worker.getCitizenData().getId())) {
+            // If we are waiting for materials, prioritize selling what's already placed.
+            nextState = evaluteFramesForSelling();
+            if (nextState != null) {
+                return nextState;
+            }
+            nextState = evaluateFramesForFilling();
+            if (nextState != null) {
+                return nextState;
+            }
+        } else {
+            // Otherwise, prioritize putting new items up for sale.
+            nextState = evaluateFramesForFilling();
+            if (nextState != null) {
+                return nextState;
+            }
+            nextState = evaluteFramesForSelling();
+            if (nextState != null) {
+                return nextState;
+            }
+        }
+
+        setDelay(DECIDE_DELAY);
+        return START_WORKING;
+    }
+
+    private IAIState evaluateFramesForFilling() {
         // First pass: Find any empty item frame (considered available to fill)
-        for (final BlockPos displayLocation : displayShelves.keySet())
+        for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
         {
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
             final Level world = building.getColony().getWorld();
@@ -290,12 +320,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     this.currentTarget = displayLocation;
                     setDelay(DECIDE_DELAY);
                     worker.getCitizenData().setVisibleStatus(SELLING);
-                    return COMPOSTER_FILL;       // AI states are defined where we can't touch them. Reuse this one.
+                    return COMPOSTER_FILL;
                 }
             }
         }
 
-        // Second pass: Find any filled item frame (considered ready to "craft" / process)
+        return null;
+    }
+
+    private IAIState evaluteFramesForSelling() {
+        // Find any filled item frame (considered ready to "craft" / process)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
         {
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
@@ -331,8 +365,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
         }
 
-        setDelay(DECIDE_DELAY);
-        return START_WORKING;
+        return null;
     }
 
     /**
@@ -411,7 +444,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
-            final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(
+            final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(
               worker.getInventoryCitizen(),
               stack -> building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).isItemInList(new ItemStorage(stack)));
 

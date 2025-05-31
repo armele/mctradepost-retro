@@ -5,6 +5,7 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
@@ -47,8 +48,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nonnull;
 
@@ -59,6 +60,13 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
+    public enum ShoppingState implements IState
+    {
+        GOING_SHOPPING,
+        IS_SHOPPING,
+        DONE_SHOPPING
+    }
+
     protected WellLocations ritualData = new WellLocations();
 
     protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
@@ -397,13 +405,17 @@ public class BuildingMarketplace extends AbstractBuilding
             IVisitorData visitor = (IVisitorData) colony.getVisitorManager().getVisitor(visitorID);
 
             if (visitor != null && !advertisingList.contains(visitor)) {
-                // MCTradePostMod.LOGGER.info("Adding visitor to advertising list.");
+                MCTradePostMod.LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName());
+                
                 VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();
 
                 ITickRateStateMachine<IState> stateMachine = vitizen.getEntityStateController();
                 EntityAIShoppingTask task = new EntityAIShoppingTask(visitor, this);
-                stateMachine.addTransition(new TickingTransition<>(VisitorState.IDLE, task::goShopping, () -> VisitorState.WANDERING, 150));
-                stateMachine.addTransition(new TickingTransition<>(VisitorState.WANDERING, task::goShopping, () -> VisitorState.IDLE, 150));
+                stateMachine.addTransition(new TickingTransition<>(VisitorState.IDLE, task::wantsToShop, task::goingShopping, 150));
+                stateMachine.addTransition(new TickingTransition<>(VisitorState.WANDERING, task::wantsToShop, task::goingShopping, 150));
+                stateMachine.addTransition(new TickingTransition<>(ShoppingState.GOING_SHOPPING, () -> true, task::goingShopping, 150));
+                stateMachine.addTransition(new TickingTransition<>(ShoppingState.IS_SHOPPING, () -> true, task::isShopping, 150));
+                stateMachine.addTransition(new TickingTransition<>(ShoppingState.DONE_SHOPPING, () -> true, task::doneShopping, 150));
 
                 advertisingList.add(visitor);
             }
@@ -422,40 +434,89 @@ public class BuildingMarketplace extends AbstractBuilding
         return this.getBuildingLevel() * shoppingChance;
     }
 
-    /* EntityAIShoppingTask */
+    /* EntityAIShoppingTask inserted into the Visitor AI by the marketplace. */
     public class EntityAIShoppingTask {
         IVisitorData visitor = null;
         BuildingMarketplace marketplace = null;
         private static final int ONE_HUNDRED = 100;
-        private static final Random rand = new Random();
 
         public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace) {
             this.visitor = visitor;
             this.marketplace = marketplace;
         }
 
+
         /**
-         * Directs the visitor entity to walk to the marketplace location.
-         * Utilizes the EntityNavigationUtils to navigate the entity within the dimension.
+         * Checks if a visitor wants to go shopping at the marketplace.
          * 
-         * @return true if navigation was successful, false otherwise.
+         * This method is called by the AI when it wants to decide what to do.
+         * It will return true if the visitor should go shopping, false otherwise.
+         * The decision is based on the time of day (no shopping at night) and
+         * a random chance based on the marketplace's shopping chance.
+         * 
+         * @return true if the visitor should go shopping, false otherwise
          */
-        private boolean goShopping()
+        private boolean wantsToShop()
         {
             // No shopping at night.
             if (!WorldUtil.isDayTime(marketplace.getColony().getWorld())) {
-                return true;
+                return false;
             }
 
-            if (marketplace.shoppingChance() > rand.nextDouble() * ONE_HUNDRED) {
+            if (marketplace.shoppingChance() > ThreadLocalRandom.current().nextDouble() * ONE_HUNDRED) {
                 // MCTradePostMod.LOGGER.info("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
-                return EntityNavigationUtils.walkToPos(visitor.getEntity().get(), marketplace.getLocation().getInDimensionLocation(), 3, true);
+                return true;
             } else {
                 // MCTradePostMod.LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName());
-                return true;
+                return false;
             }
 
-        } 
+        }
+        
+        /**
+         * Attempts to navigate the visitor to the marketplace location.
+         *
+         * @return the next shopping state, IS_SHOPPING if the visitor has reached 
+         *         the marketplace, otherwise GOING_SHOPPING if still en route.
+         */
+        public IState goingShopping() {
+            if (EntityNavigationUtils.walkToPos(visitor.getEntity().get(), marketplace.getLocation().getInDimensionLocation(), 3, true)) {
+                return ShoppingState.IS_SHOPPING;
+            } else {
+                return ShoppingState.GOING_SHOPPING;
+            }
+        }
+
+        /**
+         * Attempts to navigate the visitor to the marketplace location.
+         *
+         * @return the next shopping state, IS_SHOPPING if the visitor has reached 
+         *         the marketplace, otherwise GOING_SHOPPING if still en route.
+         */
+        public IState isShopping() {
+            BlockPos pos = null;
+            
+            if (wantsToShop()) {
+                final List<BlockPos> displayPositions = marketplace.getDisplayShelfPositions();
+                pos = displayPositions.get(ThreadLocalRandom.current().nextInt(displayPositions.size()));
+            } else {
+                return ShoppingState.DONE_SHOPPING;
+            }
+
+            EntityNavigationUtils.walkToPos(visitor.getEntity().get(), pos, 1, true);
+            return ShoppingState.IS_SHOPPING;
+        }
+
+        /**
+         * Called when the visitor is done shopping.  This method is called by the AI's state machine
+         * when it has finished shopping and is ready to go back to IDLE.
+         * 
+         * @return the next state to go to, which is always VisitorState.IDLE
+         */
+        public IState doneShopping() {
+            return VisitorState.IDLE;
+        }
     }
 
 }
+

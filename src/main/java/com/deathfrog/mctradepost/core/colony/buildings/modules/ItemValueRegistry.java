@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -27,7 +26,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 
 public class ItemValueRegistry
 {
-    private static final Map<Item, Integer> itemValues = new ConcurrentHashMap<>();
+    private static final Map<Item, Integer> itemValues = new HashMap<Item, Integer>();
 
     // TODO: Make configurable.
     // Temporary hack to bring down server start speeds.

@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.util;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +28,6 @@ public class SoundUtils {
      * Get a random between 1 and 100.
      */
     private static final int ONE_HUNDRED = 100;
-    private static final Random rand = new Random();
     
     public static void playSoundWithChance(
         @NotNull final Level worldIn,
@@ -44,7 +43,7 @@ public class SoundUtils {
             return;
         }
 
-        if (chance > rand.nextDouble() * ONE_HUNDRED) {
+        if (chance > ThreadLocalRandom.current().nextDouble() * ONE_HUNDRED) {
             worldIn.playSound(null,
                 position,
                 sound,

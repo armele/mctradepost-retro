@@ -63,8 +63,8 @@ public class MCTPConfig
             .define("registerSoundChance", .05);
 
         shoppingChance = BUILDER
-            .comment("What chance, per building level, do visitors have of shopping here?")
-            .define("shoppingChance", 2);
+            .comment("What chance, per building level, do visitors have of deciding to shop?")
+            .define("shoppingChance", 1);
 
         BUILDER.pop();
 
