@@ -11,9 +11,11 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
@@ -71,12 +73,29 @@ public final class ModBuildingsInitializer
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
             resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_WORK);
-            resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.RESORT_CRAFT);
+            resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_CRAFT);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
                 registry.register(ModBuildings.resort.getRegistryName(), ModBuildings.resort);
+            });
+
+
+            BuildingEntry.Builder recyclingBuilder = new BuildingEntry.Builder();
+            recyclingBuilder.setBuildingBlock(MCTradePostMod.blockHutRecycling.get());
+            recyclingBuilder.setBuildingProducer(BuildingRecycling::new);
+            recyclingBuilder.setBuildingViewProducer(() -> RecyclingView::new);
+            recyclingBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RECYCLING_ID));
+            recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLINGENGINEER_WORK);
+            recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_RECYCLABLE);
+            recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLING_SETTINGS);
+            recyclingBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
+
+            ModBuildings.recycling = recyclingBuilder.createBuildingEntry();
+
+            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
+                registry.register(ModBuildings.recycling.getRegistryName(), ModBuildings.recycling);
             });
         }
         

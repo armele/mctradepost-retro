@@ -12,7 +12,6 @@ public class EconModuleView extends BuildingStatisticsModuleView
    @Override
     public String getIcon()
     {
-        // MCTradePostMod.LOGGER.warn("Module icon load trace", new Exception("Module icon load trace"));
         return "info";
     }
 

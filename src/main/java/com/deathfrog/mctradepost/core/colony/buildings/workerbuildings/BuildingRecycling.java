@@ -1,0 +1,583 @@
+package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+
+import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
+import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
+import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
+import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.util.IItemHandlerCapProvider;
+import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
+import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.neoforged.neoforge.items.IItemHandler;
+
+// TODO: RECYCLING - Custom module to view what jobs are in progress.
+
+public class BuildingRecycling extends AbstractBuilding {
+    // If true, any output with a crafting recipe will be resubmitted for further recycling.
+    public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "iterative_processing"));
+
+    public static final String REQUESTS_TYPE_RECYCLABLE = "com.mctradepost.coremod.request.recyclable";
+    public static final String RECYCLER_NO_INPUT_BOX = "com.mctradepost.recycler.no_input_box";
+    public static final String RECYCLER_NO_OUTPUT_BOX = "com.mctradepost.recycler.no_output_box";
+    public static final String RECYCLER_NO_RECYCLABLES_SET = "com.mctradepost.recycler.no_list_configured";
+    public static final String NO_RECYCLE_TAG = "NoRecycle";
+
+    /**
+     * Structurize tag identifying where the input and output containers are.
+     */
+    private static final String STRUCT_TAG_OUTPUT_CONTAINER = "output_container";
+    private static final String STRUCT_TAG_INPUT_CONTAINER = "input_container";
+    private static final String STRUCT_TAG_GRINDER = "grinder";
+
+    private static final String SERIALIZE_RECYCLINGPROCESSORS_TAG = "RecyclingProcessors";
+
+    protected final Object2IntOpenHashMap<ItemStorage> allItems = new Object2IntOpenHashMap<>();
+
+    private Set<RecyclingProcessor> recyclingProcessors = ConcurrentHashMap.newKeySet();
+
+    public BuildingRecycling(@NotNull IColony colony, BlockPos pos)
+    {
+        super(colony, pos);
+    }
+
+    @Override
+    public String getSchematicName() {
+        return ModBuildings.RECYCLING_ID;
+    }
+
+    @Override
+    public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compound) {
+        super.deserializeNBT(provider, compound);
+        deserializeRecyclingProcessors(provider, compound);
+        deserializeAllowableItems(provider, compound);
+    }
+
+    /**
+     * Deserializes the current state of the recycling processors from the given NBT tag.
+     * The tag is expected to contain a list of CompoundTags, each representing a recycling processor's state.
+     * The list is expected to be stored under the key SERIALIZE_RECYCLINGPROCESSORS_TAG in the given tag.
+     * Each CompoundTag in the list is expected to contain the deserialized state of a recycling processor.
+     * The state of the recycling processors is stored in the field #recyclingProcessors.
+     * @param tag The CompoundTag containing the serialized state of the recycling processors.
+     */
+    public void deserializeRecyclingProcessors(HolderLookup.Provider provider, CompoundTag tag) {
+        recyclingProcessors.clear();
+
+        if (tag.contains(SERIALIZE_RECYCLINGPROCESSORS_TAG, Tag.TAG_LIST)) {
+            ListTag processorListTag = tag.getList(SERIALIZE_RECYCLINGPROCESSORS_TAG, Tag.TAG_COMPOUND);
+            for (Tag element : processorListTag) {
+                CompoundTag processorTag = (CompoundTag) element;
+                RecyclingProcessor processor = new RecyclingProcessor();
+                processor.deserialize(provider, processorTag);
+                recyclingProcessors.add(processor);
+            }
+        }
+    }
+
+    /**
+     * Serializes the current state of the building, including the state of the allowable items list, into a RegistryFriendlyByteBuf.
+     * The state of the allowable items list is stored under the key EntityAIWorkRecyclingEngineer.RECYCLING_LIST in the serialized CompoundTag.
+     * @param buf The RegistryFriendlyByteBuf to serialize the state of the building into.
+     * @param fullSync Whether or not to serialize the full state of the building, or just the delta.
+     */
+    @Override
+    public void serializeToView(final RegistryFriendlyByteBuf buf, final boolean fullSync) {
+        super.serializeToView(buf, fullSync);
+
+        //Serialize allowable items
+        CompoundTag allowableItemsTag = new CompoundTag();
+        serializeAllowableItems(buf.registryAccess(), allowableItemsTag);
+        buf.writeNbt(allowableItemsTag);
+    }
+
+    /**
+     * Serializes the current state of the building, including the state of the recycling processors, into an NBT tag.
+     * The state of the recycling processors is stored under the key SERIALIZE_RECYCLINGPROCESSORS_TAG in the returned tag.
+     *
+     * @return the serialized NBT tag.
+     */
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider provider) {
+        CompoundTag tag = super.serializeNBT(provider);
+        Tag recyclingProcessorsTag = serializeRecyclingProcessors(provider).get(SERIALIZE_RECYCLINGPROCESSORS_TAG);
+        if (recyclingProcessorsTag != null) {
+            tag.put(SERIALIZE_RECYCLINGPROCESSORS_TAG, recyclingProcessorsTag);
+        }
+
+        //Serialize allowable items
+        serializeAllowableItems(provider, tag);
+
+        return tag;
+    }
+
+    /**
+     * Serializes the current state of the recycling processors into an NBT tag. The tag contains a list of tags, each of which
+     * represents the state of a single recycling processor. The list is stored under the key SERIALIZE_RECYCLINGPROCESSORS_TAG.
+     *
+     * @return the serialized NBT tag.
+     */
+    public @Nonnull CompoundTag serializeRecyclingProcessors(HolderLookup.Provider provider) {
+        CompoundTag tag = new CompoundTag();
+        ListTag processorListTag = new ListTag();
+
+        for (RecyclingProcessor processor : recyclingProcessors) {
+            processorListTag.add(processor.serialize(provider));
+        }
+
+        tag.put(SERIALIZE_RECYCLINGPROCESSORS_TAG, processorListTag);
+        return tag;
+    }
+
+
+    public void serializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag) {
+        
+        if (allItems != null && !allItems.isEmpty()) {
+            ListTag itemsListTag = new ListTag();
+            for (ItemStorage storage : allItems.keySet()) 
+            {
+                CompoundTag itemTag = new CompoundTag();
+                itemTag.put("stack", storage.getItemStack().save(provider));
+                itemTag.putInt("count", allItems.getInt(storage));
+                itemsListTag.add(itemTag);
+            }
+            tag.put(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, itemsListTag);
+        }
+    }
+
+
+    public void deserializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag) {
+        this.allItems.clear();
+
+        if (tag != null && tag.contains(EntityAIWorkRecyclingEngineer.RECYCLING_LIST)) {
+            ListTag outputTag = tag.getList(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, Tag.TAG_COMPOUND);
+
+            for (int i = 0; i < outputTag.size(); i++) {
+                CompoundTag itemTag = outputTag.getCompound(i);
+                ItemStack stack = ItemStack.parseOptional(provider, itemTag.getCompound("stack"));
+                int count = itemTag.getInt("count");
+
+                if (!stack.isEmpty()) {
+                    allItems.put(new ItemStorage(stack), count);
+                }
+            }
+        }
+    }
+
+    
+    /**
+     * Initialize the output positions based on what is tagged in the structure.
+     * This makes the building look for the correct number of output positions even if some are missing.
+     * That way a "repair" action will fix the problem.
+     * 
+     * @return a list of block positions that are tagged as output containers
+     */
+    public List<BlockPos> identifyOutputPositions() {
+        final List<BlockPos> outputContainers = getLocationsFromTag(STRUCT_TAG_OUTPUT_CONTAINER);
+        return outputContainers;
+    }
+
+    public List<BlockPos> identifyInputPositions() {
+        final List<BlockPos> inputContainers = getLocationsFromTag(STRUCT_TAG_INPUT_CONTAINER);
+        return inputContainers;
+    }
+
+    public List<BlockPos> identifyEquipmentPositions() {
+        final List<BlockPos> equipmentSpots = getLocationsFromTag(STRUCT_TAG_GRINDER);
+        return equipmentSpots;
+    }
+
+    public static class RecyclingProcessor {
+        public ItemStack processingItem = null;
+        public int processingTimer = -1;
+        public List<ItemStack> output = null;
+
+        /**
+         * Serializes the state of the recycling processor into an NBT tag. The tag contains the following elements:
+         * <ul>
+         * <li>"ProcessingItem": the item currently being processed, stored as a CompoundTag representing the item stack.</li>
+         * <li>"OutputItems": the items produced by the processor, stored as a ListTag of CompoundTags representing the item stacks.</li>
+         * <li>"ProcessingTimer": the number of ticks remaining in the processing timer, stored as an int.</li>
+         * </ul>
+         * If any of these values are missing, the default values are set: ItemStack.EMPTY for the processing item,
+         * an empty list for the output items, and -1 for the processing timer.
+         * @param provider The holder lookup provider for item and block references.
+         * @return the serialized NBT tag.
+         */
+        public CompoundTag serialize(HolderLookup.Provider provider) {
+            CompoundTag tag = new CompoundTag();
+
+            if (!processingItem.isEmpty()) {
+                tag.put("ProcessingItem", processingItem.save(provider));
+            }
+            if (output != null && !output.isEmpty()) {
+                ListTag outputTag = new ListTag();
+                for (ItemStack stack : output) {
+                    outputTag.add(stack.save(provider));
+                }
+                tag.put("OutputItems", outputTag);
+            }
+            tag.putInt("ProcessingTimer", processingTimer);
+
+            return tag;
+        }
+
+        /**
+         * Deserializes the given CompoundTag into the processing item, output items, and processing timer.
+         * The processing item is stored under the key "ProcessingItem" and is expected to be a
+         * CompoundTag representing the item stack. The output items are stored under the key "OutputItems"
+         * and are expected to be a ListTag of CompoundTags representing the item stacks.
+         * The processing timer is stored under the key "ProcessingTimer" and is expected to be an int.
+         * If any of these values are missing, the default values are set: ItemStack.EMPTY for the processing item,
+         * an empty list for the output items, and -1 for the processing timer.
+         * 
+         * @param provider The holder lookup provider for item and block references.
+         * @param tag The CompoundTag containing the serialized state of the processor.
+         */
+        public void deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag tag) {
+            if (tag.contains("ProcessingItem")) {
+                this.processingItem = ItemStack.parseOptional(provider, tag.getCompound("ProcessingItem"));
+            } else {
+                this.processingItem = ItemStack.EMPTY;
+            }
+
+            if (tag.contains("OutputItems")) {
+                ListTag outputTag = tag.getList("OutputItems", Tag.TAG_COMPOUND);
+                this.output = new ArrayList<ItemStack>(outputTag.size());
+
+                for (int i = 0; i < outputTag.size(); i++) {
+                    ItemStack stack = ItemStack.parseOptional(provider, outputTag.getCompound(i));
+                    if (!stack.isEmpty()) {
+                        this.output.add(stack);
+                    }
+                }
+            }
+
+            this.processingTimer = tag.getInt("ProcessingTimer");
+        }
+
+        /**
+         * Returns a string representation of the recycling processor, including the item to be recycled,
+         * the number of ticks remaining in the processing timer, and the items produced by the processor.
+         * The string is in the format "RecyclingProcessor{processingItem=ItemStack, processingTimer=int, output=List<ItemStack>}".
+         * @return the string representation of the recycling processor.
+         */
+        @Override
+        public String toString() {
+            return "RecyclingProcessor{" +
+                    "processingItem=" + processingItem +
+                    ", processingTimer=" + processingTimer +
+                    ", output=" + output +
+                    '}';
+        }
+    }
+
+    /**
+     * Adds a recycling processor to the list of processors associated with this building.
+     * 
+     * @param itemToRecycle the item to be recycled.
+     * @return true if the processor was added, false if the item cannot be recycled.
+     */
+    public boolean addRecyclingProcess(ItemStack itemToRecycle) {
+        List<ItemStack> recyclingOutput = outputList(itemToRecycle);
+
+        if (recyclingOutput != null && !recyclingOutput.isEmpty()) {
+            RecyclingProcessor processor = new RecyclingProcessor();
+            processor.processingItem = itemToRecycle;
+            processor.processingTimer = 0;
+            processor.output = recyclingOutput;
+            recyclingProcessors.add(processor);   
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if the given item can be recycled by this building.
+     * This is done by checking if the output list for the given item is not empty.
+     * If the output list is not empty, then the item can be recycled.
+     * 
+     * @param itemToRecycle the item to check for recyclability
+     * @return true if a full stack of this item can be recycled, false otherwise
+     */
+    public boolean isRecyclable(ItemStack itemToRecycle) {
+        ItemStack hypotheticalStack = itemToRecycle.copy();
+        hypotheticalStack.setCount(hypotheticalStack.getMaxStackSize());
+
+        List<ItemStack> recyclingOutput = outputList(itemToRecycle);
+        return recyclingOutput != null && !recyclingOutput.isEmpty();
+    }
+
+    /**
+     * Retrieves the set of recycling processors associated with this building.
+     * Each recycling processor represents an individual recycling operation
+     * currently in progress within the building.
+     *
+     * @return a set containing the recycling processors.
+     */
+
+    public Set<RecyclingProcessor> getRecyclingProcessors() {
+        return recyclingProcessors;
+    }
+    
+    /**
+     * Calculates the machine capacity of the recycling building.
+     * The capacity is determined by the building's level and is
+     * twice the building's level.
+     *
+     * @return the machine capacity based on the building's level.
+     */
+
+    public int getMachineCapacity()
+    {
+        return getBuildingLevel() * 2;
+    }
+
+    /**
+     * Checks if the building has processing capacity available to start a new
+     * recycling process. This is determined by comparing the number of
+     * recycling processors currently in use to the machine capacity of the
+     * building.
+     *
+     * @return true if the building has processing capacity available, false
+     *         otherwise.
+     */
+    public boolean hasProcessingCapacity() {
+        return getRecyclingProcessors().size() < getMachineCapacity();
+    }
+
+
+    @Override
+    public void onColonyTick(IColony colony) {
+        super.onColonyTick(colony);
+
+        for (RecyclingProcessor processor : recyclingProcessors) {
+            MCTradePostMod.LOGGER.info("Processor working: {}.", processor);
+
+            processor.processingTimer++;
+            // TODO: RECYCLING modify the timer by building level.
+            if (processor.processingTimer >= MCTPConfig.baseRecyclerTime.get()) {
+                generateOutput(processor.processingItem);
+
+                recyclingProcessors.remove(processor);
+            }
+        }
+
+        // Refresh the list of items stored in all warehouses within the colony.
+        refreshItemList();
+    }
+
+
+    /**
+     * Generates the output for a given input item stack. This method takes the input stack and
+     * converts it into a list of output stacks using the associated recipe. Each output stack is
+     * then inserted into an output chest using the tryInsertIntoOutputChest method.
+     *
+     * @param stack the input item stack to process
+     */
+    public void generateOutput(ItemStack stack) {
+        List<ItemStack> output = outputList(stack);
+
+        if (output == null || output.isEmpty()) {
+            return;
+        }
+
+        for (ItemStack itemStack : output) {
+            if (!itemStack.isEmpty()) {
+                ItemStack outputCopy = itemStack.copy();
+
+                // Attempt to insert into output chest
+                tryInsertIntoOutputChest(outputCopy);
+            }
+        }
+    }
+
+    /**
+     * Given an input item stack, return a list of output stacks using the associated
+     * deconstruction recipe. This method takes the input stack and converts it into a list
+     * of output stacks using the associated recipe. Each output stack is then inserted
+     * into an output chest using the tryInsertIntoOutputChest method.
+     *
+     * @param stack the input item stack to process
+     * @return a list of output item stacks
+     */
+    public List<ItemStack> outputList(ItemStack stack) {
+        if (getColony() == null || getColony().getWorld() == null || getColony().getWorld().getRecipeManager() == null) {
+            return null;
+        }
+
+        RecipeManager recipeManager = this.getColony().getWorld().getRecipeManager();
+        List<RecipeHolder<?>> recipes = ItemValueRegistry.getRecipeListForItem(recipeManager, stack.getItem(), this.getColony().getWorld());
+
+        if (recipes == null || recipes.isEmpty()) {
+            return null;
+        }
+
+        RecipeHolder<?> deconstruction = recipes.getFirst();
+        Recipe<?> recipe = deconstruction.value();
+        Object2IntOpenHashMap<ItemStack> outputItems = new Object2IntOpenHashMap<>();
+
+        // TODO: One mode for zero wastage - returns all ingredients
+        // TODO: One mode for wastage based on worker stat.
+        
+        ItemStack resultStack = recipe.getResultItem(getColony().getWorld().registryAccess());
+
+        for (Ingredient ingredient : recipe.getIngredients()) {
+
+            if (ingredient.isEmpty()) {
+                continue;
+            } else {
+                ItemStack[] ingredientItems = ingredient.getItems();
+                
+                MCTradePostMod.LOGGER.trace("Evaluating output list for recipe {}, Ingredient List {}, Output List {}.", recipe, ingredientItems, resultStack);
+                ItemStack itemStack = ingredientItems[0]; // This will return all possible variations for a given slot. We want only the first.
+
+                if (!itemStack.isEmpty()) {
+                    ItemStack outputCopy = itemStack.copy();
+                    outputItems.addTo(outputCopy, outputCopy.getCount()); 
+                }
+            }
+        }
+
+        List<ItemStack> output = new ArrayList<>();
+        outputItems.forEach((item, count) -> {
+            ItemStack outputCopy = item.copy();
+
+            // Scale the output based on the number of items in the input stack, and the number of items generated by the recipe. 
+            // (For example, recycling 1 stick should not give back 2 planks - but recycling 4 sticks should.)
+            outputCopy.setCount((int)((double)count * (double)stack.getCount() / (double)resultStack.getCount()));  
+            if (outputCopy.getCount() > 0) {
+                output.add(outputCopy);                
+            }
+
+        });
+
+
+        return output;
+    }
+
+    /**
+     * Attempts to insert the given item stack into the first available output chest found in the output positions.
+     * If the item stack is successfully inserted, this method returns true.
+     * If the item stack cannot be inserted and there is no output chest, a message is sent to all players in the colony indicating that there is no output chest.
+     * If the item stack cannot be inserted and there is an output chest, the remaining item stack is dropped in the world at the position of the last output chest
+     * that was found.
+     * @param stack the item stack to be inserted into the output chest.
+     * @return true if the item stack was successfully inserted, false otherwise.
+     */
+    private boolean tryInsertIntoOutputChest(ItemStack stack) {
+        IItemHandler handler = null;
+        BlockPos lastPos = null;
+        ItemStack remaining = stack;
+
+        for (BlockPos pos : identifyOutputPositions()) {
+            IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(this.getColony().getWorld().getBlockEntity(pos));
+
+            if (itemHandlerOpt != null) {
+                handler = itemHandlerOpt.getItemHandlerCap();
+            }
+
+            if (handler == null) continue;
+
+            for (int slot = 0; slot < handler.getSlots(); slot++) {
+                remaining = handler.insertItem(slot, remaining, false);
+                if (remaining.isEmpty()) return true;
+            }
+
+            lastPos = pos;
+
+        }
+
+        if (lastPos == null) {
+            MessageUtils.format(RECYCLER_NO_OUTPUT_BOX).sendTo(this.getColony()).forAllPlayers();
+            return false;
+        }
+
+        // Drop whatever is remaining in the world.
+        InventoryUtils.spawnItemStack(this.getColony().getWorld(), lastPos.getX(), lastPos.getY(), lastPos.getZ(), remaining);
+
+        return false;
+    }
+
+    /**
+     * Refreshes the list of items stored in all warehouses within the colony.
+     * 
+     * This method retrieves the registered structure manager for the colony and
+     * obtains a list of all warehouse locations. For each warehouse, it calculates
+     * the item storage contents and aggregates them into a map, which is then used
+     * to update the function that provides the set of all items stored in the 
+     * building's warehouse.
+     */
+    protected void refreshItemList() {
+        allItems.clear();
+
+        if (getColony() == null || getColony().getBuildingManager() == null) {
+            MCTradePostMod.LOGGER.warn("Colony or Building Manager is null while attempting to refresh the recyclable list.");
+            return;
+        }
+
+        IRegisteredStructureManager buildingManager = getColony().getBuildingManager();
+        BlockPos parentBuildingSpot = getPosition();        
+        List<IWareHouse> warehouse = buildingManager.getWareHouses();
+
+        for (IWareHouse wh : warehouse)
+        {
+            Object2IntMap<ItemStorage> whItems = null;
+
+            BlockPos whPos = wh.getPosition();
+
+            if (whPos != null) {
+                // MCTradePostMod.LOGGER.info("Adding warehouse items to recyclable list from warehouse at {}.", whPos);
+
+                IBuildingView whView = IColonyManager.getInstance().getBuildingView(getColony().getWorld().dimension(), whPos);
+                whItems = MCTPInventoryUtils.contentsForBuilding(whView);
+                for (final Entry<ItemStorage> entry : whItems.object2IntEntrySet()) {
+
+                    ItemStack stack = entry.getKey().getItemStack();
+                    if (isRecyclable(stack)) {
+                        // MCTradePostMod.LOGGER.info("Adding recyclable item to recyclable list: {}", entry.getKey());
+
+                        allItems.addTo(entry.getKey(), entry.getIntValue());
+                    }
+                }
+            }
+
+        }
+
+        markDirty();
+    }
+}

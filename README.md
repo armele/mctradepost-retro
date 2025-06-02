@@ -84,6 +84,11 @@ This mod can best be described as a "pre-alpha" state. It functionality may chan
 Resort:
 - Introduce stat-specific recipes (currently a "placeholder" recipe is used for testing)
 
+Recycling: [In Progress]
+- Building Capability: Decomposition
+- Building Capability: Disenchanting
+- Building Capability: Trash Disposal
+
 
 ### Roadmap (Roughly Prioritized)
 
@@ -102,8 +107,6 @@ Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
 Jobs: Bartender / brewmaster / mixologist at resort
-Building: Recycling
-Building Effect: Disenchanting
 Building: Train station (allows intra-colony trade)
 Assembling colonies into collections (empire, state, etc.)  
 

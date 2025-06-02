@@ -39,7 +39,7 @@ public class MarketplaceView extends AbstractBuildingView {
         super.deserialize(buf);
 
         CompoundTag compound = buf.readNbt();
-            if (compound != null) {
+        if (compound != null) {
             displayShelfContents = compound.getBoolean("displayShelfContents");
 
             shelfItems.clear();

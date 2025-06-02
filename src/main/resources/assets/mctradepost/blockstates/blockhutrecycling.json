@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mctradepost:block/blockhutrecycling",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mctradepost:block/blockhutrecycling",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mctradepost:block/blockhutrecycling",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "mctradepost:block/blockhutrecycling",
+      "y": 0
+    }
+  }
+}

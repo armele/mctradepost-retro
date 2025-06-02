@@ -43,6 +43,10 @@ public class MCTPConfig
     public static final ConfigValue<Integer> vacationHealing;
     public static final ConfigValue<Integer> vacationIncome;
 
+    // Recycling settings
+    public static final ConfigValue<Integer>  grindersPerLevel;
+    public static final ConfigValue<Integer>  baseRecyclerTime;
+
     static {
         BUILDER.push("marketplace");
 
@@ -97,6 +101,18 @@ public class MCTPConfig
         vacationIncome = BUILDER
             .comment("Trade Coin (‡) generated per vacation.")
             .define("vacationIncome", 1);
+
+        BUILDER.pop();
+
+        BUILDER.push("recycler");
+
+        grindersPerLevel = BUILDER
+            .comment("Recycling grinder belts per building level.")
+            .define("grindersPerLevel", 2);
+
+        baseRecyclerTime = BUILDER
+            .comment("Time to complete a recycling cycle.")
+            .define("baseRecyclerTime", 100);
 
         BUILDER.pop();
 
