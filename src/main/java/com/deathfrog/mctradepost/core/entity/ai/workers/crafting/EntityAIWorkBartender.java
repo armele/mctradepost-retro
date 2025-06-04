@@ -12,7 +12,7 @@ import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting
 import net.minecraft.resources.ResourceLocation;
 
 public class EntityAIWorkBartender  extends AbstractEntityAICrafting<JobBartender, BuildingResort> {
-        /**
+    /**
      * Crafting icon
      */
     private final static VisibleCitizenStatus CRAFTING =

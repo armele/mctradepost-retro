@@ -13,6 +13,8 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
+
 import java.lang.reflect.Type;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -89,6 +91,31 @@ public class ItemValueRegistry
     }
 
     /**
+     * Retrieves a list of recipes that can produce the specified item using the given recipe manager and level.
+     *
+     * @param recipeManager the recipe manager to query for recipes
+     * @param item the item to find recipes for
+     * @param level the level to access the registry for item results
+     * @return a list of recipes that result in the specified item, filtered by specific recipe types
+     */
+    public static List<RecipeHolder<?>> getRecipeListForItem(RecipeManager recipeManager, Item item,Level level) {
+        List<RecipeHolder<?>> recipes = recipeManager.getRecipes().stream()
+            // .filter(r -> r.value().getResultItem(level.registryAccess()).getItem().equals(item))
+            .filter(r -> {
+                ItemStack result = r.value().getResultItem(level.registryAccess());
+                return result != null && !result.isEmpty() && result.getItem().equals(item);
+            })
+            .filter(r -> (r.value().getType() == RecipeType.CRAFTING) 
+                ||  (r.value().getType() == RecipeType.SMELTING) 
+                ||  (r.value().getType() == RecipeType.CAMPFIRE_COOKING)
+                ||  (r.value().getType() == RecipeType.STONECUTTING)
+                ||  (r.value().getType() == ModRecipeTypes.ARCHITECTS_CUTTER.get()))
+            .collect(Collectors.toList());
+
+        return recipes;
+    }
+
+    /**
      * Estimate the value of an item by appraising the recipes that can craft it.
      *
      * @param item the item to estimate the value of
@@ -115,17 +142,7 @@ public class ItemValueRegistry
             // We have already appraised this item.  Use that.
             value = getValue(item);
         } else {
-            List<RecipeHolder<?>> recipes = recipeManager.getRecipes().stream()
-                // .filter(r -> r.value().getResultItem(level.registryAccess()).getItem().equals(item))
-                .filter(r -> {
-                    ItemStack result = r.value().getResultItem(level.registryAccess());
-                    return result != null && !result.isEmpty() && result.getItem().equals(item);
-                })
-                .filter(r -> (r.value().getType() == RecipeType.CRAFTING) 
-                    ||  (r.value().getType() == RecipeType.SMELTING) 
-                    ||  (r.value().getType() == RecipeType.CAMPFIRE_COOKING)
-                    ||  (r.value().getType() == RecipeType.STONECUTTING))
-                .collect(Collectors.toList());
+            List<RecipeHolder<?>> recipes = getRecipeListForItem(recipeManager, item, level);
 
             // If recipes exists to create this thing, appraise the value of the thing from the sum of its recipe parts.
             if (!recipes.isEmpty()) {

@@ -64,17 +64,17 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
      */
     private static final int REQUEST_COUNT = 16;
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+
     public EntityAIWorkGuestServices(@NotNull final JobGuestServices job)
     {
         super(job);
         super.registerTargets(
-          new AITarget(IDLE, START_WORKING, 1),
-          new AITarget(START_WORKING, DECIDE, 1),
-          new AITarget(DECIDE, this::decide, 20),
-          new AITarget(REQUEST_CURE, this::requestCure, 20),
-          new AITarget(CURE, this::cure, 20),
-          new AITarget(WANDER, this::wander, 20)
+          new AITarget<IAIState>(IDLE, START_WORKING, 1),
+          new AITarget<IAIState>(START_WORKING, DECIDE, 1),
+          new AITarget<IAIState>(DECIDE, this::decide, 20),
+          new AITarget<IAIState>(REQUEST_CURE, this::requestCure, 20),
+          new AITarget<IAIState>(CURE, this::cure, 20),
+          new AITarget<IAIState>(WANDER, this::wander, 20)
         );
         worker.setCanPickUpLoot(true);
     }

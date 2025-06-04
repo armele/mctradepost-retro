@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
@@ -111,8 +112,7 @@ public class MCTradePostMod
 
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutMarketplace = BLOCKS.register(BlockHutMarketplace.HUT_NAME, () -> new BlockHutMarketplace());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutResort = BLOCKS.register(BlockHutResort.HUT_NAME, () -> new BlockHutResort());
-    //public static MCTPBaseBlockHut blockHutMarketplace;
-    //public static MCTPBaseBlockHut blockHutResort;
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -324,6 +324,7 @@ public class MCTradePostMod
                 if (event.getTabKey().equals(key)) {
                     event.accept(MCTradePostMod.blockHutMarketplace.get());
                     event.accept(MCTradePostMod.blockHutResort.get());
+                    event.accept(MCTradePostMod.blockHutRecycling.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                 }
             });

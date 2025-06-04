@@ -105,17 +105,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      *
      * @param job the job to fulfill
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     public EntityAIWorkShopkeeper(@NotNull final JobShopkeeper job)
     {
         super(job);
         super.registerTargets(
-          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::blockingLogic, TICKS_SECOND),
-          new AITarget(IDLE, START_WORKING, 1),
-          new AITarget(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
-          new AITarget(START_WORKING, this::decideWhatToDo, 10),
-          new AITarget(CRAFT, this::sellFromDisplay, 5),
-          new AITarget(COMPOSTER_FILL, this::fillDisplays, 10) // AI states are defined where we can't touch them. Reuse this one.
+          new AIEventTarget<IAIState>(AIBlockingEventType.AI_BLOCKING, this::blockingLogic, TICKS_SECOND),
+          new AITarget<IAIState>(IDLE, START_WORKING, 1),
+          new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
+          new AITarget<IAIState>(START_WORKING, this::decideWhatToDo, 10),
+          new AITarget<IAIState>(CRAFT, this::sellFromDisplay, 5),
+          new AITarget<IAIState>(COMPOSTER_FILL, this::fillDisplays, 10) // AI states are defined where we can't touch them. Reuse this one.
         );
         worker.setCanPickUpLoot(true);
     }

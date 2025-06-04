@@ -8,11 +8,11 @@ import org.jetbrains.annotations.NotNull;
 public class ModBuildings {
     public static final String MARKETPLACE_ID = "marketplace";
     public static final String RESORT_ID      = "resort";
+    public static final String RECYCLING_ID   = "recycling";
 
-    // public static DeferredHolder<BuildingEntry, BuildingEntry> marketplace;
-    // public static DeferredHolder<BuildingEntry, BuildingEntry> resort;
     public static BuildingEntry marketplace;
     public static BuildingEntry resort;
+    public static BuildingEntry recycling;
     
     private ModBuildings()
     {
@@ -24,7 +24,8 @@ public class ModBuildings {
     {
         return new AbstractBlockHut[] {
             MCTradePostMod.blockHutMarketplace.get(),
-            MCTradePostMod.blockHutResort.get()
+            MCTradePostMod.blockHutResort.get(),
+            MCTradePostMod.blockHutRecycling.get()
         };
     }    
 }

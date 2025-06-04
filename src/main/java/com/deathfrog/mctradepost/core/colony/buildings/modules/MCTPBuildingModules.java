@@ -1,20 +1,31 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import java.util.function.Supplier;
+
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowRecyclerProgressModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
+import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.colony.buildings.modules.SettingsModule;
+import com.minecolonies.core.colony.buildings.modules.WarehouseRequestQueueModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.moduleviews.CraftingModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.SettingsModuleView;
+import com.minecolonies.core.colony.buildings.moduleviews.WarehouseRequestTaskModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 
 
@@ -46,7 +57,23 @@ public class MCTPBuildingModules
     /**
      * Craftmanship
      */
+    public static final BuildingEntry.ModuleProducer<CraftingWorkerBuildingModule,WorkerBuildingModuleView> RECYCLINGENGINEER_WORK          =
+      new BuildingEntry.ModuleProducer<>("recyclingengineer_work", () -> new CraftingWorkerBuildingModule(MCTPModJobs.recyclingengineer.get(), Skill.Strength, Skill.Focus, false, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
 
+    public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> RECYCLING_SETTINGS    =
+      new BuildingEntry.ModuleProducer<>("recycling_settings", () -> new SettingsModule()
+        .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false)), () -> SettingsModuleView::new);
+
+    private static final Supplier<IBuildingModule> rpvProducer = () -> new BuildingRecyclerProgressModule();
+
+    public static final BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView> RECYCLING_PROGRESS     =
+      new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", rpvProducer, () -> RecyclerProgressView::new);
+
+    public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_RECYCLABLE =
+      new BuildingEntry.ModuleProducer<>("itemlist_recyclable", () -> new ItemListModule(EntityAIWorkRecyclingEngineer.RECYCLING_LIST),
+        () -> () -> new RecyclableListModuleView(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, EntityAIWorkRecyclingEngineer.REQUESTS_TYPE_RECYCLABLE_UI, false));
+        
      /**
       * Economic
       */
@@ -84,7 +111,7 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("bartender_work", () -> new CraftingWorkerBuildingModule(MCTPModJobs.bartender.get(), Skill.Agility, Skill.Focus, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 
-    public static final BuildingEntry.ModuleProducer<BuildingResort.CraftingModule,CraftingModuleView> RESORT_CRAFT         =
+    public static final BuildingEntry.ModuleProducer<BuildingResort.CraftingModule,CraftingModuleView> BARTENDER_CRAFT         =
       new BuildingEntry.ModuleProducer<>("bartender_craft", () -> new BuildingResort.CraftingModule(MCTPModJobs.bartender.get()), () -> CraftingModuleView::new);
 
     /**

@@ -5,7 +5,6 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
-import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
@@ -90,7 +89,7 @@ public class BuildingMarketplace extends AbstractBuilding
     /**
      * Structurize tag identifying where display shelves are expected to be.
      */
-    private static final String STRUCT_TAG_DISPLAY_SELF = "display_shelf";
+    private static final String STRUCT_TAG_DISPLAY_SHELF = "display_shelf";
 
     /**
      * Map of shelf locations and contents.
@@ -173,7 +172,7 @@ public class BuildingMarketplace extends AbstractBuilding
                 displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
                 // Otherwise, issue a message about the missing frame.
             } else {
-                List<BlockPos> expectedPositions = getLocationsFromTag(STRUCT_TAG_DISPLAY_SELF);
+                List<BlockPos> expectedPositions = getLocationsFromTag(STRUCT_TAG_DISPLAY_SHELF);
 
                 // If this is no longer an expected shelf position (building has been relocated, for example), remove it.
                 if (!expectedPositions.contains(pos)) {
@@ -224,7 +223,7 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     public List<BlockPos> identifyExpectedShelfPositions() {
         // We want any tagged display locations nto be added into the displayShelfContents if not already there.
-        final List<BlockPos> shelfLocations = getLocationsFromTag("display_shelf");
+        final List<BlockPos> shelfLocations = getLocationsFromTag(STRUCT_TAG_DISPLAY_SHELF);
         return shelfLocations;
     }
 

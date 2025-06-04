@@ -17,12 +17,17 @@ Gives you a place for a Shopkeeper to work. They will sell various trinkets (con
 #### Resort
 A resort attracts your citizens who are feeling overworked. Guest Services will tend to vacationing citizens, who can relax and repair their adverse stat, and generate some Trade Coins (‡) for the colony while taking a break from work.
 
+#### Recycling Center
+The recycling center can help you break down your old building materials and other equipment into their raw components so they can be reused. Up to two recycling processes per building level can be in progress at once, and a skilled Recycling Engineer can speed up the process.
+
 ### Jobs
 The Shopkeeper works in the Marketplace, keeping the shelves stocked and ordering up new supply as needed.
 
 Guest Services staffs the resort, finding out what the vacationers need to relax, and bringing it to them.
 
 The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
+
+The Recycling Engineer handles all recycling requests at the Recycling Center.
 
 ### Custom Items
 
@@ -36,9 +41,10 @@ Marketplace Hut Block - Block implementation of the Marketplace building.
 
 Resort Hut Block - Block implementation of the Resort building.
 
+Recycling Hut Block - Block implementation of the Recycling Center.
+
 ### Configuration
-The value of a Trade Coin can be configured.
-The level of the marketplace required to mint coins can be configured.
+This mod supports the Neoforce configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
 
 ### Making Wishes
 When you throw a coin into a wishing well with another object, your wish might come true!
@@ -60,7 +66,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 ### Compatibility Reference
 
-mctradepost-0.3.003 -> MineColonies 1.1.950 (Minecraft 1.21.1)  
+mctradepost-0.9.001 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
 
 ## Style Packs
 ### Economic
@@ -77,12 +83,27 @@ These frames should be mounted in empty (air) blocks tagged with the "display_sh
 ### Wishing Well
 A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) with stone bricks.  (Future designs will be more aesthetically pleasing.)
 
+### Resort
+A resort requires a number of blocks be identified with the "relaxation_station" tag.  Visitors to the resort will go there and relax.
+
+### Recycling Center
+A recycling center requires one or more non-rack chests identified with the "input_container" tag. Items in these will be broken down into their ingredient components. It also requires one or more "output_container" chests, where the product of the recycling will be placed.
+Finally, some number of "grinder" blocks, which simply designates the equipment of the recycler, and gives the Recycling Engineer some guidance on where to maintain the equipment (purely visual - no functional effects).
+
+
 ## Current Status
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
 Resort:
 - Introduce stat-specific recipes (currently a "placeholder" recipe is used for testing)
+
+Recycling: [In Progress]
+- Building Module: Recycling Process Status Module [Not Started]
+- Building Effects: Sounds and particles for work in progress [Not Started]
+- Building Capability: Decomposition    [Testing]
+- Building Capability: Disenchanting    [Not Started]
+- Building Capability: Trash Disposal   [Not Started]
 
 
 ### Roadmap (Roughly Prioritized)
@@ -102,18 +123,11 @@ Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
 Jobs: Bartender / brewmaster / mixologist at resort
-Building: Recycling
-Building Effect: Disenchanting
 Building: Train station (allows intra-colony trade)
 Assembling colonies into collections (empire, state, etc.)  
 
-Random ideas that may never be implemented:
+#### Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).
-
-### Complete
-
-Marketplace implementation for selling items.  
-Ability to turn income into coin items (and vice-versa).
 
 ## Additional Resources
 

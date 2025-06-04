@@ -286,11 +286,6 @@ public class BuildingResort extends AbstractBuilding {
     public static class CraftingModule extends AbstractCraftingBuildingModule.Crafting
     {
         /**
-         * The min percentage something has to have of qualifying tags to be craftable by this worker.
-         */
-        private static final double MIN_PERCENTAGE_TO_CRAFT = 0.50;
-
-        /**
          * Create a new module.
          *
          * @param jobEntry the entry of the job.
@@ -312,6 +307,7 @@ public class BuildingResort extends AbstractBuilding {
         @Override
         public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
         {
+            // TODO: RESORT - set up bartender recipes as tags
             if (!super.isRecipeCompatible(recipe)) return false;
 
             final Optional<Boolean> isRecipeAllowed = CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, MCTPModJobs.BARTENDER_TAG);

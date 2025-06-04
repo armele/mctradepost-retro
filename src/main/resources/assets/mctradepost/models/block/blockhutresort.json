@@ -10,7 +10,7 @@
 		"6": "block/blue_wool",
 		"8": "block/red_wool",
 		"9": "block/glass",
-		"10": "block/bottomshelf",
+		"10": "block/stripped_oak_log",
 		"particle": "block/sand"
 	},
 	"elements": [
