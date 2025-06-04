@@ -89,6 +89,7 @@ public final class ModBuildingsInitializer
             recyclingBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RECYCLING_ID));
             recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLINGENGINEER_WORK);
             recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_RECYCLABLE);
+            recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLING_PROGRESS);
             recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLING_SETTINGS);
             recyclingBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
 

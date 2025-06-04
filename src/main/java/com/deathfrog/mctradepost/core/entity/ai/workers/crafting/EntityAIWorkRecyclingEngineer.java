@@ -367,30 +367,33 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 LOGGER.info("Room for more - load it up!");
 
                 for (int i = 0; i < chestHandlerOpt.getItemHandlerCap().getSlots(); i++) {
-                    ItemStack stackInSlot = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i);
+                    ItemStack stackToRecycle = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i).copy();
 
-                    if (!stackInSlot.isEmpty() && stackInSlot.getCount() > 0) {
-                        LOGGER.info("Starting recycling process for {}", stackInSlot.getDescriptionId());
+                    if (stackToRecycle == null || stackToRecycle.isEmpty()) {
+                        continue;
+                    }
+
+                    if (stackToRecycle.getCount() > 0) {
+                        LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId());
                         final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
 
-                        if (!recycling.addRecyclingProcess(removedStack.copy())) {
+                        if (recycling.addRecyclingProcess(removedStack.copy())) {
+                            LOGGER.warn("Recording recycling stats for: {}, count {}", stackToRecycle.getDescriptionId(), stackToRecycle.getCount());
+                            worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+                            StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle, stackToRecycle.getCount());
+                            worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(RECYCLING_STAT, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
+                        } else {
                             LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId());
-                            if (!InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(chestHandlerOpt.getItemHandlerCap(), i, recycling)) {
+                            if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle)) {
                                 InventoryUtils.spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
                                 return INVENTORY_FULL;
                             }
                         }
-
-                        worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-                        StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackInSlot, stackInSlot.getCount());
-                        worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(RECYCLING_STAT, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
-
-                        removedStack.setCount(0);
-
-                        return DECIDE;
                     }
                 }
                 
+                return DECIDE;
+
             } else {
                 LOGGER.info("Machine full.");
 
@@ -416,7 +419,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         for (RecyclingProcessor processor : recycling.getRecyclingProcessors()) {
             processor.processingTimer += speedBoost;
-            if (processor.processingTimer >= MCTPConfig.baseRecyclerTime.get()) {
+            if (processor.isFinished()) {
                 recycling.generateOutput(processor.processingItem);
                 // TODO: RECYCLING play a sound; send some particles
                 recycling.getRecyclingProcessors().remove(processor);

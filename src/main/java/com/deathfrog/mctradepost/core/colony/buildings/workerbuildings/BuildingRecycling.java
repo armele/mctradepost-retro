@@ -1,25 +1,38 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
+
+import org.apache.commons.lang3.arch.Processor.Arch;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
+import net.minecraft.core.Holder;
+
+import com.ldtteam.domumornamentum.DomumOrnamentum;
+import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
+import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlockComponent;
+import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
+import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipe;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
+import com.minecolonies.api.crafting.GenericRecipe;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
@@ -27,24 +40,32 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.neoforged.neoforge.items.IItemHandler;
-
-// TODO: RECYCLING - Custom module to view what jobs are in progress.
+import net.minecraft.core.HolderSet.Named;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 
 public class BuildingRecycling extends AbstractBuilding {
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
@@ -63,7 +84,7 @@ public class BuildingRecycling extends AbstractBuilding {
     private static final String STRUCT_TAG_INPUT_CONTAINER = "input_container";
     private static final String STRUCT_TAG_GRINDER = "grinder";
 
-    private static final String SERIALIZE_RECYCLINGPROCESSORS_TAG = "RecyclingProcessors";
+    public static final String SERIALIZE_RECYCLINGPROCESSORS_TAG = "RecyclingProcessors";
 
     protected final Object2IntOpenHashMap<ItemStorage> allItems = new Object2IntOpenHashMap<>();
 
@@ -223,6 +244,7 @@ public class BuildingRecycling extends AbstractBuilding {
     public static class RecyclingProcessor {
         public ItemStack processingItem = null;
         public int processingTimer = -1;
+        public int processingTimerComplete = -1;
         public List<ItemStack> output = null;
 
         /**
@@ -251,6 +273,7 @@ public class BuildingRecycling extends AbstractBuilding {
                 tag.put("OutputItems", outputTag);
             }
             tag.putInt("ProcessingTimer", processingTimer);
+            tag.putInt("ProcessingTimerComplete", processingTimerComplete);
 
             return tag;
         }
@@ -287,6 +310,16 @@ public class BuildingRecycling extends AbstractBuilding {
             }
 
             this.processingTimer = tag.getInt("ProcessingTimer");
+            this.processingTimerComplete = tag.getInt("ProcessingTimerComplete");
+        }
+
+        /**
+         * Returns true if the processing timer has exceeded the processing timer complete value,
+         * indicating that the recycling processor has finished its current task.
+         * @return true if the recycling processor has finished its current task, false otherwise.
+         */
+        public boolean isFinished() {
+            return processingTimer > processingTimerComplete;
         }
 
         /**
@@ -300,6 +333,7 @@ public class BuildingRecycling extends AbstractBuilding {
             return "RecyclingProcessor{" +
                     "processingItem=" + processingItem +
                     ", processingTimer=" + processingTimer +
+                    ", processingTimerComplete=" + processingTimerComplete +
                     ", output=" + output +
                     '}';
         }
@@ -318,8 +352,12 @@ public class BuildingRecycling extends AbstractBuilding {
             RecyclingProcessor processor = new RecyclingProcessor();
             processor.processingItem = itemToRecycle;
             processor.processingTimer = 0;
+            processor.processingTimerComplete = MCTPConfig.baseRecyclerTime.get();  // TODO: RECYCLING modify the timer by building level.
             processor.output = recyclingOutput;
-            recyclingProcessors.add(processor);   
+            recyclingProcessors.add(processor);
+            
+            markDirty();
+
             return true;
         }
 
@@ -389,8 +427,8 @@ public class BuildingRecycling extends AbstractBuilding {
             MCTradePostMod.LOGGER.info("Processor working: {}.", processor);
 
             processor.processingTimer++;
-            // TODO: RECYCLING modify the timer by building level.
-            if (processor.processingTimer >= MCTPConfig.baseRecyclerTime.get()) {
+
+            if (processor.isFinished()) {
                 generateOutput(processor.processingItem);
 
                 recyclingProcessors.remove(processor);
@@ -424,6 +462,62 @@ public class BuildingRecycling extends AbstractBuilding {
                 tryInsertIntoOutputChest(outputCopy);
             }
         }
+
+        markDirty();
+    }
+
+    /**
+     * Prioritizes a list of recipes by selecting the first non-Architect's cutter recipe. 
+     * If all recipes are of type Architect's cutter, the first one is selected.
+     *
+     * @param recipes the list of recipes to prioritize
+     * @return the selected recipe, or null if the list is empty or null
+     */
+    protected Recipe<?> prioritizeRecipeList(List<RecipeHolder<?>> recipes) {
+        Recipe<?> selectedRecipe = null;
+
+        if (recipes == null || recipes.isEmpty()) {
+            return null;
+        }
+
+        // Take non-Architect's cutter recipes first.
+        for (RecipeHolder<?> recipe : recipes) {
+            if (recipe.value().getType() == ModRecipeTypes.ARCHITECTS_CUTTER.get() && selectedRecipe == null) {
+                selectedRecipe = recipe.value();
+            } else {
+                selectedRecipe = recipe.value();
+                return selectedRecipe;
+            }
+        }
+
+        return selectedRecipe;
+    }
+
+    /**
+     * Modifies the list of ingredients for a given recipe to accommodate for the
+     * Architect's Cutter recipe type. If the recipe is of type Architect's Cutter,
+     * it will return a list of ingredients that includes all the blocks in the
+     * tag associated with the recipe. If the recipe is not of type Architect's
+     * Cutter, it will simply return the list of ingredients from the recipe.
+     *
+     * @param recipe the recipe to modify the ingredients for
+     * @return the modified list of ingredients
+     */
+    protected List<Ingredient> determineIngredients(Recipe<?> recipe, ItemStack inputStack) {
+        if (recipe.getType() == ModRecipeTypes.ARCHITECTS_CUTTER.get()) {
+            List<ItemStack> textures = DomumOrnamentumHelper.getDomumOrnamentumTextureComponents(inputStack, getColony().getWorld().registryAccess());
+
+            // Let's turn this into a list of ingredients
+            final List<Ingredient> ingredientlist = new ArrayList<>();
+            for (final ItemStack ingredientStack : textures)
+            {
+                ingredientlist.add(Ingredient.of(ingredientStack));
+            }
+
+            return ingredientlist;
+        } else {
+            return recipe.getIngredients();
+        }
     }
 
     /**
@@ -435,57 +529,77 @@ public class BuildingRecycling extends AbstractBuilding {
      * @param stack the input item stack to process
      * @return a list of output item stacks
      */
-    public List<ItemStack> outputList(ItemStack stack) {
+    public List<ItemStack> outputList(ItemStack inputStack) {
         if (getColony() == null || getColony().getWorld() == null || getColony().getWorld().getRecipeManager() == null) {
             return null;
         }
 
         RecipeManager recipeManager = this.getColony().getWorld().getRecipeManager();
-        List<RecipeHolder<?>> recipes = ItemValueRegistry.getRecipeListForItem(recipeManager, stack.getItem(), this.getColony().getWorld());
+        List<RecipeHolder<?>> recipes = ItemValueRegistry.getRecipeListForItem(recipeManager, inputStack.getItem(), this.getColony().getWorld());
 
         if (recipes == null || recipes.isEmpty()) {
+            MCTradePostMod.LOGGER.info("No recipes found for item {}.", inputStack);
             return null;
-        }
+        } 
+        
+        MCTradePostMod.LOGGER.info("Found {} recipes for item {}.", recipes.size(), inputStack);
+        Recipe<?> recipe = prioritizeRecipeList(recipes);
 
-        RecipeHolder<?> deconstruction = recipes.getFirst();
-        Recipe<?> recipe = deconstruction.value();
-        Object2IntOpenHashMap<ItemStack> outputItems = new Object2IntOpenHashMap<>();
+        Object2IntOpenHashMap<ItemStorage> outputItems = new Object2IntOpenHashMap<>();
 
         // TODO: One mode for zero wastage - returns all ingredients
         // TODO: One mode for wastage based on worker stat.
+        // TODO: Test Domum recipes; these need to be supported.
         
         ItemStack resultStack = recipe.getResultItem(getColony().getWorld().registryAccess());
+        List<ItemStack> remainingItems  = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
+        List<Ingredient> ingredients = determineIngredients(recipe, inputStack);
 
-        for (Ingredient ingredient : recipe.getIngredients()) {
+        MCTradePostMod.LOGGER.info("Recipe has {} ingredients and {} remaining items.", recipe.getIngredients().size(), remainingItems.size());
+
+        for (Ingredient ingredient : ingredients) {
 
             if (ingredient.isEmpty()) {
                 continue;
             } else {
                 ItemStack[] ingredientItems = ingredient.getItems();
-                
-                MCTradePostMod.LOGGER.trace("Evaluating output list for recipe {}, Ingredient List {}, Output List {}.", recipe, ingredientItems, resultStack);
+                boolean exclude = false;
+
+                MCTradePostMod.LOGGER.info("Evaluating output list for input item {}, Ingredient List {}, Output List {}.", inputStack, ingredientItems, resultStack);
                 ItemStack itemStack = ingredientItems[0]; // This will return all possible variations for a given slot. We want only the first.
 
-                if (!itemStack.isEmpty()) {
+                for (ItemStack remainingItem : remainingItems) {
+                    if (ItemStack.isSameItem(itemStack, remainingItem)) {
+                        // Skip ingredients which are also part of the output (not consumed by the recipe).
+                        exclude = true;
+                    }
+                }
+
+                if (!itemStack.isEmpty() && itemStack.getCount() > 0  && !exclude) {
                     ItemStack outputCopy = itemStack.copy();
-                    outputItems.addTo(outputCopy, outputCopy.getCount()); 
+                    outputItems.addTo(new ItemStorage(outputCopy), outputCopy.getCount()); 
                 }
             }
         }
 
         List<ItemStack> output = new ArrayList<>();
         outputItems.forEach((item, count) -> {
-            ItemStack outputCopy = item.copy();
+            ItemStack baseStack = item.getItemStack().copy();
 
-            // Scale the output based on the number of items in the input stack, and the number of items generated by the recipe. 
-            // (For example, recycling 1 stick should not give back 2 planks - but recycling 4 sticks should.)
-            outputCopy.setCount((int)((double)count * (double)stack.getCount() / (double)resultStack.getCount()));  
-            if (outputCopy.getCount() > 0) {
-                output.add(outputCopy);                
+            // Scale the output count based on the number of items in the input stack
+            int recipeProductCount = resultStack.getCount() > 0 ? resultStack.getCount() : 1;
+            int recyclingOutputCount = (int)((double)count * (double)inputStack.getCount() / (double)recipeProductCount);
+
+            int maxStackSize = baseStack.getMaxStackSize();
+
+            while (recyclingOutputCount > 0) {
+                int thisStackCount = Math.min(maxStackSize, recyclingOutputCount);
+                ItemStack stackPart = baseStack.copy();
+                stackPart.setCount(thisStackCount);
+                output.add(stackPart);
+                recyclingOutputCount -= thisStackCount;
             }
-
         });
-
 
         return output;
     }

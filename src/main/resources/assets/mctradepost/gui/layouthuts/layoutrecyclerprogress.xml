@@ -1,0 +1,26 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+    <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+    <text size="120 11" pos="30 14" textalign="MIDDLE" color="black"
+           label="$(com.mctradepost.coremod.gui.recycler.process)"/>
+    <button id="cancel" label="X" color="red" pos="160 11" size="14 15"
+                 source="minecolonies:textures/gui/builderhut/builder_button_mini.png"/>
+
+    <list id="requests" size="170 170" pos="13 30">
+        <box id="requestx" size="100% 40" linewidth="1">
+            <!--Item icons -->
+            <image id="progressBar" source="mctradepost:textures/gui/modules/progress_arrow.png" size="57 21" pos="20 1" visible="true"/>
+            <itemicon id="inputStack" size="16 16" pos="1 3"/>
+            <itemicon id="outputStack0" size="16 16" pos="140 3"/>
+            <itemicon id="outputStack1" size="16 16" pos="140 23"/>
+            <itemicon id="outputStack2" size="16 16" pos="120 3"/>
+            <itemicon id="outputStack3" size="16 16" pos="120 23"/>
+            <itemicon id="outputStack4" size="16 16" pos="100 3"/>
+            <itemicon id="outputStack5" size="16 16" pos="100 23"/>
+            <itemicon id="outputStack6" size="16 16" pos="80 3"/>
+            <itemicon id="outputStack7" size="16 16" pos="80 23"/>
+            <itemicon id="outputStack8" size="16 16" pos="60 3"/>
+            <itemicon id="outputStack9" size="16 16" pos="60 23"/>
+        </box>
+    </list>
+</window>

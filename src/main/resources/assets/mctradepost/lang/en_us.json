@@ -87,6 +87,8 @@
     "com.minecolonies.coremod.gui.townhall.stats.recycling_stat": "Items Recycled: %d",
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",
-    "com.mctradepost.recycler.no_list_configured": "No list of items has been configured for the recycling center."
+    "com.mctradepost.recycler.no_list_configured": "No list of items has been configured for the recycling center.",
+    "com.mctradepost.coremod.gui.recycler.process": "Processing",
+    "com.mctradepost.core.gui.modules.recyclerprogress": "Recycler Progress"
 }
   
