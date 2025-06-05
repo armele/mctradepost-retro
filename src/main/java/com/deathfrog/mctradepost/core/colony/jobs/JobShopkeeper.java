@@ -8,7 +8,7 @@ import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
 
 // TODO: Test - Multiplayer the non-hosting player cannot interact with the Shopkeeper (new after fixing sounds)
-// TODO: Add some logic around variation of items sold.
+
 /**
  * Class of the Shopkeeper job.
  * 

@@ -29,6 +29,18 @@ The Bartender also works at the resort, mixing up delicious treats that help the
 
 The Recycling Engineer handles all recycling requests at the Recycling Center.
 
+
+### Research
+This mod introduces the "Economics" line of research. 
+
+#### Tier 1
+Capitalism - Unlocks the Marketplace building.
+Staycations - Unlocks the Resort
+Environmentalism - Unlocks the Recycling Center
+
+#### Tier 2
+Not yet implemented: Industrial Sorting (+1 recycling processors per building level)
+
 ### Custom Items
 
 Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.  

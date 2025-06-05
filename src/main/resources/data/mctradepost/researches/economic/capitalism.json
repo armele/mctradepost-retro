@@ -11,15 +11,21 @@
     "instant": true,
     "requirements": [
         {
-            "type": "minecolonies:building",
+            "type": "mctradepost:building",
             "building": "marketplace",
             "level": 1
         }
     ],
-    "costs": [],
+    "costs": [
+        {
+            "count": 5,
+            "item": "minecraft:gold_ingot"        
+        }
+    ],
     "effects": [
         {
-            "mctradepost:effects/blockhutmarketplace2": 2
+            "id": "mctradepost:effects/blockhutmarketplace",
+            "level": 1
         }
     ],
     "icon": "mctradepost:blockhutmarketplace"

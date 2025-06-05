@@ -308,7 +308,6 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return REQUEST_CURE;
         }
 
-        // TODO: [Refactoring] Refactor as "orderIfNotOutstanding and move to DECIDE"
         final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
 

@@ -379,7 +379,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
             20, 0.5, 0.5, 0.5, 0.1);
 
-        double chanceOfChaChing = MCTPConfig.registerSoundChance.get();
+        int chanceOfChaChing = (int)(MCTPConfig.registerSoundChance.get() * 100);
         SoundUtils.playSoundWithChance(level, null, pos, MCTPModSoundEvents.CASH_REGISTER, SoundSource.NEUTRAL, chanceOfChaChing,0.8f, 1.0f);
     }
 

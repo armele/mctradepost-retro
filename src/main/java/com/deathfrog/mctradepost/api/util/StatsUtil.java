@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 
 // TODO: When this class becomes available in Minecolonies core, remove it from MCTP
-// TODO: Introduce an in-game command to clear out stats, to support testing.
+// TODO: [Enhancement] Introduce an in-game command to clear out stats, to support testing.
 
 /**
  * A variety of helper functions to facilitate statistics collection by buildings.

@@ -95,7 +95,7 @@ description='''${mod_description}'''
 [[dependencies.mctradepost]]
     modId="minecolonies"
     mandatory=true
-    versionRange="[1.1.972,)"
+    versionRange="[0.0.001,)"
     ordering="BEFORE"
     side="BOTH"
 

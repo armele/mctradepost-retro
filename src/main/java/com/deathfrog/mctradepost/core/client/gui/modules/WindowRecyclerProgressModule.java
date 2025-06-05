@@ -5,7 +5,6 @@ import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
-import com.ldtteam.blockui.Alignment;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Gradient;
 import com.ldtteam.blockui.controls.Image;
@@ -13,12 +12,9 @@ import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.ldtteam.blockui.views.Box;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
-import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class WindowRecyclerProgressModule extends AbstractModuleWindow
@@ -65,7 +61,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
      * @see {@link ScrollingList.DataProvider}
      */
     public void updateProcessors() {
-        // TODO: RECYCLING Add something to show % complete
+
         // TODO: RECYCLING [Enhancement] Add something to show how many processors are available, if not in use.
 
         processorDisplayList.setDataProvider(new ScrollingList.DataProvider()

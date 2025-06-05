@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.compat.jei;
 // File: JEIMCTPPlugin.java
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 

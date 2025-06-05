@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.StatsUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
@@ -24,7 +23,9 @@ import com.minecolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -126,7 +127,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         LOGGER.trace("Recycling Engineer: Deciding what to do.");
         if (recycling.getRecyclingProcessors().size() > 0) {
-            checkMachine(1);
+            checkMachine(1, maintenanceLocation);
         }
 
         // Check if any output boxes need to be unoaded.
@@ -413,7 +414,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      * 
      * @return true if at least one recycling job has finished processing, false otherwise.
      */
-    public boolean checkMachine(int speedBoost) {
+    public boolean checkMachine(int speedBoost, BlockPos pos) {
         BuildingRecycling recycling = (BuildingRecycling) building;
         boolean jobfinished = false;
 
@@ -421,10 +422,10 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             processor.processingTimer += speedBoost;
             if (processor.isFinished()) {
                 recycling.generateOutput(processor.processingItem);
-                // TODO: RECYCLING play a sound; send some particles
                 recycling.getRecyclingProcessors().remove(processor);
                 jobfinished = true;
             }
+            building.triggerEffect(pos, SoundEvents.GRAVEL_STEP, ParticleTypes.ELECTRIC_SPARK, 80);
         }
 
         return jobfinished;
@@ -531,11 +532,10 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         if (!walkToSafePos(maintenanceLocation)) {
             return RecyclingStates.MAINTAIN_EQUIPMENT;
         } else {
+            if (recycling.getRecyclingProcessors().size() > 0) {
+                checkMachine(boost, maintenanceLocation);
+            }
             maintenanceLocation = null;
-        }
-
-        if (recycling.getRecyclingProcessors().size() > 0) {
-            checkMachine(boost);
         }
 
         return DECIDE;

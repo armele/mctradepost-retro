@@ -1,15 +1,11 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
 
-import org.apache.commons.lang3.arch.Processor.Arch;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTPConfig;
@@ -17,22 +13,16 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
-import net.minecraft.core.Holder;
-
-import com.ldtteam.domumornamentum.DomumOrnamentum;
-import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
-import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlockComponent;
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
-import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipe;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
-import com.minecolonies.api.crafting.GenericRecipe;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
@@ -40,32 +30,30 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+import com.minecolonies.core.datalistener.ResearchListener;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.neoforged.neoforge.items.IItemHandler;
-import net.minecraft.core.HolderSet.Named;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.SimpleParticleType;
 
 public class BuildingRecycling extends AbstractBuilding {
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
@@ -352,7 +340,7 @@ public class BuildingRecycling extends AbstractBuilding {
             RecyclingProcessor processor = new RecyclingProcessor();
             processor.processingItem = itemToRecycle;
             processor.processingTimer = 0;
-            processor.processingTimerComplete = MCTPConfig.baseRecyclerTime.get();  // TODO: RECYCLING modify the timer by building level.
+            processor.processingTimerComplete = MCTPConfig.baseRecyclerTime.get();
             processor.output = recyclingOutput;
             recyclingProcessors.add(processor);
             
@@ -416,6 +404,31 @@ public class BuildingRecycling extends AbstractBuilding {
      */
     public boolean hasProcessingCapacity() {
         return getRecyclingProcessors().size() < getMachineCapacity();
+    }
+
+    /**
+     * Triggers a visual effect (enchant particles) and sound (cash register) at the given position. Used to simulate the AI selling an item from a display stand.
+     * @param pos the position of the effect
+     */
+    public void triggerEffect(BlockPos pos,SoundEvent sound, SimpleParticleType particleType, int chanceOfSound) {
+        if (pos == null) {
+            MCTradePostMod.LOGGER.info("No spot for effect.");
+            return;
+        }
+        ServerLevel level = (ServerLevel) getColony().getWorld();
+
+        MCTradePostMod.LOGGER.info("Effect at {}.", pos);
+
+        if (particleType != null) 
+        {
+            level.sendParticles(particleType,
+                pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
+                20, 0.5, 0.5, 0.5, 0.1);
+        }
+
+        if (sound != null) {
+            SoundUtils.playSoundWithChance(level, null, pos, sound, SoundSource.NEUTRAL,chanceOfSound,0.8f, 1.0f);
+        }
     }
 
 
@@ -549,7 +562,6 @@ public class BuildingRecycling extends AbstractBuilding {
 
         // TODO: One mode for zero wastage - returns all ingredients
         // TODO: One mode for wastage based on worker stat.
-        // TODO: Test Domum recipes; these need to be supported.
         
         ItemStack resultStack = recipe.getResultItem(getColony().getWorld().registryAccess());
         List<ItemStack> remainingItems  = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
@@ -629,6 +641,7 @@ public class BuildingRecycling extends AbstractBuilding {
 
             for (int slot = 0; slot < handler.getSlots(); slot++) {
                 remaining = handler.insertItem(slot, remaining, false);
+                triggerEffect(pos, SoundEvents.AMETHYST_BLOCK_CHIME, ParticleTypes.POOF, slot);
                 if (remaining.isEmpty()) return true;
             }
 
