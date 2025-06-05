@@ -3,16 +3,16 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:ice"
+      "item": "mctradepost:icecream"
     },
     {
-      "item": "minecraft:sweet_berries"
+      "item": "mctradepost:icecream"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "mctradepost:icecream"
     },
     {
-      "item": "minecraft:sugar"
+      "item": "minecolonies:large_milk_bottle"
     },
     {
       "item": "mctradepost:immersion_blender"
@@ -20,6 +20,6 @@
   ],
   "result": {
     "count": 1,
-    "id": "mctradepost:daiquiri"
+    "id": "mctradepost:vanilla_milkshake"
   }
 }

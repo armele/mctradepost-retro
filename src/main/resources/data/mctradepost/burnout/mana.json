@@ -1,0 +1,13 @@
+{
+  "remedy": [
+    {
+      "id": "mctradepost:mystic_tea",
+      "count": 1
+    },
+    {
+      "id": "minecraft:glow_berries",
+      "count": 1
+    }
+  ]
+  , "message": "My connection to the mystic world is tenuous at best!"
+}

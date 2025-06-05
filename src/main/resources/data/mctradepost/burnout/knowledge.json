@@ -1,0 +1,13 @@
+{
+  "remedy": [
+    {
+      "id": "mctradepost:cold_brew",
+      "count": 1
+    },
+    {
+      "id": "minecraft:map",
+      "count": 1
+    }
+  ]
+  , "message": "I don't know what's going on in the world."
+}

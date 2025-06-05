@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "W": { "item": "minecraft:oak_slab" },
+      "I": { "item": "minecraft:iron_ingot" },
+      "L": { "item": "minecraft:leather" },
+      "S": { "item": "minecraft:stick" },
+      "R": { "item": "minecraft:lightning_rod" }
+    },
+    "pattern": [
+      "WSW",
+      "LSL",
+      "IRI"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:immersion_blender"
+    }
+}
+  

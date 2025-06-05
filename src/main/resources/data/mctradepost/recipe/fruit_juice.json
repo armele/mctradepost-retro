@@ -3,13 +3,13 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:ice"
+      "item": "minecraft:apple"
     },
     {
       "item": "minecraft:sweet_berries"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "minecraft:ice"
     },
     {
       "item": "minecraft:sugar"
@@ -19,7 +19,7 @@
     }
   ],
   "result": {
-    "count": 1,
-    "id": "mctradepost:daiquiri"
+    "count": 3,
+    "id": "mctradepost:fruit_juice"
   }
 }

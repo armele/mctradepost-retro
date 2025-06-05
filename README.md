@@ -47,6 +47,8 @@ Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.
 Advanced Clipboard - Just like the regular clipboard but with a button that filters the outstanding needs down to only those expected to be fulfilled by a player.  
 Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut. The hut must be upgraded, first! Trade Coins will (eventually) be used as the basis for triggering most Trade Post mod features.  Coins can be used at a Wishing Well to trigger certain effects.
 
+A variety of items that support the Bartender's ability to serve at the resort.
+
 ### Custom Blocks
 
 Marketplace Hut Block - Block implementation of the Marketplace building.

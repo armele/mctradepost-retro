@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.Skill;
 
@@ -93,11 +94,13 @@ public class Vacationer {
      * @return a list of items which are the cure for the given skill.
      */
     public List<ItemStorage> getRemedyItems() {
-        // TODO: RESORT Establish a "cure" associated with each of the statistics we're going
-        // to be remedying, as determined by the skill to be repaired.
+        // TODO: RESORT [Test] Establish a "cure" associated with each of the statistics we're going to be remedying, as determined by the skill to be repaired.
+        List<ItemStorage> cureItems = BurnoutRemedyManager.getRemedy(burntSkill);
 
+        /*
         List<ItemStorage> cureItems = new ArrayList<>();
         cureItems.add(new ItemStorage(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), 1)));
+        */
 
         return cureItems;
     }
@@ -110,7 +113,6 @@ public class Vacationer {
      * @return a Component which is the name of the Burnout condition.
      */
     public Component name() {
-        // TODO: Vary by skill being repaired.
         return Component.translatable(BURNOUT_NAME);
     }
 

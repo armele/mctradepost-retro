@@ -3,23 +3,23 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:ice"
+      "item": "minecolonies:mint"
     },
     {
-      "item": "minecraft:sweet_berries"
+      "item": "minecraft:carrot"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "minecraft:beetroot_seeds"
     },
     {
-      "item": "minecraft:sugar"
+      "item": "minecolonies:peas"
     },
     {
       "item": "mctradepost:immersion_blender"
     }
   ],
   "result": {
-    "count": 1,
-    "id": "mctradepost:daiquiri"
+    "count": 3,
+    "id": "mctradepost:veggie_juice"
   }
 }

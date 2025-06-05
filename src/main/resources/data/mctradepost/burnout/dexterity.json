@@ -1,0 +1,13 @@
+{
+  "remedy": [
+    {
+      "id": "mctradepost:bar_nuts",
+      "count": 1
+    },
+    {
+      "id": "mctradepost:cold_brew",
+      "count": 1
+    }
+  ]
+  , "message": "I am a bit clumsy!"
+}

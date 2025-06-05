@@ -3,13 +3,16 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:ice"
+      "item": "minecraft:blaze_powder"
     },
     {
-      "item": "minecraft:sweet_berries"
+      "item": "minecolonies:mint"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "minecolonies:mint"
+    },
+    {
+      "item": "minecolonies:large_water_jug"
     },
     {
       "item": "minecraft:sugar"
@@ -19,7 +22,7 @@
     }
   ],
   "result": {
-    "count": 1,
-    "id": "mctradepost:daiquiri"
+    "count": 3,
+    "id": "mctradepost:mystic_tea"
   }
 }

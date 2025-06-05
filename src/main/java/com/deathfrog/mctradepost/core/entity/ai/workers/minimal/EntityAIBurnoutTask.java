@@ -156,10 +156,6 @@ public class EntityAIBurnoutTask  {
         return adverse;
     }
 
-    protected BlockPos getBestResortLocation() {
-        return citizenData.getColony().getBuildingManager().getBestBuilding(citizen, BuildingResort.class);
-    }
-
     /**
      * Gets the best resort for the citizen to visit.
      * 
@@ -173,11 +169,22 @@ public class EntityAIBurnoutTask  {
             resort = vacationTracker.getResort();
         } else {
             // Otherwise, find the closest.
-            BlockPos bestResortLocation = getBestResortLocation();
+            BlockPos bestResortLocation = citizenData.getColony().getBuildingManager().getBestBuilding(citizen, BuildingResort.class);
             resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation); 
         }
         
         return (BuildingResort) resort;
+    }
+
+
+    /**
+     * Retrieves the location of the best resort for the citizen to visit.
+     *
+     * @return the position of the best resort, or null if no suitable resort is found.
+     */
+    protected BlockPos getBestResortPosition() {
+        BuildingResort resort = getBestResort();
+        return resort == null ? null : resort.getPosition();
     }
 
     /**
@@ -357,6 +364,8 @@ public class EntityAIBurnoutTask  {
               ChatPriority.BLOCKING));
         }
 
+        vacationTracker.setResort(resort);
+
         return VacationState.GO_TO_RESORT;
     }
 
@@ -367,7 +376,7 @@ public class EntityAIBurnoutTask  {
      */
     private IState goToResort()
     {   
-        BlockPos bestResortLocation = getBestResortLocation();
+        BlockPos bestResortLocation = getBestResortPosition();
 
         if (bestResortLocation == null)
         {
@@ -390,14 +399,7 @@ public class EntityAIBurnoutTask  {
      */
     private IState waitForCure()
     {
-        final IColony colony = citizenData.getColony();
-        BlockPos bestResortLocation = getBestResortLocation();
-
-        if (bestResortLocation == null)
-        {
-            return VacationState.SEARCH_RESORT;
-        }
-
+        // TODO: RESORT Make this a chat interaction prompt for the player - one that tells them what they need to do.
         LOGGER.trace("Vacationer {} is waiting for their remedy.", citizen.getName());
 
         final IState state = checkForCure();
@@ -411,7 +413,15 @@ public class EntityAIBurnoutTask  {
             return CitizenAIState.IDLE;
         }
 
-        if (!citizen.getCitizenSleepHandler().isAsleep() && BlockPosUtil.getDistance2D(bestResortLocation, citizen.blockPosition()) > MIN_DIST_TO_RESORT)
+        BlockPos bestResortPosition = getBestResortPosition();
+
+        if (bestResortPosition == null)
+        {
+            return VacationState.SEARCH_RESORT;
+        }
+
+        // TODO: RESORT - if it is night time let them go home (set to IDLE)
+        if (!citizen.getCitizenSleepHandler().isAsleep() && BlockPosUtil.getDistance2D(bestResortPosition, citizen.blockPosition()) > MIN_DIST_TO_RESORT)
         {
             return VacationState.FIND_EMPTY_STATION;
         }
@@ -437,7 +447,7 @@ public class EntityAIBurnoutTask  {
             return CitizenAIState.IDLE;
         }
 
-        BlockPos bestResortLocation = getBestResortLocation();
+        BlockPos bestResortLocation = getBestResortPosition();
 
         if (bestResortLocation == null) {
             // Perhaps the resort was destroyed before healing could occur.
@@ -528,7 +538,7 @@ public class EntityAIBurnoutTask  {
      */
     private IState findEmptyStation()
     {
-        BlockPos bestResortLocation = getBestResortLocation();
+        BlockPos bestResortLocation = getBestResortPosition();
 
         if (bestResortLocation != null)
         {

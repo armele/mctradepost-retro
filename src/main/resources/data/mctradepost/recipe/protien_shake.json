@@ -3,23 +3,23 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:ice"
+      "item": "minecraft:beef"
     },
     {
-      "item": "minecraft:sweet_berries"
+      "item": "minecraft:porkchop"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "minecraft:mutton"
     },
     {
-      "item": "minecraft:sugar"
+      "item": "minecraft:blaze_powder"
     },
     {
       "item": "mctradepost:immersion_blender"
     }
   ],
   "result": {
-    "count": 1,
-    "id": "mctradepost:daiquiri"
+    "count": 3,
+    "id": "mctradepost:protien_shake"
   }
 }

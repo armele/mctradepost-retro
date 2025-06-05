@@ -17,7 +17,7 @@ public class BuildingRecyclerProgressModule extends AbstractBuildingModule imple
     @Override
     public void serializeToView(final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
-        MCTradePostMod.LOGGER.info("Serialzing BuildingRecyclerProgressModule to view.");
+        // MCTradePostMod.LOGGER.info("Serialzing BuildingRecyclerProgressModule to view.");
 
         super.serializeToView(buf, fullSync);
         BuildingRecycling recyclingCenter = (BuildingRecycling) building;

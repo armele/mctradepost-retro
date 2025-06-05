@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost;
 
+import java.io.IOException;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.items.MCTPCraftingSetup;
@@ -14,13 +16,18 @@ import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
+import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 
@@ -85,7 +92,20 @@ public class MCTradePostMod
     public static final Logger LOGGER = LogUtils.getLogger();
 
     // Create a Gson instance
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static final Gson GSON = new GsonBuilder()
+        .registerTypeAdapter(ResourceLocation.class, new TypeAdapter<ResourceLocation>() {
+            @Override
+            public void write(JsonWriter out, ResourceLocation value) throws IOException {
+                out.value(value.toString());
+            }
+
+            @Override
+            public ResourceLocation read(JsonReader in) throws IOException {
+                return ResourceLocation.parse(in.nextString());
+            }
+        })
+        .setPrettyPrinting()
+        .create();
 
     // Create a Deferred Register to hold Blocks which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
@@ -106,6 +126,34 @@ public class MCTradePostMod
 
     public static final DeferredItem<ItemFood> DAIQUIRI = ITEMS.register("daiquiri",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.GLASS_BOTTLE).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> VEGGIE_JUICE = ITEMS.register("veggie_juice",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> FRUIT_JUICE = ITEMS.register("fruit_juice",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> PROTIEN_SHAKE = ITEMS.register("protien_shake",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+    
+    public static final DeferredItem<ItemFood> BAR_NUTS = ITEMS.register("bar_nuts",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.BOWL).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> COLD_BREW = ITEMS.register("cold_brew",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.GLASS_BOTTLE).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> MYSTIC_TEA = ITEMS.register("mystic_tea",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> VANILLA_MILKSHAKE = ITEMS.register("vanilla_milkshake",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+
+    public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
+        () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
+        () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
     public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE =
             ENTITIES.register("coin_entity", () ->
@@ -156,7 +204,7 @@ public class MCTradePostMod
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
         NeoForge.EVENT_BUS.register(RitualReloadListener.class);
-        
+        NeoForge.EVENT_BUS.register(BurnoutRemedyManager.class);
 
         // Add a listener for the common setup event.
         modEventBus.addListener(this::onCommonSetup);
@@ -337,6 +385,15 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
+                    event.accept(MCTradePostMod.IMMERSION_BLENDER.get());
+                    event.accept(MCTradePostMod.VEGGIE_JUICE.get());
+                    event.accept(MCTradePostMod.FRUIT_JUICE.get());
+                    event.accept(MCTradePostMod.PROTIEN_SHAKE.get());
+                    event.accept(MCTradePostMod.VANILLA_MILKSHAKE.get());
+                    event.accept(MCTradePostMod.BAR_NUTS.get());
+                    event.accept(MCTradePostMod.COLD_BREW.get());
+                    event.accept(MCTradePostMod.MYSTIC_TEA.get());
+                    event.accept(MCTradePostMod.NAPKIN.get());
                 }
             });
 

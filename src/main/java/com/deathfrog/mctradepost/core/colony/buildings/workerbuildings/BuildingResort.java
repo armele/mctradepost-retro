@@ -307,7 +307,6 @@ public class BuildingResort extends AbstractBuilding {
         @Override
         public boolean isRecipeCompatible(@NotNull final IGenericRecipe recipe)
         {
-            // TODO: RESORT - set up bartender recipes as tags
             if (!super.isRecipeCompatible(recipe)) return false;
 
             final Optional<Boolean> isRecipeAllowed = CraftingUtils.isRecipeCompatibleBasedOnTags(recipe, MCTPModJobs.BARTENDER_TAG);

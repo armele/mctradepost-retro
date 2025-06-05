@@ -64,7 +64,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
      * @param buf The buffer containing the serialized state to deserialize.
      */
     public void deserialize(@NotNull RegistryFriendlyByteBuf buf) {
-        MCTradePostMod.LOGGER.info("Deserializing RecyclerProgressView.");
+        // MCTradePostMod.LOGGER.info("Deserializing RecyclerProgressView.");
         
         recyclingProcessors.clear();
 

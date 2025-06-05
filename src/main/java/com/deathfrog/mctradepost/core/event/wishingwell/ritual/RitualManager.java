@@ -25,7 +25,7 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
     }
 
     @Override
-    protected void apply(@Nonnull Map<ResourceLocation, JsonElement> objectMap,@Nonnull  ResourceManager resourceManager,@Nonnull  ProfilerFiller profiler) {
+    protected void apply(@Nonnull Map<ResourceLocation, JsonElement> objectMap, @Nonnull  ResourceManager resourceManager, @Nonnull  ProfilerFiller profiler) {
         rituals.clear();
 
         objectMap.forEach((id, json) -> {
