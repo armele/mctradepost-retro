@@ -21,6 +21,7 @@ import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.client.Minecraft;
@@ -32,9 +33,11 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -97,6 +100,12 @@ public class MCTradePostMod
     
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
+
+    public static final DeferredItem<ItemFood> ICECREAM = ITEMS.register("icecream",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(2).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> DAIQUIRI = ITEMS.register("daiquiri",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.GLASS_BOTTLE).saturationModifier(0.6F).build()), 1));
 
     public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE =
             ENTITIES.register("coin_entity", () ->
@@ -326,6 +335,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutResort.get());
                     event.accept(MCTradePostMod.blockHutRecycling.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
+                    event.accept(MCTradePostMod.ICECREAM.get());
+                    event.accept(MCTradePostMod.DAIQUIRI.get());
                 }
             });
 

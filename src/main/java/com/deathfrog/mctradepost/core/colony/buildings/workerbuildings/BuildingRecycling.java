@@ -30,8 +30,6 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
-import com.minecolonies.core.datalistener.ResearchListener;
-
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -551,11 +549,11 @@ public class BuildingRecycling extends AbstractBuilding {
         List<RecipeHolder<?>> recipes = ItemValueRegistry.getRecipeListForItem(recipeManager, inputStack.getItem(), this.getColony().getWorld());
 
         if (recipes == null || recipes.isEmpty()) {
-            MCTradePostMod.LOGGER.info("No recipes found for item {}.", inputStack);
+            // MCTradePostMod.LOGGER.info("No recipes found for item {}.", inputStack);
             return null;
         } 
         
-        MCTradePostMod.LOGGER.info("Found {} recipes for item {}.", recipes.size(), inputStack);
+        MCTradePostMod.LOGGER.trace("Found {} recipes for item {}.", recipes.size(), inputStack);
         Recipe<?> recipe = prioritizeRecipeList(recipes);
 
         Object2IntOpenHashMap<ItemStorage> outputItems = new Object2IntOpenHashMap<>();
@@ -567,7 +565,7 @@ public class BuildingRecycling extends AbstractBuilding {
         List<ItemStack> remainingItems  = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
         List<Ingredient> ingredients = determineIngredients(recipe, inputStack);
 
-        MCTradePostMod.LOGGER.info("Recipe has {} ingredients and {} remaining items.", recipe.getIngredients().size(), remainingItems.size());
+        // MCTradePostMod.LOGGER.trace("Recipe has {} ingredients and {} remaining items.", recipe.getIngredients().size(), remainingItems.size());
 
         for (Ingredient ingredient : ingredients) {
 
@@ -577,7 +575,7 @@ public class BuildingRecycling extends AbstractBuilding {
                 ItemStack[] ingredientItems = ingredient.getItems();
                 boolean exclude = false;
 
-                MCTradePostMod.LOGGER.info("Evaluating output list for input item {}, Ingredient List {}, Output List {}.", inputStack, ingredientItems, resultStack);
+                // MCTradePostMod.LOGGER.info("Evaluating output list for input item {}, Ingredient List {}, Output List {}.", inputStack, ingredientItems, resultStack);
                 ItemStack itemStack = ingredientItems[0]; // This will return all possible variations for a given slot. We want only the first.
 
                 for (ItemStack remainingItem : remainingItems) {

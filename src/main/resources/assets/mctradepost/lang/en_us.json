@@ -1,6 +1,8 @@
 {
     "itemGroup:mctradepost" : "MC Trade Post",
     "item.mctradepost.advanced_clipboard": "Advanced Clipboard",
+    "item.mctradepost.icecream": "Ice Cream",
+    "item.mctradepost.daiquiri": "Daiquiri",
     "block.mctradepost.blockhutresort": "Resort",
     "block.mctradepost.blockhutmarketplace": "Marketplace",
     "block.mctradepost.blockhutrecycling": "Recycling Center",
@@ -15,6 +17,7 @@
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
     "mctradepost:shopkeeper.skills.desc": "Helps make sales faster.",
     "com.mctradepost.job.bartender": "Bartender",
+    "com.minecolonies.coremod.jei.bartender" : "Creates refreshing treats.",
     "com.mctradepost.gui.visiblestatus.bartender": "Mixing Drinks",
     "mctradepost:bartender.job.desc": "A friend to all, the maker of relaxing concoctions.",
     "com.mctradepost.job.guestservices": "Guest Services",

@@ -10,7 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -22,9 +22,6 @@ import com.minecolonies.core.tileentities.TileEntityRack;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
@@ -99,7 +96,7 @@ public class MCTPInventoryUtils {
      */
     @NotNull
     public static List<ItemStack> calculateSecondaryOutputs(@NotNull final Recipe<?> recipe,
-                                                             @Nullable final Level world)
+                                                             @Nonnull final Level world)
     {
         if (recipe instanceof final CraftingRecipe craftingRecipe)
         {
@@ -107,13 +104,13 @@ public class MCTPInventoryUtils {
             final CraftingContainer inv = new TransientCraftingContainer(new AbstractContainerMenu(MenuType.CRAFTING, 0)
             {
                 @Override
-                public @NotNull ItemStack quickMoveStack(final @NotNull Player player, final int slot)
+                public @Nonnull ItemStack quickMoveStack(final @Nonnull Player player, final int slot)
                 {
                     return ItemStack.EMPTY;
                 }
 
                 @Override
-                public boolean stillValid(@NotNull final Player playerIn)
+                public boolean stillValid(@Nonnull final Player playerIn)
                 {
                     return false;
                 }
