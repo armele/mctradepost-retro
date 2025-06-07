@@ -147,3 +147,5 @@ Recycler Building Capability: Trash Disposal
 Community Documentation: [Neoforge documentation](https://docs.neoforged.net/)  
 NeoForged Discord: [Neoforge discord](https://discord.neoforged.net/)  
 Minecolonies: [MineColonies Home](https://minecolonies.com/)  
+
+## Known Defects

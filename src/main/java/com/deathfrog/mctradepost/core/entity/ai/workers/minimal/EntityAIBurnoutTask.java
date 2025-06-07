@@ -279,7 +279,8 @@ public class EntityAIBurnoutTask  {
                 , citizen.getName(), skillToHeal, roll, burnoutChance);
 
             citizen.getCitizenData().setVisibleStatus(VACATION);
-
+            adSaturationLevel = 0;
+            
             return true;
         } else {
             LOGGER.trace("Someone is happy under their capitalist yoke! {}. (rolled {} with a chance of {})"

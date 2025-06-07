@@ -119,7 +119,7 @@ public class WishingWellHandler {
                 state.coins = coinItems.stream().mapToInt(e -> e.getItem().getCount()).sum();
                 state.lastUsed = System.currentTimeMillis();
 
-                RitualResult result = triggerEffect(level, state, center, companionItem);
+                RitualResult result = triggerRitual(level, state, center, companionItem);
 
                 switch (result) {
                     case COMPLETED:
@@ -437,7 +437,7 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was triggered, false otherwise
      */
-    private static RitualResult triggerEffect(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
+    private static RitualResult triggerRitual(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
         MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} coins", pos, companionItem, state.coins);    
         Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
 

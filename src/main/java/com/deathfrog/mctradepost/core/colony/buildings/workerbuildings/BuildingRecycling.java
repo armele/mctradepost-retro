@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
+import com.ldtteam.structurize.items.ModItems;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
@@ -44,6 +46,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -410,12 +413,11 @@ public class BuildingRecycling extends AbstractBuilding {
      */
     public void triggerEffect(BlockPos pos,SoundEvent sound, SimpleParticleType particleType, int chanceOfSound) {
         if (pos == null) {
-            MCTradePostMod.LOGGER.info("No spot for effect.");
             return;
         }
         ServerLevel level = (ServerLevel) getColony().getWorld();
 
-        MCTradePostMod.LOGGER.info("Effect at {}.", pos);
+        // MCTradePostMod.LOGGER.info("Effect {} at {}.", particleType, pos);
 
         if (particleType != null) 
         {
@@ -565,7 +567,7 @@ public class BuildingRecycling extends AbstractBuilding {
         List<ItemStack> remainingItems  = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
         List<Ingredient> ingredients = determineIngredients(recipe, inputStack);
 
-        // MCTradePostMod.LOGGER.trace("Recipe has {} ingredients and {} remaining items.", recipe.getIngredients().size(), remainingItems.size());
+        // MCTradePostMod.LOGGER.info("Recipe for {} has {} ingredients and {} remaining items.", inputStack, recipe.getIngredients().size(), remainingItems.size());
 
         for (Ingredient ingredient : ingredients) {
 
@@ -575,19 +577,28 @@ public class BuildingRecycling extends AbstractBuilding {
                 ItemStack[] ingredientItems = ingredient.getItems();
                 boolean exclude = false;
 
-                // MCTradePostMod.LOGGER.info("Evaluating output list for input item {}, Ingredient List {}, Output List {}.", inputStack, ingredientItems, resultStack);
                 ItemStack itemStack = ingredientItems[0]; // This will return all possible variations for a given slot. We want only the first.
 
+                // MCTradePostMod.LOGGER.info("Checking ingredient {} for extraction.", itemStack);
+
                 for (ItemStack remainingItem : remainingItems) {
+                    // MCTradePostMod.LOGGER.info("Comparing {} to secondary output {}.", itemStack, remainingItem);
+
                     if (ItemStack.isSameItem(itemStack, remainingItem)) {
                         // Skip ingredients which are also part of the output (not consumed by the recipe).
+                        // MCTradePostMod.LOGGER.info("The {} is the same as the {}.", itemStack, remainingItem);
                         exclude = true;
+                    } else {
+                        // MCTradePostMod.LOGGER.info("The {} is not the same as the {}.", itemStack, remainingItem);
                     }
                 }
 
                 if (!itemStack.isEmpty() && itemStack.getCount() > 0  && !exclude) {
+                    // MCTradePostMod.LOGGER.info("Including {} in the output.", itemStack);
                     ItemStack outputCopy = itemStack.copy();
                     outputItems.addTo(new ItemStorage(outputCopy), outputCopy.getCount()); 
+                } else {
+                    // MCTradePostMod.LOGGER.info("Excluding {} from the output.", itemStack);
                 }
             }
         }

@@ -127,7 +127,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         LOGGER.trace("Recycling Engineer: Deciding what to do.");
         if (recycling.getRecyclingProcessors().size() > 0) {
-            checkMachine(1, maintenanceLocation);
+            checkMachine(1, null);
         }
 
         // Check if any output boxes need to be unoaded.
@@ -169,7 +169,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
     protected boolean hasInput() {
         BuildingRecycling recycling = (BuildingRecycling) building;
 
-        // Check if the machine needs to be started (items exist in input boxes and we have processing capacity).
+        // Check if the machine needs to be started (items exist in input boxes).
         for (BlockPos pos : recycling.identifyInputPositions()) {
             // Identify a chest at position pos.
             // Try to get an item handler from a tile entity at this position
@@ -364,41 +364,30 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         IItemHandlerCapProvider chestHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(pos));
 
         if (chestHandlerOpt.getItemHandlerCap() != null) {
-            if (recycling.hasProcessingCapacity()) {
-                LOGGER.info("Room for more - load it up!");
+            for (int i = 0; i < chestHandlerOpt.getItemHandlerCap().getSlots(); i++) {
+                ItemStack stackToRecycle = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i).copy();
 
-                for (int i = 0; i < chestHandlerOpt.getItemHandlerCap().getSlots(); i++) {
-                    ItemStack stackToRecycle = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i).copy();
+                if (stackToRecycle == null || stackToRecycle.isEmpty()) {
+                    continue;
+                }
 
-                    if (stackToRecycle == null || stackToRecycle.isEmpty()) {
-                        continue;
-                    }
+                if ((stackToRecycle.getCount() > 0) && recycling.hasProcessingCapacity()) {
+                    LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId());
+                    final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
 
-                    if (stackToRecycle.getCount() > 0) {
-                        LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId());
-                        final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
-
-                        if (recycling.addRecyclingProcess(removedStack.copy())) {
-                            LOGGER.warn("Recording recycling stats for: {}, count {}", stackToRecycle.getDescriptionId(), stackToRecycle.getCount());
-                            worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-                            StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle, stackToRecycle.getCount());
-                            worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(RECYCLING_STAT, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
-                        } else {
-                            LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId());
-                            if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle)) {
-                                InventoryUtils.spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
-                                return INVENTORY_FULL;
-                            }
+                    if (recycling.addRecyclingProcess(removedStack.copy())) {
+                        LOGGER.warn("Recording recycling stats for: {}, count {}", stackToRecycle.getDescriptionId(), stackToRecycle.getCount());
+                        worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+                        StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle, stackToRecycle.getCount());
+                        worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(RECYCLING_STAT, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
+                    } else {
+                        LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId());
+                        if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle)) {
+                            InventoryUtils.spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
+                            return INVENTORY_FULL;
                         }
                     }
                 }
-                
-                return DECIDE;
-
-            } else {
-                LOGGER.info("Machine full.");
-
-                return DECIDE;
             }
         } else {
             LOGGER.warn("No input location found on the recycling center...");
