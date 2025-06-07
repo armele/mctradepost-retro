@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.slf4j.Logger;
 
@@ -83,12 +84,6 @@ public class EntityAIBurnoutTask  {
 
     /* How much advertizing has this citizen seen? */
     protected int adSaturationLevel = 0;
-
-    /**
-     * Get a random between 0 and 1.
-     */
-    private static final Random rand = new Random();
-
 
     private Skill skillToHeal = null;
 
@@ -204,7 +199,6 @@ public class EntityAIBurnoutTask  {
         }
 
         double statmultiplier = VACATION_SUSCEPTIBILITY_THRESHOLD / citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
-        statmultiplier = Math.max(statmultiplier, 1);
 
         int adPower = (int) Math.max(resort.getBuildingLevel() * statmultiplier, 1);
 
@@ -273,7 +267,7 @@ public class EntityAIBurnoutTask  {
         burnoutChance = Math.min(MAX_VACATION_CHANCE, burnoutChance);
 
         // The higher the burnout chance the more likely the citizen will burn out.
-        double roll = rand.nextDouble();
+        double roll = ThreadLocalRandom.current().nextDouble();
         if (roll <= burnoutChance)
         {
             BuildingResort resort = getBestResort();

@@ -27,7 +27,7 @@ public class RitualDefinitionHelper  {
      * Returns the EntityType that is targeted by this ritual, or null if the target is unknown.
      * @return The EntityType targeted by this ritual, or null if the target is unknown.
      */
-    public EntityType<?> getEntityType() {
+    public EntityType<?> getTargetAsEntityType() {
        ResourceLocation entityTypeId = null;
 
         try {
@@ -53,9 +53,13 @@ public class RitualDefinitionHelper  {
         String text = "Not Defined";
 
         if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
-            EntityType<?> entityType = getEntityType();
+            EntityType<?> entityType = getTargetAsEntityType();
 
             text = "Slays " + entityType.toShortString().replace("_", " ") + "s within a " + this.ritualDefinition.radius() + " block radius.";
+        } else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_RAID_END)) {
+            text = "Defeats current raid within the colony.";
+        } else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) {
+            text = "Sets the weather to " + this.ritualDefinition.target() + " for the rest of the day.";
         }
 
         return text;

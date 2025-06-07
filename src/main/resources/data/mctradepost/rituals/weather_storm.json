@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:blaze_rod",
+  "effect_type": "weather",
+  "target" : "storm",
+  "radius": -1,
+  "coin_cost": 1
+}

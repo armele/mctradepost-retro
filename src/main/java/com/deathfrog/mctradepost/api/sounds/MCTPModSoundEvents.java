@@ -50,7 +50,7 @@ public final class MCTPModSoundEvents
                 final List<Tuple<SoundEvent, SoundEvent>> individualSounds = new ArrayList<>();
                 for (int i = 1; i <= 4; i++)
                 {
-                    MCTradePostMod.LOGGER.info("Registering sound event: " + ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".genderplaceholder." + event.getId());
+                    // MCTradePostMod.LOGGER.info("Registering sound event: " + ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".genderplaceholder." + event.getId());
 
                     final SoundEvent maleSoundEvent =
                       MCTPModSoundEvents.getSoundID(ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".male" + i + "." + event.getId());

@@ -9,6 +9,11 @@ import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
+import com.minecolonies.api.colony.managers.interfaces.IRaiderManager;
+import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
+import com.minecolonies.api.util.DamageSourceKeys;
+import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -114,13 +119,28 @@ public class WishingWellHandler {
                 state.coins = coinItems.stream().mapToInt(e -> e.getItem().getCount()).sum();
                 state.lastUsed = System.currentTimeMillis();
 
-                if (triggerEffect(level, state, center, companionItem)) {
-                    coinItems.stream().forEach(e -> e.discard());
-                    companion.discard();
-                    rituals.remove(pos);                    
-                }
+                RitualResult result = triggerEffect(level, state, center, companionItem);
 
-                MCTradePostMod.LOGGER.info("Wishing well activated at {} with companion item {}", center, companionItem);
+                switch (result) {
+                    case COMPLETED:
+                    case FAILED:
+                        MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionItem);
+                        coinItems.stream().forEach(e -> e.discard());
+                        companion.discard();
+                        rituals.remove(pos);  
+                        break;
+
+                    case UNRECOGNIZED:
+                        // An unrecognized companion item has been used, or something else caused the ritual to fail.
+                        // Discard the companion item, but leave the ritual active for a valid companion item to be added.
+                        MCTradePostMod.LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionItem);
+                        companion.discard();  
+                        break;
+
+                    case NEEDS_COINS:
+                        // We're just waiting for more coins to be added...
+                        break;
+                }
             }
         }
     }
@@ -267,10 +287,10 @@ public class WishingWellHandler {
      */
     private static boolean processRitualSlay(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {    
 
-        EntityType<?> entityType = ritual.getEntityType();
-        // MCTradePostMod.LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
+        EntityType<?> entityType = ritual.getTargetAsEntityType();
 
         if (entityType == null) {
+            MCTradePostMod.LOGGER.info("No entity type found for {} during Slay ritual.", ritual.target());
             return false;
         }
 
@@ -294,7 +314,115 @@ public class WishingWellHandler {
         return true;
     }
 
+    /**
+     * Processes a weather ritual at the specified BlockPos within the ServerLevel.
+     * Based on the ritual definition, it sets the weather to clear, rain, or storm
+     * for the remainder of the day. If the target weather type is unknown, the ritual
+     * is ignored.
+     *
+     * @param level the ServerLevel where the ritual is taking place
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the target weather type
+     * 
+     * @return true if the ritual was successfully triggered, false otherwise
+     */
+    private static boolean processRitualWeather(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {    
 
+        int restOfDay = 24000 - (int) (level.getDayTime() % 24000);
+        int clearTime = 0;
+        int weatherTime = 0;
+        boolean isRaining = false;
+        boolean isThundering = false;
+
+
+        String weather = ritual.target();
+        // MCTradePostMod.LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
+
+        if (weather == null) {
+            MCTradePostMod.LOGGER.info("No weather target provided during Weather ritual.");
+            return false;
+        } else if (weather.equals("clear")) {
+            clearTime = restOfDay;
+            weatherTime = 0;
+            isRaining = false;
+            isThundering = false;
+        } else if (weather.equals("rain")) {
+            clearTime = 0;
+            weatherTime = restOfDay;
+            isRaining = true;
+            isThundering = false;
+        } else if (weather.equals("storm")) {
+            clearTime = 0;
+            weatherTime = restOfDay;
+            isRaining = true;
+            isThundering = true;
+        } else {
+            MCTradePostMod.LOGGER.info("Unknown weather ritual of {} ignored at {} ", weather, pos);
+            return false;
+        }
+        
+        level.setWeatherParameters(clearTime, weatherTime, isRaining, isThundering);
+
+        MCTradePostMod.LOGGER.info("Weather ritual of {} completed at {} ", weather, pos);
+        showRitualEffect(level, pos);
+
+        return true;
+    }
+
+    /**
+     * Processes a raid end ritual at the specified BlockPos within the ServerLevel.
+     * This ritual targets all entities involved in an ongoing raid within the colony
+     * located at the given position. The targeted entities are teleported to a random location
+     * near the ritual site and subsequently slain.
+     *
+     * @param level the ServerLevel where the ritual is taking place
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the effect details
+     * 
+     * @return true if the ritual was successfully triggered, false otherwise
+     */
+    private static boolean processRitualRaidEnd(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
+        if (colony == null) {
+            MCTradePostMod.LOGGER.warn("No colony found at {} where this ritual was attempted: {}", pos, ritual.describe());
+            return false;
+        }
+
+        List<? extends Entity> targets = null;
+
+        IRaiderManager raidManager = colony.getRaiderManager();
+        for (IColonyEvent event : colony.getEventManager().getEvents().values()) {
+            if (event instanceof HordeRaidEvent) {
+                targets = ((HordeRaidEvent) event).getEntities();
+                break;
+            }
+        }
+
+        if (targets == null) {
+            MCTradePostMod.LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
+            return false;
+        }
+
+        for (Entity entity : targets) {
+            if (entity instanceof AbstractEntityMinecoloniesRaider) {
+                // Generate random offset within nearby blocks in X and Z
+                int offsetX = level.random.nextInt(16) - 8;
+                int offsetZ = level.random.nextInt(16) - 8;
+                BlockPos targetPos = pos.offset(offsetX, 3, offsetZ);
+
+                // Teleport them near the ritual location
+                entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
+
+                // Slay them
+                entity.discard();
+            }
+        }
+
+        MCTradePostMod.LOGGER.info("Raid ending ritual completed at {}, slaying {}", pos, targets.size());
+        showRitualEffect(level, pos);
+
+        return true;
+    }
 
     /**
      * Triggers an effect based on the companion item thrown into the wishing well.
@@ -309,7 +437,7 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was triggered, false otherwise
      */
-    private static boolean triggerEffect(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
+    private static RitualResult triggerEffect(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
         MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} coins", pos, companionItem, state.coins);    
         Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
 
@@ -319,24 +447,53 @@ public class WishingWellHandler {
             if (effectCompanion.equals(companionItem)) {
                 /* 
                  * To add a new ritual *type*, it needs an entry here (with associated handler function) 
-                 * and in the RitualDefintionHelper class (to set up the JEI with the description)
+                 * and in RitualDefintionHelper.describe() to set up the JEI with the description
                  */
                 if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
                     if (ritual.requiredCoins() > state.coins) {
-                        return false;
+                        return RitualResult.NEEDS_COINS;
                     }
 
-                    return processRitualSlay(level, pos, ritual);
+                    if (processRitualSlay(level, pos, ritual)) {
+                        return RitualResult.COMPLETED;
+                    } else {
+                        return RitualResult.FAILED;
+                    }
                 }
-            }
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) {
+                    if (ritual.requiredCoins() > state.coins) {
+                        return RitualResult.NEEDS_COINS;
+                    }
 
-            // TODO: Implement other rituals (Raid Termination, Weather)
-            // TODO: After all known ritual types processed, if the companion item is not recognized, log an unknown ritual item message and dispose of the extra item somehow.
+                    if (processRitualWeather(level, pos, ritual) ) {
+                        return RitualResult.COMPLETED;
+                    } else {
+                        return RitualResult.FAILED;
+                    }
+                }
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_RAID_END)) {
+                    if (ritual.requiredCoins() > state.coins) {
+                        return RitualResult.NEEDS_COINS;
+                    }
+
+                    if (processRitualRaidEnd(level, pos, ritual) ) {
+                        return RitualResult.COMPLETED;
+                    } else {
+                        return RitualResult.FAILED;
+                    }
+                }                
+            }
         }
 
-        return false;
+        return RitualResult.UNRECOGNIZED;
     }
 
+    public enum RitualResult {
+        UNRECOGNIZED,
+        NEEDS_COINS,
+        FAILED,
+        COMPLETED
+    }
     static public class RitualState {
         public int coins = 0;
         public long lastUsed = 0L;

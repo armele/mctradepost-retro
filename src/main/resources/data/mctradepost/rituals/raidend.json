@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:diamond_sword",
+  "effect_type": "raidend",
+  "target" : "",
+  "radius": -1,
+  "coin_cost": 5
+}

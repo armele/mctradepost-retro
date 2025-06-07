@@ -4,11 +4,11 @@
 
 This mod extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function. MineColonies base functionality is not altered. The team supporting MineColonies has created a great mod that has provided hours of fun, and inspired these small additions.
 
-MC Trade Post introduces an economic system which allows the selling of excess items for Trade Coins (‡). These coins can be used for a variety of purposes, such as bribing raiders to leave the town alone, unlocking vacations and resorts at which your colonists can improve stats and get happier, and other additional upgrades and features.
+MC Trade Post introduces an economic system which allows the selling of excess items for Trade Coins (‡). These coins will be used for a variety of purposes, such as bribing raiders to leave the town alone, unlocking vacations and resorts at which your colonists can improve stats and get happier, and other additional upgrades and features that will be added as the mod progresses.
 
 ### In-Game How-To
 
-Craft a Marketplace hut. Using the build tool, choose the "Economics" style from the MC Trade Post mod, and contruct the Marketplace as you would any other hut. Interactions for the MC Trade Post mod are handled primarily in the Marketplace interface on that hut block.  
+Consult the "Economics" research line in the University for some tips on where to get started with the features in this mod.
 
 ### Buildings
 #### Marketplace
@@ -61,10 +61,11 @@ Recycling Hut Block - Block implementation of the Recycling Center.
 This mod supports the Neoforce configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
 
 ### Making Wishes
-When you throw a coin into a wishing well with another object, your wish might come true!
-Currently implemented or in-progress:
-- Kill all zombies nearby (1 Coin + Zombie Flesh)
-- Terminate an in progress raid (1 Coin + 1 Iron Sword) NOT YET FULLY IMPLEMENTED
+When you throw a Trade Coins (‡) into a wishing well with another object, your wish might come true!
+
+Look in the JEI for ritual recipes the Trade Coin can be used for.
+
+Ritual recipes are configured through a datapack entry.
 
 ### Citizen Behaviors
 Citizens who have been worked too hard (low Adverse skill) will occassionally go on vacation, where their Adverse skill is repaired, and some income for the colony is generated.
@@ -76,11 +77,11 @@ Visitors will go shopping at the marketplace, once built.
 
 Download the appropriate mctradepost-x.y.z.jar file from Github at the root project directory.  
 Copy that Jar file into your mods directory.  
-Note that MineColonies and its dependencies must be present to work.  
+Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
 
-mctradepost-0.10.001 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
+mctradepost-0.10.002 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
 
 ## Style Packs
 ### Economic
@@ -107,7 +108,7 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 
 ## Current Status
 
-This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
+This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
 Logic: Enable building level locking and implement for new buildings. [Testing]
 
@@ -131,7 +132,6 @@ Pets: scarecrow effect
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
 Building Effect: Autominting + Delivery to warehouse of coins?
-Wishing Well Rituals: Weather changing
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards

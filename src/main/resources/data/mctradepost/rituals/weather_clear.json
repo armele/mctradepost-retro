@@ -1,0 +1,7 @@
+{
+  "companion_item": "minecraft:sunflower",
+  "effect_type": "weather",
+  "target" : "clear",
+  "radius": -1,
+  "coin_cost": 1
+}
