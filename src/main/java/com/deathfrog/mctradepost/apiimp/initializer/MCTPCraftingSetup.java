@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.api.items;
+package com.deathfrog.mctradepost.apiimp.initializer;
 
 import org.jetbrains.annotations.NotNull;
 

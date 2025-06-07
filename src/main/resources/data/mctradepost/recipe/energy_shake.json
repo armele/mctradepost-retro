@@ -3,19 +3,16 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:blaze_powder"
+      "item": "minecraft:egg"
     },
     {
-      "item": "minecolonies:mint"
+      "item": "minecraft:beetroot_seeds"
     },
     {
-      "item": "minecolonies:mint"
+      "item": "minecraft:beetroot_seeds"
     },
     {
-      "item": "minecolonies:large_water_bottle"
-    },
-    {
-      "item": "minecraft:sugar"
+      "item": "minecraft:glowstone_dust"
     },
     {
       "item": "mctradepost:immersion_blender"
@@ -23,6 +20,6 @@
   ],
   "result": {
     "count": 3,
-    "id": "mctradepost:mystic_tea"
+    "id": "mctradepost:energy_shake"
   }
 }

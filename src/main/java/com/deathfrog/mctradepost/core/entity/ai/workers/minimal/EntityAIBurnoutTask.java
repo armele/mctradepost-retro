@@ -76,9 +76,10 @@ public class EntityAIBurnoutTask  {
 
     private static final int ENTITY_AI_BURNOUT_TICKRATE = 200;
 
-    protected final static String NO_RESORT = "com.mctradepost.resort.no_resort";
-    protected final static String NEED_VACATION = "com.mctradepost.resort.need_vacation";
-    protected final static String BURNOUT = "burnout";
+    public final static String NO_RESORT = "com.mctradepost.resort.no_resort";
+    public final static String GREAT_VACATION = "com.mctradepost.resort.great_vacation";
+    public final static String NEED_VACATION = "com.mctradepost.resort.need_vacation";
+    public final static String BURNOUT = "burnout";
 
     /* How much advertizing has this citizen seen? */
     protected int adSaturationLevel = 0;
@@ -380,6 +381,7 @@ public class EntityAIBurnoutTask  {
 
         if (bestResortLocation == null)
         {
+            LOGGER.warn("Vacationer {} has lost track of their resort.", citizen);
             return VacationState.SEARCH_RESORT;
         }
 
@@ -399,8 +401,12 @@ public class EntityAIBurnoutTask  {
      */
     private IState waitForCure()
     {
-        // TODO: RESORT Make this a chat interaction prompt for the player - one that tells them what they need to do.
-        LOGGER.trace("Vacationer {} is waiting for their remedy.", citizen.getName());
+        citizenData.triggerInteraction(new StandardInteraction(Component.translatable(GREAT_VACATION, vacationTracker.name(), vacationTracker.getRemedyString()),
+              Component.translatable(GREAT_VACATION),
+              ChatPriority.BLOCKING));
+
+        LOGGER.trace("Vacationer {} is waiting for their remedy to repair {} with {} at vacation state {}.", 
+            citizen.getName(), vacationTracker.name(), vacationTracker.getRemedyString(), vacationTracker.getState());
 
         final IState state = checkForCure();
         if (state == VacationState.APPLY_CURE)
@@ -417,6 +423,7 @@ public class EntityAIBurnoutTask  {
 
         if (bestResortPosition == null)
         {
+            LOGGER.warn("Vacationer {} has lost track of their resort.", citizen);
             return VacationState.SEARCH_RESORT;
         }
 
@@ -443,6 +450,7 @@ public class EntityAIBurnoutTask  {
 
         if (this.vacationTracker == null)
         {
+            LOGGER.warn("Vacationer {} has lost track of their vacation state.", citizen);
             reset();
             return CitizenAIState.IDLE;
         }
@@ -451,6 +459,7 @@ public class EntityAIBurnoutTask  {
 
         if (bestResortLocation == null) {
             // Perhaps the resort was destroyed before healing could occur.
+            LOGGER.warn("Vacationer {} has lost track of their resort.", citizen);            
             reset();
             return CitizenAIState.IDLE;
         }
@@ -459,7 +468,6 @@ public class EntityAIBurnoutTask  {
         final List<ItemStorage> list = vacationTracker.getRemedyItems();
         if (!list.isEmpty())
         {
-            // citizen.setItemInHand(InteractionHand.MAIN_HAND, list.get(citizen.getRandom().nextInt(list.size())).getItemStack());
             // Select a random item from the list indicated in the remedy.
             int selectedIndex = citizen.getRandom().nextInt(list.size());
             ItemStorage selectedRemedy = list.get(selectedIndex);
@@ -470,8 +478,10 @@ public class EntityAIBurnoutTask  {
             // Consume the item from storage
             if (selectedRemedy.getAmount() > 0)
             {
+                LOGGER.trace("Vacationer {} moved remedy {} to main hand.", citizen, selectedRemedy);     
                 selectedRemedy.setAmount(selectedRemedy.getAmount() - 1); 
             }
+
         }
 
         // TODO: RESORT [Enhancement] Make research to scale this.
@@ -614,6 +624,8 @@ public class EntityAIBurnoutTask  {
      */
     private void reset()
     {
+        LOGGER.trace("Resetting the burnout task for {}", citizen);
+
         adSaturationLevel = 0;
         if (vacationTracker != null) {
             vacationTracker.reset();

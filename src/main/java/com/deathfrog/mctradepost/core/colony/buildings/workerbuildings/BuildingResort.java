@@ -147,8 +147,6 @@ public class BuildingResort extends AbstractBuilding {
                         advertisingMap.put(advertisingTarget, burnoutTask);
 
                         LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
-
-                        // burnoutTask.setVacationStatus(guests.get(citizenEntity.get().getCivilianID()));
                     }
                 }
 
@@ -186,11 +184,17 @@ public class BuildingResort extends AbstractBuilding {
                 this.guests.put(guestId, new Vacationer(vacationCompound));
             }
         }
+
+        /* Deliberate choice to forgoe attempting to serialize injected burnout tasks 
+        *  and their corresponding vacations, and instead let advertising cooldown start 
+        *  at 0 and allow citizens to re-evaluate their need for a vacation immedately upon restart.
+        */
+        advertisingCooldown = 0;   
     }
 
     /**
-     * Serializes the NBT data for the building, including the list of patient
-     * citizens who have been checked in.
+     * Serializes the NBT data for the building, including the list of vacationers
+     * who have been checked in.
      * 
      * @param provider The holder lookup provider for item and block references.
      * @return The serialized CompoundTag containing the state of the building.

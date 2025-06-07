@@ -61,9 +61,12 @@ public class MCTPInventoryUtils {
      * @return a map of item stacks to their count
      */
     public static Object2IntMap<ItemStorage> contentsForBuilding(IBuildingView building) {
-        final Set<BlockPos> containerList = new HashSet<>(building.getContainerList());
-
         final Object2IntOpenHashMap<ItemStorage> storedItems = new Object2IntOpenHashMap<>();
+        if (building == null) {
+            return storedItems;
+        }
+
+        final Set<BlockPos> containerList = new HashSet<>(building.getContainerList());
         storedItems.defaultReturnValue(0); // avoid nulls on get()
 
         final Level world = building.getColony().getWorld();

@@ -19,6 +19,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
+import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.ICitizenData;
@@ -132,7 +133,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 if (!hasCureRequested)
                 {
                     guest.setState(Vacationer.VacationState.CHECKED_IN);
-                    LOGGER.trace("While decideToServe,request remedies to be delivered.", guest.getCivilianId());
+                    LOGGER.trace("While decideToServe, request remedies to be delivered.", guest.getCivilianId());
                     worker.getCitizenData().createRequestAsync(new Stack(cure.getItemStack(), REQUEST_COUNT, 1));
                     currentGuest = null;
                     return DECIDE;
@@ -193,6 +194,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             if (guest.getBurntSkill() == null || guest.getState() == Vacationer.VacationState.CHECKED_OUT)
             {
                 LOGGER.trace("This guest is already cured: {}", guest.getCivilianId());
+                guest.setState(VacationState.CHECKED_OUT);
                 resort.removeGuestFile(guest.getCivilianId());
                 continue;
             }
@@ -260,8 +262,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
 
         // Handle any guests in a TREATED state next.
-        List<Vacationer> treatedGuests = resort.getGuests().stream().filter(g -> g.getState().equals(Vacationer.VacationState.REQUESTED) && g.isCurrentlyAtResort()).collect(Collectors.toList());
-        for (final Vacationer guest : requestedGuests)
+        List<Vacationer> treatedGuests = resort.getGuests().stream().filter(g -> g.getState().equals(Vacationer.VacationState.TREATED) && g.isCurrentlyAtResort()).collect(Collectors.toList());
+        for (final Vacationer guest : treatedGuests)
         {
             final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getCivilianId());
             final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
@@ -270,8 +272,12 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             // Set them back to REQUESTED in case they need another.
             if (!hasCureInInventory(guest, citizen.getInventoryCitizen()))
             {
+                LOGGER.trace("At TREATED: Marked as treated, but no longer has the remedy. Setting back to REQUESTED. Guest: {}", guest.getCivilianId());
                 guest.setState(Vacationer.VacationState.REQUESTED);
-                return DECIDE;
+                this.currentGuest = guest;
+                return REQUEST_CURE;
+            } else {
+                LOGGER.trace("At TREATED: Marked as treated and has the remedy, but not yet satsified. Guest: {}", guest.getCivilianId());
             }
         }
 
@@ -303,7 +309,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         final EntityCitizen citizen = (EntityCitizen) data.getEntity().get();
         if (!walkToSafePos(citizen.blockPosition()))
         {
-            LOGGER.trace("Finding guest: {} to give them their remedy.", currentGuest.getCivilianId());
+            LOGGER.trace("Finding guest: {} to take their order.", currentGuest.getCivilianId());
             currentGuest.setState(Vacationer.VacationState.REQUESTED);
             return REQUEST_CURE;
         }
@@ -385,11 +391,11 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
         if (!hasCureInInventory(currentGuest, worker.getInventoryCitizen()))
         {
-            LOGGER.trace("It's not in our inventory, though...");
+            LOGGER.trace("The whole thing is not in our inventory, though. Check the building.");
 
-            if (hasCureInInventory(currentGuest, building.getItemHandlerCap()))
+            if (hasAnyCureInInventory(currentGuest, building.getItemHandlerCap()))
             {
-                 LOGGER.trace("It is in the building...");
+                 LOGGER.trace("Some of it is in the building...");
 
                 for (final ItemStorage remedy : currentGuest.getRemedyItems())
                 {
@@ -402,10 +408,14 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                         return GATHERING_REQUIRED_MATERIALS;
                     }
                 }
+            } else {
+                LOGGER.trace("It is not in the building, either.");
             }
+        } else {
+            LOGGER.trace("The worker has the remedy already.");
         }
 
-        LOGGER.trace("At this point I should have a remedy item in hand!");
+        LOGGER.trace("At this point I should have a remedy item in hand! Does the guest already have one?");
 
         if (!hasCureInInventory(currentGuest, citizen.getInventoryCitizen()))
         {
@@ -419,20 +429,26 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                         currentGuest = null;
                         return DECIDE;
                     }
+                    LOGGER.trace("Handing over the remedy.");
                     InventoryUtils.transferXOfFirstSlotInItemHandlerWithIntoNextFreeSlotInItemHandler(
                       worker.getInventoryCitizen(),
                       Vacationer.hasRemedyItem(remedy),
                       remedy.getAmount(), citizen.getInventoryCitizen()
                     );
+                    currentGuest.setState(Vacationer.VacationState.TREATED);
+                    currentGuest = null;
 
                     StatsUtil.trackStat(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
+                    worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+                    return DECIDE;
                 }
             }
+        } else {
+            LOGGER.trace("The guest has the remedy already.  I'm keeping this one.");
         }
 
-        worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-        currentGuest.setState(Vacationer.VacationState.TREATED);
-        currentGuest = null;
+        LOGGER.trace("There was nothing I could do for {}...", currentGuest);
+
         return DECIDE;
     }
 
@@ -467,7 +483,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
      * Check if the remedy for this guest is in the inventory.
      * 
      * @param handler the inventory to check.
-     * @return true if so.
+     * @return true if the entire remedy is in the inventory (all parts).
      */
     private boolean hasCureInInventory(final Vacationer guest, final IItemHandler handler)
     {
@@ -475,15 +491,36 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         {
             if (InventoryUtils.getItemCountInItemHandler(handler, Vacationer.hasRemedyItem(cure)) < cure.getAmount())
             {
-                LOGGER.trace("Item {} NOT in handler {}", cure, handler);
+                LOGGER.trace("hasCure: Item {} NOT in handler {}", cure, handler);
                 return false;
             }
-            LOGGER.trace("Item {} IS in handler {}", cure, handler);
+            LOGGER.trace("hasCure:Item {} IS in handler {}", cure, handler);
         }
 
         return true;
     }
     
+    /**
+     * Check if any parts of the remedy for this guest is in the inventory.
+     * 
+     * @param handler the inventory to check.
+     * @return true if so.
+     */
+    private boolean hasAnyCureInInventory(final Vacationer guest, final IItemHandler handler)
+    {
+        int count = 0;
+        for (final ItemStorage cure : guest.getRemedyItems())
+        {
+            if (InventoryUtils.getItemCountInItemHandler(handler, Vacationer.hasRemedyItem(cure)) > 0)
+            {
+                LOGGER.trace("hasAny: Some {} in handler {}", cure, handler);
+                count++;
+            }
+        }
+
+        return count > 0;
+    }
+
     @Override
     public Class<BuildingResort> getExpectedBuildingClass() {
         return BuildingResort.class;

@@ -1,9 +1,7 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -11,6 +9,7 @@ import com.minecolonies.api.entity.citizen.Skill;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -29,6 +28,9 @@ public class Vacationer {
     
     boolean currentlyAtResort = false;
 
+    /*
+     * Don't confuse these with AI states... they're just internal markers used to track the progress of the vacation and are not used to generate AI actions directly.
+     */
     public enum VacationState {
         BROWSING,       // You wandered over the the resort to take a look, but you don't need a vacation yet.
         RESERVED,       // You need a vacation!  Reservations made.
@@ -94,15 +96,14 @@ public class Vacationer {
      * @return a list of items which are the cure for the given skill.
      */
     public List<ItemStorage> getRemedyItems() {
-        // TODO: RESORT [Test] Establish a "cure" associated with each of the statistics we're going to be remedying, as determined by the skill to be repaired.
-        List<ItemStorage> cureItems = BurnoutRemedyManager.getRemedy(burntSkill);
+        List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(burntSkill);
 
         /*
         List<ItemStorage> cureItems = new ArrayList<>();
         cureItems.add(new ItemStorage(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), 1)));
         */
 
-        return cureItems;
+        return remedyItems;
     }
 
     /**
@@ -113,7 +114,7 @@ public class Vacationer {
      * @return a Component which is the name of the Burnout condition.
      */
     public Component name() {
-        return Component.translatable(BURNOUT_NAME);
+        return Component.literal(burntSkill.name());
     }
 
     /**
@@ -123,16 +124,21 @@ public class Vacationer {
      * @param burntSkill the skill for which the cure is requested.
      * @return a string giving the items required to cure the given skill.
      */
-    public Component getRemedyString() {
-        String cure = "";
-        for (ItemStorage item : getRemedyItems()) {
-            if (cure.length() > 0) {
-                cure = cure + ", ";
+    public Component getRemedyString()
+    {
+        final List<ItemStorage> remedyItems = getRemedyItems();
+        final MutableComponent cureString = Component.literal("");
+        
+        for (int i = 0; i < remedyItems.size(); i++)
+        {
+            final ItemStorage cureStack = remedyItems.get(i);
+            cureString.append(String.valueOf(cureStack.getItemStack().getCount())).append(" ").append(cureStack.getItemStack().getHoverName());
+            if (i != remedyItems.size() - 1)
+            {
+                cureString.append(" + ");
             }
-            cure = cure + item.getItemStack().getDisplayName();
         }
-
-        return Component.literal(cure);
+        return cureString;
     }
 
     public boolean isCurrentlyAtResort() {

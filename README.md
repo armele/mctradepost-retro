@@ -80,7 +80,7 @@ Note that MineColonies and its dependencies must be present to work.
 
 ### Compatibility Reference
 
-mctradepost-0.9.001 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
+mctradepost-0.10.001 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
 
 ## Style Packs
 ### Economic
@@ -109,20 +109,19 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 
 This mod can best be described as a "pre-alpha" state. It functionality may change rapidly and without warning.
 
+Logic: Enable building level locking and implement for new buildings. [Testing]
+
 Resort:
-- Introduce stat-specific recipes (currently a "placeholder" recipe is used for testing)
+- Introduce stat-specific recipes [Testing]
 
 Recycling: [In Progress]
-- Building Module: Recycling Process Status Module [Not Started]
-- Building Effects: Sounds and particles for work in progress [Not Started]
-- Building Capability: Decomposition    [Testing]
-- Building Capability: Disenchanting    [Not Started]
-- Building Capability: Trash Disposal   [Not Started]
-
+- Building Module: Recycling Process Status Module [Complete]
+- Building Effects: Sounds and particles for work in progress [Complete]
+- Building Capability: Decomposition    [Complete]
+- Building Capability: Disenchanting    [Not Started - Unlock with Research]
 
 ### Roadmap (Roughly Prioritized)
 
-Logic: Enable building level locking and implement for new buildings.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier
@@ -136,12 +135,12 @@ Wishing Well Rituals: Weather changing
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
-Jobs: Bartender / brewmaster / mixologist at resort
 Building: Train station (allows intra-colony trade)
 Assembling colonies into collections (empire, state, etc.)  
 
 #### Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).
+Recycler Building Capability: Trash Disposal 
 
 ## Additional Resources
 

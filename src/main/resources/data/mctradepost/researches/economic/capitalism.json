@@ -5,15 +5,15 @@
     "researchLevel": 1,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
-    "no-reset" : true,
+    "no-reset" : false,
     "hidden": false,
     "autostart": true,
     "instant": true,
     "requirements": [
         {
-            "type": "mctradepost:building",
-            "building": "marketplace",
-            "level": 1
+            "type": "minecolonies:building",
+            "building": "tavern",
+            "level": 3
         }
     ],
     "costs": [
