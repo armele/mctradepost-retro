@@ -343,15 +343,7 @@ public class MCTradePostMod
      */
     @SubscribeEvent
     public void onWorldLoad(LevelEvent.Load event) {
-        /*
-        MCTradePostMod.LOGGER.info("Dumping jobs registry.");
 
-        if (event.getLevel() instanceof ServerLevel) {
-            ModJobsInitializer.logRegisteredJobEntries((ServerLevel) event.getLevel());
-        } else {
-            MCTradePostMod.LOGGER.info("Skipping job dump - not server level.");
-        }
-        */
     }
 
 
