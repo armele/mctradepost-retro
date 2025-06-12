@@ -2,6 +2,7 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"ambientocclusion": false,
+	"render_type": "cutout",
 	"textures": {
 		"2": "block/stripped_oak_log",
 		"3": "block/iron_block",
@@ -142,7 +143,7 @@
 		{
 			"name": "base",
 			"from": [2, 16, 10],
-			"to": [5, 17, 13],
+			"to": [5, 16.5, 13],
 			"rotation": {"angle": 0, "axis": "y", "origin": [2, 16, 10]},
 			"faces": {
 				"north": {"uv": [0, 0, 3, 3], "texture": "#9"},
@@ -155,9 +156,9 @@
 		},
 		{
 			"name": "stem",
-			"from": [3, 17, 11],
-			"to": [4, 18, 12],
-			"rotation": {"angle": 0, "axis": "y", "origin": [3, 17, 11]},
+			"from": [3.25, 16, 11.3],
+			"to": [3.75, 18, 11.8],
+			"rotation": {"angle": 0, "axis": "y", "origin": [3.25, 16, 11.3]},
 			"faces": {
 				"north": {"uv": [0, 0, 1, 1], "texture": "#9"},
 				"east": {"uv": [0, 0, 1, 1], "texture": "#9"},
@@ -168,10 +169,10 @@
 			}
 		},
 		{
-			"name": "sidea",
-			"from": [2, 18, 10],
-			"to": [5, 21, 13],
-			"rotation": {"angle": 0, "axis": "y", "origin": [2, 18, 10]},
+			"name": "glass",
+			"from": [2.4, 18, 10.4],
+			"to": [4.6, 21, 12.6],
+			"rotation": {"angle": 0, "axis": "y", "origin": [2.5, 18, 9.5]},
 			"faces": {
 				"north": {"uv": [0, 0, 16, 16], "texture": "#9"},
 				"east": {"uv": [0, 0, 16, 16], "texture": "#9"},
@@ -183,9 +184,9 @@
 		},
 		{
 			"name": "contents",
-			"from": [3, 18, 11],
-			"to": [4, 21, 12],
-			"rotation": {"angle": 0, "axis": "y", "origin": [3, 18, 11]},
+			"from": [2.5, 18, 10.5],
+			"to": [4.5, 21, 12.5],
+			"rotation": {"angle": 0, "axis": "y", "origin": [2.5, 18, 10.5]},
 			"faces": {
 				"north": {"uv": [0, 0, 16, 16], "texture": "#8"},
 				"east": {"uv": [0, 0, 16, 16], "texture": "#8"},

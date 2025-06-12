@@ -1,7 +1,7 @@
 {
   "companion_item": "minecraft:diamond_sword",
-  "effect_type": "raidend",
-  "target" : "",
+  "effect_type": "summon",
+  "target" : "minecolonies:raider",
   "radius": -1,
   "coin_cost": 5
 }

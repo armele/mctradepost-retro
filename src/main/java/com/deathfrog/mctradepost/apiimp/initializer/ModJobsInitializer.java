@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobBartender;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobRecyclingEngineer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
+import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.jobs.views.CrafterJobView;
@@ -49,6 +50,12 @@ public final class ModJobsInitializer
           .setJobProducer(JobRecyclingEngineer::new)
           .setJobViewProducer(() -> CrafterJobView::new)
           .setRegistryName(MCTPModJobs.RECYCLINGENGINEER_ID)
+          .createJobEntry());
+
+        MCTPModJobs.stationmaster = register(DEFERRED_REGISTER, MCTPModJobs.STATIONMASTER_ID.getPath(), () -> new JobEntry.Builder()
+          .setJobProducer(JobStationMaster::new)
+          .setJobViewProducer(() -> CrafterJobView::new)
+          .setRegistryName(MCTPModJobs.STATIONMASTER_ID)
           .createJobEntry());
     }
 

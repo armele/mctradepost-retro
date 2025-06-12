@@ -3,36 +3,41 @@ package com.deathfrog.mctradepost.core.event.wishingwell.ritual;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.StringUtils;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 
-public class RitualDefinitionHelper  {
+import static com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler.RAIDER_TAG;
+
+public class RitualDefinitionHelper  
+{
     protected String originatingModId;
     protected String fileName;
     protected RitualDefinition ritualDefinition;
 
-    public RitualDefinitionHelper(ResourceLocation id, @Nonnull RitualDefinition definition) {
+    public RitualDefinitionHelper(ResourceLocation id, @Nonnull RitualDefinition definition) 
+    {
         this.ritualDefinition = definition;
         this.originatingModId = id.getNamespace();
         this.fileName = id.getPath();
     }
 
-    // public RitualDefinitionHelper(RitualDefinition definition) {
-    //     this.ritualDefinition = definition;
-    // }
-
     /**
      * Returns the EntityType that is targeted by this ritual, or null if the target is unknown.
      * @return The EntityType targeted by this ritual, or null if the target is unknown.
      */
-    public EntityType<?> getTargetAsEntityType() {
+    public EntityType<?> getTargetAsEntityType() 
+    {
        ResourceLocation entityTypeId = null;
 
-        try {
+        try 
+        {
             entityTypeId = ResourceLocation.parse(this.ritualDefinition.target());  // Intentional use of parse.
-        } catch (IllegalArgumentException e) {
+        } 
+        catch (IllegalArgumentException e) 
+        {
             MCTradePostMod.LOGGER.warn("Unknown target entity type {} identified in ritual with companion item: {}", this.ritualDefinition.target(), this.ritualDefinition.companionItem());
             return null;
         }
@@ -52,13 +57,42 @@ public class RitualDefinitionHelper  {
     public String describe() {
         String text = "Not Defined";
 
-        if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
+        if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) 
+        {
             EntityType<?> entityType = getTargetAsEntityType();
 
             text = "Slays " + entityType.toShortString().replace("_", " ") + "s within a " + this.ritualDefinition.radius() + " block radius.";
-        } else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_RAID_END)) {
-            text = "Defeats current raid within the colony.";
-        } else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) {
+        } 
+        else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_SUMMON)) 
+        {
+            String summonTarget = "";
+            if (RAIDER_TAG.equals(this.ritualDefinition.target())) 
+            {
+                summonTarget = "raiders";
+            }
+            else 
+            {
+                EntityType<?> entityType = getTargetAsEntityType();
+                if (entityType == null) 
+                {
+                    return "!UNDEFINED!";
+                }
+                summonTarget = StringUtils.getPluralEntityName(entityType);
+            }
+
+            String range = "";
+            if (this.ritualDefinition.radius() > 0) 
+            {
+                range = " within a " + this.ritualDefinition.radius() + " block radius.";
+            } 
+            else
+            {
+                range = ", wherever they may be.";
+            }
+            text = "Finds and summons " + summonTarget + range;
+        } 
+        else if (this.ritualDefinition.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) 
+        {
             text = "Sets the weather to " + this.ritualDefinition.target() + " for the rest of the day.";
         }
 
@@ -72,23 +106,28 @@ public class RitualDefinitionHelper  {
         return ritualTexture;
     }
 
-    public ResourceLocation companionItem() {
+    public ResourceLocation companionItem() 
+    {
         return this.ritualDefinition.companionItem();
     } 
    
-    public String effect() {
+    public String effect() 
+    {
         return this.ritualDefinition.effect();
     }
 
-    public String target() {
+    public String target() 
+    {
         return this.ritualDefinition.target();
     }
     
-    public int radius() {
+    public int radius() 
+    {
         return this.ritualDefinition.radius();
     }
     
-    public int requiredCoins() {
+    public int requiredCoins() 
+    {
         return this.ritualDefinition.requiredCoins();
     }
 }

@@ -105,34 +105,6 @@ public class AdvancedClipboardItem extends ItemClipboard {
         return InteractionResult.SUCCESS;
     }
 
-    /*
-    protected boolean testingStub(ItemStack clipboard) {
-        final IColonyView colony = ColonyId.readColonyViewFromItemStack(clipboard);
-        boolean foundMissingEntry = false;
-
-        for (final IBuildingView buildingView : colony.getBuildings())
-        {
-            for (final IBuildingModuleView moduleView : buildingView.getAllModuleViews()) {
-                if (moduleView instanceof WorkerBuildingModuleView) {
-                    WorkerBuildingModuleView workerBuildingModuleView = (WorkerBuildingModuleView) moduleView;
-                    
-                    // The following section is the equivalent of the code causing the ATM10 cra.sh
-                    WorkerBuildingModuleView matchingModuleView = buildingView.getModuleViewMatching(WorkerBuildingModuleView.class, m -> m.getJobEntry() == workerBuildingModuleView.getJobEntry());
-                    if (matchingModuleView == null) {
-                        MCTradePostMod.LOGGER.warn("Unable to find matching module view for building view: {} and module view: {}", buildingView, moduleView);
-                        foundMissingEntry = true;
-                        continue;
-                    }
-                    MutableComponent jobName = Component.translatableEscape(matchingModuleView.getJobDisplayName());
-                    MCTradePostMod.LOGGER.info("Derived job entry {} from building view: {} and module view: {}",  jobName.getString(), buildingView, moduleView);
-                }    
-            }
-        }
-
-        return foundMissingEntry;
-    }
-    */
-
     /**
      * Opens the clipboard window if there is a valid colony linked
      * @param stack the item

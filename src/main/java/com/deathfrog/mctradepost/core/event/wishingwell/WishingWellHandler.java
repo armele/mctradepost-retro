@@ -12,7 +12,6 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
 import com.minecolonies.api.colony.managers.interfaces.IRaiderManager;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
-import com.minecolonies.api.util.DamageSourceKeys;
 import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
 
 import net.minecraft.core.BlockPos;
@@ -38,10 +37,14 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
+
 @EventBusSubscriber(modid = MCTradePostMod.MODID)
 public class WishingWellHandler {
     private static final int MAX_WISHINGWELL_COOLDOWN = 100;
     private static int wishingWellCooldown = MAX_WISHINGWELL_COOLDOWN;
+
+    public static final String RAIDER_TAG = "minecolonies:raider";
 
     /**
      * Handles level tick events for server-side wishing well structures.
@@ -54,12 +57,15 @@ public class WishingWellHandler {
      * @param event The level tick event containing the level data.
      */
     @net.neoforged.bus.api.SubscribeEvent
-    public static void onLevelTick(LevelTickEvent.Post event) {
-        if (event.getLevel().isClientSide()) {
+    public static void onLevelTick(LevelTickEvent.Post event) 
+    {
+        if (event.getLevel().isClientSide()) 
+        {
             return;
         }
 
-        if (wishingWellCooldown > 0) {
+        if (wishingWellCooldown > 0) 
+        {
             wishingWellCooldown--;
             return;
         }
@@ -71,8 +77,10 @@ public class WishingWellHandler {
 
         if (colonyList != null) {
             for (IColony colony : colonyList) {
-                for (IBuilding building : colony.getBuildingManager().getBuildings().values()) {
-                    if (building instanceof BuildingMarketplace) {
+                for (IBuilding building : colony.getBuildingManager().getBuildings().values()) 
+                {
+                    if (building instanceof BuildingMarketplace) 
+                    {
                         processMarketplaceRituals(level, (BuildingMarketplace) building);
                     }
                 }
@@ -91,12 +99,14 @@ public class WishingWellHandler {
      * @param level The server level containing the marketplace building.
      * @param marketplace The marketplace building containing the wishing wells.
      */
-    protected static void processMarketplaceRituals(ServerLevel level, BuildingMarketplace marketplace) {
+    protected static void processMarketplaceRituals(ServerLevel level, BuildingMarketplace marketplace) 
+    {
         WellLocations data = marketplace.getRitualData();
         Set<BlockPos> wells = data.getKnownWells();
         Map<BlockPos, RitualState> rituals = data.getActiveRituals();
 
-        for (BlockPos pos : wells) {
+        for (BlockPos pos : wells) 
+        {
             AABB wellBox = new AABB(pos).inflate(1.5);
             List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, wellBox);
 
@@ -108,7 +118,8 @@ public class WishingWellHandler {
                     .filter(e -> !CoinItem.isCoin(e.getItem()))
                     .collect(Collectors.toList());
 
-            if (!coinItems.isEmpty() && !companionItems.isEmpty()) {
+            if (!coinItems.isEmpty() && !companionItems.isEmpty()) 
+            {
                 // ItemEntity coin = coinItems.get(0);
                 ItemEntity companion = companionItems.get(0);
 
@@ -121,7 +132,8 @@ public class WishingWellHandler {
 
                 RitualResult result = triggerRitual(level, state, center, companionItem);
 
-                switch (result) {
+                switch (result) 
+                {
                     case COMPLETED:
                     case FAILED:
                         MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionItem);
@@ -145,10 +157,12 @@ public class WishingWellHandler {
         }
     }
 
-    private static void showRitualEffect(ServerLevel level, BlockPos pos) {
+    private static void showRitualEffect(ServerLevel level, BlockPos pos) 
+    {
         // Lightning visual
         LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level);
-        if (lightning != null) {
+        if (lightning != null)
+        {
             lightning.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
             lightning.setVisualOnly(true);
             level.addFreshEntity(lightning);
@@ -168,7 +182,8 @@ public class WishingWellHandler {
      * 
      * @param pos The BlockPos of the center of the wishing well structure.
      */
-    public static void registerWell(BuildingMarketplace marketplace, BlockPos pos) {
+    public static void registerWell(BuildingMarketplace marketplace, BlockPos pos) 
+    {
         Set<BlockPos> wells = marketplace.getRitualData().getKnownWells();
         wells.add(pos);
 
@@ -189,13 +204,17 @@ public class WishingWellHandler {
      * 
      * @param pos The BlockPos of the center of the wishing well structure.
      */
-    public static void unregisterWell(BuildingMarketplace marketplace, BlockPos pos) {
+    public static void unregisterWell(BuildingMarketplace marketplace, BlockPos pos) 
+    {
         Set<BlockPos> wells = marketplace.getRitualData().getKnownWells();
 
-        if (wells.contains(pos)) {
+        if (wells.contains(pos)) 
+        {
             wells.remove(pos);
             MCTradePostMod.LOGGER.info("Removed invalid wishing well at {}", pos);
-        } else {
+        } 
+        else 
+        {
             // MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
         }
     }
@@ -206,7 +225,8 @@ public class WishingWellHandler {
      * This is used to discover wishing wells in the world as they are used, so that the wishing well
      * handler can find them later when checking for active rituals.
      */
-    public static void downInAWell(Level level, BuildingMarketplace marketplace, BlockPos pos) {
+    public static void downInAWell(Level level, BuildingMarketplace marketplace, BlockPos pos) 
+    {
         boolean discovery = false;
 
         if (marketplace == null) {
@@ -214,10 +234,13 @@ public class WishingWellHandler {
             return;
         }
 
-        for (int dx = -2; dx <= 1; dx++) {
-            for (int dz = -2; dz <= 1; dz++) {
+        for (int dx = -2; dx <= 1; dx++) 
+        {
+            for (int dz = -2; dz <= 1; dz++) 
+            {
                 BlockPos check = pos.offset(dx, 0, dz);
-                if (isWishingWellStructure(level, check)) {
+                if (isWishingWellStructure(level, check)) 
+                {
                     registerWell(marketplace, check);
                     discovery = true;
                 }
@@ -238,12 +261,15 @@ public class WishingWellHandler {
      */
     public static boolean isWishingWellStructure(Level level, BlockPos center) {
         // Check 2x2 water at center
-        for (int dx = -1; dx <= 0; dx++) {
-            for (int dz = -1; dz <= 0; dz++) {
+        for (int dx = -1; dx <= 0; dx++) 
+        {
+            for (int dz = -1; dz <= 0; dz++) 
+            {
                 BlockPos base = center.offset(dx, 0, dz);
                 BlockState state = level.getBlockState(base);
 
-                if (!(state.getBlock() instanceof LiquidBlock) || !state.getFluidState().is(FluidTags.WATER)) {
+                if (!(state.getBlock() instanceof LiquidBlock) || !state.getFluidState().is(FluidTags.WATER)) 
+                {
                     // MCTradePostMod.LOGGER.info("This is not water at {} during well structure identification.", base);
                     return false;
                 }
@@ -251,11 +277,14 @@ public class WishingWellHandler {
         }
 
         // Check surrounding 4x4 ring of stone bricks
-        for (int dx = -2; dx <= 1; dx++) {
-            for (int dz = -2; dz <= 1; dz++) {
+        for (int dx = -2; dx <= 1; dx++) 
+        {
+            for (int dz = -2; dz <= 1; dz++) 
+            {
                 if (dx >= -1 && dx <= 0 && dz >= -1 && dz <= 0) continue; // Skip 2x2 center
                 BlockPos ring = center.offset(dx, 0, dz);
-                if (!level.getBlockState(ring).is(Blocks.STONE_BRICKS)) {
+                if (!level.getBlockState(ring).is(Blocks.STONE_BRICKS)) 
+                {
                     // MCTradePostMod.LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
                     return false;
                 }
@@ -285,30 +314,13 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was triggered, false otherwise
      */
-    private static boolean processRitualSlay(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {    
-
-        EntityType<?> entityType = ritual.getTargetAsEntityType();
-
-        if (entityType == null) {
-            MCTradePostMod.LOGGER.info("No entity type found for {} during Slay ritual.", ritual.target());
-            return false;
-        }
-
-        List<? extends Entity> targets = null;
-        Double radius = (double) ritual.radius();
-
-        if (radius < 0) {
-            // Global purge: all loaded entities of this type
-            targets = level.getEntities(entityType, entity -> entity.getType().equals(entityType));
-        } else {
-            // Local purge
-            targets = level.getEntities(entityType, new AABB(pos).inflate(radius), entity ->
-                entity.getType().equals(entityType));
-        }
+    private static boolean processRitualSlay(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) 
+    {    
+        List<? extends Entity> targets = gatherSummonTargets(level, pos, ritual);
         
         targets.forEach(Entity::discard);
 
-        MCTradePostMod.LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}", ritual.target(), pos, radius, targets.size());
+        MCTradePostMod.LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}", ritual.target(), pos, ritual.radius(), targets.size());
         showRitualEffect(level, pos);
 
         return true;
@@ -326,7 +338,8 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was successfully triggered, false otherwise
      */
-    private static boolean processRitualWeather(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {    
+    private static boolean processRitualWeather(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) 
+    {    
 
         int restOfDay = 24000 - (int) (level.getDayTime() % 24000);
         int clearTime = 0;
@@ -338,25 +351,34 @@ public class WishingWellHandler {
         String weather = ritual.target();
         // MCTradePostMod.LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
 
-        if (weather == null) {
+        if (weather == null) 
+        {
             MCTradePostMod.LOGGER.info("No weather target provided during Weather ritual.");
             return false;
-        } else if (weather.equals("clear")) {
+        } 
+        else if (weather.equals("clear")) 
+        {
             clearTime = restOfDay;
             weatherTime = 0;
             isRaining = false;
             isThundering = false;
-        } else if (weather.equals("rain")) {
+        } 
+        else if (weather.equals("rain")) 
+        {
             clearTime = 0;
             weatherTime = restOfDay;
             isRaining = true;
             isThundering = false;
-        } else if (weather.equals("storm")) {
+        } 
+        else if (weather.equals("storm")) 
+        {
             clearTime = 0;
             weatherTime = restOfDay;
             isRaining = true;
             isThundering = true;
-        } else {
+        } 
+        else 
+        {
             MCTradePostMod.LOGGER.info("Unknown weather ritual of {} ignored at {} ", weather, pos);
             return false;
         }
@@ -367,6 +389,61 @@ public class WishingWellHandler {
         showRitualEffect(level, pos);
 
         return true;
+    }
+
+
+    /**
+     * Gathers the entities participating in the ongoing raid event (if any) within the given colony.
+     * 
+     * @param colony the colony to search for an ongoing raid event
+     * @return a (possibly empty) list of entities participating in the ongoing raid event
+     */
+    protected static @Nonnull List<? extends Entity> gatherRaidTargets(IColony colony)
+    {
+        List<? extends Entity> targets = new ArrayList<>();
+
+        IRaiderManager raidManager = colony.getRaiderManager();
+        for (IColonyEvent event : colony.getEventManager().getEvents().values()) 
+        {
+            if (event instanceof HordeRaidEvent) 
+            {
+                targets = ((HordeRaidEvent) event).getEntities();
+                break;
+            }
+        }
+
+        return targets;
+    }   
+
+    /**
+     * Gathers entities of a specific type within a certain radius of the given BlockPos or globally.
+     * @param level the ServerLevel to search for entities
+     * @param pos the BlockPos used as the center of the search radius or globally if the radius is negative
+     * @param ritual the ritual definition containing the target entity type and radius
+     * @return a list of entities of the target type within the search radius
+     */
+    protected static @Nonnull List<? extends Entity> gatherSummonTargets(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual)
+    {
+        List<? extends Entity> targets = new ArrayList<>(); 
+        EntityType<?> entityType = ritual.getTargetAsEntityType();
+
+        if (entityType == null) {
+            MCTradePostMod.LOGGER.warn("No entity type found for {} during Slay ritual.", ritual.target());
+            return targets;
+        }
+
+        Double radius = (double) ritual.radius();
+
+        if (radius < 0) {
+            // Global purge: all loaded entities of this type
+            targets = level.getEntities(entityType, entity -> entity.getType().equals(entityType));
+        } else {
+            // Local purge
+            targets = level.getEntities(entityType, new AABB(pos).inflate(radius), entity ->
+                entity.getType().equals(entityType));
+        }
+
+        return targets;
     }
 
     /**
@@ -381,30 +458,34 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was successfully triggered, false otherwise
      */
-    private static boolean processRitualRaidEnd(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) {
+    private static boolean processRitualSummon(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual) 
+    {
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
-        if (colony == null) {
+        if (colony == null) 
+        {
             MCTradePostMod.LOGGER.warn("No colony found at {} where this ritual was attempted: {}", pos, ritual.describe());
             return false;
         }
 
-        List<? extends Entity> targets = null;
+        List<? extends Entity> targets = new ArrayList<>();
 
-        IRaiderManager raidManager = colony.getRaiderManager();
-        for (IColonyEvent event : colony.getEventManager().getEvents().values()) {
-            if (event instanceof HordeRaidEvent) {
-                targets = ((HordeRaidEvent) event).getEntities();
-                break;
+        if (RAIDER_TAG.equals(ritual.target()))
+        {
+            targets = gatherRaidTargets(colony);
+            if (targets.size() == 0) 
+            {
+                MCTradePostMod.LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
             }
+        } 
+        else 
+        {
+            targets = gatherSummonTargets(level, pos, ritual);
         }
 
-        if (targets == null) {
-            MCTradePostMod.LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
-            return false;
-        }
-
-        for (Entity entity : targets) {
-            if (entity instanceof AbstractEntityMinecoloniesRaider) {
+        for (Entity entity : targets) 
+        {
+            if (entity instanceof AbstractEntityMinecoloniesRaider) 
+            {
                 // Generate random offset within nearby blocks in X and Z
                 int offsetX = level.random.nextInt(16) - 8;
                 int offsetZ = level.random.nextInt(16) - 8;
@@ -413,8 +494,6 @@ public class WishingWellHandler {
                 // Teleport them near the ritual location
                 entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
 
-                // Slay them
-                entity.discard();
             }
         }
 
@@ -437,46 +516,58 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was triggered, false otherwise
      */
-    private static RitualResult triggerRitual(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) {
+    private static RitualResult triggerRitual(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) 
+    {
         MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} coins", pos, companionItem, state.coins);    
         Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
 
-        for (RitualDefinitionHelper ritual : rituals) {
+        for (RitualDefinitionHelper ritual : rituals) 
+        {
             Item effectCompanion = BuiltInRegistries.ITEM.get(ritual.companionItem());
 
-            if (effectCompanion.equals(companionItem)) {
+            if (effectCompanion.equals(companionItem)) 
+            {
                 /* 
                  * To add a new ritual *type*, it needs an entry here (with associated handler function) 
                  * and in RitualDefintionHelper.describe() to set up the JEI with the description
                  */
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) {
-                    if (ritual.requiredCoins() > state.coins) {
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) 
+                {
+                    if (ritual.requiredCoins() > state.coins) 
+                    {
                         return RitualResult.NEEDS_COINS;
                     }
 
-                    if (processRitualSlay(level, pos, ritual)) {
+                    if (processRitualSlay(level, pos, ritual)) 
+                    {
                         return RitualResult.COMPLETED;
                     } else {
                         return RitualResult.FAILED;
                     }
                 }
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) {
-                    if (ritual.requiredCoins() > state.coins) {
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) 
+                {
+                    if (ritual.requiredCoins() > state.coins) 
+                    {
                         return RitualResult.NEEDS_COINS;
                     }
 
-                    if (processRitualWeather(level, pos, ritual) ) {
+                    if (processRitualWeather(level, pos, ritual) ) 
+                    {
                         return RitualResult.COMPLETED;
                     } else {
                         return RitualResult.FAILED;
                     }
                 }
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_RAID_END)) {
-                    if (ritual.requiredCoins() > state.coins) {
+                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SUMMON)) 
+                {
+                    if (ritual.requiredCoins() > state.coins) 
+                    {
                         return RitualResult.NEEDS_COINS;
                     }
 
-                    if (processRitualRaidEnd(level, pos, ritual) ) {
+                    if (processRitualSummon(level, pos, ritual) ) 
+                    {
                         return RitualResult.COMPLETED;
                     } else {
                         return RitualResult.FAILED;
@@ -488,13 +579,15 @@ public class WishingWellHandler {
         return RitualResult.UNRECOGNIZED;
     }
 
-    public enum RitualResult {
+    public enum RitualResult 
+    {
         UNRECOGNIZED,
         NEEDS_COINS,
         FAILED,
         COMPLETED
     }
-    static public class RitualState {
+    static public class RitualState 
+    {
         public int coins = 0;
         public long lastUsed = 0L;
     }

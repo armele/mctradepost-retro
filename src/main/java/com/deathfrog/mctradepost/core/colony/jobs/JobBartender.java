@@ -6,14 +6,17 @@ import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
 import net.minecraft.resources.ResourceLocation;
 
-public class JobBartender extends AbstractJobCrafter<EntityAIWorkBartender, JobBartender> {
+public class JobBartender extends AbstractJobCrafter<EntityAIWorkBartender, JobBartender> 
+{
 
-    public JobBartender(ICitizenData entity) {
+    public JobBartender(ICitizenData entity) 
+    {
         super(entity);
     }
 
     @Override
-    public EntityAIWorkBartender generateAI() {
+    public EntityAIWorkBartender generateAI() 
+    {
         return new EntityAIWorkBartender(this);
     }
     

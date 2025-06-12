@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mctradepost:block/blockhutstation",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mctradepost:block/blockhutstation",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mctradepost:block/blockhutstation",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "mctradepost:block/blockhutstation",
+      "y": 0
+    }
+  }
+}

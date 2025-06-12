@@ -7,8 +7,8 @@
     "exclusiveChildResearch": false,
     "no-reset" : false,
     "hidden": false,
-    "autostart": true,
-    "instant": true,
+    "autostart": false,
+    "instant": false,
     "requirements": [
         {
             "type": "minecolonies:building",

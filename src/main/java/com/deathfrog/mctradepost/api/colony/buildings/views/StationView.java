@@ -18,10 +18,10 @@ import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 */
 
 @OnlyIn(Dist.CLIENT)
-public class ResortView extends AbstractBuildingView 
+public class StationView extends AbstractBuildingView 
 {
 
-    public ResortView(final IColonyView colony, final BlockPos location) 
+    public StationView(final IColonyView colony, final BlockPos location) 
     {
         super(colony, location);
     }

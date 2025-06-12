@@ -20,7 +20,7 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
 
     public static final String RITUAL_EFFECT_SLAY = "slay";
     public static final String RITUAL_EFFECT_WEATHER = "weather";
-  public static final String RITUAL_EFFECT_RAID_END = "raidend";
+    public static final String RITUAL_EFFECT_SUMMON = "summon";
 
     public RitualManager() {
         super(MCTradePostMod.GSON, RITUAL_FOLDER);

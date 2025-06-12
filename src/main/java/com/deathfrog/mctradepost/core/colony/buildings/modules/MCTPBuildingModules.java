@@ -96,6 +96,11 @@ public class MCTPBuildingModules
         () -> () -> new ItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
           (buildingView) -> ItemValueRegistry.getSellableItems()));
     
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> STATIONMASTER_WORK          =
+      new BuildingEntry.ModuleProducer<>("stationmaster_work", 
+        () -> new WorkerBuildingModule(MCTPModJobs.stationmaster.get(), Skill.Knowledge, Skill.Focus, false, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
+
     /**
      * Leisure
      */

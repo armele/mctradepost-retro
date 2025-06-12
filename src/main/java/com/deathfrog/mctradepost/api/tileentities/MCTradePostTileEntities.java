@@ -12,5 +12,7 @@ public class MCTradePostTileEntities
 
     public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> MARKETPLACE;
 
+    public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> STATION;
+
     public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> BUILDING;
 }

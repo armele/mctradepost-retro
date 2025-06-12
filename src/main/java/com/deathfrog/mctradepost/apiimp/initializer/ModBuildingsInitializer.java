@@ -13,6 +13,8 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
+import com.deathfrog.mctradepost.core.colony.buildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
@@ -97,6 +99,20 @@ public final class ModBuildingsInitializer
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
                 registry.register(ModBuildings.recycling.getRegistryName(), ModBuildings.recycling);
+            });
+
+            BuildingEntry.Builder stationBuilder = new BuildingEntry.Builder();
+            stationBuilder.setBuildingBlock(MCTradePostMod.blockHutStation.get());
+            stationBuilder.setBuildingProducer(BuildingStation::new);
+            stationBuilder.setBuildingViewProducer(() -> StationView::new);
+            stationBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.STATION_ID));
+            stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATIONMASTER_WORK);
+            stationBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
+
+            ModBuildings.station = stationBuilder.createBuildingEntry();
+
+            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
+                registry.register(ModBuildings.station.getRegistryName(), ModBuildings.station);
             });
         }
         

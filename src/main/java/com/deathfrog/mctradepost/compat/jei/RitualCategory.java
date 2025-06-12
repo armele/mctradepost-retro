@@ -58,13 +58,26 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
         return icon;
     }
 
-    @NotNull
+    /**
+     * The width of the category in JEI.
+     *
+     * @return the width in pixels
+     */
     @Override
-    public IDrawable getBackground()
-    {
-        return this.background;
+    public int getWidth() {
+        return WIDTH;
     }
     
+    /**
+     * The height of the category in JEI.
+     *
+     * @return the height in pixels
+     */
+    @Override
+    public int getHeight() {
+        return HEIGHT;
+    }
+
     /**
      * Lays out the recipe for JEI.
      *

@@ -110,16 +110,8 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 
 This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
-Logic: Enable building level locking and implement for new buildings. [Testing]
-
-Resort:
-- Introduce stat-specific recipes [Testing]
-
-Recycling: [In Progress]
-- Building Module: Recycling Process Status Module [Complete]
-- Building Effects: Sounds and particles for work in progress [Complete]
-- Building Capability: Decomposition    [Complete]
-- Building Capability: Disenchanting    [Not Started - Unlock with Research]
+Building: Train Station
+Research: Unlock Train Station
 
 ### Roadmap (Roughly Prioritized)
 
@@ -129,14 +121,19 @@ Pets: happiness multiplier
 Pets: burnout mitigator
 Pets: sickness decreased
 Pets: scarecrow effect
+Building Capability - Recycling: Disenchanting  [Unlock with Research]
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
 Building Effect: Autominting + Delivery to warehouse of coins?
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
-Building: Train station (allows intra-colony trade)
+
+### Intersecting Roadmap
+**Minecolonies discord or other source has indicated these may be in the future of the base mod. As those features emerge, these may be deprecated or altered to better fit with the base mod.**
 Assembling colonies into collections (empire, state, etc.)  
+Intra-colony trade
+
 
 #### Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).

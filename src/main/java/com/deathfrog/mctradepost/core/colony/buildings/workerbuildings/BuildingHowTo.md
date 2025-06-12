@@ -27,8 +27,8 @@ Add any custom buildng modules that are needed:
 - Define new modules in MCTPBuildingModules
 - These may extend or reuse existing modules, or may require the development of new ones.
 
-Define five building levels using Structurize.
-- Place the structurize files in src\main\resources\blueprints\mctradepost\economic\
+Define five building levels using Structurize, named the same as the NewBuildingClass.schematicName()
+- Place the structurize files in src\main\resources\blueprints\mctradepost\Trade Post Default\economic\
 
 ## Job for Building
 Define the Job(s) associated with the Building
@@ -40,7 +40,7 @@ Define the Job(s) associated with the Building
 - Associate it with the models (later step) that animate the worker at ModModelTypeInitializer OR override getModel in the Job class to call its super().
 
 Define the AI associated with the Job
-- Create a new class at src\main\java\com\deathfrog\mctradepost\core\entity\ai\workers\ overriding AbstractEntityAIInteract<JobClass, BuildingClass>
+- Create a new class at src\main\java\com\deathfrog\mctradepost\core\entity\ai\workers\ overriding AbstractEntityAIInteract<JobClass, BuildingClass> (or other base class as appropriate)
 - Implement the desired logic (the hard part - and the fun part)
 - If desired, add a new work state visual icon: src\main\resources\assets\mctradepost\textures\icons\work\
 

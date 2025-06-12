@@ -15,17 +15,21 @@ public final class MCTPModJobs
     public static final String GUESTSERVICES_TAG = "guestservices";
     public static final String BARTENDER_TAG = "bartender";
     public static final String RECYCLINGENGINEER_TAG = "recyclingengineer";
+    public static final String STATIONMASTER_TAG = "stationmaster";
 
 
     public static final ResourceLocation SHOPKEEPER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, SHOPKEEPER_TAG);
     public static final ResourceLocation GUESTSERVICES_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, GUESTSERVICES_TAG);
     public static final ResourceLocation BARTENDER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, BARTENDER_TAG);
     public static final ResourceLocation RECYCLINGENGINEER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RECYCLINGENGINEER_TAG);
+    public static final ResourceLocation STATIONMASTER_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, STATIONMASTER_TAG);
+
 
     public static DeferredHolder<JobEntry, JobEntry> shopkeeper;
     public static DeferredHolder<JobEntry, JobEntry> guestservices;
     public static DeferredHolder<JobEntry, JobEntry> bartender;
     public static DeferredHolder<JobEntry, JobEntry> recyclingengineer;
+    public static DeferredHolder<JobEntry, JobEntry> stationmaster;
 
     private MCTPModJobs()
     {
@@ -39,7 +43,8 @@ public final class MCTPModJobs
         jobs.add(GUESTSERVICES_ID);
         jobs.add(BARTENDER_ID);
         jobs.add(RECYCLINGENGINEER_ID);
-        
+        jobs.add(STATIONMASTER_ID);
+
         return jobs;
     }
 }
