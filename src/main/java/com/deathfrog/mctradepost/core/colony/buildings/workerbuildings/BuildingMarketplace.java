@@ -1,21 +1,22 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
+import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
-import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
-import com.minecolonies.core.entity.ai.visitor.EntityAIVisitor.VisitorState;
-import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.visitor.VisitorCitizen;
 
 import net.minecraft.core.BlockPos;
@@ -37,21 +38,20 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
+import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-
-import javax.annotation.Nonnull;
-
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
 /**
@@ -59,13 +59,6 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
-    public enum ShoppingState implements IState
-    {
-        GOING_SHOPPING,
-        IS_SHOPPING,
-        DONE_SHOPPING
-    }
-
     protected WellLocations ritualData = new WellLocations();
 
     protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
@@ -111,6 +104,23 @@ public class BuildingMarketplace extends AbstractBuilding
         return ImmutableList.copyOf(displayShelfContents.keySet());
     }
 
+
+    /**
+     * Returns a list of display shelves that have items for sale.
+     * @return a list of display shelves with items for sale
+     */
+    public List<DisplayCase> getDisplayShelvesWithItemsForSale() 
+    {
+        List<DisplayCase> result = new ArrayList<>();
+        for (DisplayCase display : displayShelfContents.values()) {
+            if (display.getSaleState() == SaleState.FOR_SALE) {
+                result.add(display);
+            }
+        }    
+
+        return result;
+    }
+
     /**
      * Returns the map of display shelf positions to their contents.
      * The positions are the BlockPos of the block that the item frame is attached to.
@@ -143,6 +153,40 @@ public class BuildingMarketplace extends AbstractBuilding
         return ritualData;
     }
 
+    /**
+     * Returns true if the marketplace is open for business, i.e. if it has a
+     * shopkeeper assigned and the shopkeeper is working.
+     * @return true if the marketplace is open for business, false otherwise.
+     */
+    public boolean isOpenForBusiness() 
+    {
+        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get()).getAssignedCitizen();
+        
+        if (employees.isEmpty()) {
+            return false;
+        }
+    
+        final Optional<AbstractEntityCitizen> optionalEntityCitizen = employees.get(0).getEntity();
+
+        if (!optionalEntityCitizen.isPresent()) {
+            return false;
+        }
+        
+        AbstractEntityCitizen shopkeeper = optionalEntityCitizen.get();
+
+        IState workState = ((EntityCitizen) shopkeeper).getCitizenAI().getState();
+
+        return CitizenAIState.WORKING.equals(workState);
+    }
+
+    /**
+     * Registers a block position in the marketplace building. This is used to update the contents of display shelves.
+     * When a block is registered, it is checked if it is a display frame and if so, it is added to the collection of display
+     * shelves. If the display shelf is not already tracked, it is added to the displayShelfContents map.
+     * @param block the block being registered.
+     * @param pos the position of the block being registered.
+     * @param world the world that the block is in.
+     */
     @Override
     public void registerBlockPosition(@NotNull final BlockState block, @NotNull final BlockPos pos, @NotNull final Level world)
     {
@@ -409,12 +453,8 @@ public class BuildingMarketplace extends AbstractBuilding
                 VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();
 
                 ITickRateStateMachine<IState> stateMachine = vitizen.getEntityStateController();
-                EntityAIShoppingTask task = new EntityAIShoppingTask(visitor, this);
-                stateMachine.addTransition(new TickingTransition<>(VisitorState.IDLE, task::wantsToShop, task::goingShopping, 150));
-                stateMachine.addTransition(new TickingTransition<>(VisitorState.WANDERING, task::wantsToShop, task::goingShopping, 150));
-                stateMachine.addTransition(new TickingTransition<>(ShoppingState.GOING_SHOPPING, () -> true, task::goingShopping, 150));
-                stateMachine.addTransition(new TickingTransition<>(ShoppingState.IS_SHOPPING, () -> true, task::isShopping, 150));
-                stateMachine.addTransition(new TickingTransition<>(ShoppingState.DONE_SHOPPING, () -> true, task::doneShopping, 150));
+                EntityAIShoppingTask shoppingTask = new EntityAIShoppingTask(visitor, this);
+                shoppingTask.init(stateMachine);
 
                 advertisingList.add(visitor);
             }
@@ -432,90 +472,5 @@ public class BuildingMarketplace extends AbstractBuilding
         int shoppingChance = MCTPConfig.shoppingChance.get();
         return this.getBuildingLevel() * shoppingChance;
     }
-
-    /* EntityAIShoppingTask inserted into the Visitor AI by the marketplace. */
-    public class EntityAIShoppingTask {
-        IVisitorData visitor = null;
-        BuildingMarketplace marketplace = null;
-        private static final int ONE_HUNDRED = 100;
-
-        public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace) {
-            this.visitor = visitor;
-            this.marketplace = marketplace;
-        }
-
-
-        /**
-         * Checks if a visitor wants to go shopping at the marketplace.
-         * 
-         * This method is called by the AI when it wants to decide what to do.
-         * It will return true if the visitor should go shopping, false otherwise.
-         * The decision is based on the time of day (no shopping at night) and
-         * a random chance based on the marketplace's shopping chance.
-         * 
-         * @return true if the visitor should go shopping, false otherwise
-         */
-        private boolean wantsToShop()
-        {
-            // No shopping at night.
-            if (!WorldUtil.isDayTime(marketplace.getColony().getWorld())) {
-                return false;
-            }
-
-            if (marketplace.shoppingChance() > ThreadLocalRandom.current().nextDouble() * ONE_HUNDRED) {
-                // MCTradePostMod.LOGGER.info("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
-                return true;
-            } else {
-                // MCTradePostMod.LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName());
-                return false;
-            }
-
-        }
-        
-        /**
-         * Attempts to navigate the visitor to the marketplace location.
-         *
-         * @return the next shopping state, IS_SHOPPING if the visitor has reached 
-         *         the marketplace, otherwise GOING_SHOPPING if still en route.
-         */
-        public IState goingShopping() {
-            if (EntityNavigationUtils.walkToPos(visitor.getEntity().get(), marketplace.getLocation().getInDimensionLocation(), 3, true)) {
-                return ShoppingState.IS_SHOPPING;
-            } else {
-                return ShoppingState.GOING_SHOPPING;
-            }
-        }
-
-        /**
-         * Attempts to navigate the visitor to the marketplace location.
-         *
-         * @return the next shopping state, IS_SHOPPING if the visitor has reached 
-         *         the marketplace, otherwise GOING_SHOPPING if still en route.
-         */
-        public IState isShopping() {
-            BlockPos pos = null;
-            
-            if (wantsToShop()) {
-                final List<BlockPos> displayPositions = marketplace.getDisplayShelfPositions();
-                pos = displayPositions.get(ThreadLocalRandom.current().nextInt(displayPositions.size()));
-            } else {
-                return ShoppingState.DONE_SHOPPING;
-            }
-
-            EntityNavigationUtils.walkToPos(visitor.getEntity().get(), pos, 1, true);
-            return ShoppingState.IS_SHOPPING;
-        }
-
-        /**
-         * Called when the visitor is done shopping.  This method is called by the AI's state machine
-         * when it has finished shopping and is ready to go back to IDLE.
-         * 
-         * @return the next state to go to, which is always VisitorState.IDLE
-         */
-        public IState doneShopping() {
-            return VisitorState.IDLE;
-        }
-    }
-
 }
 

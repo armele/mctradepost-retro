@@ -18,8 +18,6 @@ import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 
-// An example config class. This is not required, but it's a good idea to have one to keep your config organized.
-// Demonstrates how to use Neo's config APIs
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class MCTPConfig
 {
@@ -30,7 +28,7 @@ public class MCTPConfig
     // Marketplace settings
     public static final ConfigValue<Integer> tradeCoinValue;
     public static final ConfigValue<Integer> mintingLevel;
-    public static final ConfigValue<Integer> baseSelltime;
+    public static final ConfigValue<Integer> shoppingCooldown;
     public static final ConfigValue<Double>  registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
 
@@ -58,9 +56,9 @@ public class MCTPConfig
             .comment("At what building level can the Marketplace mint coins?")
             .define("mintingLevel", 2);
 
-        baseSelltime = BUILDER
-            .comment("How quickly do items sell from the Marketplace?")
-            .define("baseSelltime", 200);
+        shoppingCooldown = BUILDER
+            .comment("How long before visitors will consider shopping again?")
+            .define("shoppingCooldown", 900);
 
         registerSoundChance = BUILDER
             .comment("How likely is a sold item to make a cash register sound?")

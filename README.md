@@ -110,11 +110,13 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 
 This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
-Building: Train Station
-Research: Unlock Train Station
+Building: Train Station [In Progress]
+Research: Unlock Train Station [Testing]
 
 ### Roadmap (Roughly Prioritized)
 
+Marketplace refinement: Visitor purchases, souveneirs
+Research: Tourism (requires marketplace level and station level - increases visitor cap or rate)
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier

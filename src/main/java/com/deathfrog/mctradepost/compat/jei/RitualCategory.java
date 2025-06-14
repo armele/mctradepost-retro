@@ -2,8 +2,6 @@ package com.deathfrog.mctradepost.compat.jei;
 
 import javax.annotation.Nonnull;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;

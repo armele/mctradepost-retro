@@ -304,17 +304,24 @@ public class EntityAIBurnoutTask  {
         if (vacationTracker != null) {
             for (final ItemStorage cure : vacationTracker.getRemedyItems())
             {
+                LOGGER.info("Vacationer {} is checking for cures - looking for item {}.", citizen, cure.getItem());
+
                 final int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(citizen, Vacationer.hasRemedyItem(cure));
                 if (slot == -1)
                 {
+                    LOGGER.info("Vacationer {} item {} not found.  Keep waiting.", citizen, cure.getItem());
                     return VacationState.WAIT_FOR_CURE;
                 }
             }
         } else {
             // Their burnout has been cleared...
+            LOGGER.info("Vacationer {} tracker has been cleared.", citizen);
             reset();
             return CitizenAIState.IDLE;
         }
+
+        LOGGER.info("Vacationer {} has everything they need.  Apply it next!", citizen);
+
         return VacationState.APPLY_CURE;
     }
 
@@ -400,7 +407,7 @@ public class EntityAIBurnoutTask  {
               Component.translatable(GREAT_VACATION),
               ChatPriority.BLOCKING));
 
-        LOGGER.trace("Vacationer {} is waiting for their remedy to repair {} with {} at vacation state {}.", 
+        LOGGER.info("Vacationer {} is waiting for their remedy to repair {} with {} at vacation state {}.", 
             citizen.getName(), vacationTracker.name(), vacationTracker.getRemedyString(), vacationTracker.getState());
 
         final IState state = checkForCure();
@@ -440,6 +447,7 @@ public class EntityAIBurnoutTask  {
     {
         if (checkForCure() != VacationState.APPLY_CURE)
         {
+            LOGGER.info("Vacationer {} lost their cure at applyCure.", citizen);
             return VacationState.CHECK_FOR_CURE;
         }
 
@@ -459,6 +467,7 @@ public class EntityAIBurnoutTask  {
             return CitizenAIState.IDLE;
         }
 
+        LOGGER.info("Vacationer {} is ready to apply their cure.", citizen);
 
         final List<ItemStorage> list = vacationTracker.getRemedyItems();
         if (!list.isEmpty())
@@ -477,6 +486,8 @@ public class EntityAIBurnoutTask  {
                 selectedRemedy.setAmount(selectedRemedy.getAmount() - 1); 
             }
 
+        } else {
+            LOGGER.info("Vacationer {} has no remedy items associated with their tracker.", citizen);
         }
 
         // TODO: RESORT [Enhancement] Make research to scale this.
@@ -491,7 +502,7 @@ public class EntityAIBurnoutTask  {
         new CircleParticleEffectMessage(citizen.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, currentLevel)
             .sendToTrackingEntity(citizen);
 
-        LOGGER.trace("Vacationer {} has applied their remedy: Now at level {} of {}"
+        LOGGER.info("Vacationer {} has applied their remedy: Now at level {} of {}"
             , citizen.getName(), currentLevel, vacationTracker.getTargetLevel());
 
         if (currentLevel < vacationTracker.getTargetLevel())

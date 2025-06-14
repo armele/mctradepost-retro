@@ -10,6 +10,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
@@ -20,6 +21,7 @@ import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
+import com.mojang.logging.LogUtils;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -32,6 +34,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+
 import java.util.Map;
 
 import com.minecolonies.api.util.InventoryUtils;
@@ -50,6 +54,21 @@ import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STA
  */
 public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeeper, BuildingMarketplace>
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
+    public enum ShopkeeperState implements IAIState
+    {
+        FILL_DISPLAYS,
+        SELL_MERCHANDISE;
+
+        @Override
+        public boolean isOkayToEat()
+        {
+            return true;
+        }
+
+    }
+
     /**
      * Base xp gain for the shopkeeper.
      */
@@ -81,7 +100,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     private static final int AFTER_TASK_DELAY = 3;
 
     // The base sell time for selling displayed items.
-    private static final int SELLTIME = MCTPConfig.baseSelltime.get();;
+    // private static final int SELLTIME = MCTPConfig.baseSelltime.get();;
 
     /**
      * Id for the list of sellable items.
@@ -113,8 +132,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
           new AITarget<IAIState>(IDLE, START_WORKING, 1),
           new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
           new AITarget<IAIState>(START_WORKING, this::decideWhatToDo, 10),
-          new AITarget<IAIState>(CRAFT, this::sellFromDisplay, 5),
-          new AITarget<IAIState>(COMPOSTER_FILL, this::fillDisplays, 10) // AI states are defined where we can't touch them. Reuse this one.
+          new AITarget<IAIState>(ShopkeeperState.SELL_MERCHANDISE, this::sellFromDisplay, 5),
+          new AITarget<IAIState>(ShopkeeperState.FILL_DISPLAYS, this::fillDisplays, 10)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -151,7 +170,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         int value = ItemValueRegistry.getValue(stack);
 
         if (value == 0) {
-            MCTradePostMod.LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
+            LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
         }
 
         return value * amount;
@@ -267,10 +286,10 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
-        // MCTradePostMod.LOGGER.info("Deciding what to do. Display shelves: {}", displayShelves.size());
+        LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size());
 
         if (displayShelves.isEmpty()) {
-            MCTradePostMod.LOGGER.warn("No display frames were found for the shopkeeper to use.");
+            LOGGER.warn("Shopkeeper: No display frames were found for the shopkeeper to use.");
             MessageUtils.format("entity.shopkeeper.noframes").sendTo(building.getColony()).forAllPlayers();
             setDelay(DECIDE_DELAY);
             return PAUSED;
@@ -319,7 +338,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     this.currentTarget = displayLocation;
                     setDelay(DECIDE_DELAY);
                     worker.getCitizenData().setVisibleStatus(SELLING);
-                    return COMPOSTER_FILL;
+                    return ShopkeeperState.FILL_DISPLAYS;
                 }
             }
         }
@@ -327,8 +346,15 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         return null;
     }
 
+    /**
+     * Evaluates the state of the item frames on the shelves, to see if any of them are full and ready to be sold.
+     * If one is found, it transitions to the SELL_MERCHANDISE state for that display case.
+     * If none are found, it returns null, and the AI state machine will transition to START_WORKING.
+     * 
+     * @return the next state to transition to, or null if none of the displays are ready to be sold.
+     */
     private IAIState evaluteFramesForSelling() {
-        // Find any filled item frame (considered ready to "craft" / process)
+        // Find any filled item frame (considered eligible to be sold)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
         {
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
@@ -344,22 +370,15 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 {
                     BlockPos pos = displayLocation.immutable();
                     int ticks = displayCase.getTickcount();
+                    displayCase.setTickcount(ticks + 1);        // Purely informational now. May be used in a future iteration.
 
-                    if (ticks >= SELLTIME) {
-                        this.currentTarget = pos;
-                        setDelay(DECIDE_DELAY);
-                        worker.getCitizenData().setVisibleStatus(SELLING);
-                        return CRAFT;
-                    } else if (ticks >= 0) {
-                        displayCase.setTickcount(ticks + 1);
-                    } else { 
-                        // We are going to rely on sellFromDisplay (from CRAFT state) to take the item out.
-                        this.currentTarget = pos;
-                        setDelay(DECIDE_DELAY);
-                        worker.getCitizenData().setVisibleStatus(SELLING);
-                        return CRAFT;
-                    }
+                    if (displayCase.getSaleState() == SaleState.ORDER_PLACED) {
+                        LOGGER.info("Shopkeeper: We should sell this!");
 
+                        this.currentTarget = pos;
+                        worker.getCitizenData().setVisibleStatus(SELLING);
+                        return ShopkeeperState.SELL_MERCHANDISE;
+                    } 
                 }
             }
         }
@@ -385,13 +404,15 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
     /**
      * The AI will now remove the item from the display stand that he found full on his building and "sell" it, adding experience and stats.
-     * Triggered from the CRAFT state.
+     * Triggered from the ShopkeeperState.SELL_MERCHANDISE state.
      * @return the next IAIState after doing this
      */
     private IAIState sellFromDisplay()
     {
         DisplayCase displayCase = building.getDisplayShelves().get(currentTarget);
         ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
+
+        LOGGER.info("Shopkeeper: Selling from display.");
 
         if (frame == null) {
             building.lostShelfAtDisplayPos(currentTarget);
@@ -403,6 +424,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
                 if (list.contains(new ItemStorage(item)))
                 {
+                    LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, currentTarget);
+
                     // "Sell" the item — remove it from the frame
                     frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
                     sellItem(item);                         // Calculate the value of the item and credit it to the economic module and stats module.
@@ -422,10 +445,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                         InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
                     }
 
-                    MCTradePostMod.LOGGER.info("Shopkeeper removed unauthorized item {} from display at {}", item, currentTarget);
+                    LOGGER.info("Shopkeeper: removed unauthorized item {} from display at {}", item, currentTarget);
                 }
-                displayCase.setStack(ItemStack.EMPTY);  // Note that the display case is empty
-                displayCase.setTickcount(-1);           // Reset the timer.
+
+                LOGGER.info("Shopkeeper: sold item {} from display at {}", item, currentTarget); // Trace.
+
+                displayCase.setStack(ItemStack.EMPTY);                  // Note that the display case is empty
+                displayCase.setSaleState(SaleState.ORDER_FULFILLED);    // Mark the order as fulfilled
+                displayCase.setTickcount(-1);                           // Reset the timer.
             }
         }
 
@@ -468,20 +495,21 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (frame == null) {
             building.lostShelfAtDisplayPos(currentTarget);
         } else {
-            // "Insert" the item into the frame, replacing what's there
+            // Insert the item into the frame, replacing what's there
             ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
             if (frame.getItem().isEmpty())
             {
-                ItemStack placed = heldItem.copy();
-                frame.setItem(placed);           // Show the item
-                displayCase.setStack(placed);    // Record what the case is holding (for persistance)
-                displayCase.setTickcount(0);    // Start countdown for this display shelf
+                ItemStack placed = heldItem.split(1);           // Take the item from the inventory();
+                frame.setItem(placed);                          // Show the item
+                displayCase.setStack(placed);                   // Record what the case is holding (for persistance)
+                displayCase.setTickcount(0);          // Start counter for this display shelf
+                displayCase.setSaleState(SaleState.FOR_SALE);   // Mark the display as for sale
 
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 this.incrementActionsDoneAndDecSaturation();
 
-                // Decrement the stack in inventory
-                heldItem.shrink(1);
+                // Decrement the stack in inventory TODO: Verify handled by .split() and remove
+                // heldItem.shrink(1);
                 worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                 
                 incrementActionsDone();
