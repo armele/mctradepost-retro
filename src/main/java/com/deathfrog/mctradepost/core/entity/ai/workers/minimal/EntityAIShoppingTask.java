@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
@@ -19,6 +20,8 @@ import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.entity.ai.visitor.EntityAIVisitor.VisitorState;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 
 /* EntityAIShoppingTask inserted into the Visitor AI by the marketplace. */
 public class EntityAIShoppingTask
@@ -41,7 +44,9 @@ public class EntityAIShoppingTask
     private int lingerTimer = 0;
     private static final int MAX_LINGER_TIME = 200;
     private static final int SHOPPING_COOLDOWN = MCTPConfig.shoppingCooldown.get();
-    private int shoppingTimer = SHOPPING_COOLDOWN;
+
+    // Initialize them to a random point in the cooldown, to promote better distribution of when shopping happens
+    private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN); 
 
     public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace)
     {
@@ -78,33 +83,32 @@ public class EntityAIShoppingTask
         // No shopping at night.
         if (!WorldUtil.isDayTime(marketplace.getColony().getWorld()))
         {
-            LOGGER.info("Visitor {} won't shop at night!", visitor.getEntity().get().getName());
+            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} won't shop at night!", visitor.getEntity().get().getName()));
             return false;
         }
 
         // No shopping if the marketplace isn't open.
         if (!marketplace.isOpenForBusiness()) 
         {
-            LOGGER.info("Visitor {} can't shop - the store is closed.", visitor.getEntity().get().getName());
+            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} can't shop - the store is closed.", visitor.getEntity().get().getName()));
             return false;
         }
 
         shoppingTimer = shoppingTimer - marketplace.getBuildingLevel();
 
         if (shoppingTimer > 0) {
-            LOGGER.info("Visitor {} can't shop - taking a break with cooldown at: {}", visitor.getEntity().get().getName(), shoppingTimer);
+            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} can't shop - taking a break with cooldown at: {}", visitor.getEntity().get().getName(), shoppingTimer));
             return false;
         }
 
         if (marketplace.shoppingChance() > ThreadLocalRandom.current().nextDouble() * ONE_HUNDRED)
         {
-            shoppingTimer = SHOPPING_COOLDOWN;
-            LOGGER.info("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
+            LOGGER.trace("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
             return true;
         }
         else
         {
-            LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName());
+            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName()));
             return false;
         }
     }
@@ -149,20 +153,20 @@ public class EntityAIShoppingTask
         {
             case NONE:
                 if (!currentDisplay.getStack().isEmpty()) {
-                    LOGGER.info("Visitor {} has made an offer on a display not yet up for sale!", visitor.getEntity().get().getName());
+                    TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} has made an offer on a display not yet up for sale!", visitor.getEntity().get().getName()));
                     currentDisplay.setSaleState(SaleState.ORDER_PLACED);
                     return ShoppingState.IS_SHOPPING;  
                 }
                 return ShoppingState.PICK_DISPLAY;
 
             case FOR_SALE:
-                LOGGER.info("Visitor {} has made an offer!", visitor.getEntity().get().getName());
+                TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} has made an offer!", visitor.getEntity().get().getName()));
                 currentDisplay.setSaleState(SaleState.ORDER_PLACED);
                 return ShoppingState.IS_SHOPPING;
 
             case ORDER_PLACED:
                 if (lingerTimer <= 0) {
-                    LOGGER.info("Visitor {} is tired of waiting for service.", visitor.getEntity().get().getName());
+                    TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} is tired of waiting for service.", visitor.getEntity().get().getName()));
                     currentDisplay.setSaleState(SaleState.FOR_SALE);
                     currentDisplay = null;
                     return ShoppingState.DONE_SHOPPING;
@@ -220,6 +224,7 @@ public class EntityAIShoppingTask
      */
     public IState doneShopping()
     {
+        shoppingTimer = SHOPPING_COOLDOWN;
         return VisitorState.WANDERING;
     }
 }

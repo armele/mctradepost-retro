@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -47,6 +48,7 @@ import java.util.List;
 import static com.minecolonies.api.util.constant.StatisticsConstants.ITEM_USED;
 import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STATS_MODULE;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
 
 /**
  * Handles the Shopkeeper AI.  The shopkeeper works in the Marketplace.
@@ -286,7 +288,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
-        LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size());
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size()));
 
         if (displayShelves.isEmpty()) {
             LOGGER.warn("Shopkeeper: No display frames were found for the shopkeeper to use.");
@@ -373,7 +375,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     displayCase.setTickcount(ticks + 1);        // Purely informational now. May be used in a future iteration.
 
                     if (displayCase.getSaleState() == SaleState.ORDER_PLACED) {
-                        LOGGER.info("Shopkeeper: We should sell this!");
+                        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: We should sell this!"));
 
                         this.currentTarget = pos;
                         worker.getCitizenData().setVisibleStatus(SELLING);
@@ -412,7 +414,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         DisplayCase displayCase = building.getDisplayShelves().get(currentTarget);
         ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
 
-        LOGGER.info("Shopkeeper: Selling from display.");
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Selling from display."));
 
         if (frame == null) {
             building.lostShelfAtDisplayPos(currentTarget);
@@ -424,7 +426,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
                 if (list.contains(new ItemStorage(item)))
                 {
-                    LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, currentTarget);
+                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, currentTarget));
 
                     // "Sell" the item — remove it from the frame
                     frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
@@ -445,10 +447,10 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                         InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
                     }
 
-                    LOGGER.info("Shopkeeper: removed unauthorized item {} from display at {}", item, currentTarget);
+                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: removed unauthorized item {} from display at {}", item, currentTarget));
                 }
 
-                LOGGER.info("Shopkeeper: sold item {} from display at {}", item, currentTarget); // Trace.
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: sold item {} from display at {}", item, currentTarget)); 
 
                 displayCase.setStack(ItemStack.EMPTY);                  // Note that the display case is empty
                 displayCase.setSaleState(SaleState.ORDER_FULFILLED);    // Mark the order as fulfilled

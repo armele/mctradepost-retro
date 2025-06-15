@@ -148,3 +148,4 @@ NeoForged Discord: [Neoforge discord](https://discord.neoforged.net/)
 Minecolonies: [MineColonies Home](https://minecolonies.com/)  
 
 ## Known Defects
+Citizens on vacation may give their vacation notifcation even when not at the resort.

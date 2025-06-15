@@ -10,6 +10,7 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.jobs.views.CrafterJobView;
+import com.minecolonies.core.colony.jobs.views.DefaultJobView;
 
 import net.minecraft.core.Registry;
 import net.minecraft.server.level.ServerLevel;
@@ -54,7 +55,7 @@ public final class ModJobsInitializer
 
         MCTPModJobs.stationmaster = register(DEFERRED_REGISTER, MCTPModJobs.STATIONMASTER_ID.getPath(), () -> new JobEntry.Builder()
           .setJobProducer(JobStationMaster::new)
-          .setJobViewProducer(() -> CrafterJobView::new)
+          .setJobViewProducer(() -> DefaultJobView::new)
           .setRegistryName(MCTPModJobs.STATIONMASTER_ID)
           .createJobEntry());
     }

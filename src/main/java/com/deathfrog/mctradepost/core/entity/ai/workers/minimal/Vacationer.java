@@ -18,7 +18,8 @@ import java.util.function.Predicate;
  * Modeled on Disease and it's associate handler, this class allows us to handle burnout without 
  * accidentally sending someone to the hospital instead of the resort...
  */
-public class Vacationer {
+public class Vacationer 
+{
     private final int civilianId;
     private VacationState state;
     public static final String BURNOUT_NAME = "com.mctradepost.resort.burnout";
@@ -31,7 +32,8 @@ public class Vacationer {
     /*
      * Don't confuse these with AI states... they're just internal markers used to track the progress of the vacation and are not used to generate AI actions directly.
      */
-    public enum VacationState {
+    public enum VacationState 
+    {
         BROWSING,       // You wandered over the the resort to take a look, but you don't need a vacation yet.
         RESERVED,       // You need a vacation!  Reservations made.
         CHECKED_IN,     // You have checked in at the resort.
@@ -40,18 +42,21 @@ public class Vacationer {
         CHECKED_OUT     // You have checked out of the resort.
     }
 
-    public Vacationer(int civilianId, Skill burntSkill) {
+    public Vacationer(int civilianId, Skill burntSkill) 
+    {
         this.civilianId = civilianId;
         this.state = VacationState.RESERVED;
         this.burntSkill = burntSkill;
     }
 
-   public Vacationer(int civilianId) {
+   public Vacationer(int civilianId) 
+   {
       this.state = VacationState.BROWSING;
       this.civilianId = civilianId;
    }
 
-   public Vacationer(CompoundTag vacationCompound) {
+   public Vacationer(CompoundTag vacationCompound) 
+   {
       this.state = VacationState.BROWSING;
       this.civilianId = vacationCompound.getInt("id");
       this.state = VacationState.values()[vacationCompound.getInt("status")];
@@ -60,30 +65,36 @@ public class Vacationer {
       this.targetLevel = vacationCompound.getInt("targetLevel");
    }
 
-   public int getCivilianId() {
+   public int getCivilianId() 
+   {
       return this.civilianId;
    }
 
-   public VacationState getState() {
+   public VacationState getState() 
+   {
       return this.state;
    }
 
-   public void setState(VacationState state) {
+   public void setState(VacationState state) 
+   {
       this.state = state;
    }
 
-   public void write(CompoundTag compoundNBT) {
+   public void write(CompoundTag compoundNBT) 
+   {
       compoundNBT.putInt("id", this.civilianId);
       compoundNBT.putInt("status", this.state.ordinal());
       compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name());
       compoundNBT.putInt("targetLevel", targetLevel);
    }
 
-    public Skill getBurntSkill() {
+    public Skill getBurntSkill() 
+    {
         return burntSkill;
     }
 
-    public void setBurntSkill(Skill burntSkill) {
+    public void setBurntSkill(Skill burntSkill)
+    {
         this.burntSkill = burntSkill;
     }
 
@@ -95,7 +106,8 @@ public class Vacationer {
      * @param burntSkill the skill for which the cure is requested.
      * @return a list of items which are the cure for the given skill.
      */
-    public List<ItemStorage> getRemedyItems() {
+    public List<ItemStorage> getRemedyItems() 
+    {
         List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(burntSkill);
 
         /*
@@ -113,7 +125,8 @@ public class Vacationer {
      * @param burntSkill the skill for which the name is requested.
      * @return a Component which is the name of the Burnout condition.
      */
-    public Component name() {
+    public Component name() 
+    {
         return Component.literal(burntSkill.name());
     }
 
@@ -141,11 +154,13 @@ public class Vacationer {
         return cureString;
     }
 
-    public boolean isCurrentlyAtResort() {
+    public boolean isCurrentlyAtResort() 
+    {
         return currentlyAtResort;
     }
 
-    public void setCurrentlyAtResort(boolean currentlyAtResort) {
+    public void setCurrentlyAtResort(boolean currentlyAtResort) 
+    {
         this.currentlyAtResort = currentlyAtResort;
     }
     
@@ -155,7 +170,8 @@ public class Vacationer {
      * @param cure the expected cure item.
      * @return the predicate for checking if the cure exists.
      */
-    public static Predicate<ItemStack> hasRemedyItem(final ItemStorage cure) {
+    public static Predicate<ItemStack> hasRemedyItem(final ItemStorage cure) 
+    {
         return stack -> isRemedyItem(stack, cure);
     }
 
@@ -166,7 +182,8 @@ public class Vacationer {
      * @param cure  the cure item.
      * @return true if so.
      */
-    public static boolean isRemedyItem(final ItemStack stack, final ItemStorage cure) {
+    public static boolean isRemedyItem(final ItemStack stack, final ItemStorage cure) 
+    {
         return Objects.equals(new ItemStorage(stack), cure);
     }
 
@@ -182,7 +199,8 @@ public class Vacationer {
      * Sets the target level for the burnout condition being repaired.
      * @param targetLevel the target level for the burnout condition.
      */
-    public void setTargetLevel(int targetLevel) {
+    public void setTargetLevel(int targetLevel) 
+    {
         this.targetLevel = targetLevel;
     }
     
@@ -192,7 +210,8 @@ public class Vacationer {
      * @param resort the resort to be assigned.
      */
 
-    public void setResort(BuildingResort resort) {
+    public void setResort(BuildingResort resort) 
+    {
         this.resort = resort;
     }
 
@@ -200,7 +219,8 @@ public class Vacationer {
      * Gets the resort assigned to this vacationer.
      * @return the assigned resort.
      */
-    public BuildingResort getResort() {
+    public BuildingResort getResort() 
+    {
         return resort;
     }
 
@@ -214,7 +234,8 @@ public class Vacationer {
         this.targetLevel = 0;
         this.currentlyAtResort = false;
 
-        if (resort != null) {
+        if (resort != null) 
+        {
             resort.removeGuestFile(civilianId);
         }
 

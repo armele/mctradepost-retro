@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.StatsUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
 import com.deathfrog.mctradepost.core.colony.jobs.JobRecyclingEngineer;
@@ -31,6 +32,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RECYCLING;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -99,24 +101,6 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         worker.setCanPickUpLoot(true);
     }
 
-    /* RECYCLING - Sort output chest. (SORT_OUTPUT IState)
-    // - Materials with no crafting recipe are put away in the building inventory.
-    // - Materials with further crafting recipies are put back into the input chest if the building setting for iterative processing is true.
-    // 
-    // RECYCLING - Move input chest items in process. (LOAD_RECYCLER IState)
-    // - Number of simultaneous decompositions varies by building level.
-    // - Items found in the input chest which can be decomposed are put "in process"
-    // - Items found in the input chest which cannot be decomposed are put back into the building inventory.
-    // - Output goes into the output chest.  Excess goes into the building inventory or is dumped into the world.
-    // - Items considered "in process" are serialized so we don't lose them on a restart.
-    // - When items are in process, blocks marked with a "work_area" tag get some graphic effects.
-    // 
-    // RECYCLING - Request items from the warehouse.
-    // - When the input chest is empty, examine the recycling module list of recyclables.
-    // - Request a stack of whatever has the greatest number in the warehouse.
-    // - When the order is fulfilled, move the items to the input chest.
-    */
-
     /**
      * Decide what to do next.  If there's a non-empty output chest, sort its contents.
      * Otherwise, load the recycling module.
@@ -125,7 +109,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
     public IAIState decideWhatToDo() {
         BuildingRecycling recycling = (BuildingRecycling) building;
 
-        LOGGER.trace("Recycling Engineer: Deciding what to do.");
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do."));
         if (recycling.getRecyclingProcessors().size() > 0) {
             checkMachine(1, null);
         }
@@ -202,7 +186,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         BuildingRecycling recycling = (BuildingRecycling) building;
         boolean cancarry = true;
 
-        LOGGER.trace("Recycling Engineer: Unloading output.");
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Unloading output."));
 
         worker.getCitizenData().setVisibleStatus(RECYCLING);
 
@@ -221,7 +205,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                     if (!stackInChest.isEmpty() && cancarry) {
                         // Attempt to insert the stack into worker's inventory
-                        LOGGER.trace("Trying to insert {} into worker's inventory", stackInChest);
+                        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Trying to insert {} into worker's inventory", stackInChest));
                         cancarry = InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(chestHandler, i, worker);
                     }
                 }
@@ -234,10 +218,10 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             }
 
             if (building.getSetting(BuildingRecycling.ITERATIVE_PROCESSING).getValue()) {
-                LOGGER.info("Load recycler next.");
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Load recycler next."));
                 return RecyclingStates.LOAD_TO_INPUT;
             } else {
-                LOGGER.info("Dump stuff into the building inventory next.");
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Dump stuff into the building inventory next."));
                 return RecyclingStates.LOAD_BUILDING;
             }
         }
@@ -256,7 +240,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         BuildingRecycling recycling = (BuildingRecycling) building;
         boolean canhold = true;
 
-        LOGGER.info("Recycling Engineer: Loading to building.");
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Loading to building."));
 
         if (!walkToSafePos(recycling.getPosition())) {
             return getState();
@@ -271,7 +255,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                 if (!stackInChest.isEmpty() && canhold) {
                     // Attempt to insert the stack into building inventory
-                    LOGGER.info("Trying to insert {} into building inventory", stackInChest);
+                    TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Trying to insert {} into building inventory", stackInChest));
                     canhold = InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(workerInventory, i, recycling);
                 }
             }
@@ -299,7 +283,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         BuildingRecycling recycling = (BuildingRecycling) building;
         boolean canhold = true;
 
-        LOGGER.info("Recycling Engineer: Loading to recycler.");
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Loading to recycler."));
 
         if (currentInputChest == null) {
             currentInputChest = recycling.identifyInputPositions().getFirst();
@@ -325,7 +309,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                 if (!stackInSlot.isEmpty() && canhold) {
                     // Attempt to insert the stack into the input chest inventory
-                    LOGGER.info("Trying to insert {} into input chest", stackInSlot);
+                    TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Trying to insert {} into input chest", stackInSlot));
                     canhold = InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(workerInventory, i, itemHandlerOpt);
                 }
             }
@@ -355,7 +339,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      *         of the input chest and the machine's capacity.
      */
     public IAIState startMachine() {
-        LOGGER.info("Starting recycling machine.");
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Starting recycling machine."));
 
         worker.getCitizenData().setVisibleStatus(RECYCLING);
 
@@ -372,16 +356,16 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 }
 
                 if ((stackToRecycle.getCount() > 0) && recycling.hasProcessingCapacity()) {
-                    LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId());
+                    TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId()));
                     final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
 
                     if (recycling.addRecyclingProcess(removedStack.copy())) {
-                        LOGGER.warn("Recording recycling stats for: {}, count {}", stackToRecycle.getDescriptionId(), stackToRecycle.getCount());
+                        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recording recycling stats for: {}, count {}", stackToRecycle.getDescriptionId(), stackToRecycle.getCount()));
                         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                         StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle, stackToRecycle.getCount());
                         worker.getCitizenColonyHandler().getColonyOrRegister().getStatisticsManager().increment(RECYCLING_STAT, worker.getCitizenColonyHandler().getColonyOrRegister().getDay());
                     } else {
-                        LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId());
+                        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId()));
                         if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle)) {
                             InventoryUtils.spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
                             return INVENTORY_FULL;

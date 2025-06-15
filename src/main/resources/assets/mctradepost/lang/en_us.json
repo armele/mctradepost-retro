@@ -49,6 +49,7 @@
     "com.minecolonies.building.station": "Train Station",
     "com.mctradepost.building.station": "Train Station",
     "com.mctradepost.job.stationmaster": "Station Master",
+    "mctradepost.job.stationmaster.desc": "Coordinates inter-colony trade and travel.",
 
     "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
     "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables": "Recyclables",
