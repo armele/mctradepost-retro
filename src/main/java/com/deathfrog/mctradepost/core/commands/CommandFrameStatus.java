@@ -29,6 +29,12 @@ public class CommandFrameStatus extends AbstractCommands
     {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = context.getSource().getPlayer();
+
+        if (player == null) 
+        {
+            return 0;     
+        }
+
         BlockPos pos = player.blockPosition();
 
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(player.level(), pos);

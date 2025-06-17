@@ -9,12 +9,14 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Gradient;
 import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
+import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.ldtteam.blockui.views.Box;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 public class WindowRecyclerProgressModule extends AbstractModuleWindow
@@ -36,11 +38,16 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
      */
     protected ScrollingList processorDisplayList;
 
-    public WindowRecyclerProgressModule(IBuildingView buildingView, Set<RecyclingProcessor> recyclingProcessors)
+    protected Text capacityPane;
+    protected int maxProcessors;
+
+    public WindowRecyclerProgressModule(IBuildingView buildingView, Set<RecyclingProcessor> recyclingProcessors, int maxProcessors)
     {
         super(buildingView, MCTradePostMod.MODID + RECYCPROGRESSWINDOW_RESOURCE_SUFFIX);
         this.recyclingProcessors = recyclingProcessors.stream().toList();
         processorDisplayList = findPaneOfTypeByID(WindowConstants.WINDOW_ID_LIST_REQUESTS, ScrollingList.class);
+        capacityPane = findPaneOfTypeByID("capacity", Text.class);
+        this.maxProcessors = maxProcessors;
     }
 
     @Override
@@ -50,6 +57,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
 
         if (processorDisplayList != null && recyclingProcessors != null)
         {
+            capacityPane.setText(Component.literal(recyclingProcessors.size() + " of " + maxProcessors + " in use."));
             updateProcessors();
         } else {
             MCTradePostMod.LOGGER.warn("ProcessorDisplayList or recyclingProcessors is null.");
@@ -61,8 +69,6 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
      * @see {@link ScrollingList.DataProvider}
      */
     public void updateProcessors() {
-
-        // TODO: RECYCLING [Enhancement] Add something to show how many processors are available, if not in use.
 
         processorDisplayList.setDataProvider(new ScrollingList.DataProvider()
         {

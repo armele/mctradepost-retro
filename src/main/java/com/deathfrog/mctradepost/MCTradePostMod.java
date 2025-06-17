@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost;
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -18,7 +17,6 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
-import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirISTER;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
@@ -40,7 +38,6 @@ import com.google.gson.stream.JsonWriter;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.registries.Registries;
@@ -62,14 +59,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
-import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;

@@ -26,11 +26,9 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.core.colony.CitizenData;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
@@ -190,9 +188,18 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         tag.put(SERIALIZE_RECYCLINGPROCESSORS_TAG, processorListTag);
+
         return tag;
     }
 
+    /**
+     * Serializes the list of allowable items into the given CompoundTag. The list is stored under the key
+     * EntityAIWorkRecyclingEngineer#RECYCLING_LIST. Each item is represented as a CompoundTag with keys "stack" and "count",
+     * where "stack" is the serialized form of the item stack and "count" is the number of items allowed.
+     *
+     * @param provider The holder lookup provider for item and block references.
+     * @param tag      The CompoundTag to which the list of allowable items should be serialized.
+     */
     public void serializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag)
     {
         if (allItems != null && !allItems.isEmpty())
@@ -209,6 +216,16 @@ public class BuildingRecycling extends AbstractBuilding
         }
     }
 
+    /**
+     * Deserializes the allowable items from the given NBT compound tag and updates the building's state.
+     * This method clears the current list of allowable items and repopulates it by reading from the
+     * compound tag specified. The allowable items are stored under the key specified by 
+     * EntityAIWorkRecyclingEngineer#RECYCLING_LIST, and each item is represented as a CompoundTag 
+     * within a ListTag. The items are added to the allItems map with a default value of 0.
+     *
+     * @param provider The holder lookup provider for item and block references.
+     * @param compound The CompoundTag containing the serialized state of allowable items.
+     */
     public void deserializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag)
     {
         this.allItems.clear();
@@ -243,12 +260,24 @@ public class BuildingRecycling extends AbstractBuilding
         return outputContainers;
     }
 
+    /**
+     * Initialize the input positions based on what is tagged in the structure. This makes the building look for the correct number of
+     * input positions even if some are missing. That way a "repair" action will fix the problem.
+     * 
+     * @return a list of block positions that are tagged as input containers
+     */
     public List<BlockPos> identifyInputPositions()
     {
         final List<BlockPos> inputContainers = getLocationsFromTag(STRUCT_TAG_INPUT_CONTAINER);
         return inputContainers;
     }
 
+    /**
+     * Initialize the equipment positions based on what is tagged in the structure. This makes the building look for the correct number of
+     * equipment positions even if some are missing. That way a "repair" action will fix the problem.
+     * 
+     * @return a list of block positions that are tagged as equipment positions
+     */
     public List<BlockPos> identifyEquipmentPositions()
     {
         final List<BlockPos> equipmentSpots = getLocationsFromTag(STRUCT_TAG_GRINDER);
@@ -361,7 +390,7 @@ public class BuildingRecycling extends AbstractBuilding
         @Override
         public String toString()
         {
-            return "RecyclingProcessor{" + "processingItem=" +
+            return "RecyclingProcessor {" + "processingItem=" +
                 processingItem +
                 ", processingTimer=" +
                 processingTimer +
@@ -400,6 +429,19 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         return false;
+    }
+
+    /**
+     * Removes the given recycling processor from the list of processors associated with this building and marks the building as
+     * dirty. This is intended to be used when the processor has finished its task and should be removed from the list of in-progress
+     * recycling operations.
+     * 
+     * @param processor the recycling processor to remove.
+     */
+    public void removeRecyclingProcess(RecyclingProcessor processor)
+    {
+        recyclingProcessors.remove(processor);
+        markDirty();
     }
 
     /**
@@ -492,8 +534,7 @@ public class BuildingRecycling extends AbstractBuilding
             if (processor.isFinished())
             {
                 generateOutput(processor.output);
-
-                recyclingProcessors.remove(processor);
+                removeRecyclingProcess(processor);
             }
         }
 

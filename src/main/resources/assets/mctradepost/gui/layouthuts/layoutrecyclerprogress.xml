@@ -5,8 +5,8 @@
            label="$(com.mctradepost.coremod.gui.recycler.process)"/>
     <button id="cancel" label="X" color="red" pos="160 11" size="14 15"
                  source="minecolonies:textures/gui/builderhut/builder_button_mini.png"/>
-
-    <list id="requests" size="170 170" pos="13 30">
+    <text id="capacity" size="120 11" pos="30 30" textalign="MIDDLE" color="black"/>
+    <list id="requests" size="170 154" pos="13 46">
         <box id="requestx" size="100% 40" linewidth="1">
             <!--Item icons -->
             <image id="progressBar" source="mctradepost:textures/gui/modules/progress_arrow.png" size="57 21" pos="20 1" visible="true"/>

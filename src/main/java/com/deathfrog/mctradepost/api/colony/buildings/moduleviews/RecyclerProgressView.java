@@ -23,6 +23,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
 
 
     private Set<RecyclingProcessor> recyclingProcessors = new HashSet<RecyclingProcessor>();
+    private int maxProcessors = -1;
 
     public RecyclerProgressView() {
         super();
@@ -50,7 +51,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowRecyclerProgressModule(getBuildingView(), recyclingProcessors);
+        return new WindowRecyclerProgressModule(getBuildingView(), recyclingProcessors, maxProcessors);
     }
 
     /**
@@ -78,6 +79,13 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
                 processor.deserialize(buf.registryAccess(), processorTag);
                 recyclingProcessors.add(processor);
             }
+        }
+
+        CompoundTag max = buf.readNbt();
+
+        if (max != null && max.contains("maxProcessors", Tag.TAG_INT)) {
+            int maxProcessors = max.getInt("maxProcessors");
+            this.maxProcessors = maxProcessors;
         }
     }
 }

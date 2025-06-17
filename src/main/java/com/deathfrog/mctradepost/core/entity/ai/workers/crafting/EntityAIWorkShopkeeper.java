@@ -515,8 +515,6 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 this.incrementActionsDoneAndDecSaturation();
 
-                // Decrement the stack in inventory TODO: Verify handled by .split() and remove
-                // heldItem.shrink(1);
                 worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                 
                 incrementActionsDone();

@@ -1,7 +1,6 @@
 package com.deathfrog.mctradepost.core.commands;
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
-import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.mojang.brigadier.context.CommandContext;
@@ -29,6 +28,12 @@ public class CommandVacationClear extends AbstractCommands
     {
         CommandSourceStack source = context.getSource();
         ServerPlayer player = context.getSource().getPlayer();
+
+        if (player == null) 
+        {
+            return 0;     
+        }
+
         BlockPos pos = player.blockPosition();
 
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(player.level(), pos);

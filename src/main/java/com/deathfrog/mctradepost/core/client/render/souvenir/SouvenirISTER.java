@@ -36,6 +36,7 @@ public class SouvenirISTER extends BlockEntityWithoutLevelRenderer {
      * @param light The light level.
      * @param overlay The overlay to render.
      */
+    @SuppressWarnings("null")
     @Override
     public void renderByItem(
         @Nonnull final ItemStack stack, 
