@@ -12,23 +12,26 @@ Consult the "Economics" research line in the University for some tips on where t
 
 ### Buildings
 #### Marketplace
-Gives you a place for a Shopkeeper to work. They will sell various trinkets (configured in the hut block) to the visitors in the colony, generating Trade Coins (‡).
+Gives you a place for a Shopkeeper to work. They can make just about anything (configured in the hut block) into a cute souvenir to sell to the visitors in the colony, generating Trade Coins (‡).
 
 #### Resort
 A resort attracts your citizens who are feeling overworked. Guest Services will tend to vacationing citizens, who can relax and repair their adverse stat, and generate some Trade Coins (‡) for the colony while taking a break from work.
 
 #### Recycling Center
-The recycling center can help you break down your old building materials and other equipment into their raw components so they can be reused. Up to two recycling processes per building level can be in progress at once, and a skilled Recycling Engineer can speed up the process.
+The recycling center can help you break down your old building materials and other equipment into their raw components so they can be reused. Up to two recycling processes per building level can be in progress at once, and a skilled Recycling Engineer can speed up the process. Success of recycling depends on a variety of factors, including the building level, the level of damage something has taken (if damageable) and the primary skill of the recycling engineer handling the work.
+
+#### Train Station
+Currently this building has no functional use. Future purposes include:
+* Increasing visitor count and quality
+* Increasing trader frequency and quality
+* Connecting to other colonies to facilitate trading.
 
 ### Jobs
-The Shopkeeper works in the Marketplace, keeping the shelves stocked and ordering up new supply as needed.
-
-Guest Services staffs the resort, finding out what the vacationers need to relax, and bringing it to them.
-
-The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
-
-The Recycling Engineer handles all recycling requests at the Recycling Center.
-
+* The Shopkeeper works in the Marketplace, keeping the shelves stocked with souvenirs and ordering up new supply as needed.
+* Guest Services staffs the resort, finding out what the vacationers need to relax, and bringing it to them.
+* The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
+* The Recycling Engineer handles all recycling requests at the Recycling Center.
+* The Station Master currently has no purpose - work in progress.
 
 ### Research
 This mod introduces the "Economics" line of research. 
@@ -42,20 +45,14 @@ Environmentalism - Unlocks the Recycling Center
 Not yet implemented: Industrial Sorting (+1 recycling processors per building level)
 
 ### Custom Items
-
-Marketplace Hut - Supports the Marketplace building and the Shopkeeper job.  
-Advanced Clipboard - Just like the regular clipboard but with a button that filters the outstanding needs down to only those expected to be fulfilled by a player.  
-Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut. The hut must be upgraded, first! Trade Coins will (eventually) be used as the basis for triggering most Trade Post mod features.  Coins can be used at a Wishing Well to trigger certain effects.
-
-A variety of items that support the Bartender's ability to serve at the resort.
+* Building huts associated with the buildings described above.
+* Souvenir - intended primarly to be sold at the marketplace, but may have decorative value.
+* Advanced Clipboard - Just like the regular clipboard but with a button that filters the outstanding needs down to only those expected to be fulfilled by a player.  
+* Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut. The hut must be upgraded, first! Trade Coins will (eventually) be used as the basis for triggering most Trade Post mod features.  Coins can be used at a Wishing Well to trigger certain effects.
+* A variety of items that support Guest Servcies and Bartender's ability to serve at the resort.
 
 ### Custom Blocks
-
-Marketplace Hut Block - Block implementation of the Marketplace building.
-
-Resort Hut Block - Block implementation of the Resort building.
-
-Recycling Hut Block - Block implementation of the Recycling Center.
+* Block implementations of the building huts.
 
 ### Configuration
 This mod supports the Neoforce configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
@@ -74,14 +71,14 @@ Citizens who have been worked too hard (low Adverse skill) will occassionally go
 Visitors will go shopping at the marketplace, once built.
 
 ## Installation
-
 Download the appropriate mctradepost-x.y.z.jar file from Github at the root project directory.  
 Copy that Jar file into your mods directory.  
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-
-mctradepost-0.10.002 -> MineColonies 1.1.978 (Minecraft 1.21.1)  
+mctradepost-0.11.002 -> MineColonies 1.1.978 (Minecraft 1.21.1)  with the NeoForge loader.
+There are no plans to support earlier versions of Minecraft or other Mod Loaders.
+Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
 ## Style Packs
 ### Economic
@@ -115,7 +112,6 @@ Research: Unlock Train Station [Testing]
 
 ### Roadmap (Roughly Prioritized)
 
-Marketplace refinement: Visitor purchases, souveneirs
 Research: Tourism (requires marketplace level and station level - increases visitor cap or rate)
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
@@ -148,4 +144,4 @@ NeoForged Discord: [Neoforge discord](https://discord.neoforged.net/)
 Minecolonies: [MineColonies Home](https://minecolonies.com/)  
 
 ## Known Defects
-Citizens on vacation may give their vacation notifcation even when not at the resort.
+Recycling stats are not recorded correctly for Domum blocks.

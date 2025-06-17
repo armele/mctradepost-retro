@@ -1,0 +1,25 @@
+{
+  "parent": "neoforge:item/default",
+  "loader": "mctradepost:souvenir_loader",
+
+  "base": {
+    "parent": "mctradepost:item/souvenir_default",
+    "textures": {
+      "layer0": "mctradepost:item/souvenir"
+    }
+  },
+
+  "perspectives": {
+    "gui": {
+      "parent": "mctradepost:item/souvenir_default",
+      "textures": { "layer0": "mctradepost:item/souvenir" }
+    },
+    "ground": {
+      "parent": "mctradepost:item/souvenir_default",
+      "textures": { "layer0": "mctradepost:item/souvenir" }
+    }
+  },
+
+  "rendered-item-function": "mctradepost:souvenir"
+
+}

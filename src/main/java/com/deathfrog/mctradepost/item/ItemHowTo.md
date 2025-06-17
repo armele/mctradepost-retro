@@ -1,8 +1,8 @@
 # Creating a New Item
-* If the item requires custom functionality, implement it in com.deathfrog.mctradepost.item.  This class will be what is used for the declaration and registration in the next step. 
+* If the item requires custom functionality, implement it as a new class in com.deathfrog.mctradepost.item.  This class will be what is used for the declaration and registration in the next step. 
 ** Many items may be able to use "Item" or "ItemFood" or similar base classes if they simply provide a variation on that functionality. In this case, no new class is needed.
 * Declare and register it in MCTradePostMod constructor.
-* Make it available on the creative tab in MCTradePostModClientModEvents.addCreative
+* Make it available on the creative tab in MCTradePostModClientModEvents.addCreative (optional)
 * Add a translation key to en_us.json of the form "item.mctradepost.<item_registration_key>"
 * Add a JSON file at src/main/resources/assets/mctradepost/models/item that points to the graphic that will be used for this item. The layer specified here is of the form "<modid>:item/<item_registration_key>"
 * Add the .PNG (16x16 or 32x32) to src/main/resources/assets/mctradepost/textures/item/ with a name matching <item_registration_key>.png

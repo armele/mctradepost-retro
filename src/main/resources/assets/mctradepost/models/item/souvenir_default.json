@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "mctradepost:item/advanced_clipboard"
+    "layer0": "mctradepost:item/souvenir"
   }
 }

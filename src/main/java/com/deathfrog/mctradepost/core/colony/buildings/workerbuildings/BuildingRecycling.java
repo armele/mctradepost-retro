@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -24,9 +26,11 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.core.colony.CitizenData;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
@@ -68,6 +72,8 @@ public class BuildingRecycling extends AbstractBuilding
     public static final String RECYCLER_NO_OUTPUT_BOX = "com.mctradepost.recycler.no_output_box";
     public static final String RECYCLER_NO_RECYCLABLES_SET = "com.mctradepost.recycler.no_list_configured";
     public static final String NO_RECYCLE_TAG = "NoRecycle";
+
+    public static final int FLAWLESS_RECYCLING_STAT_LEVEL = MCTPConfig.flawlessRecycling.get();
 
     /**
      * Structurize tag identifying where the input and output containers are.
@@ -371,11 +377,13 @@ public class BuildingRecycling extends AbstractBuilding
      * Adds a recycling processor to the list of processors associated with this building.
      * 
      * @param itemToRecycle the item to be recycled.
+     * @param worker the citizen data associated with the worker who is recycling the item.
+     * or null if this is intended to simulate flawless recycling.
      * @return true if the processor was added, false if the item cannot be recycled.
      */
-    public boolean addRecyclingProcess(ItemStack itemToRecycle)
+    public boolean addRecyclingProcess(ItemStack itemToRecycle, int workerSkill)
     {
-        List<ItemStack> recyclingOutput = outputList(itemToRecycle);
+        List<ItemStack> recyclingOutput = outputList(itemToRecycle, workerSkill);
 
         if (recyclingOutput != null && !recyclingOutput.isEmpty())
         {
@@ -406,7 +414,7 @@ public class BuildingRecycling extends AbstractBuilding
         ItemStack hypotheticalStack = itemToRecycle.copy();
         hypotheticalStack.setCount(hypotheticalStack.getMaxStackSize());
 
-        List<ItemStack> recyclingOutput = outputList(itemToRecycle);
+        List<ItemStack> recyclingOutput = outputList(itemToRecycle, -1);
         return recyclingOutput != null && !recyclingOutput.isEmpty();
     }
 
@@ -483,7 +491,7 @@ public class BuildingRecycling extends AbstractBuilding
 
             if (processor.isFinished())
             {
-                generateOutput(processor.processingItem);
+                generateOutput(processor.output);
 
                 recyclingProcessors.remove(processor);
             }
@@ -500,9 +508,8 @@ public class BuildingRecycling extends AbstractBuilding
      *
      * @param stack the input item stack to process
      */
-    public void generateOutput(ItemStack stack)
+    public void generateOutput(List<ItemStack> output)
     {
-        List<ItemStack> output = outputList(stack);
 
         if (output == null || output.isEmpty())
         {
@@ -592,9 +599,10 @@ public class BuildingRecycling extends AbstractBuilding
      * output chest using the tryInsertIntoOutputChest method.
      *
      * @param stack the input item stack to process
+     * @param workerSkill the skill level of the worker (or -1 for flawless recycling)
      * @return a list of output item stacks
      */
-    public List<ItemStack> outputList(ItemStack inputStack)
+    public List<ItemStack> outputList(ItemStack inputStack, int workerSkill)
     {
         if (getColony() == null || getColony().getWorld() == null || getColony().getWorld().getRecipeManager() == null)
         {
@@ -615,9 +623,6 @@ public class BuildingRecycling extends AbstractBuilding
         Recipe<?> recipe = prioritizeRecipeList(recipes);
 
         Object2IntOpenHashMap<ItemStorage> outputItems = new Object2IntOpenHashMap<>();
-
-        // TODO: One mode for zero wastage - returns all ingredients
-        // TODO: One mode for wastage based on worker stat.
 
         ItemStack resultStack = recipe.getResultItem(getColony().getWorld().registryAccess());
         List<ItemStack> remainingItems = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
@@ -673,7 +678,15 @@ public class BuildingRecycling extends AbstractBuilding
 
             // Scale the output count based on the number of items in the input stack
             int recipeProductCount = resultStack.getCount() > 0 ? resultStack.getCount() : 1;
-            int recyclingOutputCount = (int) ((double) count * (double) inputStack.getCount() / (double) recipeProductCount);
+            double recyclingEfficiency = (workerSkill < 0) ? 1.0 : .5 + (.5 * Math.min(1.0,(double) workerSkill / (double) FLAWLESS_RECYCLING_STAT_LEVEL));
+            double damageFactor = inputStack.getMaxDamage() > 0 ? inputStack.getDamageValue() / (double) inputStack.getMaxDamage() : 1.0;
+            int recyclingOutputCount = (int) ((double) count * ((double) inputStack.getCount() / (double) recipeProductCount));
+
+            // For items that don't take damage, scale down the output count only by the recyclingEfficiency.
+            if (inputStack.getMaxDamage() <= 0)
+            {
+                 recyclingOutputCount *= recyclingEfficiency;
+            }
 
             int maxStackSize = baseStack.getMaxStackSize();
 
@@ -681,8 +694,33 @@ public class BuildingRecycling extends AbstractBuilding
             {
                 int thisStackCount = Math.min(maxStackSize, recyclingOutputCount);
                 ItemStack stackPart = baseStack.copy();
-                stackPart.setCount(thisStackCount);
-                output.add(stackPart);
+
+                /**
+                * For items that can be damaged, and are damaged, give a random chance based on level of damage and recycling efficiency
+                * of being able to deconstruct each ingredient. Note this may result in an item being reported as non-recyclable on one
+                * attempt, but recyclable on a later attempt.
+                */
+                if (inputStack.getMaxDamage() > 0 && damageFactor < 1.0) 
+                {
+                    if (ThreadLocalRandom.current().nextDouble() < (damageFactor * recyclingEfficiency)) 
+                    {
+                        stackPart.setCount(1);
+                    } 
+                    else 
+                    {
+                        stackPart.setCount(0);
+                    }
+                }
+                else
+                {
+                    stackPart.setCount(thisStackCount);
+                }
+
+                if (!stackPart.isEmpty())
+                {
+                    output.add(stackPart);
+                }
+                
                 recyclingOutputCount -= thisStackCount;
             }
         });

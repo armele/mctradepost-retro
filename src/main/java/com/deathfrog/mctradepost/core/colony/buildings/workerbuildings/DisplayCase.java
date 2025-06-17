@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.UUID;
 
+import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.minecolonies.api.util.NBTUtils;
 
 import net.minecraft.core.BlockPos;
@@ -161,10 +162,9 @@ public class DisplayCase
     @Override
     public String toString()
     {
-        return String.format("DisplayCase at %s\n- Item: %s\n- FrameId: %s\n- Ticks: %d\n- SaleState: %s",
+        return String.format("DisplayCase at %s\n- Item: %s\n- Ticks: %d\n- SaleState: %s",
                 pos,
-                stack.isEmpty() ? "empty" : stack.toString(), 
-                frameId != null ? frameId.toString() : "none",
+                stack.isEmpty() ? "empty" : stack.toString() + (stack.getItem() instanceof SouvenirItem ? SouvenirItem.toString(stack) : " <not a souvenir>"), 
                 tickcount,
                 saleState);
     }

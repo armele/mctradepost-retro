@@ -20,6 +20,13 @@ public class ModModelTypeInitializer
     {
         throw new IllegalStateException("Tried to initialize: MCTradePost.ModModelTypeInitializer but this is a Utility class.");
     }
+    /**
+     * Initializes the model types for the mod. This method is only called on the client side.
+     * 
+     * NOTE: Entities are currently using default models. This is a placeholder for future custom model implementations.
+     * 
+     * @param context The context for the entity renderer provider.
+     */
     @OnlyIn(Dist.CLIENT)
     public static void init(final EntityRendererProvider.Context context)
     {

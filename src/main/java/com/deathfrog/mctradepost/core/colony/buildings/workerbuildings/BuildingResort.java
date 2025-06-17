@@ -95,19 +95,6 @@ public class BuildingResort extends AbstractBuilding {
     }
 
     /**
-     * Check if a guest file exists for the given citizen ID, and if not, create it.
-     * @param citizenId the ID of the citizen to check/create a guest file for
-     * @return the guest file for the given citizen ID
-     */
-    public Vacationer checkOrCreateGuestFile(int citizenId) {
-        if (!this.guests.containsKey(citizenId)) {
-            this.guests.put(citizenId, new Vacationer(citizenId));
-        }
-
-        return this.guests.get(citizenId);
-    }
-
-    /**
      * Called every tick that the colony updates.
      * 
      * @param colony the colony that this building is a part of
@@ -261,12 +248,36 @@ public class BuildingResort extends AbstractBuilding {
         return sitPositions.get(lastSitting);
     }
 
+    /**
+     * Returns a list of all guests currently checked in to this resort.
+     * 
+     * @return a list of all guests currently checked in to this resort.
+     */
     public List<Vacationer> getGuests() {
         return ImmutableList.copyOf(this.guests.values());
     }
 
+    /**
+     * Retrieves the guest information for the specified citizen ID.
+     * 
+     * @param civilianId the ID of the citizen whose guest information is to be retrieved.
+     * @return the Vacationer object corresponding to the given citizen ID, or null if not found.
+     */
     public Vacationer getGuestFile(int civilianId) {
         return this.guests.get(civilianId);
+    }
+
+    /**
+     * Removes all guest information from the resort's records, effectively clearing
+     * out all of the guests at once.  This is intended for use when the resort is
+     * being removed from the colony, or to resolve unfinished vacations.
+     */
+    public void clearGuests() {
+        for (Vacationer guest : this.guests.values()) {
+            guest.reset();
+        }
+
+        this.guests.clear();
     }
 
     /**

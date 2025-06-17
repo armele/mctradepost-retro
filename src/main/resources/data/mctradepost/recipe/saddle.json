@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "L": { "item": "minecraft:leather" },
+      "S": { "item": "minecraft:string" },
+      "W": { "tag":  "minecraft:wool" }
+    },
+    "pattern": [
+      "L L",
+      "LLL",
+      "SWS"
+    ],
+    "result": {
+      "count": 1,
+      "id": "minecraft:saddle"
+    }
+}
+  

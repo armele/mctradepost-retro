@@ -241,4 +241,26 @@ public class Vacationer
 
         this.resort = null;
     }
+
+    /**
+     * Returns a string representation of the vacationer, including the
+     * civilian ID, current state, burnt skill, target level, current
+     * resort status, and assigned resort. The string is formatted as
+     * "Vacationer {civilianId=int, state=VacationState, burntSkill=Skill,
+     * targetLevel=int, currentlyAtResort=boolean, resort=BuildingResort}".
+     *
+     * @return the string representation of the vacationer.
+     */
+    @Override
+    public String toString() 
+    {
+        return "Vacationer {" +
+            "civilianId=" + civilianId +
+            ", state=" + state +
+            ", burntSkill=" + burntSkill +
+            ", targetLevel=" + targetLevel +
+            ", currentlyAtResort=" + currentlyAtResort +
+            ", resort=" + resort +
+            '}';
+    }
 }

@@ -162,7 +162,13 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         for (final AbstractEntityCitizen citizen : WorldUtil.getEntitiesWithinBuilding(world, AbstractEntityCitizen.class, building,
             cit -> cit.getCitizenData() != null))
         {
-            Vacationer guest = resort.checkOrCreateGuestFile(citizen.getCivilianID());
+            Vacationer guest = resort.getGuestFile(citizen.getCivilianID());
+
+            if (guest == null)
+            {
+                continue;
+            }
+
             // Guests who made a reservation and are now in the building are set to "CHECKED_IN"
             if (guest.getState() == Vacationer.VacationState.RESERVED) {
                 guest.setState(Vacationer.VacationState.CHECKED_IN);

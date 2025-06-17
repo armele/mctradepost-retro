@@ -13,6 +13,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
+import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
@@ -167,7 +168,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * @param amount the amount of the item in the stack.
      * @return the computed value of the item stack.
      */
-    private int computeItemValue(ItemStack stack, int amount)
+    private int computeItemValue(ItemStack stack)
     {
         int value = ItemValueRegistry.getValue(stack);
 
@@ -175,7 +176,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
         }
 
-        return value * amount;
+        return value * stack.getCount();
     }
 
     private double skillMultiplier()
@@ -193,7 +194,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         building.getModule(STATS_MODULE).incrementBy(ITEM_USED + ";" + item.getDescriptionId(), 1);
 
-        int sellvalue = computeItemValue(item, 1);
+        int sellvalue = computeItemValue(item);
         sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
@@ -502,8 +503,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             if (frame.getItem().isEmpty())
             {
                 ItemStack placed = heldItem.split(1);           // Take the item from the inventory();
-                frame.setItem(placed);                          // Show the item
-                displayCase.setStack(placed);                   // Record what the case is holding (for persistance)
+                ItemStack souvenir = SouvenirItem.createSouvenir(placed.getItem(), computeItemValue(placed));
+
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Placing souvenir {} in display at {}", SouvenirItem.toString(souvenir), currentTarget));
+
+                frame.setItem(souvenir);                        // Show the item
+                displayCase.setStack(souvenir);                 // Record what the case is holding (for persistance)
                 displayCase.setTickcount(0);          // Start counter for this display shelf
                 displayCase.setSaleState(SaleState.FOR_SALE);   // Mark the display as for sale
 

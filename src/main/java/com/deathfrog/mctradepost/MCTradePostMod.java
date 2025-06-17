@@ -2,8 +2,10 @@ package com.deathfrog.mctradepost;
 
 import java.io.IOException;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
@@ -16,6 +18,9 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
+import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirISTER;
+import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
+import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
@@ -23,6 +28,8 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListe
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
+import com.deathfrog.mctradepost.item.SouvenirItem;
+import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.google.gson.Gson;
@@ -32,8 +39,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.registries.Registries;
@@ -55,11 +62,15 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
@@ -160,6 +171,9 @@ public class MCTradePostMod
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
+    public static final DeferredItem<SouvenirItem> SOUVENIR = ITEMS.register("souvenir",
+        () -> new SouvenirItem(new Item.Properties().component(MCTPModDataComponents.SOUVENIR_COMPONENT.get(), new SouvenirRecord("empty", 0))));
+
     public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE =
             ENTITIES.register("coin_entity", () ->
                 EntityType.Builder.<CoinEntity>of(CoinEntity::new, MobCategory.MISC)
@@ -228,7 +242,8 @@ public class MCTradePostMod
         // ModBuildingsInitializer.DEFERRED_REGISTER.register(modEventBus);  // NETSYNC: Building registration at this point with static initialization, server load fails due to early access of objects.
         MCTPModSoundEvents.SOUND_EVENTS.register(modEventBus);
 
-
+        // Register our data components.
+        MCTPModDataComponents.REGISTRAR.register(modEventBus);
 
         LOGGER.info("MCTradePost mod initialized.");
     }
@@ -418,6 +433,14 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
         }
 
+        /**
+         * Handles the addition of custom layers to entity renderers.
+         * This method is called on the client side when the AddLayers event is fired.
+         * It initializes a context with various rendering components and
+         * invokes the model type initializer to set up custom entity models.
+         *
+         * @param event The event providing access to entity models for registering custom layers.
+         */
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
@@ -445,6 +468,11 @@ public class MCTradePostMod
             ModModelTypeInitializer.init(context);
         }
 
+        /**
+         * Registers item decorations for the mod.
+         * This method is invoked when the RegisterEvent is fired for the ITEM_DECORATIONS registry key.
+         * @param event The register event containing the registry to register the item decorations with.
+         */
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onRegisterItemDecorations(final RegisterItemDecorationsEvent event)
@@ -453,22 +481,54 @@ public class MCTradePostMod
             event.register(MCTradePostMod.ADVANCED_CLIPBOARD, new AdvancedClipBoardDecorator());
         }      
             
+        /**
+         * Registers blocks for the mod.
+         * This method is invoked when the RegisterEvent is fired for the BLOCK registry key.
+         * @param event The register event containing the registry to register the blocks with.
+         */
         @SubscribeEvent
         public static void registerBlocks(RegisterEvent event)
         {
             if (event.getRegistryKey().equals(Registries.BLOCK))
             {
-                LOGGER.info("Registering blocks");
+                LOGGER.info("Placeholder: Registering blocks");
             }
         }
 
+        /**
+         * Registers entities for the mod.
+         * This method is invoked when the RegisterEvent is fired for the ENTITY_TYPE registry key.
+         * @param event The register event containing the registry to register the entities with.
+         */
         @SubscribeEvent
         public static void registerEntities(RegisterEvent event)
         {
             if (event.getRegistryKey().equals(Registries.ENTITY_TYPE))
             {
-                LOGGER.info("Registering entities");
+                LOGGER.info("Placeholder: Registering entities");
             }
+        }
+
+        /**
+         * Registers the custom item renderer for the souvenir item.
+         * The custom renderer is responsible for rendering the souvenir item in the inventory.
+         * @param event The register client extensions event.
+         */
+        @SubscribeEvent
+        public static void onRegisterClientExtensions(final RegisterClientExtensionsEvent event) 
+        {
+            LOGGER.info("Registering souvenir item renderer");
+            event.registerItem(new SouvenirItemExtension(), MCTradePostMod.SOUVENIR.get());
+        }
+
+        /**
+         * Registers the custom geometry loader for the souvenir item.
+         * The custom geometry loader is responsible for loading the souvenir item model.
+         * @param event The register geometry loaders event.
+         */
+        @SubscribeEvent
+        public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
+            event.register(SouvenirLoader.LOADER_ID, SouvenirLoader.INSTANCE);
         }
     }
 

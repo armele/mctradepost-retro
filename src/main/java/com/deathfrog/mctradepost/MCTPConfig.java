@@ -44,6 +44,7 @@ public class MCTPConfig
     // Recycling settings
     public static final ConfigValue<Integer>  grindersPerLevel;
     public static final ConfigValue<Integer>  baseRecyclerTime;
+    public static final ConfigValue<Integer>  flawlessRecycling;
 
     static {
         BUILDER.push("marketplace");
@@ -111,6 +112,10 @@ public class MCTPConfig
         baseRecyclerTime = BUILDER
             .comment("Time to complete a recycling cycle.")
             .define("baseRecyclerTime", 100);
+
+        flawlessRecycling = BUILDER
+            .comment("Stat level at which recycling is performed as well as possible.")
+            .define("flawlessRecycling", 50);
 
         BUILDER.pop();
 
