@@ -525,7 +525,7 @@ public class EntityAIBurnoutTask  {
             LOGGER.warn("Vacationer {} has no remedy items associated with their tracker (this should not happen).", citizen);
         }
 
-        // TODO: RESORT [Enhancement] Make research to scale this.
+        // TODO: RESORT [Enhancement] Make research to scale healing speed?
         IBuilding resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
         int resortHealSpeed = resort.getBuildingLevel();
 

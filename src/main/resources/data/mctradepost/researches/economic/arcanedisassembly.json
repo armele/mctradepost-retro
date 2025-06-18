@@ -1,0 +1,34 @@
+{
+    "name": "Arcane Disassembly",
+    "subtitle": "To you, it's junk. To me, it's magical.",
+    "branch": "economic",
+    "researchLevel": 2,
+    "parentResearch": "mctradepost:economic/environmentalism",
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "recycling",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 15,
+            "item": "mctradepost:mctp_coin"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/disenchanting",
+            "level": 2
+        }
+
+    ],
+    "icon": "minecraft:enchanted_book"
+}

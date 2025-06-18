@@ -1,0 +1,34 @@
+{
+    "name": "Meticulous Disassembly",
+    "subtitle": "Let me show you how to do that... better.",
+    "branch": "economic",
+    "researchLevel": 3,
+    "parentResearch": "mctradepost:economic/arcanedisassembly",
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "recycling",
+            "level": 5
+        }
+    ],
+    "costs": [
+        {
+            "count": 30,
+            "item": "mctradepost:mctp_coin"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/disenchanting",
+            "level": 5
+        }
+
+    ],
+    "icon": "minecraft:enchanted_book"
+}

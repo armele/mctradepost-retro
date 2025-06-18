@@ -22,6 +22,7 @@ import com.minecolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
@@ -380,6 +381,13 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      */
     public IAIState startMachine()
     {
+
+        if (!walkToBuilding())
+        {
+            setDelay(2);
+            return getState();
+        }
+
         TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Starting recycling machine."));
 
         worker.getCitizenData().setVisibleStatus(RECYCLING);
@@ -424,8 +432,9 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     }
                     else
                     {
-                        TraceUtils.dynamicTrace(TRACE_RECYCLING,
-                            () -> LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId()));
+                        // TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId()));
+                        MessageUtils.format("Your recycling engineer could not recycle the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                        
                         if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle))
                         {
                             InventoryUtils

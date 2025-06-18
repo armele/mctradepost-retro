@@ -14,7 +14,10 @@
     "item.mctradepost.vanilla_milkshake": "Vanilla Milkshake",
     "item.mctradepost.napkin": "Napkin",
     "item.mctradepost.souvenir": "Souvenir",
- 
+    "item.mctradepost.mixed_stone": "Mixed Stone",
+
+    "block.mctradepost.mixed_stone": "Mixed Stone",
+
     "block.mctradepost.blockhutmarketplace": "Marketplace",
     "com.minecolonies.building.marketplace": "Marketplace",
     "com.mctradepost.building.marketplace": "Marketplace",
@@ -107,10 +110,12 @@
     "mctradepost.configuration.baseRecyclerTime": "Base Recycler Time",
     "mctradepost.configuration.baseRecyclerTime.tooltip": "How long should the recycler take to process items? (in ticks)",
 
-    "item.mctradepost.mctp_coin": "Trade Coin (‡)",
-    "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
     "com.mctradepost.research.effects.blockhutmarketplace.description": "Allows building of the Marketplace.",
     "com.mctradepost.research.effects.blockhutrecycling.description": "Allows building of the Recycling Center.",
+    "com.mctradepost.research.effects.disenchanting.description": "A chance to recover enchantments from recycled enchanted items.",
+
+    "item.mctradepost.mctp_coin": "Trade Coin (‡)",
+    "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
     "jei.mctradepost.rituals": "Wishing Well Rituals",
     "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
     "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",

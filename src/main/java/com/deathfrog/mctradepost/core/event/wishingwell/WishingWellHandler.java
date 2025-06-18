@@ -497,7 +497,7 @@ public class WishingWellHandler {
             }
         }
 
-        MCTradePostMod.LOGGER.info("Raid ending ritual completed at {}, slaying {}", pos, targets.size());
+        MCTradePostMod.LOGGER.info("Summoning ritual completed at {}, bringing {} entities.", pos, targets.size());
         showRitualEffect(level, pos);
 
         return true;

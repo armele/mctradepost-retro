@@ -11,6 +11,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
+import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
@@ -47,6 +48,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -186,6 +188,10 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
 
+    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockMixedStone());
+
+    public static final DeferredItem<Item> MIXED_STONE_ITEM =
+        ITEMS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -408,6 +414,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.COLD_BREW.get());
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());
+                    event.accept(MCTradePostMod.MIXED_STONE.get());
                 }
             });
 

@@ -122,7 +122,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
     }
 
     /**
-     * Draws the progress bar for an in-progress research.
+     * Draws the progress bar for an in-progress recycling operation.
      * @param view          the view to assign the progressbar onto.
      * @param offsetX       the horizontal offset for the progress bar
      * @param offsetY       the vertical offset for the progress bar

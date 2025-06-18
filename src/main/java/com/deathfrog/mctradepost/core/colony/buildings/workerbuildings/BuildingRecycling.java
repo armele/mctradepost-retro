@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
@@ -38,6 +39,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -48,10 +50,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -766,6 +770,29 @@ public class BuildingRecycling extends AbstractBuilding
             }
         });
 
+        if (inputStack.isEnchanted())
+        {
+            double disenchantmentStrength = this.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.RESEARCH_DISENCHANTING);
+            double roll = ThreadLocalRandom.current().nextDouble();
+            if (disenchantmentStrength > 0.0 && roll < disenchantmentStrength)
+            {
+
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Strpping enchantments from {}, with a chance of {} and a roll of {}.", 
+                    inputStack, disenchantmentStrength, roll));
+
+                ItemStack enchantments = extractEnchantmentsToBook(inputStack.copy());
+
+                if (!enchantments.isEmpty())
+                {
+                    output.add(enchantments);
+                }
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("The {} cannot be disenchanted, with a chance of {} and a roll of {}.", 
+                    inputStack, disenchantmentStrength, roll));
+            }
+        }
         return output;
     }
 
@@ -860,4 +887,33 @@ public class BuildingRecycling extends AbstractBuilding
 
         markDirty();
     }
+
+    /**
+     * Extracts enchantments from an item and places them in a new enchanted book item.
+     * If the item does not have any enchantments, an empty ItemStack is returned.
+     * The enchantments are removed from the original item.
+     * @param enchantedItem the item from which to extract enchantments
+     * @return the ItemStack containing the enchanted book
+     */
+    public ItemStack extractEnchantmentsToBook(ItemStack enchantedItem) {
+        if (!enchantedItem.isEnchanted()) {
+            // Item has no enchantments
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+
+        // Get the enchantments from the original item
+        ItemEnchantments enchantments = enchantedItem.getTagEnchantments();
+
+        // Apply these enchantments to the book
+        // TODO: RECYCLER [Enhancement] Figure out how to split these into multiple books (ItemEnchantments is not directly constructable)
+        book.set(DataComponents.STORED_ENCHANTMENTS, enchantments);
+
+        // Clear the enchantments from the original item
+        enchantedItem.remove(DataComponents.ENCHANTMENTS);
+
+        return book;
+    }
+
 }
