@@ -11,6 +11,8 @@ import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
+import com.deathfrog.mctradepost.core.blocks.ExtendedTimberFrameBlock;
+import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
@@ -25,6 +27,7 @@ import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
+import com.deathfrog.mctradepost.item.BlockDistressedItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
@@ -123,7 +126,7 @@ public class MCTradePostMod
 
     // Create a Deferred Register to hold Items which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
-    
+
     // Create a Deferred Register to hold Entities which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
 
@@ -189,9 +192,15 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
 
     public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockMixedStone());
+    
+
+    public static final DeferredBlock<BlockDistressed> DISTRESSED = BLOCKS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressed());
 
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
+
+    public static final DeferredItem<BlockDistressedItem> DISTRESSED_ITEM =
+        ITEMS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressedItem(DISTRESSED.get(), new BlockDistressedItem.Properties()));
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
