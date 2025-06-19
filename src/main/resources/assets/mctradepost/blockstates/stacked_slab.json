@@ -1,0 +1,52 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "up"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/stacked_slab"
+      },
+      "when": {
+        "facing": "down"
+      }
+    }
+  ]
+}

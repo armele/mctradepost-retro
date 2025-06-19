@@ -15,14 +15,22 @@
     "item.mctradepost.napkin": "Napkin",
     "item.mctradepost.souvenir": "Souvenir",
     "item.mctradepost.mixed_stone": "Mixed Stone",
+    "item.mctradepost.thatch": "Thatch",
+    "item.mctradepost.plaster": "Plaster",
     "item.mctradepost.mixed_stone_stairs": "Mixed Stone Stairs",
     "item.mctradepost.mixed_stone_wall": "Mixed Stone Wall",
 
+    "block.mctradepost.thatch": "Thatch",
+    "block.mctradepost.plaster": "Plaster",
     "block.mctradepost.mixed_stone": "Mixed Stone",
     "block.mctradepost.mixed_stone_stairs": "Mixed Stone Stairs",
     "block.mctradepost.mixed_stone_wall": "Mixed Stone Wall",
 
-    "block.mctradepost.distressed": "Distressed",
+    "block.mctradepost.distressed": "Distressed Frame",
+    "mctradepost.timber.frame.type.distressed": "Distressed Frame",
+
+    "block.mctradepost.stacked_slab": "Stacked Slab",
+    "mctradepost.timber.frame.type.stacked_slab": "Stacked Slab",
 
     "block.mctradepost.blockhutmarketplace": "Marketplace",
     "com.minecolonies.building.marketplace": "Marketplace",

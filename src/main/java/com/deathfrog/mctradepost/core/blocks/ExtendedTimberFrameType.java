@@ -4,7 +4,8 @@ import net.minecraft.util.StringRepresentable;
 import org.jetbrains.annotations.NotNull;
 
 public enum ExtendedTimberFrameType implements StringRepresentable {
-   DISTRESSED("distressed", "Distressed", false);
+   DISTRESSED(BlockDistressed.DISTRESSED_ID, "Distressed", false),
+   STACKED_SLAB(BlockStackedSlab.STACKED_SLAB_ID, "Stacked Slab", false);
 
    private final String name;
    private final String langName;
