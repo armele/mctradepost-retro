@@ -52,20 +52,20 @@ public class ExtendedTimberframeItem extends BlockItem implements IDoItem {
         }
 
         final ExtendedTimberFrameType type = sourceBlock.getExtendedTimberFrameType();
-        tooltip.add(Component.translatable(MCTradePostMod.MODID + ".origin.tooltip"));
+        tooltip.add(Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".origin.tooltip"));
         tooltip.add(Component.literal(""));
-        tooltip.add(Component.translatable(MCTradePostMod.MODID + ".timber.frame.header"));
-        tooltip.add(Component.translatable(MCTradePostMod.MODID + ".timber.frame.type.format", Component.translatable(MCTradePostMod.MODID + ".timber.frame.type." + type.getName())));
+        tooltip.add(Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".timber.frame.header"));
+        tooltip.add(Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".timber.frame.type.format", Component.translatable(MCTradePostMod.MODID + ".timber.frame.type." + type.getName())));
 
         final IMateriallyTexturedBlockComponent frameComponent = sourceBlock.getComponents().get(0);
         final Block frameBlock = textureData.getTexturedComponents().getOrDefault(frameComponent.getId(), frameComponent.getDefault());
         final Component frameBlockName = BlockUtils.getHoverName(frameBlock);
-        tooltip.add(Component.translatable(MCTradePostMod.MODID + ".desc.frame", Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.material", frameBlockName)));
+        tooltip.add(Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.frame", Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.material", frameBlockName)));
 
         final IMateriallyTexturedBlockComponent centerComponent = sourceBlock.getComponents().get(1);
         final Block centerBlock = textureData.getTexturedComponents().getOrDefault(centerComponent.getId(), centerComponent.getDefault());
         final Component centerBlockName = BlockUtils.getHoverName(centerBlock);
-        tooltip.add(Component.translatable(MCTradePostMod.MODID + ".desc.center", Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.material", centerBlockName)));
+        tooltip.add(Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.center", Component.translatable(com.ldtteam.domumornamentum.util.Constants.MOD_ID + ".desc.material", centerBlockName)));
     }
 
     @Override

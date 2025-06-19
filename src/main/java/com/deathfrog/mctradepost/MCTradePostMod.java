@@ -11,7 +11,6 @@ import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
-import com.deathfrog.mctradepost.core.blocks.ExtendedTimberFrameBlock;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
@@ -57,6 +56,11 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.IEventBus;
@@ -191,13 +195,28 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
 
-    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockMixedStone());
-    
+    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
+    public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
+        BLOCKS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID,
+            () -> new StairBlock(MIXED_STONE.get().defaultBlockState(),  // base block state supplier
+                MIXED_STONE.get().properties()                                      // reuse base block's properties
+            ));
+
+    public static final DeferredBlock<WallBlock> MIXED_STONE_WALL = BLOCKS.register(BlockMixedStone.MIXED_STONE_WALL_ID, () -> new WallBlock(Block.Properties.of()
+            .mapColor(MapColor.STONE)
+            .strength(2.0f, 6.0f)
+            .sound(SoundType.STONE)));
 
     public static final DeferredBlock<BlockDistressed> DISTRESSED = BLOCKS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressed());
 
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
-        ITEMS.register(BlockMixedStone.BLOCK_MIXED_STONE, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
+        ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
+    
+    public static final DeferredItem<Item> MIXED_STONE_STAIRS_ITEM =
+        ITEMS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID, () -> new BlockItem(MIXED_STONE_STAIRS.get(), new Item.Properties()));
+        
+    public static final DeferredItem<Item> MIXED_STONE_WALL_ITEM =
+        ITEMS.register(BlockMixedStone.MIXED_STONE_WALL_ID, () -> new BlockItem(MIXED_STONE_WALL.get(), new Item.Properties()));
 
     public static final DeferredItem<BlockDistressedItem> DISTRESSED_ITEM =
         ITEMS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressedItem(DISTRESSED.get(), new BlockDistressedItem.Properties()));
@@ -424,6 +443,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());
                     event.accept(MCTradePostMod.MIXED_STONE.get());
+                    event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
+                    event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
                 }
             });
 
