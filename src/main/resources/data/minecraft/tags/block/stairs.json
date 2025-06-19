@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "mctradepost:mixed_stone_stairs"
+    "mctradepost:mixed_stone_stairs",
+    "mctradepost:plaster_stairs"
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/outer_stairs",
+  "textures": {
+    "bottom": "mctradepost:block/plaster",
+    "top": "mctradepost:block/plaster",
+    "side": "mctradepost:block/plaster"
+  }
+}

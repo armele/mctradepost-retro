@@ -58,9 +58,11 @@ Meticultous Disassembly - Allows the recycling center to reliably strip enchantm
 
 ### Custom Blocks
 * Block implementations of the building huts.
+* A few new building materials (mixed stone, thatch, plaster)
+* A few new Architect's Cutter recipes
 
 ### Configuration
-This mod supports the Neoforce configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
+This mod supports the Neoforge configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
 
 ### Making Wishes
 When you throw a Trade Coins (‡) into a wishing well with another object, your wish might come true!

@@ -223,6 +223,14 @@ public class MCTradePostMod
             .sound(SoundType.BAMBOO_WOOD)));
 
 
+    public static final DeferredBlock<StairBlock> PLASTER_STAIRS =
+        BLOCKS.register("plaster_stairs",
+            () -> new StairBlock(PLASTER.get().defaultBlockState(),  // base block state supplier
+                PLASTER.get().properties()                           // reuse base block's properties
+            ));
+
+    public static final DeferredBlock<WallBlock> PLASTER_WALL = BLOCKS.register("plaster_wall", () -> new WallBlock(PLASTER.get().properties()));
+
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
     
@@ -243,6 +251,12 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> PLASTER_ITEM =
         ITEMS.register("plaster", () -> new BlockItem(PLASTER.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> PLASTER_STAIRS_ITEM =
+        ITEMS.register("plaster_stairs", () -> new BlockItem(PLASTER_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> PLASTER_WALL_ITEM =
+        ITEMS.register("plaster_wall", () -> new BlockItem(PLASTER_WALL.get(), new Item.Properties()));
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -470,6 +484,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
                     event.accept(MCTradePostMod.THATCH.get());
                     event.accept(MCTradePostMod.PLASTER.get());
+                    event.accept(MCTradePostMod.PLASTER_STAIRS.get());
+                    event.accept(MCTradePostMod.PLASTER_WALL.get());
                 }
             });
 
