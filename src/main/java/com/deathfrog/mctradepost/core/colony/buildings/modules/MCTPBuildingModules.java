@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import java.util.function.Supplier;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
@@ -67,8 +68,8 @@ public class MCTPBuildingModules
     public static final BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView> RECYCLING_PROGRESS     =
       new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", rpvProducer, () -> RecyclerProgressView::new);
 
-    public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_RECYCLABLE =
-      new BuildingEntry.ModuleProducer<>("itemlist_recyclable", () -> new ItemListModule(EntityAIWorkRecyclingEngineer.RECYCLING_LIST),
+    public static final BuildingEntry.ModuleProducer<RecyclingItemListModule,RecyclableListModuleView> ITEMLIST_RECYCLABLE =
+      new BuildingEntry.ModuleProducer<>("itemlist_recyclable", () -> new RecyclingItemListModule(EntityAIWorkRecyclingEngineer.RECYCLING_LIST),
         () -> () -> new RecyclableListModuleView(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, EntityAIWorkRecyclingEngineer.REQUESTS_TYPE_RECYCLABLE_UI, false));
         
      /**

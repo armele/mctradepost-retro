@@ -16,6 +16,8 @@ public class TraceUtils {
     public static final String TRACE_SHOPKEEPER =   "shopkeeper";
     public static final String TRACE_SHOPPER =      "shopper";
     public static final String TRACE_RECYCLING =    "recycling";
+    public static final String TRACE_RECYCLING_RECIPE =    "recyclingrecipe";
+    public static final String TRACE_STATION =      "station";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();
@@ -61,6 +63,8 @@ public class TraceUtils {
         keys.add(TRACE_SHOPKEEPER);
         keys.add(TRACE_SHOPPER);
         keys.add(TRACE_RECYCLING);
+        keys.add(TRACE_RECYCLING_RECIPE);
+        keys.add(TRACE_STATION);
 
         return keys;
     }

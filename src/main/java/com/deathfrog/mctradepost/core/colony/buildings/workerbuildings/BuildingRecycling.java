@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
@@ -59,7 +60,9 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.particles.SimpleParticleType;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RECYCLING;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RECYCLING_RECIPE;
 
 public class BuildingRecycling extends AbstractBuilding
 {
@@ -660,11 +663,11 @@ public class BuildingRecycling extends AbstractBuilding
 
         if (recipes == null || recipes.isEmpty())
         {
-            TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("No recipes found for item {}.", inputStack));
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("No recipes found for item {}.", inputStack));
             return null;
         }
 
-        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Found {} recipes for item {}.", recipes.size(), inputStack));
+        TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("Found {} recipes for item {}.", recipes.size(), inputStack));
         Recipe<?> recipe = prioritizeRecipeList(recipes);
 
         Object2IntOpenHashMap<ItemStorage> outputItems = new Object2IntOpenHashMap<>();
@@ -673,7 +676,7 @@ public class BuildingRecycling extends AbstractBuilding
         List<ItemStack> remainingItems = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
         List<Ingredient> ingredients = determineIngredients(recipe, inputStack);
 
-        TraceUtils.dynamicTrace(TRACE_RECYCLING,
+        TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE,
             () -> LOGGER.info("Recipe for {} has {} ingredients and {} remaining items.",
                 inputStack,
                 recipe.getIngredients().size(),
@@ -712,7 +715,7 @@ public class BuildingRecycling extends AbstractBuilding
                 }
                 else
                 {
-                    TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Excluding {} from the output.", itemStack));
+                    TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("Excluding {} from the output.", itemStack));
                 }
             }
         }
@@ -845,12 +848,23 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
+     * Retrieves the list of items that are pending for recycling in the building.
+     * 
+     * @return a list of ItemStorage objects representing the items awaiting processing.
+     */
+    public List<ItemStorage> getPendingRecyclingQueue() 
+    { 
+        List<ItemStorage> pendingRecyclingQueue = getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST)).getPendingRecyclingQueue();   
+        return pendingRecyclingQueue; 
+    }
+
+    /**
      * Refreshes the list of items stored in all warehouses within the colony. This method retrieves the registered structure manager
      * for the colony and obtains a list of all warehouse locations. For each warehouse, it calculates the item storage contents and
      * aggregates them into a map, which is then used to update the function that provides the set of all items stored in the
      * building's warehouse.
      */
-    protected void refreshItemList()
+    public void refreshItemList()
     {
         allItems.clear();
 
@@ -863,6 +877,7 @@ public class BuildingRecycling extends AbstractBuilding
         IRegisteredStructureManager buildingManager = getColony().getBuildingManager();
         BlockPos parentBuildingSpot = getPosition();
         List<IWareHouse> warehouse = buildingManager.getWareHouses();
+        final List<ItemStorage> pendingRecyclingQueue = getPendingRecyclingQueue();
 
         for (IWareHouse wh : warehouse)
         {
@@ -877,7 +892,7 @@ public class BuildingRecycling extends AbstractBuilding
                 for (final Entry<ItemStorage> entry : whItems.object2IntEntrySet())
                 {
                     ItemStack stack = entry.getKey().getItemStack();
-                    if (isRecyclable(stack))
+                    if (isRecyclable(stack) && !pendingRecyclingQueue.contains(entry.getKey()))  // Do not list as available anything already in a pending queue.
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }

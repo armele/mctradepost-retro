@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.util.StatsUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
@@ -22,7 +23,6 @@ import com.minecolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
@@ -48,12 +48,6 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             return false;
         }
     }
-
-    /*
-     * A list of things that were requested from the warehouse
-     * and have not yet been processed.
-     */
-    private final List<ItemStorage> pendingRecyclingQueue = new ArrayList<>();
 
     /**
      * Id in recyclables for list.
@@ -100,6 +94,65 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
     }
 
     /**
+     * Check if any items in the pending recycling queue have been delivered to the
+     * recycling engineer or the recycling building. If so, remove them from the
+     * queue and trigger the recycling process.
+     * 
+     * @return true if an item has been delivered and the recycling process should be
+     *         triggered, false otherwise.
+     */
+    public boolean checkDeliveryStatus()
+    {
+        final List<ItemStorage> pendingRecyclingQueue = building.getPendingRecyclingQueue();
+
+        // Check if any deliveries from the warehouse went directly to the recycling engineer and need to be processed
+        if (InventoryUtils.hasItemInProvider(worker, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack))))
+        {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING,
+                            () -> LOGGER.info("A pending item {} has arrived at the recycling engineer."));
+
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack)));
+
+            if (slot >= 0)
+            {
+                ItemStorage listItem = new ItemStorage(worker.getItemHandlerCap().getStackInSlot(slot));
+
+                TraceUtils.dynamicTrace(TRACE_RECYCLING,
+                                () -> LOGGER.info("The {} has arrived.", listItem));
+
+                pendingRecyclingQueue.remove(listItem);
+                return true;
+            }
+
+        }
+
+        // If something in our queue has made it to the building, get it out and recycle it.
+        if (InventoryUtils.hasItemInProvider(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true))))
+        {
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack)));
+
+            if (slot > 0)
+            {
+                ItemStorage listItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot));
+                InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
+
+                TraceUtils.dynamicTrace(TRACE_RECYCLING,
+                                () -> LOGGER.info("Pending item {} has arrived at the building.", listItem));
+
+                slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> pendingRecyclingQueue.contains(listItem));
+                if (slot >= 0)
+                {
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
+                    pendingRecyclingQueue.remove(listItem); // This has been delivered and we're about to recycle it. Remove it from the queue.
+                    
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    /**
      * Decide what to do next. If there's a non-empty output chest, sort its contents. Otherwise, load the recycling module.
      * 
      * @return the next AI state to transition to.
@@ -112,6 +165,11 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         if (recycling.getRecyclingProcessors().size() > 0)
         {
             checkMachine(1, null);
+        }
+
+        if (checkDeliveryStatus())
+        {
+            return RecyclingStates.LOAD_TO_INPUT;
         }
 
         // Check if any output boxes need to be unoaded.
@@ -140,7 +198,14 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         boolean hasInput = hasInput();
         if (recycling.hasProcessingCapacity())
         {
-            if (hasInput) return RecyclingStates.START_MACHINE;
+            if (hasInput) 
+            {
+                return RecyclingStates.START_MACHINE;
+            }
+            else
+            {
+                return RecyclingStates.MAINTAIN_EQUIPMENT;
+            }
         }
         else
         {
@@ -340,7 +405,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         if (itemHandlerOpt.getItemHandlerCap() != null)
         {
-            IItemHandler workerInventory = getInventory(); // assumes this method exists for worker inventory
+            IItemHandler workerInventory = getInventory();
 
             for (int i = 0; i < workerInventory.getSlots(); i++)
             {
@@ -513,29 +578,13 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         }
 
         final List<ItemStorage> list =
-            building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
-        if (list.isEmpty())
+            building.getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
+        final List<ItemStorage> pendingRecyclingQueue = building.getPendingRecyclingQueue();
+
+        if (list.isEmpty()  && building.getRecyclingProcessors().isEmpty())
         {
             complain(BuildingRecycling.RECYCLER_NO_RECYCLABLES_SET);
             return DECIDE;
-        }
-
-        // If something in our queue has made it to the building, get it out and recycle it.
-        if (InventoryUtils.hasItemInProvider(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack))))
-        {
-            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack)));
-            ItemStorage listItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot));
-            InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
-
-            pendingRecyclingQueue.remove(listItem); // This has been delivered and we're about to recycle it. Remove it from the queue.
-        }
-
-        final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-            stack -> list.contains(new ItemStorage(stack)));
-        if (slot >= 0)
-        {
-            worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
-            return RecyclingStates.LOAD_TO_INPUT;
         }
 
         worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -565,6 +614,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 for (ItemStack item : itemList)
                 {
                     module.removeItem(new ItemStorage(item));
+                    building.refreshItemList();
                 }
             }
         }

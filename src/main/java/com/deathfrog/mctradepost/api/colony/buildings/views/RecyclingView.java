@@ -61,8 +61,6 @@ public class RecyclingView extends AbstractBuildingView {
     public Set<ItemStorage> deserializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag) {
         Object2IntOpenHashMap<ItemStorage> allowedItems = new Object2IntOpenHashMap<>();
 
-       // MCTradePostMod.LOGGER.info("View deserialization of allowed Items with compound tag: {}", tag);
-
         if (tag != null && tag.contains(EntityAIWorkRecyclingEngineer.RECYCLING_LIST)) {
             ListTag outputTag = tag.getList(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, Tag.TAG_COMPOUND);
 
@@ -87,7 +85,6 @@ public class RecyclingView extends AbstractBuildingView {
      */
     public Set<ItemStorage> getRecyclableItems()
     {
-        MCTradePostMod.LOGGER.info("Module view - getting recyclable items list of size {}", allItems.size());
         return allItems;
     }
 }

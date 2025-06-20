@@ -2,7 +2,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.deathfrog.mctradepost.core.colony.buildings.BuildingStation;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;

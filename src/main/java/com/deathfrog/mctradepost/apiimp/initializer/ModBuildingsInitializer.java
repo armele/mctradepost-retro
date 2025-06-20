@@ -14,11 +14,11 @@ import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
-import com.deathfrog.mctradepost.core.colony.buildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public final class ModBuildingsInitializer

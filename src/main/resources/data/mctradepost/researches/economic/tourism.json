@@ -1,0 +1,36 @@
+{
+    "name": "Tourism",
+    "subtitle": "Travel the world!",
+    "branch": "economic",
+    "researchLevel": 1,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "station",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 64,
+            "item": "minecraft:rail"        
+        },
+        {
+            "count": 5,
+            "item": "mctradepost:mctp_coin"        
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/tourists",
+            "level": 2
+        }
+    ],
+    "icon": "mctradepost:blockhutstation"
+}
