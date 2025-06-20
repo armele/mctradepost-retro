@@ -1,7 +1,7 @@
 # Adding a new MC Trade Post Block
 * Create a custom block class at src\main\java\com\deathfrog\mctradepost\core\blocks\ if any special functionality is needed (like a new domum recipe to create) - otherwise, at registration (next step) use the base Block class.
 * Register the Block and BlockItem in MCTradePostMod.
-* Add the registered item to the JEI in MCTradePostMod (if desired)
+* Add the registered item to the Creative tab in MCTradePostMod (if desired)
 * Create a blockstate .json file at src\main\resources\assets\mctradepost\blockstates. The name should match the registration key of your block.
 * Create a block model .json file referencing your texture graphic (later step) at src\main\resources\assets\mctradepost\models\block. The name of the file(s) should match what you've referenced in your blockstate file (previous step).
 * Create an item model file referencing your texture graphic (next step) at src\main\resources\assets\mctradepost\models\item

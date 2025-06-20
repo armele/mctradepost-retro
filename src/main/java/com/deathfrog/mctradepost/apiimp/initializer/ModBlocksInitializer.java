@@ -14,6 +14,16 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public final class ModBlocksInitializer
 {
+    public final static String THATCH_NAME = "thatch";
+    public final static String PLASTER_NAME = "plaster";
+    public final static String PLASTER_STAIRS_NAME = "plaster_stairs";
+    public final static String PLASTER_WALL_NAME = "plaster_wall";
+    public final static String ROUGH_BRICK_NAME = "rough_brick";
+    public final static String ROUGH_BRICK_STAIRS_NAME = "rough_brick_stairs";
+    public final static String ROUGH_BRICK_WALL_NAME = "rough_brick_wall";
+    public final static String ROUGH_STONE_NAME = "rough_stone";
+    public final static String ROUGH_STONE_STAIRS_NAME = "rough_stone_stairs";
+    public final static String ROUGH_STONE_WALL_NAME = "rough_stone_wall";
 
     private ModBlocksInitializer()
     {

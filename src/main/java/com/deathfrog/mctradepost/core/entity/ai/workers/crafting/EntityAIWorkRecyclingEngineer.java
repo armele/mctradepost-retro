@@ -169,6 +169,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         if (checkDeliveryStatus())
         {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Load delivery to input."));
             return RecyclingStates.LOAD_TO_INPUT;
         }
 
@@ -189,6 +190,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     if (!handler.getStackInSlot(i).isEmpty())
                     {
                         this.currentOutputChest = pos;
+                        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Unload output."));
                         return RecyclingStates.UNLOAD_OUTPUT;
                     }
                 }
@@ -200,19 +202,29 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         {
             if (hasInput) 
             {
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Start the machine."));
                 return RecyclingStates.START_MACHINE;
             }
             else
             {
-                return RecyclingStates.MAINTAIN_EQUIPMENT;
+                final List<ItemStorage> list = building.getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
+                if (list.isEmpty() || building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
+                {
+                    TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Maintain equipment while no warehouse orders need to be placed."));
+                    return RecyclingStates.MAINTAIN_EQUIPMENT;
+                }
             }
         }
         else
         {
-            if (hasInput) return RecyclingStates.MAINTAIN_EQUIPMENT;
+            if (hasInput) 
+            {
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Maintain equipment while all processors full."));
+                return RecyclingStates.MAINTAIN_EQUIPMENT;
+            }
         }
 
-        // Look in inventory for recyclables
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Order materials from warehouse."));
         return GET_MATERIALS;
     }
 
@@ -303,7 +315,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
             if (building.getSetting(BuildingRecycling.ITERATIVE_PROCESSING).getValue())
             {
-                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Load recycler next."));
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Iterative processing is on: Loading this output to the recycler next."));
                 return RecyclingStates.LOAD_TO_INPUT;
             }
             else

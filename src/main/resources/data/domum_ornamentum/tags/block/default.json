@@ -3,6 +3,8 @@
   "values": [
     "mctradepost:mixed_stone",
     "mctradepost:thatch",
-    "mctradepost:plaster"
+    "mctradepost:plaster",
+    "mctradepost:rough_brick",
+    "mctradepost:rough_stone"
   ]
 }

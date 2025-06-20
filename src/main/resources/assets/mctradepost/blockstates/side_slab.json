@@ -1,0 +1,46 @@
+{
+  "multipart": [
+    {
+      "when": { "facing": "north" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "y": 180
+      }
+    },
+    {
+      "when": { "facing": "south" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "y": 0
+      }
+    },
+    {
+      "when": { "facing": "west" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "y": 90
+      }
+    },
+    {
+      "when": { "facing": "east" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "y": 270
+      }
+    },
+    {
+      "when": { "facing": "up" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "x": 270
+      }
+    },
+    {
+      "when": { "facing": "down" },
+      "apply": {
+        "model": "mctradepost:block/timber_frame/side_slab",
+        "x": 90
+      }
+    }
+  ]
+}
