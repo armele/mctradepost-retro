@@ -71,6 +71,11 @@ public class SouvenirItem extends Item {
      */
     public static int getSouvenirValue(ItemStack stack) {
         SouvenirRecord souvenirRecord = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+
+        if (souvenirRecord == null) {
+            return 0;
+        }
+        
         return souvenirRecord.itemValue;
     }
   
