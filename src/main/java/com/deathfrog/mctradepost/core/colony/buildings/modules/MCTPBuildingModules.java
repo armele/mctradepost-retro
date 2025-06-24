@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -91,8 +92,8 @@ public class MCTPBuildingModules
 
     // TODO: [Enhancement] Customize the sellable item list to display the sell value.
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
-      new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new ItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
-        () -> () -> new ItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
+      new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new MarketplaceItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
+        () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
           (buildingView) -> ItemValueRegistry.getSellableItems()));
     
     public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> STATIONMASTER_WORK          =

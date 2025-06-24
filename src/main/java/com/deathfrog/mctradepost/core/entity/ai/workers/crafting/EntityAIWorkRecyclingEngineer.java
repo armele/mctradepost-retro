@@ -500,7 +500,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
 
-                        StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle, stackToRecycle.getCount());
+                        StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle.getHoverName(), stackToRecycle.getCount());
 
                         worker.getCitizenColonyHandler()
                             .getColonyOrRegister()

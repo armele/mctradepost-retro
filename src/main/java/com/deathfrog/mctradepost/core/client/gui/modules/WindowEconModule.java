@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
@@ -8,6 +10,7 @@ import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.item.ItemStack;
 
 import java.text.NumberFormat;
 import java.util.*;
@@ -100,7 +103,15 @@ public class WindowEconModule extends AbstractModuleWindow
         formattedSales = "‡" + formatter.format(cashGenerated);        
         cashLabel.setText(Component.literal(formattedSales));  
 
-        MCTradePostMod.LOGGER.info("Stats: {} items sold, {} cash generated (formatted as {})", itemCount, cashGenerated, formattedSales);
+        final ItemIcon coinIcon = findPaneOfTypeByID("coinicon", ItemIcon.class);      
+        coinIcon.setItem(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), 1));
+
+        int coinValue = MCTPConfig.tradeCoinValue.get();
+        final Text coinValueLabel = findPaneOfTypeByID("coinvalue", Text.class);
+        String formattedLabel = "= ‡" + formatter.format(coinValue);        
+        coinValueLabel.setText(Component.literal(formattedLabel));  
+
+        // MCTradePostMod.LOGGER.info("Stats: {} items sold, {} cash generated (formatted as {})", itemCount, cashGenerated, formattedSales);
 
         intervalDropdown = findPaneOfTypeByID(DROPDOWN_INTERVAL_ID, DropDownList.class);
         intervalDropdown.setHandler(this::onDropDownListChanged);

@@ -168,19 +168,19 @@
         "category": "neutral",
         "sounds": [
             {
-                "name": "mctradepost:mob/citizen/male1/rightaway",
+                "name": "minecolonies:mob/citizen/male1/rightaway",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/whatisit",
+                "name": "minecolonies:mob/citizen/male1/whatisit",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/okay",
+                "name": "minecolonies:mob/citizen/male1/okay",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/hi",
+                "name": "minecolonies:mob/citizen/male1/hi",
                 "stream": false
             }
         ]
@@ -189,19 +189,19 @@
         "category": "neutral",
         "sounds": [
             {
-                "name": "mctradepost:mob/citizen/male1/rightaway",
+                "name": "minecolonies:mob/citizen/male1/rightaway",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/whatisit",
+                "name": "minecolonies:mob/citizen/male1/whatisit",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/okay",
+                "name": "minecolonies:mob/citizen/male1/okay",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/hi",
+                "name": "minecolonies:mob/citizen/male1/hi",
                 "stream": false
             }
         ]
@@ -210,19 +210,19 @@
         "category": "neutral",
         "sounds": [
             {
-                "name": "mctradepost:mob/citizen/male1/rightaway",
+                "name": "minecolonies:mob/citizen/male1/rightaway",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/whatisit",
+                "name": "minecolonies:mob/citizen/male1/whatisit",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/okay",
+                "name": "minecolonies:mob/citizen/male1/okay",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/hi",
+                "name": "minecolonies:mob/citizen/male1/hi",
                 "stream": false
             }
         ]
@@ -231,19 +231,19 @@
         "category": "neutral",
         "sounds": [
             {
-                "name": "mctradepost:mob/citizen/male1/rightaway",
+                "name": "minecolonies:mob/citizen/male1/rightaway",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/whatisit",
+                "name": "minecolonies:mob/citizen/male1/whatisit",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/okay",
+                "name": "minecolonies:mob/citizen/male1/okay",
                 "stream": false
             },
             {
-                "name": "mctradepost:mob/citizen/male1/hi",
+                "name": "minecolonies:mob/citizen/male1/hi",
                 "stream": false
             }
         ]

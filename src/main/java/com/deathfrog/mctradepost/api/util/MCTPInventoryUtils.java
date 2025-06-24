@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.ItemStackUtils;
@@ -57,16 +58,16 @@ public class MCTPInventoryUtils {
     /**
      * Returns a map of all items stored in the building, including its inventory and all racks, with their count.
      * 
-     * @param building the building view to query
+     * @param building the building to query
      * @return a map of item stacks to their count
      */
-    public static Object2IntMap<ItemStorage> contentsForBuilding(IBuildingView building) {
+    public static Object2IntMap<ItemStorage> contentsForBuilding(IBuilding building) {
         final Object2IntOpenHashMap<ItemStorage> storedItems = new Object2IntOpenHashMap<>();
         if (building == null) {
             return storedItems;
         }
 
-        final Set<BlockPos> containerList = new HashSet<>(building.getContainerList());
+        final Set<BlockPos> containerList = new HashSet<>(building.getContainers());
         storedItems.defaultReturnValue(0); // avoid nulls on get()
 
         final Level world = building.getColony().getWorld();

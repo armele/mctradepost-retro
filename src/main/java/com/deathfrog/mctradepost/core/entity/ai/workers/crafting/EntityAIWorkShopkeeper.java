@@ -535,11 +535,23 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             if (frame.getItem().isEmpty())
             {
                 ItemStack placed = heldItem.split(1);           // Take the item from the inventory();
-                ItemStack souvenir = SouvenirItem.createSouvenir(placed.getItem(), computeItemValue(placed));
+                ItemStack souvenir = null;
+
+                // If the shopkeeper has gotten their hands on unsold souvenirs somehow, don't re-souvenir them.
+                if (placed.is(MCTradePostMod.SOUVENIR.get())) 
+                {
+                    souvenir = placed;
+                }
+                else
+                {
+                    souvenir = SouvenirItem.createSouvenir(placed.getItem(), computeItemValue(placed));
+                }
+
+                final ItemStack souvenirFinal = souvenir.copy();
 
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
                     () -> LOGGER
-                        .info("Shopkeeper: Placing souvenir {} in display at {}", SouvenirItem.toString(souvenir), currentTarget));
+                        .info("Shopkeeper: Placing souvenir {} in display at {}", SouvenirItem.toString(souvenirFinal), currentTarget));
 
                 frame.setItem(souvenir);                        // Show the item
                 displayCase.setStack(souvenir);                 // Record what the case is holding (for persistance)

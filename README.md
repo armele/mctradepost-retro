@@ -83,7 +83,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.11.004 -> MineColonies 1.1.978 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.12.003 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -118,8 +118,9 @@ Building: Train Station [In Progress]
 Research: Unlock Train Station [Testing]
 
 ### Roadmap (Roughly Prioritized)
-
-Research: Tourism (requires marketplace level and station level - increases visitor cap or rate)
+Marketplace: Show value of sellables in the list
+Marketplace: Show value of a Trade Coin.
+Train Station: Connected Colony Module
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier
@@ -139,16 +140,23 @@ Jobs: Orchards
 Assembling colonies into collections (empire, state, etc.)  
 Intra-colony trade
 
-
 #### Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).
 Recycler Building Capability: Trash Disposal 
 
 ## Additional Resources
-
 Community Documentation: [Neoforge documentation](https://docs.neoforged.net/)  
 NeoForged Discord: [Neoforge discord](https://discord.neoforged.net/)  
 Minecolonies: [MineColonies Home](https://minecolonies.com/)  
 
-## Known Defects
-Recycling stats are not recorded correctly for Domum blocks.
+## Known Issues
+### In Testing
+TEST: Research: Make expansionism level 1, and tourism level 2 (swap place and parent and make costs logically progressive)
+Test: Recycling stats are not recorded correctly for Domum blocks.
+
+### Pending Resolution
+Reduce the frequency of the recycling center inventory update (too much server lag)
+
+Wishing Well recipes not shown in JEI (ATM10)
+Tracing is global (rather than by colony)
+Fix custom shopkeeper & recycler sounds

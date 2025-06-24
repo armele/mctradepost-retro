@@ -19,5 +19,7 @@
         <text size="60 11" pos="90 70" textalign="MIDDLE_RIGHT" color="black" id="totalcash"/>
         <text size="70 11" pos="20 85" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
         <text size="60 11" pos="90 85" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
+        <itemicon size="16 16" pos="70 200" color="black" id="coinicon"/>
+        <text size="70 16" pos="90 200" textalign="MIDDLE_LEFT" color="black" id="coinvalue"/>
     </view>
 </window>

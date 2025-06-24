@@ -45,13 +45,14 @@ public class MCTPConfig
     public static final ConfigValue<Integer>  grindersPerLevel;
     public static final ConfigValue<Integer>  baseRecyclerTime;
     public static final ConfigValue<Integer>  flawlessRecycling;
+    public static final ConfigValue<Integer>  warehouseInventoryCooldown;
 
     static {
         BUILDER.push("marketplace");
 
         tradeCoinValue = BUILDER
             .comment("What is the value of a Trade Coin (‡)?")
-            .define("tradeCoinValue", 500);
+            .define("tradeCoinValue", 100);
 
         mintingLevel = BUILDER
             .comment("At what building level can the Marketplace mint coins?")
@@ -59,7 +60,7 @@ public class MCTPConfig
 
         shoppingCooldown = BUILDER
             .comment("How long before visitors will consider shopping again?")
-            .define("shoppingCooldown", 900);
+            .define("shoppingCooldown", 600);
 
         registerSoundChance = BUILDER
             .comment("How likely is a sold item to make a cash register sound?")
@@ -67,7 +68,7 @@ public class MCTPConfig
 
         shoppingChance = BUILDER
             .comment("What chance, per building level, do visitors have of deciding to shop?")
-            .define("shoppingChance", 1);
+            .define("shoppingChance", 3);
 
         BUILDER.pop();
 
@@ -116,6 +117,10 @@ public class MCTPConfig
         flawlessRecycling = BUILDER
             .comment("Stat level at which recycling is performed as well as possible.")
             .define("flawlessRecycling", 50);
+
+        warehouseInventoryCooldown = BUILDER
+            .comment("Frequency of warehouse inventory updates in Colony Ticks (processor intensive).")
+            .define("warehouseInventoryCooldown", 50);
 
         BUILDER.pop();
 

@@ -13,6 +13,8 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
+import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
@@ -23,6 +25,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRec
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
@@ -92,6 +95,9 @@ public class BuildingRecycling extends AbstractBuilding
     protected final Object2IntOpenHashMap<ItemStorage> allItems = new Object2IntOpenHashMap<>();
 
     private Set<RecyclingProcessor> recyclingProcessors = ConcurrentHashMap.newKeySet();
+
+    private static final int WAREHOUSE_INVENTORY_COOLDOWN = MCTPConfig.warehouseInventoryCooldown.get();
+    private int wareHouseCooldownCounter = 0;
 
     public BuildingRecycling(@NotNull IColony colony, BlockPos pos)
     {
@@ -527,6 +533,13 @@ public class BuildingRecycling extends AbstractBuilding
         }
     }
 
+    /**
+     * Called every tick that the colony updates. This method is responsible for processing each recycling processor, checking if the
+     * processor has finished its task, and if so, generating the output for that processor and removing it from the list of in-progress
+     * recycling operations. Additionally, this method refreshes the list of items stored in all warehouses within the colony.
+     * 
+     * @param colony the colony that this building is a part of
+     */
     @Override
     public void onColonyTick(IColony colony)
     {
@@ -546,7 +559,16 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         // Refresh the list of items stored in all warehouses within the colony.
-        refreshItemList();
+        if (wareHouseCooldownCounter <= 0) 
+        {
+            refreshItemList();
+            wareHouseCooldownCounter = WAREHOUSE_INVENTORY_COOLDOWN;
+        }
+        else
+        {
+            wareHouseCooldownCounter--;
+        }
+
     }
 
     /**
@@ -870,16 +892,15 @@ public class BuildingRecycling extends AbstractBuilding
 
         if (getColony() == null || getColony().getBuildingManager() == null)
         {
-            LOGGER.warn("Colony or Building Manager is null while attempting to refresh the recyclable list.");
+            LOGGER.warn("Recycling Center: Colony or Building Manager is null while attempting to refresh the recyclable list.");
             return;
         }
 
         IRegisteredStructureManager buildingManager = getColony().getBuildingManager();
-        BlockPos parentBuildingSpot = getPosition();
-        List<IWareHouse> warehouse = buildingManager.getWareHouses();
+        List<IWareHouse> warehouses = buildingManager.getWareHouses();
         final List<ItemStorage> pendingRecyclingQueue = getPendingRecyclingQueue();
 
-        for (IWareHouse wh : warehouse)
+        for (IWareHouse wh : warehouses)
         {
             Object2IntMap<ItemStorage> whItems = null;
 
@@ -887,12 +908,31 @@ public class BuildingRecycling extends AbstractBuilding
 
             if (whPos != null)
             {
-                IBuildingView whView = IColonyManager.getInstance().getBuildingView(getColony().getWorld().dimension(), whPos);
-                whItems = MCTPInventoryUtils.contentsForBuilding(whView);
+                TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("Analyzing inventory of warehouse at: {}.", whPos));
+
+                IBuilding warehouse = IColonyManager.getInstance().getBuilding(getColony().getWorld(), whPos);
+                whItems = MCTPInventoryUtils.contentsForBuilding(warehouse);
                 for (final Entry<ItemStorage> entry : whItems.object2IntEntrySet())
                 {
                     ItemStack stack = entry.getKey().getItemStack();
-                    if (isRecyclable(stack) && !pendingRecyclingQueue.contains(entry.getKey()))  // Do not list as available anything already in a pending queue.
+                    RecyclableRecord recyclableRecord = RecyclableRecord.fromStack(stack);
+
+                    if (recyclableRecord == null)
+                    {
+                        if (isRecyclable(stack))
+                        {
+                            recyclableRecord = new RecyclableRecord(true);
+
+                        }
+                        else
+                        {
+                            recyclableRecord = new RecyclableRecord(false);
+                        }
+                        
+                        stack.set(MCTPModDataComponents.RECYCLABLE_COMPONENT, recyclableRecord);
+                    }
+
+                    if (recyclableRecord.isRecyclable() && !pendingRecyclingQueue.contains(entry.getKey())) 
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }

@@ -2,8 +2,7 @@
     "name": "Expansionism",
     "subtitle": "There's a whole world out there!",
     "branch": "economic",
-    "researchLevel": 2,
-    "parentResearch": "mctradepost:economic/capitalism",
+    "researchLevel": 1,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,
@@ -23,7 +22,7 @@
             "item": "minecraft:rail"        
         },
         {
-            "count": 10,
+            "count": 1,
             "item": "mctradepost:mctp_coin"        
         }
     ],
