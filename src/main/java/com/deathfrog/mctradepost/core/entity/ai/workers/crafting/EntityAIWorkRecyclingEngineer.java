@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
-import com.deathfrog.mctradepost.api.util.StatsUtil;
+import com.minecolonies.api.util.StatsUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
@@ -500,7 +500,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                         worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
 
-                        StatsUtil.trackStat(recycling, StatisticsConstants.ITEM_USED, stackToRecycle.getHoverName(), stackToRecycle.getCount());
+                        StatsUtil.trackStatByName(recycling, StatisticsConstants.ITEM_USED, stackToRecycle.getHoverName(), stackToRecycle.getCount());
 
                         worker.getCitizenColonyHandler()
                             .getColonyOrRegister()

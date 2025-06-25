@@ -155,6 +155,7 @@
     "com.mctradepost.research.effects.blockhutrecycling.description": "Allows building of the Recycling Center.",
     "com.mctradepost.research.effects.disenchanting.description": "A chance to recover enchantments from recycled enchanted items.",
     "com.mctradepost.research.effects.tourists": "Get visitors by rail.",
+    "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",

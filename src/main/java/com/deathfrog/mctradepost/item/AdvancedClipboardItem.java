@@ -95,11 +95,7 @@ public class AdvancedClipboardItem extends ItemClipboard {
         }
         else if (ctx.getLevel().isClientSide)
         {
-            /*
-            if (!testingStub(clipboard)) {
-                openWindow(clipboard, ctx.getLevel(), ctx.getPlayer());  
-            }
-            */
+            openWindow(clipboard, ctx.getLevel(), ctx.getPlayer()); 
         }
     
         return InteractionResult.SUCCESS;

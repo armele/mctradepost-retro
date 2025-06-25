@@ -109,6 +109,8 @@ A resort requires a number of blocks be identified with the "relaxation_station"
 A recycling center requires one or more non-rack chests identified with the "input_container" tag. Items in these will be broken down into their ingredient components. It also requires one or more "output_container" chests, where the product of the recycling will be placed.
 Finally, some number of "grinder" blocks, which simply designates the equipment of the recycler, and gives the Recycling Engineer some guidance on where to maintain the equipment (purely visual - no functional effects).
 
+### Station
+A station building must include one or more rail blocks tagged with "station_start". These will be used to determine whether or not a station is connected to other colonies for the purposes of trade.
 
 ## Current Status
 
@@ -151,12 +153,9 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### In Testing
-TEST: Research: Make expansionism level 1, and tourism level 2 (swap place and parent and make costs logically progressive)
-Test: Recycling stats are not recorded correctly for Domum blocks.
+Advanced Clipboard does not work correctly when right-clicked on a block (ok when in the air)
 
 ### Pending Resolution
-Reduce the frequency of the recycling center inventory update (too much server lag)
-
 Wishing Well recipes not shown in JEI (ATM10)
 Tracing is global (rather than by colony)
 Fix custom shopkeeper & recycler sounds

@@ -47,6 +47,9 @@ public class MCTPConfig
     public static final ConfigValue<Integer>  flawlessRecycling;
     public static final ConfigValue<Integer>  warehouseInventoryCooldown;
 
+    // Station Settings
+    public static final ConfigValue<Integer>  trackValidationFrequency;
+
     static {
         BUILDER.push("marketplace");
 
@@ -122,6 +125,14 @@ public class MCTPConfig
             .comment("Frequency of warehouse inventory updates in Colony Ticks (processor intensive).")
             .define("warehouseInventoryCooldown", 50);
 
+        BUILDER.pop();
+        
+        // Station Settings
+        BUILDER.push("station");
+        trackValidationFrequency = BUILDER
+            .comment("Tick frequency of verifying tracks remain connected (processor intensive).")
+            .define("trackValidationFrequency", 3600);
+            
         BUILDER.pop();
 
         SPEC = BUILDER.build(); // Last

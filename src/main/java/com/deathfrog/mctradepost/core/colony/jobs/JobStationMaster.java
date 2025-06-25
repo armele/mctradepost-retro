@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.jobs;
 
-import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkStationMaster;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.EntityAIWorkStationMaster;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJob;
 

@@ -64,7 +64,7 @@ public class BuildingMarketplace extends AbstractBuilding
     protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
     protected int advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
 
-    // Keep a list of who the resort has "advertized" to (who has had the EntityAIShoppingTask added to their AI)
+    // Keep a list of who the resort has "advertised" to (who has had the EntityAIShoppingTask added to their AI)
     // This is deliberately global across all marketplaces.
     protected static List<IVisitorData> advertisingList = new ArrayList<>();
 

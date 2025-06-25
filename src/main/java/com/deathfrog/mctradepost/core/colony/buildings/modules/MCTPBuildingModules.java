@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -64,10 +65,8 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("recycling_settings", () -> new SettingsModule()
         .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false)), () -> SettingsModuleView::new);
 
-    private static final Supplier<IBuildingModule> rpvProducer = () -> new BuildingRecyclerProgressModule();
-
     public static final BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView> RECYCLING_PROGRESS     =
-      new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", rpvProducer, () -> RecyclerProgressView::new);
+      new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", () -> new BuildingRecyclerProgressModule(), () -> RecyclerProgressView::new);
 
     public static final BuildingEntry.ModuleProducer<RecyclingItemListModule,RecyclableListModuleView> ITEMLIST_RECYCLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_recyclable", () -> new RecyclingItemListModule(EntityAIWorkRecyclingEngineer.RECYCLING_LIST),
@@ -100,6 +99,10 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("stationmaster_work", 
         () -> new WorkerBuildingModule(MCTPModJobs.stationmaster.get(), Skill.Knowledge, Skill.Focus, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
+
+   public static final BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView> STATION_CONNECTION     =
+      new BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView>("station_connection", () -> new BuildingStationConnectionModule(), () -> StationConnectionModuleView::new);
+
 
     /**
      * Leisure

@@ -2,11 +2,8 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.api.util.Utils;

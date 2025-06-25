@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.util.StatsUtil;
+
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
@@ -32,6 +32,7 @@ import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
@@ -444,7 +445,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                     currentGuest.setState(Vacationer.VacationState.TREATED);
                     currentGuest = null;
 
-                    StatsUtil.trackStat(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
+                    StatsUtil.trackStatByStack(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
                     worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                     return DECIDE;
                 }
