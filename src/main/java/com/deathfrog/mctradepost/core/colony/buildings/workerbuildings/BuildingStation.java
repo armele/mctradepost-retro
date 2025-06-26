@@ -39,7 +39,6 @@ import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.Provider;
@@ -115,6 +114,16 @@ public class BuildingStation extends AbstractBuilding
     }
 
     /**
+     * Clears the list of connected stations for this building.
+     * This should be called when the building is being destroyed, or when all stations
+     * are being cleared from the building for some other reason.
+     */
+    public void clearConnectedStations() 
+    {
+        stations.clear();
+    }
+
+    /**
      * Adds a station to the list of stations for this building.
      * The station is mapped to its position in the building's station map.
      *
@@ -128,7 +137,7 @@ public class BuildingStation extends AbstractBuilding
             return;
         }
         LOGGER.info("Adding station to building: {}", station);
-        stations.put(station.getPosition(), station);
+        stations.put(station.getBuildingPosition(), station);
     }
 
 
@@ -145,7 +154,7 @@ public class BuildingStation extends AbstractBuilding
             return false;
         }
 
-        return stations.containsKey(station.getPosition());
+        return stations.containsKey(station.getBuildingPosition());
     }
 
     /**
@@ -189,7 +198,7 @@ public class BuildingStation extends AbstractBuilding
             MinecraftServer server = getColony().getWorld().getServer();
 
             if (server == null) {
-                stations.remove(station.getPosition());
+                stations.remove(station.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", station);
                 continue;
             }
@@ -197,23 +206,23 @@ public class BuildingStation extends AbstractBuilding
             Level level = server.getLevel(station.getDimension());
 
             if (level == null) {
-                stations.remove(station.getPosition());
+                stations.remove(station.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", station);
                 continue;
             }
 
-            IColony stationColony = IColonyManager.getInstance().getIColony(level, station.getPosition());
+            IColony stationColony = IColonyManager.getInstance().getIColony(level, station.getBuildingPosition());
 
             if (stationColony == null) {
-                stations.remove(station.getPosition());
+                stations.remove(station.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", station);
                 continue;
             }
 
-            IBuilding building = stationColony.getBuildingManager().getBuilding(station.getPosition());
+            IBuilding building = stationColony.getBuildingManager().getBuilding(station.getBuildingPosition());
 
             if (building == null || !(building instanceof BuildingStation)) {
-                stations.remove(station.getPosition());
+                stations.remove(station.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", station);
                 continue;
             }
@@ -388,6 +397,7 @@ public class BuildingStation extends AbstractBuilding
             StationData contents = StationData.fromNBT(stationTag);
             if (contents != null)
             {
+                MCTradePostMod.LOGGER.warn("Deserialized station from tag: {}", stationTag);
                 addStation(contents);
             }
             else

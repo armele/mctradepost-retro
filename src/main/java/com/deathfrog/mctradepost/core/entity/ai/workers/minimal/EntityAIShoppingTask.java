@@ -199,7 +199,7 @@ public class EntityAIShoppingTask
      * @return the next shopping state, IS_SHOPPING if the visitor has reached the display case, otherwise PICK_DISPLAY if still en route.
      */
     public IState pickDisplay() {
-        if (currentDisplay == null) {
+        if (currentDisplay == null && marketplace.getDisplayShelvesWithItemsForSale().size() > 0) {
             final List<DisplayCase> displayPositions = marketplace.getDisplayShelvesWithItemsForSale();
             currentDisplay = displayPositions.get(ThreadLocalRandom.current().nextInt(displayPositions.size()));
         }

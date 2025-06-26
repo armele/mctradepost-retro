@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
@@ -18,6 +19,7 @@ import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils
 import com.mojang.logging.LogUtils;
 
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStationMaster, BuildingStation>
 {
@@ -75,10 +77,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     { 
         for (IColony colony : IColonyManager.getInstance().getAllColonies())
         {
-            for (IBuilding station : colony.getBuildingManager().getBuildings().values())
+            for (IBuilding checkbuilding : colony.getBuildingManager().getBuildings().values())
             {
                 // Disregard if it's not a station, or if it is the current station.
-                if (!(station instanceof BuildingStation) || station.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
+                if (!(checkbuilding instanceof BuildingStation station) || station.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
                 {
                     continue;
                 }
@@ -118,18 +120,18 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (currentRemoteStation != null)
         {
-            LOGGER.info("Checking connection to remote station: {}", currentRemoteStation);
-            boolean isConnected = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getPosition(), building.getRailStartPosition());
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking connection to remote station: {}", currentRemoteStation));
+            boolean isConnected = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailPosition(), building.getRailStartPosition());
 
             if (isConnected)
             {
-                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.CONNECTED);
-                LOGGER.info("Remote station {} is connected!", currentRemoteStation);
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
+                currentRemoteStation = null;
             }
             else
             {
-                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED);
-                LOGGER.info("Remote station {} is not connected.", currentRemoteStation);
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED));
+                currentRemoteStation = null;
             }
         }
 

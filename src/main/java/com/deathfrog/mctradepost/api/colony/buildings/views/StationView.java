@@ -65,7 +65,7 @@ public class StationView extends AbstractBuildingView
                 if (data != null) 
                 {
                     BuildingStation.LOGGER.info("Adding station to view: {}", data);
-                    this.stations.put(data.getPosition(), data);
+                    this.stations.put(data.getBuildingPosition(), data);
                 }
                 else
                 {

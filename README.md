@@ -83,7 +83,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.12.008 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.12.009 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -152,6 +152,5 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 ### In Testing
 
 ### Pending Resolution
-Wishing Well recipes not shown in JEI (ATM10). See ItemValuePacket for an approach to solving this.
 Tracing is global (rather than by colony)
 Fix custom shopkeeper & recycler sounds

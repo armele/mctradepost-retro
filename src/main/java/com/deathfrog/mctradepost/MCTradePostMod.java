@@ -28,10 +28,8 @@ import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabInterleavedItem;
@@ -53,10 +51,8 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -104,10 +100,6 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
-import net.neoforged.neoforge.registries.datamaps.DataMapType;
-import net.neoforged.neoforge.registries.datamaps.DataMapsUpdatedEvent;
-import net.neoforged.neoforge.registries.datamaps.RegisterDataMapTypesEvent;
-
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
 
 /*
@@ -475,7 +467,17 @@ public class MCTradePostMod
                     ConfigurationPacket::handleDataInClientOnMain,
                     ConfigurationPacket::handleDataInServerOnMain
                 )
-            );              
+            );   
+            
+            // Register the payload handler for the ConfigurationPacket - used to update the client with configurations they need to be aware of.
+            registrar.playBidirectional(
+                RitualPacket.TYPE,
+                RitualPacket.RITUAL_CODEC,
+                new DirectionalPayloadHandler<>(
+                    RitualPacket::handleDataInClientOnMain,
+                    RitualPacket::handleDataInServerOnMain
+                )
+            );  
         }
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)
@@ -487,6 +489,7 @@ public class MCTradePostMod
                     MCTradePostMod.LOGGER.debug("Synchronizing information to new player: {} ", player);
                     ItemValuePacket.sendPacketsToPlayer(player);
                     ConfigurationPacket.sendPacketsToPlayer(player);
+                    RitualPacket.sendPacketsToPlayer(player);
                 }
             }
         }

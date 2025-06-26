@@ -11,13 +11,13 @@ import com.mojang.logging.LogUtils;
 
 public class TraceUtils {
 
-    public static final String TRACE_NONE =         "none";
-    public static final String TRACE_BURNOUT =      "burnout";
-    public static final String TRACE_SHOPKEEPER =   "shopkeeper";
-    public static final String TRACE_SHOPPER =      "shopper";
-    public static final String TRACE_RECYCLING =    "recycling";
-    public static final String TRACE_RECYCLING_RECIPE =    "recyclingrecipe";
-    public static final String TRACE_STATION =      "station";
+    public static final String TRACE_NONE =             "none";
+    public static final String TRACE_BURNOUT =          "burnout";
+    public static final String TRACE_SHOPKEEPER =       "shopkeeper";
+    public static final String TRACE_SHOPPER =          "shopper";
+    public static final String TRACE_RECYCLING =        "recycling";
+    public static final String TRACE_RECYCLING_RECIPE = "recyclingrecipe";
+    public static final String TRACE_STATION =          "station";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();

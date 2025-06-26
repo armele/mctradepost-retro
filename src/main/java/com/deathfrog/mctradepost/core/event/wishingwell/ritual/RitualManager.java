@@ -61,9 +61,18 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
      * @return the ritual definition helper associated with the given resource location, 
      *         or null if no such ritual exists.
      */
-
     public static RitualDefinitionHelper getRitual(ResourceLocation id) {
         return rituals.get(id);
+    }
+
+    /**
+     * Puts a ritual definition helper into the map of rituals.
+     *
+     * @param id the resource location of the ritual.
+     * @param helper the ritual definition helper to store in the map.
+     */
+    public static void putRitual(ResourceLocation id, RitualDefinitionHelper helper) {
+        rituals.put(id, helper);
     }
 
     /**
@@ -73,5 +82,20 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
      */
     public static Map<ResourceLocation, RitualDefinitionHelper> getAllRituals() {
         return rituals;
+    }
+
+    /**
+     * Retrieves all the ritual definitions that have been loaded, but without the
+     * helper objects that wrap them. This is useful for serializing the rituals
+     * to the client, for example.
+     *
+     * @return a map of resource locations to their corresponding ritual definitions.
+     */
+    public static Map<ResourceLocation, RitualDefinition> getUnwrappedRituals() {
+        Map<ResourceLocation, RitualDefinition> unwrappedRituals = new HashMap<>();
+        
+        rituals.forEach((id, helper) -> unwrappedRituals.put(id, helper.getDefinition()));
+
+        return unwrappedRituals;
     }
 }

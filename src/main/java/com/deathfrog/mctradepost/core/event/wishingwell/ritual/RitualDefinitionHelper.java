@@ -130,4 +130,9 @@ public class RitualDefinitionHelper
     {
         return this.ritualDefinition.requiredCoins();
     }
+
+    public RitualDefinition getDefinition() 
+    {
+        return this.ritualDefinition;
+    }
 }

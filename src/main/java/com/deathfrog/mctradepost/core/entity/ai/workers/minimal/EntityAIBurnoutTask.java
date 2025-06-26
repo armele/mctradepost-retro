@@ -229,15 +229,13 @@ public class EntityAIBurnoutTask  {
 
             citizen.getCitizenData().setVisibleStatus(VACATION);
             adSaturationLevel = 0;
-
-            return VacationAIState.SEARCH_RESORT;
         } 
         else 
         {
             TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Continuing the vacation for {} (state {}).", citizen.getName(), citizen.getCitizenAI().getState()));
         }
         
-        return VacationAIState.WANDER;
+        return VacationAIState.SEARCH_RESORT;
     }
 
 

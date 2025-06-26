@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.jcraft.jorbis.Block;
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 
@@ -22,24 +24,24 @@ public class StationData
     }
 
     private TrackConnectionStatus trackConnectionStatus = TrackConnectionStatus.UNKNOWN;
-    private BlockPos position = null;
+    private BlockPos buildingposition = null;
     private long lastChecked = 0;
     private int colonyId = -1;
     private ResourceKey<Level> dimension = null;
 
-    public StationData(IBuilding building)
+    public StationData(BuildingStation building)
     {
-        this.position = building.getPosition();
+        this.buildingposition = building.getPosition();
         colonyId = building.getColony().getID();
         dimension = building.getColony().getDimension();
         trackConnectionStatus = TrackConnectionStatus.UNKNOWN;
     }
 
-    public StationData(ResourceKey<Level> dimension, int colonyId, BlockPos position)
+    public StationData(ResourceKey<Level> dimension, int colonyId, BlockPos buildingpos)
     {
         this.dimension = dimension;
         this.colonyId = colonyId;
-        this.position = position;
+        this.buildingposition = buildingpos;
         trackConnectionStatus = TrackConnectionStatus.UNKNOWN;
     }
 
@@ -71,9 +73,10 @@ public class StationData
      *
      * @return the station that this StationData object refers to.
      */
-    public IBuilding getStation(@Nonnull Level level)
-    {
-        IBuilding station = IColonyManager.getInstance().getBuilding(level, position);
+    public BuildingStation getStation()
+    {   
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(dimension, buildingposition);
+        BuildingStation station = (BuildingStation) colony.getBuildingManager().getBuilding(buildingposition);
         return station;
     }
 
@@ -110,8 +113,25 @@ public class StationData
      * 
      * @return the BlockPos of this station.
      */
-    public BlockPos getPosition() {
-        return position;
+    public BlockPos getBuildingPosition() {
+        return buildingposition;
+    }
+
+    /**
+     * Retrieves the BlockPos of the starting point of the track associated with this station.
+     * 
+     * @return the BlockPos of the track associated with this station.
+     */
+    public BlockPos getRailPosition() {
+        BlockPos railposition = BlockPos.ZERO;
+
+        BuildingStation building = getStation();
+        if (building != null) {
+            railposition = building.getRailStartPosition();
+        }
+        
+        return railposition;
+
     }
 
     /**
@@ -146,10 +166,10 @@ public class StationData
         tag.putString("trackConnectionStatus", trackConnectionStatus.name());
         tag.putInt("colonyId", colonyId);
 
-        if (position != null) {
-            tag.putInt("x", position.getX());
-            tag.putInt("y", position.getY());
-            tag.putInt("z", position.getZ());
+        if (buildingposition != null) {
+            tag.putInt("bx", buildingposition.getX());
+            tag.putInt("by", buildingposition.getY());
+            tag.putInt("bz", buildingposition.getZ());
         }
 
         tag.putLong("lastChecked", lastChecked);
@@ -175,7 +195,7 @@ public class StationData
      * @return The deserialized station data.
      */
     public static StationData fromNBT(CompoundTag tag) {
-        BlockPos position = BlockPos.ZERO;
+        BlockPos buildingposition = BlockPos.ZERO;
         StationData data = null;
         int colonyId = -1;
 
@@ -183,12 +203,12 @@ public class StationData
             colonyId = tag.getInt("colonyId");
         }
 
-        if (tag.contains("x") && tag.contains("y") && tag.contains("z")) {
-            position = new BlockPos(tag.getInt("x"), tag.getInt("y"), tag.getInt("z"));
+        if (tag.contains("bx") && tag.contains("by") && tag.contains("bz")) {
+            buildingposition = new BlockPos(tag.getInt("bx"), tag.getInt("by"), tag.getInt("bz"));
         }
 
-        if (BlockPos.ZERO.equals(position)) {
-            BuildingStation.LOGGER.warn("Failed to deserialize station from tag: {} - no position found.", tag);
+        if (BlockPos.ZERO.equals(buildingposition)) {
+            BuildingStation.LOGGER.warn("Failed to deserialize station positions from tag: {} - no position found.", tag);
             return null;    
         }
 
@@ -196,7 +216,7 @@ public class StationData
         ResourceLocation level = ResourceLocation.parse(dimension);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
 
-        data = new StationData(levelKey, colonyId, position);
+        data = new StationData(levelKey, colonyId, buildingposition);
 
         if (tag.contains("trackConnectionStatus")) {
             try {
@@ -223,7 +243,7 @@ public class StationData
         return "StationData {" +
             "colonyId = " + colonyId +
             ", dimension = " + dimension +
-            ", position = " + position +
+            ", buildingposition = " + buildingposition +
             ", trackConnectionStatus=" + trackConnectionStatus +
             ", ageOfLastCheck=" + ageOfCheck() +
             '}';

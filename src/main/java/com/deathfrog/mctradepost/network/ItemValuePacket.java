@@ -47,7 +47,6 @@ public record ItemValuePacket(String itemkey, int value) implements CustomPacket
      * @param data the deserialized packet data
      * @param context the context in which the packet was received
      */
-    
     public static void handleDataInClientOnMain(final ItemValuePacket data, final IPayloadContext context) {
         // Do something with the data, on the main thread
         context.enqueueWork(() -> {

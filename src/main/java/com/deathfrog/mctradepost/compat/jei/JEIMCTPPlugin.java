@@ -19,6 +19,8 @@ public class JEIMCTPPlugin implements IModPlugin
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "jei_plugin");
     public static final RecipeType<RitualDefinitionHelper> RITUAL_TYPE = new RecipeType<>(ID, RitualDefinitionHelper.class);
 
+    public static IRecipeManager RECIPE_MANAGER = null;
+
     @Nonnull
     @Override
     public ResourceLocation getPluginUid()
@@ -50,7 +52,19 @@ public class JEIMCTPPlugin implements IModPlugin
     @Override
     public void onRuntimeAvailable(@Nonnull IJeiRuntime jeiRuntime)
     {
-        IRecipeManager manager = jeiRuntime.getRecipeManager();
-        // Optional: use this to add click actions
+        RECIPE_MANAGER = jeiRuntime.getRecipeManager();
+    }
+
+    public static void refreshRitualRecipes() 
+    {
+        if (RECIPE_MANAGER == null) {
+            MCTradePostMod.LOGGER.warn("JEI runtime not ready; cannot refresh rituals");
+            return;
+        }
+
+        List<RitualDefinitionHelper> allRituals = RitualManager.getAllRituals().values().stream().toList();
+        RECIPE_MANAGER.addRecipes(RITUAL_TYPE, allRituals);
+
+        MCTradePostMod.LOGGER.info("JEI ritual list reloaded");
     }
 }
