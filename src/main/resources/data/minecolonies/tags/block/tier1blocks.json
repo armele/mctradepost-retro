@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "mctradepost:thatch",
+    "mctradepost:thatch_wall",
+    "mctradepost:thatch_stairs",
     "mctradepost:plaster",
     "mctradepost:rough_brick",
     "mctradepost:rough_stone"

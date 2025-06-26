@@ -15,6 +15,8 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 public final class ModBlocksInitializer
 {
     public final static String THATCH_NAME = "thatch";
+    public final static String THATCH_STAIRS_NAME = "thatch_stairs";
+    public final static String THATCH_WALL_NAME = "thatch_wall";
     public final static String PLASTER_NAME = "plaster";
     public final static String PLASTER_STAIRS_NAME = "plaster_stairs";
     public final static String PLASTER_WALL_NAME = "plaster_wall";

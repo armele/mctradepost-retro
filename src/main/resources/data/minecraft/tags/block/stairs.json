@@ -2,6 +2,9 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone_stairs",
-    "mctradepost:plaster_stairs"
+    "mctradepost:plaster_stairs",
+    "mctradepost:rough_stone_stairs",
+    "mctradepost:rough_brick_stairs",
+    "mctradepost:thatch_stairs"
   ]
 }

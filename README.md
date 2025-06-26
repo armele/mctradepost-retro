@@ -58,7 +58,7 @@ Meticultous Disassembly - Allows the recycling center to reliably strip enchantm
 
 ### Custom Blocks
 * Block implementations of the building huts.
-* A few new building materials (mixed stone, thatch, plaster)
+* A few new building materials (mixed stone, thatch, plaster, rough stone, rough brick)
 * A few new Architect's Cutter recipes
 
 ### Configuration
@@ -83,7 +83,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.12.003 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.12.008 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -116,20 +116,17 @@ A station building must include one or more rail blocks tagged with "station_sta
 
 This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
-Building: Train Station [In Progress]
-Research: Unlock Train Station [Testing]
+Building: Train Station - Connected Colony Module [Testing]
+Marketplace: Show value of sellables in the list [Testing]
 
 ### Roadmap (Roughly Prioritized)
-Marketplace: Show value of sellables in the list
-Marketplace: Show value of a Trade Coin.
-Train Station: Connected Colony Module
+Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier
 Pets: burnout mitigator
 Pets: sickness decreased
 Pets: scarecrow effect
-Building Capability - Recycling: Disenchanting  [Unlock with Research]
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
 Building Effect: Autominting + Delivery to warehouse of coins?
@@ -153,9 +150,8 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### In Testing
-Advanced Clipboard does not work correctly when right-clicked on a block (ok when in the air)
 
 ### Pending Resolution
-Wishing Well recipes not shown in JEI (ATM10)
+Wishing Well recipes not shown in JEI (ATM10). See ItemValuePacket for an approach to solving this.
 Tracing is global (rather than by colony)
 Fix custom shopkeeper & recycler sounds

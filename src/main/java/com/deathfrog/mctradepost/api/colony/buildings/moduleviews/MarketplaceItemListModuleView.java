@@ -1,12 +1,11 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
-import com.deathfrog.mctradepost.core.client.gui.modules.WindowRecyclingItemListModule;
-import com.deathfrog.mctradepost.item.SouvenirItem;
+
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowMarketplaceItemListModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -19,7 +18,6 @@ import com.minecolonies.api.util.Utils;
 
 public class MarketplaceItemListModuleView extends ItemListModuleView
 {
-    protected Map<Item, Integer> itemValues = new HashMap<>();
 
     public MarketplaceItemListModuleView(String id, String desc, boolean inverted, Function<IBuildingView, Set<ItemStorage>> allItems)
     {
@@ -33,24 +31,27 @@ public class MarketplaceItemListModuleView extends ItemListModuleView
 
         for (int j = 0; j < size; ++j)
         {
-            ItemStorage souvenirVersion = new ItemStorage(Utils.deserializeCodecMess(buf));
-
-            Item item = SouvenirItem.getOriginal(souvenirVersion.getItemStack());
-            itemValues.put(item, SouvenirItem.getSouvenirValue(souvenirVersion.getItemStack()));
+            ItemStorage item = new ItemStorage(Utils.deserializeCodecMess(buf));
             
-            this.addItem(new ItemStorage(item));
+            this.addItem(item);
         }
     }
 
+    /**
+     * Returns the value of a given item, or 0 if the item is not in the list.
+     * 
+     * @param item The item to get the value for.
+     * @return The value of the given item.
+     */
     public int getValueForItem(Item item)
     {
-        return itemValues.getOrDefault(item, 0);
+        return ItemValueRegistry.getValue(item);
     }
 
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WindowRecyclingItemListModule("mctradepost:gui/layouthuts/layoutmarketplacelistmodule.xml",
+        return new WindowMarketplaceItemListModule("mctradepost:gui/layouthuts/layoutmarketplacelistmodule.xml",
             this.buildingView,
             this);
     }

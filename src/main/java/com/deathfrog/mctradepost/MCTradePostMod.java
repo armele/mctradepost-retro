@@ -15,6 +15,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
+import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
@@ -27,9 +28,13 @@ import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualReloadListener;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
+import com.deathfrog.mctradepost.item.BlockSideSlabInterleavedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -48,8 +53,10 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -78,6 +85,7 @@ import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
@@ -96,6 +104,10 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
+import net.neoforged.neoforge.registries.datamaps.DataMapType;
+import net.neoforged.neoforge.registries.datamaps.DataMapsUpdatedEvent;
+import net.neoforged.neoforge.registries.datamaps.RegisterDataMapTypesEvent;
+
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
 
 /*
@@ -214,12 +226,20 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockDistressed> DISTRESSED = BLOCKS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressed());
     public static final DeferredBlock<BlockStackedSlab> STACKED_SLAB = BLOCKS.register(BlockStackedSlab.STACKED_SLAB_ID, () -> new BlockStackedSlab());
     public static final DeferredBlock<BlockSideSlab> SIDE_SLAB = BLOCKS.register(BlockSideSlab.SIDE_SLAB_ID, () -> new BlockSideSlab());
-
+    public static final DeferredBlock<BlockSideSlabInterleaved> SIDE_SLAB_INTERLEAVED = BLOCKS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleaved());
 
     public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.TERRACOTTA_BROWN)
             .strength(.5f, 1.0f)
             .sound(SoundType.GRASS)));
+
+    public static final DeferredBlock<StairBlock> THATCH_STAIRS =
+        BLOCKS.register(ModBlocksInitializer.THATCH_STAIRS_NAME,
+            () -> new StairBlock(THATCH.get().defaultBlockState(),  // base block state supplier
+                THATCH.get().properties()                           // reuse base block's properties
+            ));
+
+    public static final DeferredBlock<WallBlock> THATCH_WALL = BLOCKS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new WallBlock(THATCH.get().properties()));
 
     public static final DeferredBlock<Block> PLASTER = BLOCKS.register(ModBlocksInitializer.PLASTER_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.TERRACOTTA_WHITE)
@@ -282,8 +302,17 @@ public class MCTradePostMod
     public static final DeferredItem<BlockSideSlabItem> SIDE_SLAB_ITEM =
         ITEMS.register(BlockSideSlab.SIDE_SLAB_ID, () -> new BlockSideSlabItem(SIDE_SLAB.get(), new BlockSideSlabItem.Properties()));
 
+    public static final DeferredItem<BlockSideSlabInterleavedItem> SIDE_SLAB_INTERLEAVED_ITEM =
+        ITEMS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleavedItem(SIDE_SLAB_INTERLEAVED.get(), new BlockSideSlabInterleavedItem.Properties()));
+
     public static final DeferredItem<Item> THATCH_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_NAME, () -> new BlockItem(THATCH.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> THATCH_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.THATCH_STAIRS_NAME, () -> new BlockItem(THATCH_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> THATCH_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new BlockItem(THATCH_WALL.get(), new Item.Properties()));
 
     public static final DeferredItem<Item> PLASTER_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_NAME, () -> new BlockItem(PLASTER.get(), new Item.Properties()));
@@ -324,6 +353,7 @@ public class MCTradePostMod
                 output.accept(MCTP_COIN_ITEM.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
             }).build());
 
+
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
@@ -344,7 +374,7 @@ public class MCTradePostMod
         // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
-        NeoForge.EVENT_BUS.register(RitualReloadListener.class);
+        // NeoForge.EVENT_BUS.register(RitualReloadListener.class);
         NeoForge.EVENT_BUS.register(BurnoutRemedyManager.class);
 
         // Add a listener for the common setup event.
@@ -382,11 +412,17 @@ public class MCTradePostMod
         }
     }
 
+    /**
+     * This method is called on both the client and server side during the mod's initialization.
+     * It is responsible for setting up and initializing any code that needs to be shared between
+     * the client and server. This includes things like setting up custom damage sources, 
+     * registering capabilities, and setting up custom registry objects.
+     */
     private void onCommonSetup(final FMLCommonSetupEvent event)
     {
         // Some common setup code
-        LOGGER.info("MCTradePost common setup (placeholder)");    
-        // NETSYNC: Building registration at this point with explicit initialization, server load fails due to "Cannot register new entries to DeferredRegister after RegisterEvent has been fired. "
+        LOGGER.info("MCTradePost common setup ");  
+        ItemValueRegistry.loadInitialValuesFromJson();  
     }
 
     /**
@@ -471,7 +507,7 @@ public class MCTradePostMod
     {   
         // Derive the value of all items
         LOGGER.info("Server has started.");
-        ItemValueRegistry.generateValues();
+        // ItemValueRegistry.generateValues();
         // ItemValueRegistry.logValues();
     }
 
@@ -537,6 +573,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
                     event.accept(MCTradePostMod.THATCH.get());
+                    event.accept(MCTradePostMod.THATCH_STAIRS.get());
+                    event.accept(MCTradePostMod.THATCH_WALL.get());
                     event.accept(MCTradePostMod.PLASTER.get());
                     event.accept(MCTradePostMod.PLASTER_STAIRS.get());
                     event.accept(MCTradePostMod.PLASTER_WALL.get());
@@ -662,6 +700,13 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
             event.register(SouvenirLoader.LOADER_ID, SouvenirLoader.INSTANCE);
+        }
+
+        // Register client-side listeners on the Mod bus
+        @OnlyIn(Dist.CLIENT)
+        @SubscribeEvent
+        public static void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
+            event.registerReloadListener(new RitualManager());
         }
     }
 

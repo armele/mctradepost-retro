@@ -40,7 +40,11 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
     protected void apply(@Nonnull Map<ResourceLocation, JsonElement> objectMap, @Nonnull  ResourceManager resourceManager, @Nonnull  ProfilerFiller profiler) {
         rituals.clear();
 
+        MCTradePostMod.LOGGER.info("Ritual map size: {}", objectMap.size());
+
         objectMap.forEach((id, json) -> {
+            MCTradePostMod.LOGGER.info("Decoding ritual: {}", id);
+
             RitualDefinition.CODEC.decode(JsonOps.INSTANCE, json).result().ifPresent(pair -> {
                 RitualDefinition def = pair.getFirst();
                 rituals.put(id, new RitualDefinitionHelper(id, def));

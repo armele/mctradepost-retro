@@ -1,0 +1,4 @@
+{
+  "parent": "mctradepost:block/timber_frame/side_slab_interleaved_spec",
+  "loader": "domum_ornamentum:materially_textured"
+}

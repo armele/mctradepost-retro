@@ -357,7 +357,7 @@ public class ItemValueRegistry
      * 
      * File is created based on ATM10 recipe lists.
      */
-    private static void loadInitialValuesFromJson() {
+    public static void loadInitialValuesFromJson() {
         try {
             InputStream stream = ItemValueRegistry.class.getResourceAsStream("/data/mctradepost/item_values.json");
             if (stream == null) {

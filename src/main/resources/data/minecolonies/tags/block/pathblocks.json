@@ -1,6 +1,8 @@
 {
     "replace": false,
     "values": [
-        "mctradepost:mixed_stone"
+        "mctradepost:mixed_stone",
+        "mctradepost:rough_stone",
+        "mctradepost:rough_brick"
   ]
 }

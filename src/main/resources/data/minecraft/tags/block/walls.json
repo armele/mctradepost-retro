@@ -2,6 +2,9 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone_wall",
-    "mctradepost:plaster_wall"
+    "mctradepost:plaster_wall",
+    "mctradepost:rough_stone_wall",
+    "mctradepost:rough_brick_wall",
+    "mctradepost:thatch_wall"
   ]
 }

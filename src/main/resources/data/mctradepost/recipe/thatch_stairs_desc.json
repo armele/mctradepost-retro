@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "blocks",
+    "key": {
+      "S": { "item": "mctradepost:thatch" }
+    },
+    "pattern": [
+      "S  ",
+      "SS ",
+      "SSS"
+    ],
+    "result": {
+      "count": 4,
+      "id": "mctradepost:thatch_stairs"
+    }
+}
+  
