@@ -120,7 +120,11 @@
     "com.mctradepost.coremod.request.recyclable" : "Request: Recyclable Items",
     "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Warehouse Minimum",
     "com.minecolonies.coremod.setting.mctradepost:iterative_processing" : "Iterative Recycling",
-
+    "com.minecolonies.coremod.gui.station.trades" : "Trades",
+    "com.minecolonies.coremod.gui.trade.limitreached" : "Trade Limit Reached",
+    "com.minecolonies.coremod.gui.trade.empty" : "No trades configured.",
+    "com.minecolonies.coremod.gui.trade.price" : "‡ Coins",
+    "com.minecolonies.coremod.gui.trade.price.tooltip" : "How many trade coins to pay for the selected stack.",
 
     "mctradepost.configuration.marketplace": "Marketplace Settings",
     "mctradepost.configuration.tradeCoinValue.tooltip": "What is the value of a single trade coin?",

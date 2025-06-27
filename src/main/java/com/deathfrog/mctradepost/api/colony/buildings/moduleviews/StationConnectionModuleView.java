@@ -1,7 +1,6 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import org.jetbrains.annotations.NotNull;
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationConnectionModule;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
@@ -16,7 +15,7 @@ public class StationConnectionModuleView extends AbstractBuildingModuleView
 
     public StationConnectionModuleView() {
         super();
-        MCTradePostMod.LOGGER.info("Constructing StationConnectionModuleView.");
+        // MCTradePostMod.LOGGER.info("Constructing StationConnectionModuleView.");
     }
 
     /**

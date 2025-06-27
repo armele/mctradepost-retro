@@ -25,6 +25,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.AddTradeToBuildingModuleMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
@@ -47,6 +48,7 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.minecolonies.core.items.ItemFood;
+import com.minecolonies.core.network.messages.server.colony.building.AddMinimumStockToBuildingModuleMessage;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -478,6 +480,8 @@ public class MCTradePostMod
                     RitualPacket::handleDataInServerOnMain
                 )
             );  
+
+            AddTradeToBuildingModuleMessage.TYPE.register(registrar);
         }
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)

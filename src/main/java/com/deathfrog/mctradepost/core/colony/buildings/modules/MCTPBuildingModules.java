@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationTradeModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
@@ -100,6 +101,11 @@ public class MCTPBuildingModules
    public static final BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView> STATION_CONNECTION     =
       new BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView>("station_connection", () -> new BuildingStationConnectionModule(), () -> StationConnectionModuleView::new);
 
+
+   public static final BuildingEntry.ModuleProducer<BuildingStationTradeModule,BuildingStationTradeModuleView> TRADES              =
+      new BuildingEntry.ModuleProducer<>("trades",
+        () -> new BuildingStationTradeModule(),
+        () -> BuildingStationTradeModuleView::new);
 
     /**
      * Leisure

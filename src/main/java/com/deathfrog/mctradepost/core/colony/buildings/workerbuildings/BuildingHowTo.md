@@ -50,3 +50,17 @@ Define the models that animate the worker for the Job (not necessary if calling 
 
 ## Building Research
 If the building is meant to be unlocked via research or progression, set that up with an effect using a json file at src\main\resources\data\mctradepost\researches\effects
+
+# Building Modules
+Modules are building functionality supported by right-clicking the hut block. They enable a variety of capabilities depending on the implementation.
+
+All the functionality described below is linked together by a declaration of a module producer in MCTPBuildingModules and then attached to a buliding in ModBuildingsInitializer.
+
+## Module (Server)
+Server-side module capabilities are implemented at src\main\java\com\deathfrog\mctradepost\core\colony\buildings\modules and will probably extend AbstractBuildingModule and implement IPersistentModule. For any information that needs to be available on the client side and is not included in the building view, serialize that here in serializeToView.
+
+## Module View (Client)
+Client-side module capabilities are implemented at src\main\java\com\deathfrog\mctradepost\api\colony\buildings\moduleviews and will probably extend AbstractBuildingModuleView or a child. Implement a deserialize method here that corresponds exactly to what is in the associated module's serializeToView. (Mismatched serialization logic will break the game in multiplayer mode in severe and unpredictable ways, but should show up in the logging.)
+
+## Module Window (Client)
+The Module View will almost certainly implement a Window class (src\main\java\com\deathfrog\mctradepost\core\client\gui\modules) extending AbstractModuleWindow and using an xml-based template with BlockUI to create a screen. See examples at src\main\resources\assets\mctradepost\gui\layouthuts.

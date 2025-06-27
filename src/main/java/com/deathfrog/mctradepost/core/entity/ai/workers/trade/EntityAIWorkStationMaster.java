@@ -59,6 +59,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.CHECK_CONNECTION;
         }
 
+        // TODO: Add logic to review configured trades, call for coins if needed and actually negotiate a trade.
+
         EntityNavigationUtils.walkToRandomPos(worker, 10, 0.6D);
         return AIWorkerState.IDLE;
     }

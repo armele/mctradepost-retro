@@ -108,6 +108,7 @@ public final class ModBuildingsInitializer
             stationBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.STATION_ID));
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATIONMASTER_WORK);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATION_CONNECTION);
+            stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.TRADES);
             stationBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
 
             ModBuildings.station = stationBuilder.createBuildingEntry();

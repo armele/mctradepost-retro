@@ -116,20 +116,21 @@ A station building must include one or more rail blocks tagged with "station_sta
 
 This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
-Building: Train Station - Connected Colony Module [Testing]
-Marketplace: Show value of sellables in the list [Testing]
-
 ### Roadmap (Roughly Prioritized)
-Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
+Building: Train Station - Trade Module
+Building: Train Station - Engineer Walking the track during connection testing.
+Building: Train Station - Elegant handling of chunk loading.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
 Pets: happiness multiplier
 Pets: burnout mitigator
 Pets: sickness decreased
 Pets: scarecrow effect
+Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
-Building Effect: Autominting + Delivery to warehouse of coins?
+Building: Marketplace - Autominting + Delivery to warehouse of coins?
+Building: Station - Research to increase number of trades supported per station level.
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
