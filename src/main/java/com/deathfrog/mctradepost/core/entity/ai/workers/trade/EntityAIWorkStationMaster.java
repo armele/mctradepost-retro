@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -120,17 +121,19 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (currentRemoteStation != null)
         {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking connection to remote station: {}", currentRemoteStation));
-            boolean isConnected = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailPosition(), building.getRailStartPosition());
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking connection to remote station: {} seeking endpoint: {}", currentRemoteStation, building.getRailStartPosition()));
+            TrackConnectionResult connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailStartPosition(), building.getRailStartPosition());
 
-            if (isConnected)
+            if (connectionResult.connected)
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
+                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.CONNECTED);
                 currentRemoteStation = null;
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, connectionResult.closestPoint));
+                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED);
                 currentRemoteStation = null;
             }
         }

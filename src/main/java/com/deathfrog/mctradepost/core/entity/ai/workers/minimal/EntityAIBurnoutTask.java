@@ -476,7 +476,7 @@ public class EntityAIBurnoutTask  {
     private IState applyCure()
     {
 
-        LOGGER.info("Vacationer {} attempting to apply cure.", citizen);
+        TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacationer {} attempting to apply cure.", citizen));
 
         if (checkForCure() != VacationAIState.APPLY_CURE)
         {

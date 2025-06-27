@@ -3,12 +3,11 @@
     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
     <text size="120 11" pos="30 14" textalign="MIDDLE" color="black"
            label="$(com.mctradepost.core.gui.modules.stationconnections)"/>
-    <button id="cancel" label="X" color="red" pos="160 11" size="14 15"
-                 source="minecolonies:textures/gui/builderhut/builder_button_mini.png"/>
     <list id="stations" size="170 154" pos="13 46">
         <box id="stationx" size="100% 25" linewidth="1">
-            <text id="location" size="170 11" pos="30 2" textalign="MIDDLE_LEFT" color="black"/>
-            <text id="status" size="170 11" pos="45 13" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="location" size="150 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="status" size="150 11" pos="2 13" textalign="MIDDLE_LEFT" color="black"/>
+            <slot id="stationInputSlot" x="10" y="10" index="0" inventory="module" width="18" height="18"/>
         </box>
     </list>
 </window>

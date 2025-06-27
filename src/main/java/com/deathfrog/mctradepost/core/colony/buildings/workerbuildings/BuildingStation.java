@@ -129,15 +129,15 @@ public class BuildingStation extends AbstractBuilding
      *
      * @param station The StationData to be added.
      */
-    public void addStation(StationData station) 
+    public void addStation(StationData sdata) 
     {
-        if (station == null) 
+        if (sdata == null) 
         {
             LOGGER.warn("Attempted to add null station to building.");
             return;
         }
-        LOGGER.info("Adding station to building: {}", station);
-        stations.put(station.getBuildingPosition(), station);
+        LOGGER.info("Adding station to building: {}", sdata);
+        stations.put(sdata.getBuildingPosition(), sdata);
     }
 
 
@@ -397,7 +397,7 @@ public class BuildingStation extends AbstractBuilding
             StationData contents = StationData.fromNBT(stationTag);
             if (contents != null)
             {
-                MCTradePostMod.LOGGER.warn("Deserialized station from tag: {}", stationTag);
+                MCTradePostMod.LOGGER.warn("Deserialized station {} from tag: {}", contents, stationTag);
                 addStation(contents);
             }
             else

@@ -10,26 +10,43 @@ import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
-import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
 public class WindowStationConnectionModule extends AbstractModuleWindow
 {
     private static final String PANE_STATIONS = "stations";
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
+    IBuildingView buildingView = null;
+
+    private final ItemStackHandler inputHandler = new ItemStackHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            super.onContentsChanged(slot);
+
+            // Copy the item to your tracked station list logic
+            ItemStack inserted = getStackInSlot(slot);
+            if (!inserted.isEmpty()) {
+                // TODO: ((StationView) building).addTrackedItem(inserted.copy()); implement this
+            }
+        }
+    };
 
     /**
      * Scrollinglist of the resources.
      */
     protected ScrollingList connectionDisplayList;
 
-    public WindowStationConnectionModule(IBuildingView building)
+    public WindowStationConnectionModule(IBuildingView buildingView)
     {
-        super(building, MCTradePostMod.MODID + STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX);
-        stations = ((StationView) building).getStations();
+        super(buildingView, MCTradePostMod.MODID + STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX);
+        this.buildingView = buildingView;
+        stations = ((StationView) buildingView).getStations();
 
         connectionDisplayList = findPaneOfTypeByID(PANE_STATIONS, ScrollingList.class);
     }
@@ -42,6 +59,9 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
         if (stations != null && !stations.isEmpty())
         {
             updateConnections();
+
+            // Bind our logical slot to the pane declared in XML.
+            SlotItemHandler logicalSlot = new SlotItemHandler(inputHandler, 0, 0, 0); // x/y ignored here
         }
         else
         {
@@ -87,4 +107,5 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
             }
         });
     }
+
 }

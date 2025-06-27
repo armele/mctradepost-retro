@@ -1,14 +1,8 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
-import javax.annotation.Nonnull;
-
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
-import com.jcraft.jorbis.Block;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
-import com.minecolonies.api.colony.buildings.IBuilding;
-
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -65,7 +59,15 @@ public class StationData
     public void setTrackConnectionStatus(TrackConnectionStatus trackConnectionStatus)
     {
         this.trackConnectionStatus = trackConnectionStatus;
-        lastChecked = Minecraft.getInstance().level.getGameTime();
+        try
+        {
+            lastChecked =  getStation().getColony().getWorld().getGameTime();
+        }
+        catch (Exception e)
+        {
+            lastChecked = -1;
+            // BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
+        }
     }
 
     /**
@@ -76,7 +78,14 @@ public class StationData
     public BuildingStation getStation()
     {   
         IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(dimension, buildingposition);
+        if (colony == null)
+        {
+            // BuildingStation.LOGGER.warn("No colony identifiable from dimension {} and position {}.", dimension, buildingposition);
+            return null;
+        } 
+
         BuildingStation station = (BuildingStation) colony.getBuildingManager().getBuilding(buildingposition);
+        
         return station;
     }
 
@@ -122,7 +131,7 @@ public class StationData
      * 
      * @return the BlockPos of the track associated with this station.
      */
-    public BlockPos getRailPosition() {
+    public BlockPos getRailStartPosition() {
         BlockPos railposition = BlockPos.ZERO;
 
         BuildingStation building = getStation();
@@ -142,7 +151,18 @@ public class StationData
      */
     public long ageOfCheck()
     {
-        return Minecraft.getInstance().level.getGameTime() - lastChecked;
+        long now = -1;
+        try
+        {
+            now =  getStation().getColony().getWorld().getGameTime();
+        }
+        catch (Exception e)
+        {
+            now = -1;
+            // BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
+        }
+
+        return now - lastChecked;
     }
 
     /**
@@ -228,7 +248,7 @@ public class StationData
 
         data.lastChecked = tag.getLong("lastChecked");
 
-        BuildingStation.LOGGER.debug("Deserialized station data: {}", data);
+        BuildingStation.LOGGER.info("Deserialized station data: {}", data);
 
         return data;
     }
@@ -244,6 +264,7 @@ public class StationData
             "colonyId = " + colonyId +
             ", dimension = " + dimension +
             ", buildingposition = " + buildingposition +
+            ", startposition = " + getRailStartPosition() +
             ", trackConnectionStatus=" + trackConnectionStatus +
             ", ageOfLastCheck=" + ageOfCheck() +
             '}';
