@@ -113,11 +113,12 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 A station building must include one or more rail blocks tagged with "station_start". These will be used to determine whether or not a station is connected to other colonies for the purposes of trade.
 
 ## Current Status
-
 This mod can best be described as an "early-alpha" state. It functionality may change rapidly and without warning.
 
+Building: Train Station - Trade Modules.  Modules are implemented to allow configuration of imports and exports. Next step is to implement Stationmaster AI
+to act upon this information.
+
 ### Roadmap (Roughly Prioritized)
-Building: Train Station - Trade Module
 Building: Train Station - Engineer Walking the track during connection testing.
 Building: Train Station - Elegant handling of chunk loading.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)

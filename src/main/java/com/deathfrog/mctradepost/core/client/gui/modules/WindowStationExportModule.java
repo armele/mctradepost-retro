@@ -3,14 +3,20 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
@@ -22,6 +28,7 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class WindowStationExportModule extends AbstractModuleWindow
@@ -38,6 +45,28 @@ public class WindowStationExportModule extends AbstractModuleWindow
      * Scrollinglist of the resources.
      */
     protected ScrollingList exportDisplayList;
+
+    public static String TAG_BUTTON_TAKETRADE = "takeTrade";
+
+    /**
+     * Texture of the assign button when it's on.
+     */
+    private static final String TEXTURE_ASSIGN_ON_NORMAL = "minecolonies:textures/gui/builderhut/builder_button_mini_check.png";
+
+    /**
+     * Texture of the assign button when it's on and disabled.
+     */
+    private static final String TEXTURE_ASSIGN_ON_DISABLED = "minecolonies:textures/gui/builderhut/builder_button_mini_disabled_check.png";
+
+    /**
+     * Texture of the assign button when it's off.
+     */
+    private static final String TEXTURE_ASSIGN_OFF_NORMAL = "minecolonies:textures/gui/builderhut/builder_button_mini.png";
+
+    /**
+     * Texture of the assign button when it's off and disabled.
+     */
+    private static final String TEXTURE_ASSIGN_OFF_DISABLED = "minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png";
 
     public class ExportGui
     {
@@ -121,6 +150,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
         this.buildingView = buildingView;
         this.moduleView = moduleView;
         stations = ((StationView) buildingView).getStations();
+        registerButton(TAG_BUTTON_TAKETRADE, this::takeTradeClicked);
 
         MCTradePostMod.LOGGER.info("Configuring exports module window with {} connected stations.", stations.size());
 
@@ -146,7 +176,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
                 for (ExportData export : moduleView.getExportList())
                 {
-                    if (exportGui.isEnabled() && export.station().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                    if (exportGui.isEnabled() && export.station().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
                         export.itemStorage().getItemStack().is(exportGui.getItemStorage().getItem()) &&
                         exportGui.cost.equals(export.cost()))
                     {
@@ -218,7 +248,35 @@ public class WindowStationExportModule extends AbstractModuleWindow
                 costStackDisplay.setVisible(true);
                 ItemStack stack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), export.getCost());
                 costStackDisplay.setItem(stack);
+
+                final ButtonImage takeTradeButton = rowPane.findPaneOfTypeByID(TAG_BUTTON_TAKETRADE, ButtonImage.class);
+                takeTradeButton.setVisible(true);
+                takeTradeButton.setImage(export.isSelected() ? ResourceLocation.parse(TEXTURE_ASSIGN_ON_NORMAL) : ResourceLocation.parse(TEXTURE_ASSIGN_OFF_NORMAL));
+                takeTradeButton.setImageDisabled(export.isSelected() ? ResourceLocation.parse(TEXTURE_ASSIGN_ON_DISABLED) : ResourceLocation.parse(TEXTURE_ASSIGN_OFF_DISABLED));
+                takeTradeButton.setEnabled(export.isEnabled());
+
             }
         });
+    }
+
+    /**
+     * On click select the clicked work order.
+     *
+     * @param button the clicked button.
+     */
+    private void takeTradeClicked(@NotNull final Button button)
+    {
+        final int row = exportDisplayList.getListElementIndexByPane(button);
+        ExportGui selectedTrade = potentialExportMap.get(row);
+        selectedTrade.setSelected(!selectedTrade.isSelected());
+        updatePotentialExports();
+        TradeMessage exportTrade = new TradeMessage(buildingView, 
+            selectedTrade.isSelected() ? TradeMessage.TradeAction.ADD : TradeMessage.TradeAction.REMOVE, 
+            TradeMessage.TradeType.EXPORT, 
+            selectedTrade.getDestinationStation(), 
+            selectedTrade.getItemStorage().getItemStack(), 
+            selectedTrade.getCost());
+
+        exportTrade.sendToServer();
     }
 }

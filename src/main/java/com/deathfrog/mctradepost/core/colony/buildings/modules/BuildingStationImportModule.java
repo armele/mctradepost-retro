@@ -50,6 +50,12 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         return (int) (building.getBuildingLevel() * TRADES_PER_LEVEL);
     }
 
+    /**
+     * Adds a trade to the list of imports if the list is not full, or if the item is already in the list.
+     *
+     * @param itemStack the itemstack to add.
+     * @param quantity  the quantity to add.
+     */
     public void addTrade(final ItemStack itemStack, final int quantity)
     {
         if (importMap.containsKey(new ItemStorage(itemStack)) || importMap.size() < allowedTrades())
@@ -57,6 +63,26 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
             importMap.put(new ItemStorage(itemStack), quantity);
             markDirty();
         }
+    }
+
+    /**
+     * Removes a trade associated with the given ItemStack from the trade list.
+     * If there is an open request matching the itemStack, it gets cancelled.
+     *
+     * @param itemStack The ItemStack representing the trade to be removed.
+     */
+    public void removeTrade(final ItemStack itemStack)
+    {
+        importMap.remove(new ItemStorage(itemStack));
+
+        final Collection<IToken<?>> list = building.getOpenRequestsByRequestableType().getOrDefault(TypeToken.of(Stack.class), new ArrayList<>());
+        final IToken<?> token = getMatchingRequest(itemStack, list);
+        if (token != null)
+        {
+            building.getColony().getRequestManager().updateRequestState(token, RequestState.CANCELLED);
+        }
+
+        markDirty();
     }
 
     /**
@@ -87,26 +113,6 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
             }
         }
         return null;
-    }
-
-    /**
-     * Removes a trade associated with the given ItemStack from the trade list.
-     * If there is an open request matching the itemStack, it gets cancelled.
-     *
-     * @param itemStack The ItemStack representing the trade to be removed.
-     */
-    public void removeTrade(final ItemStack itemStack)
-    {
-        importMap.remove(new ItemStorage(itemStack));
-
-        final Collection<IToken<?>> list = building.getOpenRequestsByRequestableType().getOrDefault(TypeToken.of(Stack.class), new ArrayList<>());
-        final IToken<?> token = getMatchingRequest(itemStack, list);
-        if (token != null)
-        {
-            building.getColony().getRequestManager().updateRequestState(token, RequestState.CANCELLED);
-        }
-
-        markDirty();
     }
 
     /**

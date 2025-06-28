@@ -2,8 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.AddTradeToBuildingModuleMessage;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.RemoveTradeFromBuildingModuleMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ButtonImage;
@@ -78,7 +77,7 @@ public class WindowStationImportModule extends AbstractModuleWindow
         final int row = resourceList.getListElementIndexByPane(button);
         final Tuple<ItemStorage, Integer> tuple = moduleView.getImports().get(row);
         moduleView.getImports().remove(row);
-        new RemoveTradeFromBuildingModuleMessage(buildingView,
+        new TradeMessage(buildingView,TradeMessage.TradeAction.REMOVE, TradeMessage.TradeType.IMPORT, null,
             tuple.getA().getItemStack(),
             moduleView.getProducer().getRuntimeID()).sendToServer();
         updateTradeList();
@@ -93,7 +92,7 @@ public class WindowStationImportModule extends AbstractModuleWindow
         {
             new WindowSelectImportResources(this,
                 (stack) -> true,
-                (stack, qty) -> new AddTradeToBuildingModuleMessage(buildingView, stack, qty).sendToServer(),
+                (stack, qty) -> new TradeMessage(buildingView, TradeMessage.TradeAction.ADD, TradeMessage.TradeType.IMPORT, null, stack, qty).sendToServer(),
                 true).open();
         }
     }

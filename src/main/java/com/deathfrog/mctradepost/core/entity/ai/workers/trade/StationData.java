@@ -14,6 +14,8 @@ import net.minecraft.world.level.Level;
 
 public class StationData
 {
+    public static final StationData EMPTY = new StationData(ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath("minecraft", "overworld")), -1, BlockPos.ZERO); 
+
     public enum TrackConnectionStatus
     {
         CONNECTED, DISCONNECTED, UNKNOWN

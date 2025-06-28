@@ -1,12 +1,18 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.Utils;
@@ -23,7 +29,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule
 {
-    public record ExportData(BlockPos station, ItemStorage itemStorage, int cost)
+    public record ExportData(StationData station, ItemStorage itemStorage, int cost)
     {
     }
 
@@ -58,11 +64,18 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (int i = 0; i < exportListTag.size(); i++)
         {
             final CompoundTag compoundNBT = exportListTag.getCompound(i);
-            BlockPos station = BlockPosUtil.read(compoundNBT, "station");
-            int colonyId = compoundNBT.getInt("colonyId");
+            StationData station = null;
+            if (compoundNBT.contains("exportStation")) 
+            {
+                station = StationData.fromNBT(compoundNBT.getCompound("exportStation"));
+            }
             ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
-            int quantity = compoundNBT.getInt(TAG_COST);
-            exportList.add(new ExportData(station, itemStorage, quantity));
+            int cost = compoundNBT.getInt(TAG_COST);
+
+            if (station != null)
+            {
+                exportList.add(new ExportData(station, itemStorage, cost));
+            }
         }
     }
 
@@ -81,7 +94,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (ExportData exportData : exportList)
         {
             final CompoundTag compoundNBT = new CompoundTag();
-            BlockPosUtil.write(compoundNBT, "station", exportData.station);
+            compoundNBT.put("exportStation", exportData.station.toNBT());
             compoundNBT.put(NbtTagConstants.STACK, exportData.itemStorage.getItemStack().saveOptional(provider));
             compoundNBT.putInt(TAG_COST, exportData.cost);
             exportListTag.add(compoundNBT);
@@ -101,11 +114,33 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         buf.writeInt(exportList.size());
         for (ExportData exportData : exportList)
         {
-            buf.writeInt(exportData.station.getX());
-            buf.writeInt(exportData.station.getY());
-            buf.writeInt(exportData.station.getZ());
+            buf.writeNbt(exportData.station.toNBT());
             Utils.serializeCodecMess(buf, exportData.itemStorage.getItemStack());
             buf.writeInt(exportData.cost);
         }
+    }
+
+    /**
+     * Adds a trade to the list of imports if the list is not full, or if the item is already in the list.
+     *
+     * @param itemStack the itemstack to add.
+     * @param quantity  the quantity to add.
+     */
+    public void addTrade(StationData station, final ItemStack itemStack, final int cost)
+    {
+        exportList.add(new ExportData(station, new ItemStorage(itemStack), cost));
+        markDirty();
+    }
+
+    /**
+     * Removes a trade associated with the given ItemStack from the trade list.
+     *
+     * @param itemStack The ItemStack representing the trade to be removed.
+     */
+    public void removeTrade(StationData station, final ItemStack itemStack)
+    {
+        exportList.removeIf(exportData -> exportData.station.equals(station) && exportData.itemStorage.getItemStack().is(itemStack.getItem()));
+
+        markDirty();
     }
 }
