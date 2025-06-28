@@ -13,9 +13,9 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
-public class AddTradeToBuildingModuleMessage extends AbstractBuildingServerMessage<IBuilding>
+public class RemoveTradeFromBuildingModuleMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "add_trade_to_building_module", AddTradeToBuildingModuleMessage::new);
+    public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "remove_trade_from_building_module", RemoveTradeFromBuildingModuleMessage::new);
 
     /**
      * How many item need to be transfer from the player inventory to the building chest.
@@ -34,14 +34,14 @@ public class AddTradeToBuildingModuleMessage extends AbstractBuildingServerMessa
      * @param quantity  of item needed to be transfered
      * @param building  the building we're executing on.
      */
-    public AddTradeToBuildingModuleMessage(final IBuildingView building, final ItemStack itemStack, final int quantity)
+    public RemoveTradeFromBuildingModuleMessage(final IBuildingView building, final ItemStack itemStack, final int quantity)
     {
         super(TYPE, building);
         this.itemStack = itemStack;
         this.quantity = quantity;
     }
 
-    protected AddTradeToBuildingModuleMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
+    protected RemoveTradeFromBuildingModuleMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
         itemStack = Utils.deserializeCodecMess(buf);
@@ -61,7 +61,7 @@ public class AddTradeToBuildingModuleMessage extends AbstractBuildingServerMessa
     {
         if (building.hasModule(MCTPBuildingModules.IMPORTS))
         {
-            building.getModule(MCTPBuildingModules.IMPORTS).addTrade(itemStack, quantity);
+            building.getModule(MCTPBuildingModules.IMPORTS).removeTrade(itemStack);
         }
     }
 }

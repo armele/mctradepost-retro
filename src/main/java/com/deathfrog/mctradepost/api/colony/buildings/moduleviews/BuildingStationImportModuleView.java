@@ -1,13 +1,11 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
-import com.deathfrog.mctradepost.core.client.gui.modules.WindowTradeModule;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationImportModule;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
-import com.minecolonies.api.colony.buildings.modules.IMinimumStockModuleView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.Utils;
-import com.minecolonies.core.client.gui.modules.MinimumStockModuleWindow;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -15,12 +13,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class BuildingStationTradeModuleView extends AbstractBuildingModuleView
+public class BuildingStationImportModuleView extends AbstractBuildingModuleView
 {
     /**
      * The minimum stock.
      */
-    private List<Tuple<ItemStorage, Integer>> tradeList = new ArrayList<>();
+    private List<Tuple<ItemStorage, Integer>> importList = new ArrayList<>();
 
     /**
      * If the stock limit was reached.
@@ -35,11 +33,11 @@ public class BuildingStationTradeModuleView extends AbstractBuildingModuleView
     @Override
     public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        tradeList.clear();
+        importList.clear();
         final int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
-            tradeList.add(new Tuple<>(new ItemStorage(Utils.deserializeCodecMess(buf)), buf.readInt()));
+            importList.add(new Tuple<>(new ItemStorage(Utils.deserializeCodecMess(buf)), buf.readInt()));
         }
         reachedLimit = buf.readBoolean();
     }
@@ -48,29 +46,48 @@ public class BuildingStationTradeModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WindowTradeModule(buildingView, this);
+        return new WindowStationImportModule(buildingView, this);
     }
 
-    public List<Tuple<ItemStorage, Integer>> getTrades()
+    /**
+     * Get the list of import items and their amounts.
+     *
+     * @return a list of tuples, with the first element being the item storage and the second element being the amount.
+     */
+    public List<Tuple<ItemStorage, Integer>> getImports()
     {
-        return tradeList;
+        return importList;
     }
 
 
+    /**
+     * Returns whether the stock limit has been reached.
+     * @return true if the stock limit has been reached, false otherwise.
+     */
     public boolean hasReachedLimit()
     {
         return reachedLimit;
     }
 
+    /**
+     * Gets the icon of the module to display in the GUI.
+     * 
+     * @return the icon to show.
+     */
     @Override
     public String getIcon()
     {
         return "stock";
     }
 
+    /**
+     * Gets the description of the module to display in the GUI.
+     * 
+     * @return The description of the module.
+     */
     @Override
     public String getDesc()
     {
-        return "com.minecolonies.coremod.gui.station.trades";
+        return "com.minecolonies.coremod.gui.station.imports";
     }
 }

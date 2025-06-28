@@ -2,7 +2,8 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
-import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationTradeModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
@@ -102,10 +103,15 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView>("station_connection", () -> new BuildingStationConnectionModule(), () -> StationConnectionModuleView::new);
 
 
-   public static final BuildingEntry.ModuleProducer<BuildingStationTradeModule,BuildingStationTradeModuleView> TRADES              =
-      new BuildingEntry.ModuleProducer<>("trades",
-        () -> new BuildingStationTradeModule(),
-        () -> BuildingStationTradeModuleView::new);
+   public static final BuildingEntry.ModuleProducer<BuildingStationImportModule,BuildingStationImportModuleView> IMPORTS              =
+      new BuildingEntry.ModuleProducer<>("imports",
+        () -> new BuildingStationImportModule(),
+        () -> BuildingStationImportModuleView::new);
+
+   public static final BuildingEntry.ModuleProducer<BuildingStationExportModule,BuildingStationExportModuleView> EXPORTS              =
+      new BuildingEntry.ModuleProducer<>("exports",
+        () -> new BuildingStationExportModule(),
+        () -> BuildingStationExportModuleView::new);
 
     /**
      * Leisure

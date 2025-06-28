@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.util.BlockPosUtil;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -186,11 +188,7 @@ public class StationData
         tag.putString("trackConnectionStatus", trackConnectionStatus.name());
         tag.putInt("colonyId", colonyId);
 
-        if (buildingposition != null) {
-            tag.putInt("bx", buildingposition.getX());
-            tag.putInt("by", buildingposition.getY());
-            tag.putInt("bz", buildingposition.getZ());
-        }
+         BlockPosUtil.write(tag, "buildingposition", buildingposition);
 
         tag.putLong("lastChecked", lastChecked);
 
@@ -223,11 +221,9 @@ public class StationData
             colonyId = tag.getInt("colonyId");
         }
 
-        if (tag.contains("bx") && tag.contains("by") && tag.contains("bz")) {
-            buildingposition = new BlockPos(tag.getInt("bx"), tag.getInt("by"), tag.getInt("bz"));
-        }
+        buildingposition = BlockPosUtil.read(tag, "buildingposition");
 
-        if (BlockPos.ZERO.equals(buildingposition)) {
+        if (buildingposition == null || BlockPos.ZERO.equals(buildingposition)) {
             BuildingStation.LOGGER.warn("Failed to deserialize station positions from tag: {} - no position found.", tag);
             return null;    
         }
@@ -264,7 +260,7 @@ public class StationData
             "colonyId = " + colonyId +
             ", dimension = " + dimension +
             ", buildingposition = " + buildingposition +
-            ", startposition = " + getRailStartPosition() +
+            // ", startposition = " + getRailStartPosition() +
             ", trackConnectionStatus=" + trackConnectionStatus +
             ", ageOfLastCheck=" + ageOfCheck() +
             '}';

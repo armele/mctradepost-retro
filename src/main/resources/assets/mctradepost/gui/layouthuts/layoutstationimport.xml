@@ -2,7 +2,7 @@
     size="190 244">
      <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
             <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
-                   label="$(com.minecolonies.coremod.gui.station.trades)"/>
+                   label="$(com.minecolonies.coremod.gui.station.imports)"/>
     <list id="resourcesstock" size="170 180" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.trade.empty)" emptycolor="black">
                 <box size="100% 17" linewidth="1">
                     <itemicon id="resourceIcon" size="17 17" pos="0 0"/>

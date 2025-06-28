@@ -27,6 +27,7 @@ import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtensi
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.AddTradeToBuildingModuleMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.RemoveTradeFromBuildingModuleMessage;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
@@ -482,6 +483,7 @@ public class MCTradePostMod
             );  
 
             AddTradeToBuildingModuleMessage.TYPE.register(registrar);
+            RemoveTradeFromBuildingModuleMessage.TYPE.register(registrar);
         }
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)

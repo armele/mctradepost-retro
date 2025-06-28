@@ -1,8 +1,9 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationTradeModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.AddTradeToBuildingModuleMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.RemoveTradeFromBuildingModuleMessage;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ButtonImage;
@@ -14,19 +15,18 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
-import com.minecolonies.core.network.messages.server.colony.building.RemoveMinimumStockFromBuildingModuleMessage;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
-public class WindowTradeModule extends AbstractModuleWindow
+public class WindowStationImportModule extends AbstractModuleWindow
 {
     /**
      * The resource string.
      */
-    private static final String RESOURCE_STRING = ":gui/layouthuts/layouttrademodule.xml";
+    private static final String RESOURCE_STRING = ":gui/layouthuts/layoutstationimport.xml";
 
     /**
      * Limit reached label.
@@ -41,7 +41,7 @@ public class WindowTradeModule extends AbstractModuleWindow
     /**
      * The matching module view to the window.
      */
-    private final BuildingStationTradeModuleView moduleView;
+    private final BuildingStationImportModuleView moduleView;
 
     /**
      * Constructor for the minimum stock window view.
@@ -49,7 +49,7 @@ public class WindowTradeModule extends AbstractModuleWindow
      * @param building   class extending
      * @param moduleView the module view.
      */
-    public WindowTradeModule(final IBuildingView building, final BuildingStationTradeModuleView moduleView)
+    public WindowStationImportModule(final IBuildingView building, final BuildingStationImportModuleView moduleView)
     {
         super(building, MCTradePostMod.MODID + RESOURCE_STRING);
 
@@ -76,9 +76,9 @@ public class WindowTradeModule extends AbstractModuleWindow
     private void removeStock(final Button button)
     {
         final int row = resourceList.getListElementIndexByPane(button);
-        final Tuple<ItemStorage, Integer> tuple = moduleView.getTrades().get(row);
-        moduleView.getTrades().remove(row);
-        new RemoveMinimumStockFromBuildingModuleMessage(buildingView,
+        final Tuple<ItemStorage, Integer> tuple = moduleView.getImports().get(row);
+        moduleView.getImports().remove(row);
+        new RemoveTradeFromBuildingModuleMessage(buildingView,
             tuple.getA().getItemStack(),
             moduleView.getProducer().getRuntimeID()).sendToServer();
         updateTradeList();
@@ -91,7 +91,7 @@ public class WindowTradeModule extends AbstractModuleWindow
     {
         if (!moduleView.hasReachedLimit())
         {
-            new WindowSelectTrade(this,
+            new WindowSelectImportResources(this,
                 (stack) -> true,
                 (stack, qty) -> new AddTradeToBuildingModuleMessage(buildingView, stack, qty).sendToServer(),
                 true).open();
@@ -124,7 +124,7 @@ public class WindowTradeModule extends AbstractModuleWindow
             @Override
             public int getElementCount()
             {
-                return moduleView.getTrades().size();
+                return moduleView.getImports().size();
             }
 
             /**
@@ -136,12 +136,12 @@ public class WindowTradeModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
-                final ItemStack resource = moduleView.getTrades().get(index).getA().getItemStack().copy();
+                final ItemStack resource = moduleView.getImports().get(index).getA().getItemStack().copy();
                 resource.setCount(resource.getMaxStackSize());
 
                 rowPane.findPaneOfTypeByID(RESOURCE_NAME, Text.class).setText(resource.getHoverName());
                 rowPane.findPaneOfTypeByID(QUANTITY_LABEL, Text.class)
-                    .setText(Component.literal(String.valueOf(moduleView.getTrades().get(index).getB())));
+                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).getB())));
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);
             }
         });

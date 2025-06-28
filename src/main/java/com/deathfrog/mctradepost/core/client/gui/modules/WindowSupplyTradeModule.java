@@ -13,20 +13,40 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.SlotItemHandler;
 
-public class WindowStationConnectionModule extends AbstractModuleWindow
+/**
+ * BOWindow for the Marketplace hut's ECON module.
+ */
+public class WindowSupplyTradeModule extends AbstractModuleWindow
 {
+    // TODO: Refactor this window!
     private static final String PANE_STATIONS = "stations";
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
+
+    private final ItemStackHandler inputHandler = new ItemStackHandler(1) {
+        @Override
+        protected void onContentsChanged(int slot) {
+            super.onContentsChanged(slot);
+
+            // Copy the item to your tracked station list logic
+            ItemStack inserted = getStackInSlot(slot);
+            if (!inserted.isEmpty()) {
+                // TODO: ((StationView) building).addTrackedItem(inserted.copy()); implement this
+            }
+        }
+    };
 
     /**
      * Scrollinglist of the resources.
      */
     protected ScrollingList connectionDisplayList;
 
-    public WindowStationConnectionModule(IBuildingView buildingView)
+    public WindowSupplyTradeModule(IBuildingView buildingView)
     {
         super(buildingView, MCTradePostMod.MODID + STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX);
         this.buildingView = buildingView;
@@ -42,7 +62,11 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
 
         if (stations != null && !stations.isEmpty())
         {
+            // TODO: Loop through each station and see what purchase offers are available.
+            // Present them in an interface listing colony name, item stack, and and price.
+            // Display a checkbox for each offer.  Persist the selection.
             updateConnections();
+
         }
         else
         {
@@ -84,7 +108,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
                 location.setText(Component.literal(IColonyManager.getInstance().getColonyView(station.getColonyId(), station.getDimension()).getName()));
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
-                status.setText(Component.literal(station.getTrackConnectionStatus().toString()));
+                status.setText(Component.literal("Placeholder"));
             }
         });
     }

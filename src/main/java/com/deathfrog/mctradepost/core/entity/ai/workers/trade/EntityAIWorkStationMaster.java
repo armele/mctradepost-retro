@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
@@ -28,7 +29,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     public enum StationMasterStates implements IAIState
     {
-        CHECK_CONNECTION;
+        CHECK_CONNECTION,
+        FIND_MATCHING_OFFERS;
 
         @Override
         public boolean isOkayToEat()
@@ -46,17 +48,28 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
           new AITarget<IAIState>(IDLE, START_WORKING, 10),
           new AITarget<IAIState>(START_WORKING, DECIDE, 10),
           new AITarget<IAIState>(DECIDE, this::decideWhatToDo, 10),
+          new AITarget<IAIState>(StationMasterStates.FIND_MATCHING_OFFERS, this::findMatchingOffers, 10),
           new AITarget<IAIState>(StationMasterStates.CHECK_CONNECTION, this::checkConnection, 10)
         );
         worker.setCanPickUpLoot(true);
     }
 
+    /**
+     * Decides what to do next. 
+     * 
+     * @return the next AI state to transition to.
+     */
     protected IAIState decideWhatToDo()
     {
 
         if (shouldCheckConnection())
         {
             return StationMasterStates.CHECK_CONNECTION;
+        }
+
+        if (building.getModule(MCTPBuildingModules.IMPORTS).currentTradeCount() > 0)
+        {
+            return StationMasterStates.FIND_MATCHING_OFFERS;
         }
 
         // TODO: Add logic to review configured trades, call for coins if needed and actually negotiate a trade.
@@ -140,6 +153,21 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
         }
 
+        return AIWorkerState.IDLE;
+    }
+
+    protected IAIState findMatchingOffers()
+    {
+        // For each "buy" trade set up in this station, check inventories of connected stations for the items that match.
+        // If the items are found, go to the MAKE_PURCHASE state.
+        return AIWorkerState.IDLE;
+    }
+
+    protected IAIState supplyTradeMaterials()
+    {
+        // For each "buy" trade set up in OTHER stations, check whether we are marked as a supplier for the item, and
+        // if so, have the supplies brought to the station to be traded.
+        // Reset the trade cooldown (Perhaps 1 trade per day.)
         return AIWorkerState.IDLE;
     }
 

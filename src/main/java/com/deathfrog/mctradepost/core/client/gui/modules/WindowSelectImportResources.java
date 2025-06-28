@@ -31,7 +31,7 @@ import java.util.function.Predicate;
 import static com.minecolonies.api.util.constant.WindowConstants.BUTTON_SELECT;
 import static com.minecolonies.api.util.constant.WindowConstants.NAME_LABEL;
 
-public class WindowSelectTrade extends AbstractWindowSkeleton
+public class WindowSelectImportResources extends AbstractWindowSkeleton
 {
 
     private static final String TRADE_COST_TOOLTIP = "com.minecolonies.coremod.gui.trade.price.tooltip";
@@ -80,7 +80,7 @@ public class WindowSelectTrade extends AbstractWindowSkeleton
      * @param origin the origin.
      * @param test   the testing predicate for the selector.
      */
-    public WindowSelectTrade(final BOWindow origin, final Predicate<ItemStack> test, final BiConsumer<ItemStack, Integer> consumer, final boolean displayQty)
+    public WindowSelectImportResources(final BOWindow origin, final Predicate<ItemStack> test, final BiConsumer<ItemStack, Integer> consumer, final boolean displayQty)
     {
         super(MCTradePostMod.MODID + ":gui/windowselectresfortrade.xml", origin);
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
