@@ -56,7 +56,7 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
      * @param itemStack the itemstack to add.
      * @param quantity  the quantity to add.
      */
-    public void addTrade(final ItemStack itemStack, final int quantity)
+    public void addImport(final ItemStack itemStack, final int quantity)
     {
         if (importMap.containsKey(new ItemStorage(itemStack)) || importMap.size() < allowedTrades())
         {
@@ -71,7 +71,7 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
      *
      * @param itemStack The ItemStack representing the trade to be removed.
      */
-    public void removeTrade(final ItemStack itemStack)
+    public void removeImport(final ItemStack itemStack)
     {
         importMap.remove(new ItemStorage(itemStack));
 
@@ -90,7 +90,7 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
      *
      * @return the number of trades.
      */
-    public int currentTradeCount() 
+    public int currentImportCount() 
     { 
         return importMap.size(); 
     }
@@ -173,5 +173,17 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
             buf.writeInt(entry.getValue());
         }
         buf.writeBoolean(importMap.size() >= allowedTrades());
+    }
+    
+    /**
+     * Checks if the given itemStack at a specified cost are part of this modules import list.
+     *
+     * @param stack the itemStack to check.
+     * @param cost  the cost to check.
+     * @return true if the itemStack and cost are in the trade list, false otherwise.
+     */
+    public boolean hasTrade(ItemStack stack, int cost)
+    {
+        return importMap.containsKey(new ItemStorage(stack)) && importMap.get(new ItemStorage(stack)) == cost;
     }
 }

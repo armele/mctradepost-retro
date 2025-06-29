@@ -103,6 +103,8 @@
     "mctradepost.job.stationmaster.desc": "Coordinates inter-colony trade and travel.",
     "com.mctradepost.building.station.desc": "Explore the world - and trade with it.",
     "mctradepost:stationmaster.skills.desc": "Speeds things up.",
+    "com.deathfrog.mctradepost.gui.workerhuts.station.exports": "Export Order",
+    "com.deathfrog.mctradepost.gui.workerhuts.station.funding" : "Trade Funding",
 
     "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
     "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables": "Recyclables",

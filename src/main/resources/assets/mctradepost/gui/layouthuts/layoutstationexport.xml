@@ -4,13 +4,14 @@
     <text size="120 11" pos="30 14" textalign="MIDDLE" color="black"
            label="$(com.minecolonies.coremod.gui.station.exports)"/>
     <list id="stations" size="173 160" pos="12 40">
-        <box id="stationx" size="100% 22" linewidth="1">
+        <box id="stationx" size="100% 30" linewidth="1">
             <text id="location" size="100 11" pos="2 4" textalign="MIDDLE_LEFT" color="black"/>
             <itemicon id="wantedItemStack" size="16 16" pos="102 2"/>
             <itemicon id="costStack" size="16 16" pos="120 2"/>
             <button id="takeTrade" pos="145 2" size="14 15"
                         source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
                         disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disable"/>
+            <box id="progressBar" size="100% 9" pos="0 20" visible="true"/>
         </box>
     </list>
 </window>

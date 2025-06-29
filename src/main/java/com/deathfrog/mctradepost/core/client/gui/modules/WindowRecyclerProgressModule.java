@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.GuiUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
 import com.ldtteam.blockui.Pane;
-import com.ldtteam.blockui.controls.Gradient;
 import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
@@ -22,14 +22,8 @@ import net.minecraft.world.item.ItemStack;
 public class WindowRecyclerProgressModule extends AbstractModuleWindow
 {
     private static final String RECYCPROGRESSWINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutrecyclerprogress.xml";
-    public static final String PROGRESS_BAR = "progressBar";
 
     private static final int MAX_OUTPUT_SHOWN = 10;     // How many stacks of output items will we display?
-
-    private static final int BAR_X_OFFSET = 1;
-    private static final int BAR_Y_OFFSET = 5;
-    private static final int BAR_HEIGHT = 8;
-    private static final int BAR_WIDTH = 53;
 
     private List<RecyclingProcessor> recyclingProcessors = null;
     
@@ -92,13 +86,13 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
                 wrapperBox.setPosition(wrapperBox.getX(), wrapperBox.getY());
                 wrapperBox.setSize(wrapperBox.getParent().getWidth(), wrapperBox.getHeight());
 
-                final Image progressImage = rowPane.findPaneOfTypeByID(PROGRESS_BAR, Image.class);
+                final Box progressBar = rowPane.findPaneOfTypeByID(GuiUtil.PROGRESS_BAR, Box.class);
 
                 final ItemIcon inputStackDisplay = rowPane.findPaneOfTypeByID("inputStack", ItemIcon.class);
                 final RecyclingProcessor processor = recyclingProcessors.get(index);
                 final ItemStack inputStack = processor.processingItem;
 
-                drawProgressBar(wrapperBox, progressImage, processor);
+                drawProgressBar(wrapperBox, progressBar, processor);
 
                 if (!inputStack.isEmpty())
                 {
@@ -121,38 +115,16 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
         });
     }
 
+
     /**
-     * Draws the progress bar for an in-progress recycling operation.
-     * @param view          the view to assign the progressbar onto.
-     * @param offsetX       the horizontal offset for the progress bar
-     * @param offsetY       the vertical offset for the progress bar
-     * @param processor     the processor whose progress is being drawn.
-     * @param subBar        the bar to overlay the gradient over.
+     * Draws the progress bar for a recycling processor in the GUI based on its processing timer.
+     *
+     * @param wrapper      the container Box for the progress bar.
+     * @param progressPane the Pane representing the visual progress bar.
+     * @param processor    the RecyclingProcessor whose progress is being represented.
      */
-    private void drawProgressBar(final Box wrapper, Image progressImage, RecyclingProcessor processor)
+    private void drawProgressBar(final Box wrapper, Pane progressPane, RecyclingProcessor processor)
     {
-        final Gradient nameGradient = new Gradient();
-        final double progressRatio = (double) processor.processingTimer / (double) processor.processingTimerComplete;
-
-        // Clamp to [0, 1]
-        final double clampedRatio = Math.max(0.0, Math.min(1.0, progressRatio));
-
-        // Interpolate color
-        final int red = (int) (255 * (1.0 - clampedRatio));
-        final int green = (int) (255 * clampedRatio);
-        final int blue = 0;
-
-        nameGradient.setSize((int) (clampedRatio * BAR_WIDTH), BAR_HEIGHT);
-        nameGradient.setPosition(progressImage.getX() + BAR_X_OFFSET, progressImage.getY() + BAR_Y_OFFSET);
-        wrapper.addChild(nameGradient);
-
-        nameGradient.setGradientStart(red, green, blue, 255);
-        nameGradient.setGradientEnd(red, green, blue, 255);
-
-        /*
-        String percentString = String.format("%.0f%%", clampedRatio * 100);
-        nameGradient.setText(Component.literal(percentString));
-        nameGradient.setTextAlignment(Alignment.MIDDLE);
-        */
+        GuiUtil.drawProgressBar(wrapper, progressPane, processor.processingTimer, processor.processingTimerComplete, 0);
     }
 }

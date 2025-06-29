@@ -553,6 +553,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             }
             building.triggerEffect(pos, SoundEvents.GRAVEL_STEP, ParticleTypes.ELECTRIC_SPARK, 80);
         }
+        building.markDirty();
 
         return jobfinished;
     }

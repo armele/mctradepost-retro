@@ -9,12 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule.ExportData;
+import com.deathfrog.mctradepost.api.util.GuiUtil;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.ItemIcon;
@@ -74,6 +76,8 @@ public class WindowStationExportModule extends AbstractModuleWindow
         private boolean selected = false;
         private ItemStorage itemStorage = null;
         private Integer cost = null;
+        private int shipDistance = -1;
+        private int trackDistance = -1;
 
         ExportGui(StationData destinationStation, boolean selected, ItemStorage itemStorage, Integer cost)
         {
@@ -176,11 +180,13 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
                 for (ExportData export : moduleView.getExportList())
                 {
-                    if (exportGui.isEnabled() && export.station().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
-                        export.itemStorage().getItemStack().is(exportGui.getItemStorage().getItem()) &&
-                        exportGui.cost.equals(export.cost()))
+                    if (exportGui.isEnabled() && export.getStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                        export.getItemStorage().getItemStack().is(exportGui.getItemStorage().getItem()) &&
+                        exportGui.cost.equals(export.getCost()))
                     {
                         exportGui.selected = true;
+                        exportGui.shipDistance = export.getShipDistance();
+                        exportGui.trackDistance = export.getTrackDistance();
                         break;
                     }
                 }
@@ -253,7 +259,29 @@ public class WindowStationExportModule extends AbstractModuleWindow
                 takeTradeButton.setVisible(true);
                 takeTradeButton.setImage(export.isSelected() ? ResourceLocation.parse(TEXTURE_ASSIGN_ON_NORMAL) : ResourceLocation.parse(TEXTURE_ASSIGN_OFF_NORMAL));
                 takeTradeButton.setImageDisabled(export.isSelected() ? ResourceLocation.parse(TEXTURE_ASSIGN_ON_DISABLED) : ResourceLocation.parse(TEXTURE_ASSIGN_OFF_DISABLED));
-                takeTradeButton.setEnabled(export.isEnabled());
+                
+                if (export.shipDistance >= 0)
+                {
+                    takeTradeButton.setEnabled(false);  // Can't change the status of a shipment in progress.
+                    PaneBuilders.tooltipBuilder().hoverPane(takeTradeButton).build().setText(Component.literal("Cannot alter shipment in progress."));
+                }
+                else
+                {
+                    takeTradeButton.setEnabled(export.isEnabled());
+                    PaneBuilders.tooltipBuilder().hoverPane(takeTradeButton).build().setText(Component.literal("Toggle exporting this remote need."));
+                }
+
+                final Box progressBar = rowPane.findPaneOfTypeByID(GuiUtil.PROGRESS_BAR, Box.class);
+                if (export.shipDistance >= 0) 
+                {
+                    progressBar.setVisible(true);
+                    GuiUtil.drawProgressBar(wrapperBox, progressBar, export.shipDistance, export.trackDistance, 1);
+                }
+                else
+                {
+                    progressBar.setVisible(false);
+                }
+
 
             }
         });

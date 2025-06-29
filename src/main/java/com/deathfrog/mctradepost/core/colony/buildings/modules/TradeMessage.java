@@ -97,11 +97,11 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
             {
                 if (tradeAction == TradeAction.REMOVE)
                 {
-                    building.getModule(MCTPBuildingModules.EXPORTS).removeTrade(remoteStation, itemStack);
+                    building.getModule(MCTPBuildingModules.EXPORTS).removeExport(remoteStation, itemStack);
                 }
                 else
                 {
-                    building.getModule(MCTPBuildingModules.EXPORTS).addTrade(remoteStation, itemStack, cost);
+                    building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost);
                 }
             }
         }
@@ -111,11 +111,11 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
             {
                 if (tradeAction == TradeAction.REMOVE)
                 {
-                    building.getModule(MCTPBuildingModules.IMPORTS).removeTrade(itemStack);
+                    building.getModule(MCTPBuildingModules.IMPORTS).removeImport(itemStack);
                 }
                 else
                 {
-                    building.getModule(MCTPBuildingModules.IMPORTS).addTrade(itemStack, cost);
+                    building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost);
                 }
             }
         }

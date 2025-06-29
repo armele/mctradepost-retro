@@ -1,37 +1,39 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
-import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
-import com.minecolonies.api.colony.requestsystem.request.RequestState;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
+import com.mojang.logging.LogUtils;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 
-public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule
+public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule
 {
-    public record ExportData(StationData station, ItemStorage itemStorage, int cost)
-    {
-    }
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     /**
      * The import tag name.
@@ -42,6 +44,21 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * The cost tag name.
      */
     private static final String TAG_COST = "cost";
+
+    /**
+     * The ship distance tag name.
+     */
+    private static final String TAG_SHIP_DISTANCE = "shipDistance";
+
+    /**
+     * The track distance tag name.
+     */
+    private static final String TAG_TRACK_DISTANCE = "trackDistance";
+
+    /**
+     * Tag for the last day this export was shipped.
+     */
+    private static final String TAG_LAST_SHIP_DAY = "lastShipDay";
 
     /**
      * The list of exports configured.
@@ -71,10 +88,16 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             }
             ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
             int cost = compoundNBT.getInt(TAG_COST);
-
+            int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
+            int trackDistance = compoundNBT.getInt(TAG_TRACK_DISTANCE);
+            int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
             if (station != null)
             {
-                exportList.add(new ExportData(station, itemStorage, cost));
+                ExportData exportData = new ExportData(station, itemStorage, cost);
+                exportData.setShipDistance(shipDistance);
+                exportData.setTrackDistance(trackDistance);
+                exportData.setLastShipDay(lastShipDay);
+                exportList.add(exportData);
             }
         }
     }
@@ -94,9 +117,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (ExportData exportData : exportList)
         {
             final CompoundTag compoundNBT = new CompoundTag();
-            compoundNBT.put("exportStation", exportData.station.toNBT());
-            compoundNBT.put(NbtTagConstants.STACK, exportData.itemStorage.getItemStack().saveOptional(provider));
-            compoundNBT.putInt(TAG_COST, exportData.cost);
+            compoundNBT.put("exportStation", exportData.getStationData().toNBT());
+            compoundNBT.put(NbtTagConstants.STACK, exportData.getItemStorage().getItemStack().saveOptional(provider));
+            compoundNBT.putInt(TAG_COST, exportData.getCost());
+            compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
+            compoundNBT.putInt(TAG_TRACK_DISTANCE, exportData.getTrackDistance());
+            compoundNBT.putInt(TAG_LAST_SHIP_DAY, exportData.getLastShipDay());
             exportListTag.add(compoundNBT);
         }
         compound.put(TAG_EXPORTS, exportListTag);
@@ -114,9 +140,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         buf.writeInt(exportList.size());
         for (ExportData exportData : exportList)
         {
-            buf.writeNbt(exportData.station.toNBT());
-            Utils.serializeCodecMess(buf, exportData.itemStorage.getItemStack());
-            buf.writeInt(exportData.cost);
+            buf.writeNbt(exportData.getStationData().toNBT());
+            Utils.serializeCodecMess(buf, exportData.getItemStorage().getItemStack());
+            buf.writeInt(exportData.getCost());
+            buf.writeInt(exportData.getShipDistance());
+            buf.writeInt(exportData.getTrackDistance());
+            buf.writeInt(exportData.getLastShipDay());
         }
     }
 
@@ -126,7 +155,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param itemStack the itemstack to add.
      * @param quantity  the quantity to add.
      */
-    public void addTrade(StationData station, final ItemStack itemStack, final int cost)
+    public void addExport(StationData station, final ItemStack itemStack, final int cost)
     {
         exportList.add(new ExportData(station, new ItemStorage(itemStack), cost));
         markDirty();
@@ -137,10 +166,90 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      *
      * @param itemStack The ItemStack representing the trade to be removed.
      */
-    public void removeTrade(StationData station, final ItemStack itemStack)
+    public void removeExport(StationData station, final ItemStack itemStack)
     {
-        exportList.removeIf(exportData -> exportData.station.equals(station) && exportData.itemStorage.getItemStack().is(itemStack.getItem()));
+        LOGGER.info("Removing export {} from {}. Pre-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size());
+
+        exportList.removeIf(exportData -> exportData.getStationData().equals(station) && exportData.getItemStorage().getItemStack().is(itemStack.getItem()));
+
+        LOGGER.info("Removing export {} from {}. Post-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size());
 
         markDirty();
+    }
+
+    /**
+     * Retrieves the number of configured exports in this module.
+     * 
+     * @return the count of configured exports.
+     */
+    public int exportCount() 
+    {
+        return exportList.size();
+    }
+
+    /**
+     * Retrieves the list of configured exports in this module.
+     * 
+     * @return the list of configured exports.
+     */
+    public List<ExportData> getExports() 
+    {
+        return exportList;
+    }
+
+    /**
+     * Called every tick that the colony updates. This method iterates through the list of
+     * exports, incrementing the ship distance for each export that has a non-negative ship distance.
+     *
+     * @param colony the colony that this building module is a part of
+     */
+    @Override
+    public void onColonyTick(@NotNull IColony colony) 
+    { 
+        for (ExportData exportData : exportList) 
+        {
+            int shipDistance = exportData.getShipDistance();
+            if (shipDistance >= 0)
+            {   
+                shipDistance = shipDistance + building.getBuildingLevel(); // TODO: Research to speed this up.
+                exportData.setShipDistance(shipDistance);
+
+                if (exportData.getShipDistance() >= exportData.getTrackDistance())
+                {
+                    LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getStationData().getStation().getPosition());
+
+                    // Creates the final deposit and payment stacks.
+                    ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
+                    ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+
+                    // Adds to the remote building inventory or drops on the ground if inventory is full.
+                    if (!InventoryUtils.addItemStackToItemHandler(exportData.getStationData().getStation().getItemHandlerCap(), finalDeposit))
+                    {
+                        LOGGER.info("Target station inventory full - dropping in world.");
+
+                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getStationData().getStation().getColony().getWorld(), 
+                            exportData.getStationData().getStation().getPosition(), 
+                            finalDeposit);
+                    }
+
+                    // Adds to the local building inventory or drops on the ground if inventory is full.
+                    if (!InventoryUtils.addItemStackToItemHandler(building.getItemHandlerCap(), finalPayment))
+                    {
+                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) building.getColony().getWorld(), building.getPosition(), finalPayment);
+                    }
+
+                    exportData.setShipDistance(-1);
+                }
+                else
+                {
+                    LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance());
+                }
+                markDirty();
+            }
+            else
+            {
+                LOGGER.info("Export of {} for {} not shipping.", exportData.getItemStorage().getItem(), exportData.getCost());
+            }
+        }
     }
 }

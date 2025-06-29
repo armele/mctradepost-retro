@@ -1,15 +1,16 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Queue;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -19,11 +20,15 @@ import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
+import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
@@ -48,6 +53,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -61,7 +67,7 @@ public class BuildingStation extends AbstractBuilding
     public static final Logger LOGGER = LogUtils.getLogger();
 
     /**
-     * List of additional citizens
+     * List of additional citizens (visitors)
      */
     private final List<Integer> externalCitizens = new ArrayList<>();
 
@@ -76,14 +82,27 @@ public class BuildingStation extends AbstractBuilding
     private final String STATION_START = "station_start";
 
     /**
-     * List of additional stations
+     * Map of station data for other stations (by station block position).
      */
     private Map<BlockPos, StationData> stations = new HashMap<>();
+
+    /**
+     * Map of track connection results for other stations (by station data).
+     */
+    private Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
+
+    /**
+     * Queue of payment requests to other stations
+     */
+    private Queue<Integer> paymentRequests = new ArrayDeque<>();
 
     /**
      * Delay for spawning more visitors when a spot opens up.
      */
     private int noVisitorTime = 10000;
+
+    public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
+    public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
 
     public BuildingStation(@NotNull IColony colony, BlockPos pos) 
     {
@@ -136,8 +155,8 @@ public class BuildingStation extends AbstractBuilding
             LOGGER.warn("Attempted to add null station to building.");
             return;
         }
-        LOGGER.info("Adding station to building: {}", sdata);
         stations.put(sdata.getBuildingPosition(), sdata);
+        LOGGER.info("Adding station to building: {}. There are now {} stations with data recorded.", sdata, stations.size());
     }
 
 
@@ -226,6 +245,57 @@ public class BuildingStation extends AbstractBuilding
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", station);
                 continue;
             }
+
+            // Restore track connection information if not present (for example, after restoring from a save)
+            if (getTrackConnectionResult(station) == null) {
+                TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
+                    station.getRailStartPosition(), this.getRailStartPosition());
+                putTrackConnectionResult(station, trackConnectionResult);
+            }
+        }
+    }
+
+    /**
+     * Handles the spawning of tourists in the station, based on the current research level for tourists.
+     * <p>
+     * If the station is open for business and the number of external citizens is less than the current tourism level
+     * multiplied by the building level, a visitor is spawned and the recruitment interaction is triggered with the
+     * first name of the visitor.
+     * <p>
+     * The time until the next visitor is determined by the current number of citizens in the colony, the maximum
+     * number of citizens in the colony and the current building level.
+     */
+    private void handleTourists()
+    {
+        double tourismLevel =
+            this.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TOURISTS);
+
+        if ((this.getBuildingLevel() > 0) && (externalCitizens.size() < tourismLevel * this.getBuildingLevel()) &&
+            isOpenForBusiness() &&
+            noVisitorTime <= 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Checking for station visitors, with a tourism level of {}.", tourismLevel));
+
+            final IVisitorData visitorData = spawnVisitor();
+
+            if (noVisitorTime > 0)
+            {
+                noVisitorTime -= 500;
+            }
+
+            if (visitorData != null && !CustomVisitorListener.chanceCustomVisitors(visitorData))
+            {
+                visitorData
+                    .triggerInteraction(new RecruitmentInteraction(
+                        Component.translatable("com.minecolonies.coremod.gui.chat.recruitstory" +
+                            (this.getColony().getWorld().random.nextInt(MAX_STORY) + 1), visitorData.getName().split(" ")[0]),
+                        ChatPriority.IMPORTANT));
+            }
+
+            noVisitorTime = colony.getWorld().getRandom().nextInt(3000) +
+                (6000 / this.getBuildingLevel()) * colony.getCitizenManager().getCurrentCitizenCount() /
+                    colony.getCitizenManager().getMaxCitizens();
         }
     }
 
@@ -237,35 +307,17 @@ public class BuildingStation extends AbstractBuilding
     @Override
     public void onColonyTick(@NotNull final IColony colony)
     {
-        double tourismLevel = this.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TOURISTS);
 
-        if ((this.getBuildingLevel() > 0) && (externalCitizens.size() < tourismLevel * this.getBuildingLevel()) && isOpenForBusiness() && noVisitorTime <= 0)
-        {
-
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking for station visitors, with a tourism level of {}.", tourismLevel));
-
-
-            final IVisitorData visitorData = spawnVisitor();
-
-            if (noVisitorTime > 0)
-            {
-                noVisitorTime -= 500;
-            }
-
-            if (visitorData != null && !CustomVisitorListener.chanceCustomVisitors(visitorData))
-            {
-                visitorData.triggerInteraction(new RecruitmentInteraction(Component.translatable(
-                    "com.minecolonies.coremod.gui.chat.recruitstory" + (this.getColony().getWorld().random.nextInt(MAX_STORY) + 1), visitorData.getName().split(" ")[0]),
-                    ChatPriority.IMPORTANT));
-            }
-
-            noVisitorTime =
-                colony.getWorld().getRandom().nextInt(3000) + (6000 / this.getBuildingLevel()) * colony.getCitizenManager().getCurrentCitizenCount() / colony.getCitizenManager()
-                                                                                                                                                    .getMaxCitizens();
-        }
-
-        // Validate Stations
+        handleTourists();
         validateStations();
+
+        for (IBuildingModule module : this.modules)
+        {
+            if (module instanceof ITickingModule)
+            {
+                ((ITickingModule) module).onColonyTick(colony);
+            }
+        }
     }
 
     /**
@@ -397,12 +449,12 @@ public class BuildingStation extends AbstractBuilding
             StationData contents = StationData.fromNBT(stationTag);
             if (contents != null)
             {
-                MCTradePostMod.LOGGER.warn("Deserialized station {} from tag: {}", contents, stationTag);
+                // MCTradePostMod.LOGGER.warn("Deserialized station data {} from tag: {}", contents, stationTag);
                 addStation(contents);
             }
             else
             {
-                MCTradePostMod.LOGGER.warn("Failed to deserialize station from tag: {}", stationTag);
+                MCTradePostMod.LOGGER.warn("Failed to deserialize station data from tag: {}", stationTag);
             }
         }
 
@@ -427,6 +479,30 @@ public class BuildingStation extends AbstractBuilding
     }
 
     /**
+     * Records the track connection result for a given station.
+     *
+     * @param stationData The station data for which the track connection result is being recorded.
+     * @param result The result of the track connection, which includes whether the connection is successful,
+     *               the closest point on the track, and the path of the track connection.
+     */
+    public void putTrackConnectionResult(StationData stationData, TrackConnectionResult result)
+    {
+        connectionresults.put(stationData, result);
+    }
+
+    /**
+     * Retrieves the track connection result for a given station data object.
+     *
+     * @param stationData The station data for which the track connection result is being retrieved.
+     * @return The track connection result, which includes whether the connection is successful,
+     *         the closest point on the track, and the path of the track connection.
+     */
+    public TrackConnectionResult getTrackConnectionResult(StationData stationData)
+    {
+        return connectionresults.get(stationData);
+    }
+
+    /**
      * Retrieves the BlockPos of the starting point of the rail network for this train station.
      * If there is no starting point specified, the position of the building itself is returned.
      * If there are multiple starting points specified in the building's NBT, the first one is used.
@@ -445,5 +521,25 @@ public class BuildingStation extends AbstractBuilding
             MCTradePostMod.LOGGER.warn("More than one station start location found, using the first one.");
         }
         return locations.get(0);
+    }
+
+    /**
+     * Adds a payment request to the queue. The request will be processed on the
+     * next call to {@link #removePaymentRequest()}.
+     * @param amount the amount of the payment request.
+     */
+    public void addPaymentRequest(Integer amount)
+    {
+        paymentRequests.add(amount);
+    }
+
+    /**
+     * Retrieves and removes the next payment request from the queue.
+     * 
+     * @return the amount of the next payment request, or null if there are no more requests.
+     */
+    public Integer removePaymentRequest()
+    {
+        return paymentRequests.poll();
     }
 }

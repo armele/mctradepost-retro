@@ -9,7 +9,8 @@
     <list id="requests" size="170 154" pos="13 46">
         <box id="requestx" size="100% 40" linewidth="1">
             <!--Item icons -->
-            <image id="progressBar" source="mctradepost:textures/gui/modules/progress_arrow.png" size="57 21" pos="20 1" visible="true"/>
+            <image id="progressImage" source="mctradepost:textures/gui/modules/progress_arrow.png" size="57 21" pos="20 1" visible="true"/>
+            <box id="progressBar" size="53 8" pos="21 6" linewidth="0" visible="true"/>
             <itemicon id="inputStack" size="16 16" pos="1 3"/>
             <itemicon id="outputStack0" size="16 16" pos="140 3"/>
             <itemicon id="outputStack1" size="16 16" pos="140 23"/>

@@ -1,9 +1,16 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+
+import java.util.List;
+import java.util.Map;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -15,15 +22,17 @@ public class TrackPathConnection
 {
     private static final int MAX_DEPTH = 10000; // Prevent runaway traversal
 
-    public static class TrackConnectionResult
-    {
+    public static class TrackConnectionResult {
         public final boolean connected;
-        public final BlockPos closestPoint;
+        public final BlockPos closestPoint;         // same semantics as before
+        public final List<BlockPos> path;           // ordered start → end, tracks only
 
-        public TrackConnectionResult(boolean connected, BlockPos closestPoint)
-        {
-            this.connected = connected;
+        public TrackConnectionResult(boolean connected,
+                                     BlockPos closestPoint,
+                                     List<BlockPos> path) {
+            this.connected    = connected;
             this.closestPoint = closestPoint;
+            this.path         = path;
         }
     }
 
@@ -47,65 +56,113 @@ public class TrackPathConnection
      */
     public static TrackConnectionResult arePointsConnectedByTracks(ServerLevel level, BlockPos start, BlockPos end)
     {
-        Set<BlockPos> visited = new HashSet<>();
-        Queue<BlockPos> toVisit = new ArrayDeque<>();
+
+        if (level == null || start == null || end == null) return new TrackConnectionResult(false, null, null); 
+
+        Set<BlockPos>   visited   = new HashSet<>();
+        Queue<BlockPos> toVisit   = new ArrayDeque<>();
+        Map<BlockPos, BlockPos> parent = new HashMap<>();  // <child , parent>
+
         toVisit.add(start.immutable());
 
         BlockPos closestSoFar = start;
-        double closestDist = distance(start, end);
+        double   closestDist  = distance(start, end);
 
-        while (!toVisit.isEmpty() && visited.size() < MAX_DEPTH)
-        {
+        while (!toVisit.isEmpty() && visited.size() < MAX_DEPTH) {
             BlockPos current = toVisit.poll();
 
-            if (current.equals(end) || isAdjacent(current, end))
-            {
-                return new TrackConnectionResult(true, end);
+            // reached or touched the goal?
+            if (current.equals(end) || isAdjacent(current, end)) {
+                List<BlockPos> path = rebuildPath(parent, current, start, end);
+                return new TrackConnectionResult(true, end, path);
             }
 
-            if (!visited.add(current))
-            {
-                continue;
-            }
+            if (!visited.add(current)) continue;   // already handled
 
             double dist = distance(current, end);
-            if (dist < closestDist)
-            {
-                closestDist = dist;
+            if (dist < closestDist) {
+                closestDist  = dist;
                 closestSoFar = current.immutable();
             }
 
-            // Check cardinal directions on same Y
-            for (Direction dir : Direction.Plane.HORIZONTAL)
-            {
-                checkAndAdd(level, current.relative(dir), toVisit, visited);
+            /* cardinal moves – same Y */
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                tryMove(level, current, dir, 0, toVisit, visited, parent);
             }
 
-            // Check upward/downward slopes in cardinal directions
-            for (Direction dir : Direction.Plane.HORIZONTAL)
-            {
-                checkAndAdd(level, current.relative(dir).above(), toVisit, visited);
-                checkAndAdd(level, current.relative(dir).below(), toVisit, visited);
+            /* upward / downward slopes */
+            for (Direction dir : Direction.Plane.HORIZONTAL) {
+                tryMove(level, current, dir, +1, toVisit, visited, parent);
+                tryMove(level, current, dir, -1, toVisit, visited, parent);
             }
         }
 
-        return new TrackConnectionResult(false, closestSoFar);
+        // not connected
+        return new TrackConnectionResult(false, closestSoFar, List.of());
     }
 
+
     /**
-     * Checks if a block is a track block and hasn't been visited before, and if so, adds it to the queue of blocks to visit.
-     * This is used during the track path traversal to add new blocks to the search queue.
-     * @param level the level in which to check the block
-     * @param pos the position of the block to check
-     * @param toVisit the queue of blocks to visit
-     * @param visited the set of blocks that have already been visited
+     * Tries to move in the given direction from the given BlockPos to find the next
+     * block on the track path. If the next block is a track block and has not been
+     * visited before, it is added to the queue to be visited and the parent map is
+     * updated to remember where we came from.
+     *
+     * @param level the level in which to traverse the track path
+     * @param from the BlockPos from which to move
+     * @param dir the direction in which to move
+     * @param dy the vertical offset to apply to the BlockPos
+     * @param q the queue of BlockPos to visit
+     * @param visited the set of BlockPos that have already been visited
+     * @param parent the map of BlockPos to BlockPos that tracks the parent of each
+     *        BlockPos in the path
      */
-    private static void checkAndAdd(ServerLevel level, BlockPos pos, Queue<BlockPos> toVisit, Set<BlockPos> visited)
-    {
-        if (!visited.contains(pos) && isTrackBlock(level, pos))
-        {
-            toVisit.add(pos.immutable());
+    private static void tryMove(ServerLevel level, BlockPos from,
+                                Direction dir, int dy,
+                                Queue<BlockPos> q, Set<BlockPos> visited,
+                                Map<BlockPos, BlockPos> parent) {
+
+        BlockPos nxt = from.relative(dir).offset(0, dy, 0);
+        if (!visited.contains(nxt) && isTrackBlock(level, nxt)) {
+            q.add(nxt.immutable());
+            parent.put(nxt.immutable(), from);   // remember where we came from
         }
+    }
+
+
+    /**
+     * Rebuilds the path from the given current BlockPos to the start BlockPos, inclusive
+     * of both, using the parent map to traverse backwards from current to start.
+     *
+     * If the current BlockPos is adjacent to the end BlockPos, the end BlockPos is
+     * appended to the returned list so that the caller can see the full span of the
+     * path from start to end.
+     *
+     * @param parent a map of BlockPos to BlockPos, where each key has the value of its
+     *        parent BlockPos on the path from current to start
+     * @param current the BlockPos at which to start the path reconstruction
+     * @param start the BlockPos at which the path reconstruction should terminate
+     * @param end the BlockPos adjacent to which the path reconstruction may terminate
+     * @return a List of BlockPos representing the path from start to current, inclusive
+     *         of both, and possibly including the end BlockPos if it was adjacent to
+     *         the current BlockPos
+     */
+    private static List<BlockPos> rebuildPath(Map<BlockPos, BlockPos> parent,
+                                              BlockPos current, BlockPos start, BlockPos end) {
+        List<BlockPos> rev = new ArrayList<>();
+        BlockPos iter = current;
+        while (iter != null && !iter.equals(start)) {
+            rev.add(iter);
+            iter = parent.get(iter);
+        }
+        rev.add(start);                // include the origin
+        Collections.reverse(rev);      // now in start → goal order
+
+        if (!rev.get(rev.size() - 1).equals(end)) {
+            // we stopped adjacent to a non-track “end”; append it so caller sees full span
+            rev.add(end);
+        }
+        return Collections.unmodifiableList(rev);
     }
 
     /**

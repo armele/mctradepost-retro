@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
+import java.util.Objects;
+
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -246,7 +248,7 @@ public class StationData
 
         data.lastChecked = tag.getLong("lastChecked");
 
-        BuildingStation.LOGGER.info("Deserialized station data: {}", data);
+        // BuildingStation.LOGGER.info("Deserialized station data: {}", data);
 
         return data;
     }
@@ -267,4 +269,44 @@ public class StationData
             ", ageOfLastCheck=" + ageOfCheck() +
             '}';
     }
+
+
+    /**
+     * Compares this StationData object to another object for equality. Two StationData objects
+     * are considered equal if they have the same colonyId, buildingposition, and dimension.
+     *
+     * @param obj the object to compare for equality.
+     * @return true if the specified object is equal to this StationData; false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        StationData that = (StationData) obj;
+        return colonyId == that.colonyId &&
+               Objects.equals(buildingposition, that.buildingposition) &&
+               Objects.equals(dimension, that.dimension);
+    }
+
+    /**
+     * Returns a hash code value for the object. This method is supported for the benefit of hash tables such as those provided by {@link java.util.HashMap}.
+     * <p>
+     * The general contract of <code>hashCode</code> is:
+     * <ul>
+     * <li>Whenever <code>it1.equals(it2)</code> is <code>true</code>, then
+     * <code>it1.hashCode()==it2.hashCode()</code> must also be <code>true</code>.
+     * </li>
+     * <li>Whenever <code>it1.hashCode()==it2.hashCode()</code> is <code>true</code>, then
+     * <code>it1.equals(it2)</code> must also be <code>true</code>.
+     * </li>
+     * </ul>
+     * <p>
+     * The hashcode of this object is the hashcode of the buildingposition, the hashcode of the colonyId, and the hashcode of the dimension combined into one single hashcode.
+     * @return a hash code value for the object.
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hash(buildingposition, colonyId, dimension);
+    }
+
 }

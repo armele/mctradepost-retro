@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 import java.util.HashSet;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowRecyclerProgressModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
@@ -27,7 +26,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
 
     public RecyclerProgressView() {
         super();
-        MCTradePostMod.LOGGER.info("Constructing RecyclerProgressView.");
+        // MCTradePostMod.LOGGER.info("Constructing RecyclerProgressView.");
     }
 
 

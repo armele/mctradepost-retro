@@ -6,7 +6,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationExportModule;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule.ExportData;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
@@ -40,7 +40,14 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
             StationData station = StationData.fromNBT(buf.readNbt());
             ItemStorage itemStorage = new ItemStorage(Utils.deserializeCodecMess(buf));
             int cost = buf.readInt();
-            exportList.add(new ExportData(station, itemStorage, cost));
+            int shipDistance = buf.readInt();
+            int trackDistance = buf.readInt();
+            int lastShipDay = buf.readInt();
+            ExportData exportData = new ExportData(station, itemStorage, cost);
+            exportData.setShipDistance(shipDistance);
+            exportData.setTrackDistance(trackDistance);
+            exportData.setLastShipDay(lastShipDay);
+            exportList.add(exportData);
         }
     }
 
