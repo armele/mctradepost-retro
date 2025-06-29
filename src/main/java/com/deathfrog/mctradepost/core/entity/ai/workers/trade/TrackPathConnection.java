@@ -8,6 +8,9 @@ import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 
+import com.deathfrog.mctradepost.api.util.ChunkUtil;
+import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
+
 import java.util.List;
 import java.util.Map;
 
@@ -23,9 +26,9 @@ public class TrackPathConnection
     private static final int MAX_DEPTH = 10000; // Prevent runaway traversal
 
     public static class TrackConnectionResult {
-        public final boolean connected;
-        public final BlockPos closestPoint;         // same semantics as before
-        public final List<BlockPos> path;           // ordered start → end, tracks only
+        public boolean connected;
+        public BlockPos closestPoint;         // same semantics as before
+        public List<BlockPos> path;           // ordered start → end, tracks only
 
         public TrackConnectionResult(boolean connected,
                                      BlockPos closestPoint,
@@ -33,6 +36,26 @@ public class TrackPathConnection
             this.connected    = connected;
             this.closestPoint = closestPoint;
             this.path         = path;
+        }
+
+
+        /**
+         * Sets the connection status of the track path.
+         *
+         * @param connected a boolean indicating whether the track path is connected
+         *                  (true if connected, false otherwise).
+         */
+        public void setConnected(boolean connected) {
+            this.connected = connected;
+        }
+
+        /**
+         * Retrieves the connection status of the track path.
+         *
+         * @return true if the track path is connected, false otherwise.
+         */
+        public boolean isConnected() {
+            return connected;
         }
     }
 
@@ -54,7 +77,7 @@ public class TrackPathConnection
      * @param end the end point of the track path
      * @return a TrackConnectionResult describing the result of the traversal
      */
-    public static TrackConnectionResult arePointsConnectedByTracks(ServerLevel level, BlockPos start, BlockPos end)
+    public static TrackConnectionResult arePointsConnectedByTracks(ServerLevel level, BlockPos start, BlockPos end, boolean loadChunks)
     {
 
         if (level == null || start == null || end == null) return new TrackConnectionResult(false, null, null); 
@@ -87,13 +110,13 @@ public class TrackPathConnection
 
             /* cardinal moves – same Y */
             for (Direction dir : Direction.Plane.HORIZONTAL) {
-                tryMove(level, current, dir, 0, toVisit, visited, parent);
+                tryMove(level, current, dir, 0, toVisit, visited, parent, loadChunks);
             }
 
             /* upward / downward slopes */
             for (Direction dir : Direction.Plane.HORIZONTAL) {
-                tryMove(level, current, dir, +1, toVisit, visited, parent);
-                tryMove(level, current, dir, -1, toVisit, visited, parent);
+                tryMove(level, current, dir, +1, toVisit, visited, parent, loadChunks);
+                tryMove(level, current, dir, -1, toVisit, visited, parent, loadChunks);
             }
         }
 
@@ -101,6 +124,36 @@ public class TrackPathConnection
         return new TrackConnectionResult(false, closestSoFar, List.of());
     }
 
+
+    /**
+     * Validates an existing track path by checking that all the points in the
+     * middle of the path are track blocks. The first and last points in the path
+     * are not required to be tracks. If any of the points in the middle of the
+     * path are not tracks, a TrackConnectionResult is returned with the connected
+     * flag set to false and the closest point set to the last valid track point.
+     * If all the points in the middle of the path are tracks, a
+     * TrackConnectionResult is returned with the connected flag set to true and
+     * the closest point set to the last point in the path.
+     *
+     * @param level the level in which to traverse the track path
+     * @param path the list of BlockPos to traverse
+     * @return flag indicating whether the path is still valid.
+     */
+    public static boolean validateExistingPath(ServerLevel level, List<BlockPos> path) {
+
+        if (level == null || path == null) return false;
+
+        // Note that we are deliberately not testing the very first or very last positions on the list - they are not required to be tracks.
+        for (int i = 1; i < path.size() - 2; i++) {
+            // We're going to be optimistic about unloaded positions - assume they are still tracks.
+            boolean isTrack = isTrackBlock(level, path.get(i)) || !level.isLoaded(path.get(i));
+
+            if (!isTrack) {
+                return false;
+            }
+        }
+        return true; 
+    }
 
     /**
      * Tries to move in the given direction from the given BlockPos to find the next
@@ -120,9 +173,20 @@ public class TrackPathConnection
     private static void tryMove(ServerLevel level, BlockPos from,
                                 Direction dir, int dy,
                                 Queue<BlockPos> q, Set<BlockPos> visited,
-                                Map<BlockPos, BlockPos> parent) {
+                                Map<BlockPos, BlockPos> parent,
+                                boolean loadChunks
+    ) {
 
         BlockPos nxt = from.relative(dir).offset(0, dy, 0);
+
+        if (!level.isLoaded(nxt))
+        {
+            if (loadChunks)
+            {
+                ChunkUtil.ensureChunkLoaded(level, nxt);
+            }
+        }
+
         if (!visited.contains(nxt) && isTrackBlock(level, nxt)) {
             q.add(nxt.immutable());
             parent.put(nxt.immutable(), from);   // remember where we came from
@@ -179,13 +243,10 @@ public class TrackPathConnection
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
 
-        if (block instanceof BaseRailBlock)
+        if (block instanceof BaseRailBlock || state.is(ModBlockTags.TRACK_TAG))
         {
             return true;
         }
-
-        // Optional: support modded tracks by tag
-        // return state.is(ModTags.TRACK_BLOCKS);
 
         return false;
     }

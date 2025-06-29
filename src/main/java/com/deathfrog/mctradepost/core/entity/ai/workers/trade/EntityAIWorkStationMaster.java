@@ -14,7 +14,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingS
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
-import com.minecolonies.api.colony.ICitizen;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -25,22 +24,22 @@ import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.InventoryUtils;
-import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.IItemHandler;
-
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.Queue;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStationMaster, BuildingStation>
@@ -48,6 +47,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final int MESSAGE_COOLDOWN_TIME = 1000;
+
+    public static final String TRACK_VALIDATIONS = "com.minecolonies.coremod.gui.townhall.stats.tracks_validated";
+
+    public static final int BASE_XP_NEW_TRACK = 5;
+    public static final int BASE_XP_EXISTING_TRACK = 1;
+
     public static final Map<StationData, Integer> remoteStationMessageCooldown = new HashMap<>();
 
     public enum StationMasterStates implements IAIState
@@ -56,7 +61,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         FIND_MATCHING_OFFERS,
         SEND_SHIPMENT,
         ELIMINATE_OLD_ORDER,
-        REQUEST_FUNDS;
+        REQUEST_FUNDS,
+        WALK_THE_TRACK;
 
         @Override
         public boolean isOkayToEat()
@@ -68,7 +74,9 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     private StationData currentRemoteStation = null;
     private ExportData currentExport = null;
     private Integer currentFundRequest = null;
-    
+    private BlockPos currentTargetWalkingPosition = null;
+    Queue<BlockPos> currentCheckingTrack = new ArrayDeque<>();
+
     public EntityAIWorkStationMaster(@NotNull JobStationMaster job)
     {
         super(job);
@@ -81,7 +89,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
           new AITarget<IAIState>(StationMasterStates.FIND_MATCHING_OFFERS, this::findMatchingOffers, 50),
           new AITarget<IAIState>(StationMasterStates.CHECK_CONNECTION, this::checkConnection, 50),
           new AITarget<IAIState>(StationMasterStates.REQUEST_FUNDS, this::requestFunds, 50),
-          new AITarget<IAIState>(StationMasterStates.SEND_SHIPMENT, this::sendShipment, 50)
+          new AITarget<IAIState>(StationMasterStates.SEND_SHIPMENT, this::sendShipment, 50),
+          new AITarget<IAIState>(StationMasterStates.WALK_THE_TRACK, this::walkTheTrack, 2)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -377,7 +386,26 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if (currentRemoteStation != null)
         {
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking connection to remote station: {} seeking endpoint: {}", currentRemoteStation, building.getRailStartPosition()));
-            TrackConnectionResult connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailStartPosition(), building.getRailStartPosition());
+            TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
+
+            if (connectionResult == null)
+            {
+                connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailStartPosition(), building.getRailStartPosition(), true);
+                worker.getCitizenExperienceHandler().addExperience(BASE_XP_NEW_TRACK);
+                StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
+            }
+            else
+            {
+                boolean isValid = TrackPathConnection.validateExistingPath(world, connectionResult.path);
+
+                currentCheckingTrack.addAll(connectionResult.path);
+
+                connectionResult.setConnected(isValid);
+                worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
+                StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
+                return StationMasterStates.WALK_THE_TRACK;
+            }
+            
             building.putTrackConnectionResult(currentRemoteStation, connectionResult);
 
             if (connectionResult.connected)
@@ -388,7 +416,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, connectionResult.closestPoint));
+                final TrackConnectionResult logResult = connectionResult;
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, logResult.closestPoint));
                 currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED);
                 currentRemoteStation = null;
             }
@@ -397,6 +426,44 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         setDelay(2);
         return START_WORKING;
     }
+
+    /**
+     * Walks the track to validate its existence. If the track is fully validated, returns START_WORKING state.
+     * Otherwise, returns StationMasterStates.WALK_THE_TRACK state.
+     *
+     * @return the next AI state to transition to.
+     */
+    private IAIState walkTheTrack()
+    {
+        if (currentCheckingTrack == null || currentCheckingTrack.isEmpty())
+        {
+            return DECIDE;
+        }
+        else
+        {
+            if (currentTargetWalkingPosition == null)
+            {
+                currentTargetWalkingPosition = currentCheckingTrack.poll();
+            }
+
+            if (this.walkToSafePos(currentTargetWalkingPosition)) 
+            {
+
+                // Station master will only walk to the colony border while checking tracks.
+                IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(building.getColony().getWorld(), currentTargetWalkingPosition);
+                if (colony == null || !colony.equals(building.getColony()))
+                {
+                    currentTargetWalkingPosition = null;
+                    currentCheckingTrack.clear();
+                    return DECIDE;
+                }
+
+                currentTargetWalkingPosition = null;
+            }
+            return StationMasterStates.WALK_THE_TRACK;
+        }
+    }
+        
 
     /**
      * Method for the AI to try to get the coins needed to pay for a shipment.

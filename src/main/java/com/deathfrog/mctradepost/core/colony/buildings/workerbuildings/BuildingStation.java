@@ -18,7 +18,9 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -34,6 +36,8 @@ import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
@@ -65,6 +69,9 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 public class BuildingStation extends AbstractBuilding 
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    public static String EXPORTS_SHIPPED = "com.minecolonies.coremod.gui.townhall.stats.exports_shipped";
+    public static String IMPORTS_RECEIVED = "com.minecolonies.coremod.gui.townhall.stats.imports_received";
 
     /**
      * List of additional citizens (visitors)
@@ -249,7 +256,7 @@ public class BuildingStation extends AbstractBuilding
             // Restore track connection information if not present (for example, after restoring from a save)
             if (getTrackConnectionResult(station) == null) {
                 TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
-                    station.getRailStartPosition(), this.getRailStartPosition());
+                    station.getRailStartPosition(), this.getRailStartPosition(), false);
                 putTrackConnectionResult(station, trackConnectionResult);
             }
         }
@@ -541,5 +548,56 @@ public class BuildingStation extends AbstractBuilding
     public Integer removePaymentRequest()
     {
         return paymentRequests.poll();
+    }
+
+    /**
+     * Completes a shipment of goods from this station to another station specified by the export data.
+     * This method will add the goods to the remote station's inventory or drop them on the ground if the inventory is full.
+     * It will also add the payment to the local station's inventory or drop it on the ground if the inventory is full.
+     * Additionally, it will give experience to the worker at the remote station.
+     * @param exportData the export data containing the station to ship to, the item to ship, and the cost of shipping.
+     */
+    public void completeExport(ExportData exportData)
+    {
+        LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getStationData().getStation().getPosition());
+
+        // Creates the final deposit and payment stacks.
+        ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
+        ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+
+        StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
+        StatsUtil.trackStatByName(exportData.getStationData().getStation(), IMPORTS_RECEIVED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
+
+        // Adds to the remote building inventory or drops on the ground if inventory is full.
+        if (!InventoryUtils.addItemStackToItemHandler(exportData.getStationData().getStation().getItemHandlerCap(), finalDeposit))
+        {
+            LOGGER.info("Target station inventory full - dropping in world.");
+
+            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getStationData().getStation().getColony().getWorld(), 
+                exportData.getStationData().getStation().getPosition(), 
+                finalDeposit);
+        }
+
+        // Adds to the local building inventory or drops on the ground if inventory is full.
+        if (!InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
+        {
+            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
+        }
+
+        ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        
+        if (exportWorker != null)
+        {
+            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
+        }
+        
+        ICitizenData remoteWorker = exportData.getStationData().getStation().getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        
+        if (remoteWorker != null)
+        {
+            remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
+        }
+
+        exportData.setShipDistance(-1);
     }
 }

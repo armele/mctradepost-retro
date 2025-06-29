@@ -185,10 +185,16 @@
     "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",
     "com.minecolonies.coremod.gui.townhall.stats.treats.served": "Treats Served: %d",
     "com.minecolonies.coremod.gui.townhall.stats.recycling_stat": "Items Recycled: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.exports_shipped": "Exported: %d %s",
+    "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
+    "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Tracks Validated: %d",
+    
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_list_configured": "The recycling center is idle. To recycle something from the warehouse, just pick it from the list at the recycling center.",
     "com.mctradepost.coremod.gui.recycler.process": "Processing",
     "com.mctradepost.core.gui.modules.recyclerprogress": "Recycler Progress"
+
+
 }
   

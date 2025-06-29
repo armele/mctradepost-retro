@@ -216,29 +216,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
                 if (exportData.getShipDistance() >= exportData.getTrackDistance())
                 {
-                    LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getStationData().getStation().getPosition());
-
-                    // Creates the final deposit and payment stacks.
-                    ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
-                    ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
-
-                    // Adds to the remote building inventory or drops on the ground if inventory is full.
-                    if (!InventoryUtils.addItemStackToItemHandler(exportData.getStationData().getStation().getItemHandlerCap(), finalDeposit))
-                    {
-                        LOGGER.info("Target station inventory full - dropping in world.");
-
-                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getStationData().getStation().getColony().getWorld(), 
-                            exportData.getStationData().getStation().getPosition(), 
-                            finalDeposit);
-                    }
-
-                    // Adds to the local building inventory or drops on the ground if inventory is full.
-                    if (!InventoryUtils.addItemStackToItemHandler(building.getItemHandlerCap(), finalPayment))
-                    {
-                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) building.getColony().getWorld(), building.getPosition(), finalPayment);
-                    }
-
-                    exportData.setShipDistance(-1);
+                    ((BuildingStation) building).completeExport(exportData);
                 }
                 else
                 {

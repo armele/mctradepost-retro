@@ -118,12 +118,12 @@ This mod can best be described as an "early alpha" state. It functionality may c
 Building: Train Station - Trade Modules. [Testing]
 Building: Train Station - Remove outdated export data. [Testing]
 Building: Train Station - Export module show shipping status.[Testing]
+Building: Train Station - Export module prevent cancellation of in-progress shipment. [Testing]
+Building: Train Station - Elegant handling of chunk loading. [Testing]
+Building: Train Station - Record statistics. [Testing]
+Building: Train Station - Engineer Walking the track during connection testing. [Testing]
 
 ### Roadmap (Roughly Prioritized)
-Building: Train Station - Record statistics.
-Building: Train Station - Engineer Walking the track during connection testing.
-Building: Train Station - Elegant handling of chunk loading.
-Building: Train Station - Export module prevent cancellation of in-progress shipment.
 Building: Train Station - Research to speed up shipments.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets: animal fetchers
