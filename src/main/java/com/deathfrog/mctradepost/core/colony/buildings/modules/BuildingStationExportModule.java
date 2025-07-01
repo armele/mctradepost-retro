@@ -2,14 +2,11 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Predicate;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.minecolonies.api.colony.IColony;
@@ -17,7 +14,6 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
@@ -27,9 +23,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
-
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule
 {
@@ -93,7 +88,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
             if (station != null)
             {
-                ExportData exportData = new ExportData(station, itemStorage, cost);
+                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
                 exportData.setShipDistance(shipDistance);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
@@ -117,7 +112,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (ExportData exportData : exportList)
         {
             final CompoundTag compoundNBT = new CompoundTag();
-            compoundNBT.put("exportStation", exportData.getStationData().toNBT());
+            compoundNBT.put("exportStation", exportData.getDestinationStationData().toNBT());
             compoundNBT.put(NbtTagConstants.STACK, exportData.getItemStorage().getItemStack().saveOptional(provider));
             compoundNBT.putInt(TAG_COST, exportData.getCost());
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
@@ -140,7 +135,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         buf.writeInt(exportList.size());
         for (ExportData exportData : exportList)
         {
-            buf.writeNbt(exportData.getStationData().toNBT());
+            buf.writeNbt(exportData.getDestinationStationData().toNBT());
             Utils.serializeCodecMess(buf, exportData.getItemStorage().getItemStack());
             buf.writeInt(exportData.getCost());
             buf.writeInt(exportData.getShipDistance());
@@ -155,9 +150,9 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param itemStack the itemstack to add.
      * @param quantity  the quantity to add.
      */
-    public void addExport(StationData station, final ItemStack itemStack, final int cost)
+    public void addExport(StationData destinationStation, final ItemStack itemStack, final int cost)
     {
-        exportList.add(new ExportData(station, new ItemStorage(itemStack), cost));
+        exportList.add(new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost));
         markDirty();
     }
 
@@ -168,11 +163,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      */
     public void removeExport(StationData station, final ItemStack itemStack)
     {
-        LOGGER.info("Removing export {} from {}. Pre-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size());
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Pre-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
-        exportList.removeIf(exportData -> exportData.getStationData().equals(station) && exportData.getItemStorage().getItemStack().is(itemStack.getItem()));
+        exportList.removeIf(exportData -> exportData.getDestinationStationData().equals(station) && exportData.getItemStorage().getItemStack().is(itemStack.getItem()));
 
-        LOGGER.info("Removing export {} from {}. Post-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size());
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Post-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
         markDirty();
     }
@@ -210,8 +205,9 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         {
             int shipDistance = exportData.getShipDistance();
             if (shipDistance >= 0)
-            {   
-                shipDistance = shipDistance + building.getBuildingLevel(); // TODO: Research to speed this up.
+            { 
+                int tradeSpeedBonus = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADESPEED);  
+                shipDistance = shipDistance + building.getBuildingLevel() * (tradeSpeedBonus + 1);
                 exportData.setShipDistance(shipDistance);
 
                 if (exportData.getShipDistance() >= exportData.getTrackDistance())
@@ -220,13 +216,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 }
                 else
                 {
-                    LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
                 }
                 markDirty();
             }
             else
             {
-                LOGGER.info("Export of {} for {} not shipping.", exportData.getItemStorage().getItem(), exportData.getCost());
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} not shipping.", exportData.getItemStorage().getItem(), exportData.getCost()));
             }
         }
     }

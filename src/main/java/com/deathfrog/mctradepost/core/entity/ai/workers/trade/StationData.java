@@ -72,7 +72,7 @@ public class StationData
         catch (Exception e)
         {
             lastChecked = -1;
-            // BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
+            BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
         }
     }
 
@@ -86,7 +86,7 @@ public class StationData
         IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(dimension, buildingposition);
         if (colony == null)
         {
-            // BuildingStation.LOGGER.warn("No colony identifiable from dimension {} and position {}.", dimension, buildingposition);
+            BuildingStation.LOGGER.warn("No colony identifiable from dimension {} and position {}.", dimension, buildingposition);
             return null;
         } 
 
@@ -165,7 +165,7 @@ public class StationData
         catch (Exception e)
         {
             now = -1;
-            // BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
+            BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
         }
 
         return now - lastChecked;

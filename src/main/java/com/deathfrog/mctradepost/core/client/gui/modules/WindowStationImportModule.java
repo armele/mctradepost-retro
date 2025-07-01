@@ -20,8 +20,12 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
+import java.util.logging.Logger;
+
 public class WindowStationImportModule extends AbstractModuleWindow
 {
+    private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
+    
     /**
      * The resource string.
      */
@@ -94,6 +98,10 @@ public class WindowStationImportModule extends AbstractModuleWindow
                 (stack) -> true,
                 (stack, qty) -> new TradeMessage(buildingView, TradeMessage.TradeAction.ADD, TradeMessage.TradeType.IMPORT, null, stack, qty).sendToServer(),
                 true).open();
+        }
+        else
+        {
+            LOGGER.info("Import limit reached.");
         }
     }
 

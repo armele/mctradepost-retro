@@ -83,7 +83,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.12.009 -> MineColonies 1.1.1005 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.13.001 -> MineColonies 1.1.1020 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -124,13 +124,20 @@ Building: Train Station - Record statistics. [Testing]
 Building: Train Station - Engineer Walking the track during connection testing. [Testing]
 
 ### Roadmap (Roughly Prioritized)
-Building: Train Station - Research to speed up shipments.
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
-Pets: animal fetchers
-Pets: happiness multiplier
-Pets: burnout mitigator
-Pets: sickness decreased
-Pets: scarecrow effect
+Pets - Building: Pet Houses
+Pets - Building Module: Set Owner
+Pets - Building Module: Set Ability
+Pets - Owner AI: Feed pet.
+Pets - Building: Animal Trainer. Requires Marketplace 3 - unlocks research for Pet Houses.
+Pets - Recipe: Pet Food (made by animal trainer)
+Pets - Ability: animal herding (confident)
+Pets - Ability: happiness factor (reasonably confident)
+Pets - Ability: burnout mitigator (confident)
+Pets - Ability: sickness decreased (uncertain)
+Pets - Ability: scarecrow effect - bonus to harvest yields (uncertain)
+Pets - Ability: pick up items in the world (confident)
+Pets - Ability: Locate certain ore types or crop types (confident)
 Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions

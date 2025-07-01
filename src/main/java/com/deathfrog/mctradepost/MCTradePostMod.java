@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
@@ -23,6 +24,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
+import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
@@ -195,7 +197,15 @@ public class MCTradePostMod
                     .updateInterval(10)     // Sync rate
                     .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "coin_entity").toString())
             );
-        
+
+    public static final DeferredHolder<EntityType<?>, EntityType<GhostCartEntity>> GHOST_CART = ENTITIES.register("ghost_cart",
+                () -> EntityType.Builder.<GhostCartEntity>of(
+                    GhostCartEntity::new, MobCategory.MISC)
+                    .sized(0.98f, 0.7f)          // same hitbox as normal cart
+                    .clientTrackingRange(64)
+                    .updateInterval(1)            // send pos every tick
+                    .build("ghost_cart"));;
+
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
@@ -608,6 +618,7 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
         }
 
         /**

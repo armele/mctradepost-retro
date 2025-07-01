@@ -219,45 +219,45 @@ public class BuildingStation extends AbstractBuilding
      */
     protected void validateStations()
     {
-        for (StationData station : this.stations.values() )
+        for (StationData remoteStation : this.stations.values() )
         {
             MinecraftServer server = getColony().getWorld().getServer();
 
             if (server == null) {
-                stations.remove(station.getBuildingPosition());
-                BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", station);
+                stations.remove(remoteStation.getBuildingPosition());
+                BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", remoteStation);
                 continue;
             }
 
-            Level level = server.getLevel(station.getDimension());
+            Level level = server.getLevel(remoteStation.getDimension());
 
             if (level == null) {
-                stations.remove(station.getBuildingPosition());
-                BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", station);
+                stations.remove(remoteStation.getBuildingPosition());
+                BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", remoteStation);
                 continue;
             }
 
-            IColony stationColony = IColonyManager.getInstance().getIColony(level, station.getBuildingPosition());
+            IColony stationColony = IColonyManager.getInstance().getIColony(level, remoteStation.getBuildingPosition());
 
             if (stationColony == null) {
-                stations.remove(station.getBuildingPosition());
-                BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", station);
+                stations.remove(remoteStation.getBuildingPosition());
+                BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", remoteStation);
                 continue;
             }
 
-            IBuilding building = stationColony.getBuildingManager().getBuilding(station.getBuildingPosition());
+            IBuilding building = stationColony.getBuildingManager().getBuilding(remoteStation.getBuildingPosition());
 
             if (building == null || !(building instanceof BuildingStation)) {
-                stations.remove(station.getBuildingPosition());
-                BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", station);
+                stations.remove(remoteStation.getBuildingPosition());
+                BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
                 continue;
             }
 
             // Restore track connection information if not present (for example, after restoring from a save)
-            if (getTrackConnectionResult(station) == null) {
+            if (getTrackConnectionResult(remoteStation) == null) {
                 TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
-                    station.getRailStartPosition(), this.getRailStartPosition(), false);
-                putTrackConnectionResult(station, trackConnectionResult);
+                    this.getRailStartPosition(), remoteStation.getRailStartPosition(), false);
+                putTrackConnectionResult(remoteStation, trackConnectionResult);
             }
         }
     }
@@ -559,22 +559,22 @@ public class BuildingStation extends AbstractBuilding
      */
     public void completeExport(ExportData exportData)
     {
-        LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getStationData().getStation().getPosition());
+        LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition());
 
         // Creates the final deposit and payment stacks.
         ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
         ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
 
         StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
-        StatsUtil.trackStatByName(exportData.getStationData().getStation(), IMPORTS_RECEIVED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
+        StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
 
         // Adds to the remote building inventory or drops on the ground if inventory is full.
-        if (!InventoryUtils.addItemStackToItemHandler(exportData.getStationData().getStation().getItemHandlerCap(), finalDeposit))
+        if (!InventoryUtils.addItemStackToItemHandler(exportData.getDestinationStationData().getStation().getItemHandlerCap(), finalDeposit))
         {
             LOGGER.info("Target station inventory full - dropping in world.");
 
-            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getStationData().getStation().getColony().getWorld(), 
-                exportData.getStationData().getStation().getPosition(), 
+            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getDestinationStationData().getStation().getColony().getWorld(), 
+                exportData.getDestinationStationData().getStation().getPosition(), 
                 finalDeposit);
         }
 
@@ -591,7 +591,7 @@ public class BuildingStation extends AbstractBuilding
             exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
         
-        ICitizenData remoteWorker = exportData.getStationData().getStation().getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        ICitizenData remoteWorker = exportData.getDestinationStationData().getStation().getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
         if (remoteWorker != null)
         {

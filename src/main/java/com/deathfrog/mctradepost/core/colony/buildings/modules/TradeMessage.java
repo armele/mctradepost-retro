@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
@@ -12,10 +13,16 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.logging.Logger;
+
 import org.jetbrains.annotations.NotNull;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
+    protected static Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
+
     public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "export_message", TradeMessage::new);
 
     public enum TradeAction
@@ -97,10 +104,12 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
             {
                 if (tradeAction == TradeAction.REMOVE)
                 {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove export."));
                     building.getModule(MCTPBuildingModules.EXPORTS).removeExport(remoteStation, itemStack);
                 }
                 else
                 {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
                     building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost);
                 }
             }
@@ -111,10 +120,12 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
             {
                 if (tradeAction == TradeAction.REMOVE)
                 {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove import."));
                     building.getModule(MCTPBuildingModules.IMPORTS).removeImport(itemStack);
                 }
                 else
                 {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add import."));
                     building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost);
                 }
             }

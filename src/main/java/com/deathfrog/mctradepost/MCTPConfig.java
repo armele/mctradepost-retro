@@ -131,7 +131,7 @@ public class MCTPConfig
         BUILDER.push("station");
         trackValidationFrequency = BUILDER
             .comment("Tick frequency of verifying tracks remain connected (processor intensive).")
-            .define("trackValidationFrequency", 2400);
+            .define("trackValidationFrequency", 10000);
             
         BUILDER.pop();
 

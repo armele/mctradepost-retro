@@ -188,6 +188,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.exports_shipped": "Exported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Tracks Validated: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d",
     
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",

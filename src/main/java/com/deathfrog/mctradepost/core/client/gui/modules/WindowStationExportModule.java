@@ -180,7 +180,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
                 for (ExportData export : moduleView.getExportList())
                 {
-                    if (exportGui.isEnabled() && export.getStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                    if (exportGui.isEnabled() && export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
                         export.getItemStorage().getItemStack().is(exportGui.getItemStorage().getItem()) &&
                         exportGui.cost.equals(export.getCost()))
                     {

@@ -33,6 +33,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
@@ -69,6 +70,8 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RECYCLING_RECI
 public class BuildingRecycling extends AbstractBuilding
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    public static final String ITEMS_RECOVERED = "com.minecolonies.coremod.gui.townhall.stats.items_recovered";
 
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
     public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING =
@@ -591,7 +594,8 @@ public class BuildingRecycling extends AbstractBuilding
             {
                 ItemStack outputCopy = itemStack.copy();
 
-                // Attempt to insert into output chest
+                StatsUtil.trackStatByName(this, ITEMS_RECOVERED, outputCopy.getHoverName(), outputCopy.getCount());
+
                 tryInsertIntoOutputChest(outputCopy);
             }
         }

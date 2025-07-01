@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
@@ -131,7 +132,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (currentExport != null)
         {
-            building.getModule(MCTPBuildingModules.EXPORTS).removeExport(currentExport.getStationData(), currentExport.getItemStorage().getItemStack());
+            building.getModule(MCTPBuildingModules.EXPORTS).removeExport(currentExport.getDestinationStationData(), currentExport.getItemStorage().getItemStack());
             currentExport = null;
         }
         return AIWorkerState.START_WORKING;
@@ -152,7 +153,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 if ((exportData.getShipDistance() >= 0) || (exportData.getLastShipDay() == building.getColony().getDay()))
                 {
-                    LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today.", exportData.getItemStorage(), exportData.getShipDistance(), exportData.getTrackDistance());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today.", exportData.getItemStorage(), exportData.getShipDistance(), exportData.getTrackDistance()));
                     continue;
                 }
 
@@ -160,12 +161,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 boolean remoteHasFunds = false;
                 int maxStackSize = exportData.getItemStorage().getItem().getMaxStackSize(exportData.getItemStorage().getItemStack());
 
-                BuildingStationImportModule remoteImportModule = exportData.getStationData().getStation().getModule(MCTPBuildingModules.IMPORTS);
+                BuildingStationImportModule remoteImportModule = exportData.getDestinationStationData().getStation().getModule(MCTPBuildingModules.IMPORTS);
 
-                if (!TrackConnectionStatus.CONNECTED.equals(exportData.getStationData().getTrackConnectionStatus()) 
+                if (!TrackConnectionStatus.CONNECTED.equals(exportData.getDestinationStationData().getTrackConnectionStatus()) 
                     || !remoteImportModule.hasTrade(exportData.getItemStorage().getItemStack(), exportData.getCost()))
                 {
-                    LOGGER.info("Export of {} for {} is no longer valid - marking for removal.", exportData.getItemStorage(), exportData.getCost());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid - marking for removal.", exportData.getItemStorage(), exportData.getCost()));
                     currentExport = exportData;
                     return StationMasterStates.ELIMINATE_OLD_ORDER;
                 }
@@ -173,13 +174,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 int availableExportItemCount = availableCount(building, exportData.getItemStorage());
                 
                 if ((availableExportItemCount >= maxStackSize)
-                    && TrackConnectionStatus.CONNECTED.equals(exportData.getStationData().getTrackConnectionStatus())
+                    && TrackConnectionStatus.CONNECTED.equals(exportData.getDestinationStationData().getTrackConnectionStatus())
                 )
                 {
                     hasExports = true;
                 }
 
-                BuildingStation remoteStation = (BuildingStation) exportData.getStationData().getStation();
+                BuildingStation remoteStation = (BuildingStation) exportData.getDestinationStationData().getStation();
                 ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
 
                 int availableRemoteFunds = availableCount(remoteStation, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
@@ -193,7 +194,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 {
                     if (remoteHasFunds)
                     {
-                        LOGGER.info("Supply of {} and necessary funds are availalbe - mark for shipment.", exportData.getItemStorage());
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} and necessary funds are availalbe - mark for shipment.", exportData.getItemStorage()));
                         currentExport = exportData;
 
                         return StationMasterStates.SEND_SHIPMENT;
@@ -201,17 +202,16 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     else
                     {
                         // Announce to the remote colony that the station does not have the required funds (with a cooldown)
-                        int cooldown = remoteStationMessageCooldown.getOrDefault(exportData.getStationData(), 0);
+                        int cooldown = remoteStationMessageCooldown.getOrDefault(exportData.getDestinationStationData(), 0);
                         if (cooldown == 0)
                         {
-                            // MessageUtils.format("%s is ready to send a shipment, but there are not enough funds in the station inventory.", building.getColony().getName()).sendTo(remoteStation.getColony()).forAllPlayers();
-                            LOGGER.info("Informed remote colony of funding need for {}.", exportData.getItemStorage());
+                            TraceUtils.dynamicTrace(TRACE_STATION, () -> TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Informed remote colony of funding need for {}.", exportData.getItemStorage())));
                             remoteStation.addPaymentRequest(exportData.getCost());
-                            remoteStationMessageCooldown.put(exportData.getStationData(), MESSAGE_COOLDOWN_TIME);
+                            remoteStationMessageCooldown.put(exportData.getDestinationStationData(), MESSAGE_COOLDOWN_TIME);
                         }     
                         else
                         {
-                            remoteStationMessageCooldown.put(exportData.getStationData(), cooldown - 1);
+                            remoteStationMessageCooldown.put(exportData.getDestinationStationData(), cooldown - 1);
                         }         
                         
                         setDelay(2);
@@ -220,14 +220,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 }
                 else
                 {
-                    LOGGER.info("Supplies needed to export {}.", exportData.getItemStorage());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed to export {}.", exportData.getItemStorage()));
                     return AIWorkerState.GET_MATERIALS;
                 }
             }
         }
         else
         {
-            LOGGER.info("No exports configured for {}.", worker.getName());
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No exports configured for {}.", worker.getName()));
             setDelay(10);
         }
 
@@ -268,10 +268,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (currentExport != null)
         {   
-            TrackConnectionResult tcr = ((BuildingStation) building).getTrackConnectionResult(currentExport.getStationData());
+            TrackConnectionResult tcr = ((BuildingStation) building).getTrackConnectionResult(currentExport.getDestinationStationData());
             if (tcr == null)
             {
-                currentRemoteStation = currentExport.getStationData();
+                currentRemoteStation = currentExport.getDestinationStationData();
                 return StationMasterStates.CHECK_CONNECTION;
             }
 
@@ -287,34 +287,39 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             if (MCTPInventoryUtils.combinedInventoryRemoval(building, currentExport.getItemStorage(), maxStackSize)) 
             {
                 // Remove the inbound payment from remote building/worker.
-                if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
+                if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
                 {
-                    LOGGER.info("Receiving station no longer has adequate funds.  Restoring items.");
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Receiving station no longer has adequate funds.  Restoring items."));
                     ItemStack finalDeposit = new ItemStack(currentExport.getItemStorage().getItem(), currentExport.getMaxStackSize());
 
                     // Adds to the remote building inventory or drops on the ground if inventory is full.
-                    if (!InventoryUtils.addItemStackToItemHandler(currentExport.getStationData().getStation().getItemHandlerCap(), finalDeposit))
+                    if (!InventoryUtils.addItemStackToItemHandler(currentExport.getDestinationStationData().getStation().getItemHandlerCap(), finalDeposit))
                     {
-                        LOGGER.info("Target station inventory full - dropping in world.");
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Target station inventory full - dropping in world."));
 
-                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) currentExport.getStationData().getStation().getColony().getWorld(), 
-                            currentExport.getStationData().getStation().getPosition(), 
+                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) currentExport.getDestinationStationData().getStation().getColony().getWorld(), 
+                            currentExport.getDestinationStationData().getStation().getPosition(), 
                             finalDeposit);
                     }
 
                     currentExport = null;
+                    incrementActionsDoneAndDecSaturation();
                     return AIWorkerState.START_WORKING;
                 } 
             }
             else
             {
-                LOGGER.info("No longer enough {} in worker inventory to ship.", currentExport.getItemStorage().getItem());
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No longer enough {} in worker inventory to ship.", currentExport.getItemStorage().getItem()));
                 currentExport = null;
                 return AIWorkerState.START_WORKING;
             }
 
+            GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.path);
+            if (cart == null) {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Could not spawn cart for export: {}", currentExport));
+            }
 
-            LOGGER.info("Shipment initiated for export: {}", currentExport);
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", currentExport));
 
             currentExport = null;
         }
@@ -347,6 +352,9 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 if (building.hasStationAt(station.getPosition()))
                 {
                     StationData stationData = building.getStationAt(station.getPosition());
+
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if station should be checked: {}", stationData));
+
                     if (stationData.getTrackConnectionStatus().equals(TrackConnectionStatus.UNKNOWN) 
                         || (stationData.ageOfCheck() > MCTPConfig.trackValidationFrequency.get())
                     )                   
@@ -385,46 +393,43 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         if (currentRemoteStation != null)
         {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking connection to remote station: {} seeking endpoint: {}", currentRemoteStation, building.getRailStartPosition()));
             TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
 
             if (connectionResult == null)
             {
-                connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, currentRemoteStation.getRailStartPosition(), building.getRailStartPosition(), true);
-                worker.getCitizenExperienceHandler().addExperience(BASE_XP_NEW_TRACK);
-                StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No cached result. Checking connection to remote station: {} seeking endpoint: {}", building.getRailStartPosition(), currentRemoteStation.getRailStartPosition()));
+                connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, building.getRailStartPosition(), currentRemoteStation.getRailStartPosition(),true);
+                building.putTrackConnectionResult(currentRemoteStation, connectionResult);
             }
             else
             {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Cached connection found. Validating it."));
+
                 boolean isValid = TrackPathConnection.validateExistingPath(world, connectionResult.path);
 
                 currentCheckingTrack.addAll(connectionResult.path);
 
                 connectionResult.setConnected(isValid);
-                worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
-                StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
-                return StationMasterStates.WALK_THE_TRACK;
             }
-            
-            building.putTrackConnectionResult(currentRemoteStation, connectionResult);
 
             if (connectionResult.connected)
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
                 currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.CONNECTED);
-                currentRemoteStation = null;
             }
             else
             {
                 final TrackConnectionResult logResult = connectionResult;
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, logResult.closestPoint));
                 currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED);
-                currentRemoteStation = null;
             }
         }
-
-        setDelay(2);
-        return START_WORKING;
+        
+        currentRemoteStation = null;
+        worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
+        incrementActionsDoneAndDecSaturation();
+        StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
+        return StationMasterStates.WALK_THE_TRACK;
     }
 
     /**
@@ -515,11 +520,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 final ItemStack itemStack = exportData.getItemStorage().getItemStack();
                 itemStack.setCount(itemStack.getMaxStackSize());
                 itemList.add(itemStack);
-                LOGGER.info("Preparing order for {}.", itemStack);
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Preparing order for {}.", itemStack));
             }
             if (!itemList.isEmpty())
             {
-                LOGGER.info("Placing {} orders.", itemList.size());
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Placing {} orders.", itemList.size()));
 
                 worker.getCitizenData()
                     .createRequestAsync(new StackList(itemList,
@@ -530,12 +535,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
             else
             {
-                LOGGER.info("{} does not not need to place any orders.", worker.getCitizenData().getName());
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("{} does not not need to place any orders.", worker.getCitizenData().getName()));
             }
         }
         else
         {
-            LOGGER.info("{} already has open requests. Not placing new ones.", worker.getCitizenData().getName());
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("{} already has open requests. Not placing new ones.", worker.getCitizenData().getName()));
         }
 
         setDelay(2);
