@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:rough_brick"
+    }
+  },
+  "result": {
+    "id": "mctradepost:rough_brick_slab",
+    "count": 6
+  }
+}

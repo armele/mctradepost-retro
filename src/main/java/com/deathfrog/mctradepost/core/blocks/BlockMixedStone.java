@@ -9,6 +9,7 @@ public class BlockMixedStone extends Block {
     public static final String MIXED_STONE_ID = "mixed_stone";
     public static final String MIXED_STONE_WALL_ID = "mixed_stone_wall";
     public static final String MIXED_STONE_STAIRS_ID = "mixed_stone_stairs";
+    public static final String MIXED_STONE_SLAB_ID = "mixed_stone_slab";
     
     public BlockMixedStone() {
         super(Properties.of()

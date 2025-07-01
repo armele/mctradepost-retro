@@ -13,15 +13,24 @@ Add the block hut for the building:
 - Define the recipe to create the block in a .json file at src\main\resources\data\mctradepost\recipe
 - Define the tile entity in MCTradePostTileEntities and add the Tile Entity registration in TileEntityInitializer
 
+## Building Prerequisites
+If the building is meant to be unlocked via research or progression, set that up with an effect using a json file at src\main\resources\data\mctradepost\researches\effects and an associated research to unlock that effect at src\main\resources\data\mctradepost\researches\economic
+
 ## Functional (Built) Building
 Add the building class itself:
 - src\main\java\com\deathfrog\mctradepost\core\colony\jobs\buildings\workerbuildings\
 - Extend AbstractBuilding
 - Associate the building and its hut block in ModBuildingsInitializer (static block)
--- Add the translation key to en_us.json: "com." + key.getNamespace() + ".building." + key.getPath();
--- This is also where you designate what modules the building will support once built.
+
+### Testing Checkpoint
+At this point you can verify that the hut block can be crafted, and that it shows in the JEI.
+You can also verify that it is locked behind research (if desired).
+
+## Functional (Built) Building - Continued
+-- ModBuildingsInitializer is also where you designate what modules the building will support once built.
 -- Define at least a new WorkerBuildingModule in MCTPBuildingModules.java specifying the primary stats. DO NOT assign Intelligence here - it will break BOWindow ("BADJOBS" bug)
 -- If the building serializes any data, create a view that deserializes it to the client, and associate that view with the building in ModBuildingsInitializer.
+-- Add the translation key to en_us.json: "com." + key.getNamespace() + ".building." + key.getPath();  Use the other buildings as a model for understanding the various keys that need to be defined here.
 
 Add any custom buildng modules that are needed:
 - Define new modules in MCTPBuildingModules
@@ -47,9 +56,6 @@ Define the AI associated with the Job
 Define the models that animate the worker for the Job (not necessary if calling super() in getModel of the job class)
 - Create new models at src\main\java\com\deathfrog\mctradepost\core\client\model\
 - Create male and female variants of the model textures at src\main\resources\assets\mctradepost\textures\entity\citizen\default\
-
-## Building Research
-If the building is meant to be unlocked via research or progression, set that up with an effect using a json file at src\main\resources\data\mctradepost\researches\effects
 
 # Building Modules
 Modules are building functionality supported by right-clicking the hut block. They enable a variety of capabilities depending on the implementation.

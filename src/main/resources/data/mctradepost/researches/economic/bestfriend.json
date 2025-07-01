@@ -1,0 +1,32 @@
+{
+    "name": "Best Friends",
+    "subtitle": "All of the pets...",
+    "branch": "economic",
+    "researchLevel": 1,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "marketplace",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 16,
+            "item": "minecraft:bowl"        
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/blockhutpetstore",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:blockhutpetstore"
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:plaster"
+    }
+  },
+  "result": {
+    "id": "mctradepost:plaster_slab",
+    "count": 6
+  }
+}

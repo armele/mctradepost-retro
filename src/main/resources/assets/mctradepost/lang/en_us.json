@@ -21,6 +21,7 @@
     "block.mctradepost.thatch": "Thatch",
     "block.mctradepost.thatch_stairs": "Thatch Stairs",
     "block.mctradepost.thatch_wall": "Thatch Wall",
+    "block.mctradepost.thatch_slab": "Thatch Slab",
 
     "item.mctradepost.mixed_stone": "Mixed Stone",
     "item.mctradepost.mixed_stone_stairs": "Mixed Stone Stairs",
@@ -28,6 +29,7 @@
     "block.mctradepost.mixed_stone": "Mixed Stone",
     "block.mctradepost.mixed_stone_stairs": "Mixed Stone Stairs",
     "block.mctradepost.mixed_stone_wall": "Mixed Stone Wall",
+   "block.mctradepost.mixed_stone_slab": "Mixed Stone Slab",
 
     "item.mctradepost.plaster": "Plaster",
     "item.mctradepost.plaster_stairs": "Plaster Stairs",
@@ -35,6 +37,7 @@
     "block.mctradepost.plaster": "Plaster",
     "block.mctradepost.plaster_stairs": "Plaster Stairs",
     "block.mctradepost.plaster_wall": "Plaster Wall",
+    "block.mctradepost.plaster_slab": "Plaster Slab",
 
     "item.mctradepost.rough_brick": "Rough Brick",
     "item.mctradepost.rough_brick_stairs": "Rough Brick Stairs",
@@ -42,7 +45,7 @@
     "block.mctradepost.rough_brick": "Rough Brick",
     "block.mctradepost.rough_brick_stairs": "Rough Brick Stairs",
     "block.mctradepost.rough_brick_wall": "Rough Brick Wall",
-
+    "block.mctradepost.rough_brick_slab": "Rough Brick Slab",
 
     "item.mctradepost.rough_stone": "Rough Stone",
     "item.mctradepost.rough_stone_stairs": "Rough Stone Stairs",
@@ -50,7 +53,7 @@
     "block.mctradepost.rough_stone": "Rough Stone",
     "block.mctradepost.rough_stone_stairs": "Rough Stone Stairs",
     "block.mctradepost.rough_stone_wall": "Rough Stone Wall",
-
+    "block.mctradepost.rough_stone_slab": "Rough Stone Slab",
 
 
 
@@ -105,6 +108,15 @@
     "mctradepost:stationmaster.skills.desc": "Speeds things up.",
     "com.deathfrog.mctradepost.gui.workerhuts.station.exports": "Export Order",
     "com.deathfrog.mctradepost.gui.workerhuts.station.funding" : "Trade Funding",
+
+    "com.mctradepost.building.petstore": "Pet Store",
+    "com.minecolonies.building.petstore": "Pet Store",
+    "com.mctradepost.building.petstore.desc": "Fluffies - cute and functional.",
+    "block.mctradepost.blockhutpetstore": "Pet Store",
+    "com.mctradepost.job.animaltrainer": "Animal Trainer",
+    "com.mctradepost.gui.visiblestatus.animaltrainer": "Training Animals",
+    "mctradepost:animaltrainer.job.desc": "Teaching your four legged friends to earn their keep.",
+    "mctradepost:animaltrainer.skills.desc": "Improves pet skill increases.",
 
     "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
     "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables": "Recyclables",

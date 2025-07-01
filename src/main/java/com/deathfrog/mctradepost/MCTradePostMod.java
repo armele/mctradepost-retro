@@ -19,6 +19,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetStore;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
@@ -68,6 +69,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.WallBlock;
@@ -213,6 +215,7 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutResort = BLOCKS.register(BlockHutResort.HUT_NAME, () -> new BlockHutResort());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetStore = BLOCKS.register(BlockHutPetStore.HUT_NAME, () -> new BlockHutPetStore());
 
     public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -226,15 +229,17 @@ public class MCTradePostMod
             .strength(2.0f, 6.0f)
             .sound(SoundType.STONE)));
 
+    public static final DeferredBlock<SlabBlock> MIXED_STONE_SLAB = BLOCKS.register(BlockMixedStone.MIXED_STONE_SLAB_ID, () -> new SlabBlock(Block.Properties.of()
+            .mapColor(MapColor.STONE)
+            .strength(2.0f, 6.0f)
+            .sound(SoundType.STONE)));
+
     public static final DeferredBlock<BlockDistressed> DISTRESSED = BLOCKS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressed());
     public static final DeferredBlock<BlockStackedSlab> STACKED_SLAB = BLOCKS.register(BlockStackedSlab.STACKED_SLAB_ID, () -> new BlockStackedSlab());
     public static final DeferredBlock<BlockSideSlab> SIDE_SLAB = BLOCKS.register(BlockSideSlab.SIDE_SLAB_ID, () -> new BlockSideSlab());
     public static final DeferredBlock<BlockSideSlabInterleaved> SIDE_SLAB_INTERLEAVED = BLOCKS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleaved());
 
-    public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(Block.Properties.of()
-            .mapColor(MapColor.TERRACOTTA_BROWN)
-            .strength(.5f, 1.0f)
-            .sound(SoundType.GRASS)));
+    public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(MIXED_STONE.get().properties()));
 
     public static final DeferredBlock<StairBlock> THATCH_STAIRS =
         BLOCKS.register(ModBlocksInitializer.THATCH_STAIRS_NAME,
@@ -243,6 +248,7 @@ public class MCTradePostMod
             ));
 
     public static final DeferredBlock<WallBlock> THATCH_WALL = BLOCKS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new WallBlock(THATCH.get().properties()));
+    public static final DeferredBlock<SlabBlock> THATCH_SLAB = BLOCKS.register(ModBlocksInitializer.THATCH_SLAB_NAME, () -> new SlabBlock(THATCH.get().properties()));
 
     public static final DeferredBlock<Block> PLASTER = BLOCKS.register(ModBlocksInitializer.PLASTER_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.TERRACOTTA_WHITE)
@@ -257,6 +263,7 @@ public class MCTradePostMod
             ));
 
     public static final DeferredBlock<WallBlock> PLASTER_WALL = BLOCKS.register(ModBlocksInitializer.PLASTER_WALL_NAME, () -> new WallBlock(PLASTER.get().properties()));
+    public static final DeferredBlock<SlabBlock> PLASTER_SLAB = BLOCKS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new SlabBlock(PLASTER.get().properties()));
 
     public static final DeferredBlock<Block> ROUGH_STONE = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.STONE)
@@ -271,6 +278,7 @@ public class MCTradePostMod
             ));
 
     public static final DeferredBlock<WallBlock> ROUGH_STONE_WALL = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_WALL_NAME, () -> new WallBlock(ROUGH_STONE.get().properties()));
+    public static final DeferredBlock<SlabBlock> ROUGH_STONE_SLAB = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_SLAB_NAME, () -> new SlabBlock(ROUGH_STONE.get().properties()));
 
     public static final DeferredBlock<Block> ROUGH_BRICK = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.STONE)
@@ -285,7 +293,7 @@ public class MCTradePostMod
             ));
 
     public static final DeferredBlock<WallBlock> ROUGH_BRICK_WALL = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_WALL_NAME, () -> new WallBlock(ROUGH_BRICK.get().properties()));
-
+    public static final DeferredBlock<SlabBlock> ROUGH_BRICK_SLAB = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_SLAB_NAME, () -> new SlabBlock(ROUGH_BRICK.get().properties()));
 
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
@@ -295,6 +303,9 @@ public class MCTradePostMod
         
     public static final DeferredItem<Item> MIXED_STONE_WALL_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_WALL_ID, () -> new BlockItem(MIXED_STONE_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MIXED_STONE_SLAB_ITEM =
+        ITEMS.register(BlockMixedStone.MIXED_STONE_SLAB_ID, () -> new BlockItem(MIXED_STONE_SLAB.get(), new Item.Properties()));
 
     public static final DeferredItem<BlockDistressedItem> DISTRESSED_ITEM =
         ITEMS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressedItem(DISTRESSED.get(), new BlockDistressedItem.Properties()));
@@ -317,6 +328,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> THATCH_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new BlockItem(THATCH_WALL.get(), new Item.Properties()));
 
+    public static final DeferredItem<Item> THATCH_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.THATCH_SLAB_NAME, () -> new BlockItem(THATCH_SLAB.get(), new Item.Properties()));
+
     public static final DeferredItem<Item> PLASTER_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_NAME, () -> new BlockItem(PLASTER.get(), new Item.Properties()));
 
@@ -325,6 +339,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> PLASTER_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_WALL_NAME, () -> new BlockItem(PLASTER_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> PLASTER_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new BlockItem(PLASTER_SLAB.get(), new Item.Properties()));
 
     public static final DeferredItem<Item> ROUGH_STONE_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_NAME, () -> new BlockItem(ROUGH_STONE.get(), new Item.Properties()));
@@ -335,6 +352,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> ROUGH_STONE_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_WALL_NAME, () -> new BlockItem(ROUGH_STONE_WALL.get(), new Item.Properties()));
 
+    public static final DeferredItem<Item> ROUGH_STONE_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.ROUGH_STONE_SLAB_NAME, () -> new BlockItem(ROUGH_STONE_SLAB.get(), new Item.Properties()));
+
     public static final DeferredItem<Item> ROUGH_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_NAME, () -> new BlockItem(ROUGH_BRICK.get(), new Item.Properties()));
 
@@ -343,6 +363,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> ROUGH_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_WALL_NAME, () -> new BlockItem(ROUGH_BRICK_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ROUGH_BRICK_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_SLAB_NAME, () -> new BlockItem(ROUGH_BRICK_SLAB.get(), new Item.Properties()));
 
     // Create a Deferred Register to hold CreativeModeTabs which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
@@ -572,6 +595,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutResort.get());
                     event.accept(MCTradePostMod.blockHutRecycling.get());
                     event.accept(MCTradePostMod.blockHutStation.get());
+                    event.accept(MCTradePostMod.blockHutPetStore.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
@@ -591,15 +615,19 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.THATCH.get());
                     event.accept(MCTradePostMod.THATCH_STAIRS.get());
                     event.accept(MCTradePostMod.THATCH_WALL.get());
+                    event.accept(MCTradePostMod.THATCH_SLAB.get());
                     event.accept(MCTradePostMod.PLASTER.get());
                     event.accept(MCTradePostMod.PLASTER_STAIRS.get());
                     event.accept(MCTradePostMod.PLASTER_WALL.get());
+                    event.accept(MCTradePostMod.PLASTER_SLAB.get());
                     event.accept(MCTradePostMod.ROUGH_STONE.get());
                     event.accept(MCTradePostMod.ROUGH_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.ROUGH_STONE_WALL.get());
+                    event.accept(MCTradePostMod.ROUGH_STONE_SLAB.get());
                     event.accept(MCTradePostMod.ROUGH_BRICK.get());
                     event.accept(MCTradePostMod.ROUGH_BRICK_STAIRS.get());
                     event.accept(MCTradePostMod.ROUGH_BRICK_WALL.get());
+                    event.accept(MCTradePostMod.ROUGH_BRICK_SLAB.get());
                 }
             });
 

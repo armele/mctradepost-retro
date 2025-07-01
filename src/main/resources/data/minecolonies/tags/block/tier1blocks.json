@@ -4,8 +4,18 @@
     "mctradepost:thatch",
     "mctradepost:thatch_wall",
     "mctradepost:thatch_stairs",
+    "mctradepost:thatch_slab",
     "mctradepost:plaster",
+    "mctradepost:plaster_wall",
+    "mctradepost:plaster_stairs",
+    "mctradepost:plaster_slab",
     "mctradepost:rough_brick",
-    "mctradepost:rough_stone"
+    "mctradepost:rough_stone",
+    "mctradepost:rough_brick_wall",
+    "mctradepost:rough_brick_stairs",
+    "mctradepost:rough_brick_slab",
+    "mctradepost:rough_stone_wall",
+    "mctradepost:rough_stone_stairs",
+    "mctradepost:rough_stone_slab"
   ]
 }

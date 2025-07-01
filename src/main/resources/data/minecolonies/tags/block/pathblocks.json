@@ -3,6 +3,9 @@
     "values": [
         "mctradepost:mixed_stone",
         "mctradepost:rough_stone",
-        "mctradepost:rough_brick"
+        "mctradepost:rough_brick",
+        "mctradepost:mixed_stone_slab",
+        "mctradepost:rough_stone_slab",
+        "mctradepost:rough_brick_slab"
   ]
 }
