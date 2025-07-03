@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/inner_stairs",
+  "textures": {
+    "bottom": "mctradepost:block/endethyst",
+    "top": "mctradepost:block/endethyst",
+    "side": "mctradepost:block/endethyst"
+  }
+}

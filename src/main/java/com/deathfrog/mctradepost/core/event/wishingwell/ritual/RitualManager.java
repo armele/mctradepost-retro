@@ -18,9 +18,10 @@ public class RitualManager extends SimpleJsonResourceReloadListener {
     private static final String RITUAL_FOLDER = "rituals";
     private static final Map<ResourceLocation, RitualDefinitionHelper> rituals = new HashMap<>();
 
-    public static final String RITUAL_EFFECT_SLAY = "slay";
-    public static final String RITUAL_EFFECT_WEATHER = "weather";
-    public static final String RITUAL_EFFECT_SUMMON = "summon";
+    public static final String RITUAL_EFFECT_SLAY       = "slay";
+    public static final String RITUAL_EFFECT_WEATHER    = "weather";
+    public static final String RITUAL_EFFECT_SUMMON     = "summon";
+    public static final String RITUAL_EFFECT_TRANSFORM  = "transform";
 
     public RitualManager() {
         super(MCTradePostMod.GSON, RITUAL_FOLDER);

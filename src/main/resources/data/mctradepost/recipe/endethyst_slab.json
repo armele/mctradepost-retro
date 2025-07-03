@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:endethyst"
+    }
+  },
+  "result": {
+    "id": "mctradepost:endethyst_slab",
+    "count": 6
+  }
+}

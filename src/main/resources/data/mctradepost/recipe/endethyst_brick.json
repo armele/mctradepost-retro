@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:endethyst"
+    },
+    {
+      "item": "mctradepost:endethyst"
+    },
+    {
+      "item": "mctradepost:endethyst"
+    },
+    {
+      "item": "mctradepost:endethyst"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "mctradepost:endethyst_brick"
+  }
+}

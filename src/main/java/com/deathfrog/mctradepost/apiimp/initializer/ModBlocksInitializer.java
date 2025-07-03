@@ -30,6 +30,14 @@ public final class ModBlocksInitializer
     public final static String ROUGH_STONE_STAIRS_NAME = "rough_stone_stairs";
     public final static String ROUGH_STONE_WALL_NAME = "rough_stone_wall";
     public final static String ROUGH_STONE_SLAB_NAME = "rough_stone_slab";
+	public final static String ENDETHYST_NAME = "endethyst";
+    public final static String ENDETHYST_STAIRS_NAME = "endethyst_stairs";
+    public final static String ENDETHYST_WALL_NAME = "endethyst_wall";
+    public final static String ENDETHYST_SLAB_NAME = "endethyst_slab";
+	public final static String ENDETHYST_BRICK_NAME = "endethyst_brick";
+    public final static String ENDETHYST_BRICK_STAIRS_NAME = "endethyst_brick_stairs";
+    public final static String ENDETHYST_BRICK_WALL_NAME = "endethyst_brick_wall";
+    public final static String ENDETHYST_BRICK_SLAB_NAME = "endethyst_brick_slab";
 
     private ModBlocksInitializer()
     {

@@ -2,6 +2,7 @@
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
@@ -26,6 +27,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LiquidBlock;
@@ -114,42 +116,50 @@ public class WishingWellHandler {
                     .filter(e -> CoinItem.isCoin(e.getItem()))
                     .collect(Collectors.toList());
 
-            List<ItemEntity> companionItems = items.stream()
+            List<ItemEntity> companions = items.stream()
                     .filter(e -> !CoinItem.isCoin(e.getItem()))
                     .collect(Collectors.toList());
 
-            if (!coinItems.isEmpty() && !companionItems.isEmpty()) 
+            if (!coinItems.isEmpty() && !companions.isEmpty()) 
             {
-                // ItemEntity coin = coinItems.get(0);
-                ItemEntity companion = companionItems.get(0);
+                Item companionType = companions.getFirst().getItem().getItem();
 
-                Item companionItem = companion.getItem().getItem();
+                List<ItemEntity> sameTypeCompanions = companions.stream()
+                        .filter(e -> e.getItem().getItem() == companionType)
+                        .toList();
+
+                int totalCompanionCount = sameTypeCompanions.stream()
+                        .mapToInt(e -> e.getItem().getCount())
+                        .sum();
+
                 BlockPos center = pos.immutable();
 
                 RitualState state = rituals.computeIfAbsent(center, k -> new RitualState());
+
                 state.coins = coinItems.stream().mapToInt(e -> e.getItem().getCount()).sum();
+                state.companionCount = totalCompanionCount;
                 state.lastUsed = System.currentTimeMillis();
 
-                RitualResult result = triggerRitual(level, state, center, companionItem);
+                RitualResult result = triggerRitual(level, state, center, companionType);
 
                 switch (result) 
                 {
                     case COMPLETED:
                     case FAILED:
-                        MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionItem);
+                        MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
                         coinItems.stream().forEach(e -> e.discard());
-                        companion.discard();
+                        sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         rituals.remove(pos);  
                         break;
 
                     case UNRECOGNIZED:
                         // An unrecognized companion item has been used, or something else caused the ritual to fail.
                         // Discard the companion item, but leave the ritual active for a valid companion item to be added.
-                        MCTradePostMod.LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionItem);
-                        companion.discard();  
+                        MCTradePostMod.LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionType);
+                        sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         break;
 
-                    case NEEDS_COINS:
+                    case NEEDS_INGREDIENTS:
                         // We're just waiting for more coins to be added...
                         break;
                 }
@@ -504,6 +514,46 @@ public class WishingWellHandler {
     }
 
     /**
+     * Processes a transformation ritual at the specified BlockPos within the ServerLevel.
+     * This ritual transforms companion items into a target item, as defined in the ritual.
+     * If the number of companion items is insufficient, the ritual cannot proceed.
+     *
+     * @param level the ServerLevel where the ritual is taking place
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the target item and companion item count
+     * @param state the current state of the ritual, including companion item count
+     * 
+     * @return RitualResult indicating whether the ritual was completed, needed ingredients,
+     *         or failed due to an error
+     */
+    public static RitualResult processRitualTransform(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
+    {
+        if (state.companionCount < ritual.companionItemCount()) 
+        {
+            return RitualResult.NEEDS_INGREDIENTS;
+        }
+
+        try
+        {
+            Item targetItem = ritual.getTargetAsItem();
+
+            if (targetItem == null) 
+            {
+                return RitualResult.FAILED;
+            }   
+
+            MCTPInventoryUtils.dropItemsInWorld(level, pos, new ItemStack(targetItem, ritual.companionItemCount()));
+        }
+        catch (Exception e)
+        {
+            MCTradePostMod.LOGGER.error("Failed to drop items for ritual", e);
+            return RitualResult.FAILED;
+        }
+        showRitualEffect(level, pos);
+        return RitualResult.COMPLETED;
+    }
+
+    /**
      * Triggers an effect based on the companion item thrown into the wishing well.
      * If the companion item is rotten flesh, all zombies within a 16-block radius
      * are removed, simulating a "zombie purge" ritual. If the item is an iron sword,
@@ -527,52 +577,49 @@ public class WishingWellHandler {
 
             if (effectCompanion.equals(companionItem)) 
             {
+                if (ritual.requiredCoins() > state.coins) 
+                {
+                    return RitualResult.NEEDS_INGREDIENTS;
+                }
                 /* 
                  * To add a new ritual *type*, it needs an entry here (with associated handler function) 
                  * and in RitualDefintionHelper.describe() to set up the JEI with the description
                  */
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SLAY)) 
+                switch (ritual.effect()) 
                 {
-                    if (ritual.requiredCoins() > state.coins) 
-                    {
-                        return RitualResult.NEEDS_COINS;
-                    }
+                    case RitualManager.RITUAL_EFFECT_SLAY:
+                        if (processRitualSlay(level, pos, ritual)) 
+                        {
+                            return RitualResult.COMPLETED;
+                        } else {
+                            return RitualResult.FAILED;
+                        }
 
-                    if (processRitualSlay(level, pos, ritual)) 
-                    {
-                        return RitualResult.COMPLETED;
-                    } else {
-                        return RitualResult.FAILED;
-                    }
+
+                    case RitualManager.RITUAL_EFFECT_WEATHER:
+                        if (processRitualWeather(level, pos, ritual) ) 
+                        {
+                            return RitualResult.COMPLETED;
+                        } else {
+                            return RitualResult.FAILED;
+                        }
+
+                    case RitualManager.RITUAL_EFFECT_SUMMON:
+                        if (processRitualSummon(level, pos, ritual) ) 
+                        {
+                            return RitualResult.COMPLETED;
+                        } else {
+                            return RitualResult.FAILED;
+                        }
+
+                    case RitualManager.RITUAL_EFFECT_TRANSFORM:
+                        return processRitualTransform(level, pos, ritual, state);
+
+                    default:
+                        MCTradePostMod.LOGGER.warn("Unknown ritual effect: {}", ritual.effect());
+                        break;
                 }
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_WEATHER)) 
-                {
-                    if (ritual.requiredCoins() > state.coins) 
-                    {
-                        return RitualResult.NEEDS_COINS;
-                    }
-
-                    if (processRitualWeather(level, pos, ritual) ) 
-                    {
-                        return RitualResult.COMPLETED;
-                    } else {
-                        return RitualResult.FAILED;
-                    }
-                }
-                if (ritual.effect().equals(RitualManager.RITUAL_EFFECT_SUMMON)) 
-                {
-                    if (ritual.requiredCoins() > state.coins) 
-                    {
-                        return RitualResult.NEEDS_COINS;
-                    }
-
-                    if (processRitualSummon(level, pos, ritual) ) 
-                    {
-                        return RitualResult.COMPLETED;
-                    } else {
-                        return RitualResult.FAILED;
-                    }
-                }                
+            
             }
         }
 
@@ -582,13 +629,14 @@ public class WishingWellHandler {
     public enum RitualResult 
     {
         UNRECOGNIZED,
-        NEEDS_COINS,
+        NEEDS_INGREDIENTS,
         FAILED,
         COMPLETED
     }
     static public class RitualState 
     {
         public int coins = 0;
+        public int companionCount = 0;
         public long lastUsed = 0L;
     }
 } 

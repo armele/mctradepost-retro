@@ -1,5 +1,6 @@
 {
   "companion_item": "minecraft:water_bucket",
+  "companion_item_count": 1,  
   "effect_type": "weather",
   "target" : "rain",
   "radius": -1,

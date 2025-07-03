@@ -1,5 +1,6 @@
 {
   "companion_item": "minecraft:diamond_sword",
+  "companion_item_count": 1,
   "effect_type": "summon",
   "target" : "minecolonies:raider",
   "radius": -1,

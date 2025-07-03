@@ -124,6 +124,7 @@ Building: Train Station - Record statistics. [Testing]
 Building: Train Station - Engineer Walking the track during connection testing. [Testing]
 
 ### Roadmap (Roughly Prioritized)
+Endethyst: Tier 5 building material
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets - Building: Pet Houses
 Pets - Building Module: Set Owner

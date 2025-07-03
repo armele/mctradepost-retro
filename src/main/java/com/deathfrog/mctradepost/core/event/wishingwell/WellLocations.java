@@ -38,6 +38,7 @@ public class WellLocations implements INBTSerializable<CompoundTag> {
             CompoundTag ritualTag = new CompoundTag();
             ritualTag.put("Pos", NBTUtils.writeBlockPos(entry.getKey()));
             ritualTag.putInt("Coins", entry.getValue().coins);
+            ritualTag.putInt("CompanionCount", entry.getValue().companionCount);
             ritualTag.putLong("LastUsed", entry.getValue().lastUsed);
             ritualList.add(ritualTag);
         }
@@ -63,6 +64,7 @@ public class WellLocations implements INBTSerializable<CompoundTag> {
             BlockPos pos = NBTUtils.readBlockPos(ritualTag.getCompound("Pos"));
             WishingWellHandler.RitualState state = new WishingWellHandler.RitualState();
             state.coins = ritualTag.getInt("Coins");
+            state.companionCount = ritualTag.getInt("CompanionCount");
             state.lastUsed = ritualTag.getLong("LastUsed");
             activeRituals.put(pos, state);
         }

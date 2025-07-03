@@ -1,0 +1,38 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    },
+    {
+      "item": "minecraft:amethyst_shard"
+    }
+
+  ],
+  "result": {
+    "count": 8,
+    "id": "mctradepost:endethyst"
+  }
+}

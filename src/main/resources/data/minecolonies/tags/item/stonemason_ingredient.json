@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone",
-    "mctradepost:plaster"
+    "mctradepost:plaster",
+    "mctradepost:rough_brick",
+    "mctradepost:rough_stone",
+    "mctradepost:endethyst",
+    "mctradepost:endethyst_brick"
   ]
 }

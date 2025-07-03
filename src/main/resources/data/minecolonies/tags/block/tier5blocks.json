@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:endethyst",
+    "mctradepost:endethyst_stairs",
+    "mctradepost:endethyst_wall",
+    "mctradepost:endethyst_slab",
+    "mctradepost:endethyst_brick",
+    "mctradepost:endethyst_brick_stairs",
+    "mctradepost:endethyst_brick_wall",
+    "mctradepost:endethyst_brick_slab"
+  ]
+}

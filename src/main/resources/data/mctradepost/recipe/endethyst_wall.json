@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "blocks",
+    "key": {
+      "S": { "item": "mctradepost:endethyst" }
+    },
+    "pattern": [
+      "   ",
+      "SSS",
+      "SSS"
+    ],
+    "result": {
+      "count": 4,
+      "id": "mctradepost:endethyst_wall"
+    }
+}
+  
