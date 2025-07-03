@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "mctradepost:block/marine_lapis",
+    "top":    "mctradepost:block/marine_lapis",
+    "side":   "mctradepost:block/marine_lapis"
+  }
+}

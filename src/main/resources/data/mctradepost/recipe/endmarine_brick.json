@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:endmarine"
+    },
+    {
+      "item": "mctradepost:endmarine"
+    },
+    {
+      "item": "mctradepost:endmarine"
+    },
+    {
+      "item": "mctradepost:endmarine"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "mctradepost:endmarine_brick"
+  }
+}

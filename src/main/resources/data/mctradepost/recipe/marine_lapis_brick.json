@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:marine_lapis"
+    },
+    {
+      "item": "mctradepost:marine_lapis"
+    },
+    {
+      "item": "mctradepost:marine_lapis"
+    },
+    {
+      "item": "mctradepost:marine_lapis"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "mctradepost:marine_lapis_brick"
+  }
+}

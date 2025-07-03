@@ -1,0 +1,38 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "mctradepost:end_mortar"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    },
+    {
+      "item": "minecraft:prismarine_shard"
+    },
+    {
+      "item": "minecraft:black_dye"
+    }
+
+  ],
+  "result": {
+    "count": 8,
+    "id": "mctradepost:endmarine"
+  }
+}

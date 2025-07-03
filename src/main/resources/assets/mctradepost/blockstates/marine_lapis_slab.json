@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "type=bottom,waterlogged=false": { "model": "mctradepost:block/marine_lapis_slab" },
+    "type=top,waterlogged=false"   : { "model": "mctradepost:block/marine_lapis_slab_top" },
+    "type=double,waterlogged=false": { "model": "mctradepost:block/marine_lapis_slab_full" },
+    "type=bottom,waterlogged=true" : { "model": "mctradepost:block/marine_lapis_slab" },
+    "type=top,waterlogged=true"    : { "model": "mctradepost:block/marine_lapis_slab_top" },
+    "type=double,waterlogged=true" : { "model": "mctradepost:block/marine_lapis_slab_full" }
+  }
+}

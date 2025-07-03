@@ -225,7 +225,7 @@ public class WishingWellHandler {
         } 
         else 
         {
-            // MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
+            MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
         }
     }
 
@@ -293,7 +293,7 @@ public class WishingWellHandler {
             {
                 if (dx >= -1 && dx <= 0 && dz >= -1 && dz <= 0) continue; // Skip 2x2 center
                 BlockPos ring = center.offset(dx, 0, dz);
-                if (!level.getBlockState(ring).is(Blocks.STONE_BRICKS)) 
+                if (!level.getBlockState(ring).is(MCTradePostMod.MIXED_STONE.get())) 
                 {
                     // MCTradePostMod.LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
                     return false;

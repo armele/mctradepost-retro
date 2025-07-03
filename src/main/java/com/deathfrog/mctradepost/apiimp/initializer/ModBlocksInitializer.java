@@ -38,6 +38,22 @@ public final class ModBlocksInitializer
     public final static String ENDETHYST_BRICK_STAIRS_NAME = "endethyst_brick_stairs";
     public final static String ENDETHYST_BRICK_WALL_NAME = "endethyst_brick_wall";
     public final static String ENDETHYST_BRICK_SLAB_NAME = "endethyst_brick_slab";
+	public final static String ENDMARINE_NAME = "endmarine";
+    public final static String ENDMARINE_STAIRS_NAME = "endmarine_stairs";
+    public final static String ENDMARINE_WALL_NAME = "endmarine_wall";
+    public final static String ENDMARINE_SLAB_NAME = "endmarine_slab";
+	public final static String ENDMARINE_BRICK_NAME = "endmarine_brick";
+    public final static String ENDMARINE_BRICK_STAIRS_NAME = "endmarine_brick_stairs";
+    public final static String ENDMARINE_BRICK_WALL_NAME = "endmarine_brick_wall";
+    public final static String ENDMARINE_BRICK_SLAB_NAME = "endmarine_brick_slab";
+	public final static String MARINE_LAPIS_NAME = "marine_lapis";
+    public final static String MARINE_LAPIS_STAIRS_NAME = "marine_lapis_stairs";
+    public final static String MARINE_LAPIS_WALL_NAME = "marine_lapis_wall";
+    public final static String MARINE_LAPIS_SLAB_NAME = "marine_lapis_slab";
+	public final static String MARINE_LAPIS_BRICK_NAME = "marine_lapis_brick";
+    public final static String MARINE_LAPIS_BRICK_STAIRS_NAME = "marine_lapis_brick_stairs";
+    public final static String MARINE_LAPIS_BRICK_WALL_NAME = "marine_lapis_brick_wall";
+    public final static String MARINE_LAPIS_BRICK_SLAB_NAME = "marine_lapis_brick_slab";
 
     private ModBlocksInitializer()
     {

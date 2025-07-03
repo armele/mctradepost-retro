@@ -5,6 +5,12 @@
     "mctradepost:rough_stone_slab",
     "mctradepost:rough_brick_slab",
     "mctradepost:thatch_slab",
-    "mctradepost:plaster_slab"
+    "mctradepost:plaster_slab",
+    "mctradepost:endethyst_slab",
+    "mctradepost:endethyst_brick_slab",
+    "mctradepost:endmarine_slab",
+    "mctradepost:endmarine_brick_slab",
+    "mctradepost:marine_lapis_slab",
+    "mctradepost:marine_lapis_brick_slab"
   ]
 }

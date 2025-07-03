@@ -1,32 +1,43 @@
 package com.deathfrog.mctradepost.compat.jei;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.drawable.IDrawableBuilder;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.helpers.IGuiHelper;
+import mezz.jei.api.ingredients.IIngredientRenderer;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 
 public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
     public static final String JEI_RITUALS = "rituals";
     public static final String JEI_CATEGORY_TITLE = "jei.mctradepost.rituals";
-    public static final int WIDTH = 150;
+    public static final int WIDTH = 170;
     public static final int HEIGHT = 50;
+    public static final int TEXT_XPOS = 55;
     public static final int RITUAL_ICON_SIZE = 32;
     public static final int WISHING_WELL_SIZE = 50;
+    public static final int WELL_TIP_HEIGHT = 30;
+    public static final int WELL_TIP_WIDTH = 42;
 
     public static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, JEI_RITUALS);
 
@@ -85,18 +96,56 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
      */
     @Override
     public void setRecipe(@Nonnull IRecipeLayoutBuilder builder, @Nonnull RitualDefinitionHelper recipe, @Nonnull IFocusGroup focuses) {
-        ItemStack companion = new ItemStack(BuiltInRegistries.ITEM.get(recipe.companionItem()));
+        ItemStack companion = new ItemStack(BuiltInRegistries.ITEM.get(recipe.companionItem()), recipe.companionItemCount());
         ItemStack coin = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), recipe.requiredCoins());
 
+        ItemStack result = null;
+        
+        if (recipe.effect().equals(RitualManager.RITUAL_EFFECT_TRANSFORM)) 
+        {
+            result = new ItemStack(recipe.getTargetAsItem(), recipe.companionItemCount());
+        }
+
         MCTradePostMod.LOGGER.info("Setting up ritual in the JEI for companion item: {}", recipe.companionItem());
+
+        IRecipeSlotBuilder tipSlot = builder.addSlot(RecipeIngredientRole.CATALYST, 4, 20)
+            .setBackground(guiHelper.createBlankDrawable(WELL_TIP_WIDTH, WELL_TIP_HEIGHT),-1,-1)
+            .addItemStack(new ItemStack(MCTradePostMod.MIXED_STONE.get()));
+
+        tipSlot.setCustomRenderer(VanillaTypes.ITEM_STACK, new IIngredientRenderer<ItemStack>() {
+            @Override public int getWidth()  { return WELL_TIP_WIDTH; }
+            @Override public int getHeight() { return WELL_TIP_HEIGHT; }
+
+            @Override
+            public void render(@Nonnull GuiGraphics guiGraphics, @Nonnull ItemStack ingredient)
+            {
+                // No-op (invisible)
+            }
+
+            @Override
+            public List<Component> getTooltip(@Nonnull ItemStack ingredient, @Nonnull TooltipFlag tooltipFlag)
+            {
+                return List.of(
+                    Component.translatable("jei.mctradepost.tooltip.wishingwell")
+                            .withStyle(ChatFormatting.GRAY)
+                );
+            }
+        });
 
         builder.addSlot(RecipeIngredientRole.INPUT, 0, 0)
                 .setSlotName("coin")
                 .addItemStack(coin);
 
-        builder.addSlot(RecipeIngredientRole.CATALYST, 34, 0)
+        builder.addSlot(RecipeIngredientRole.INPUT, 34, 0)
                 .setSlotName("companion")
                 .addItemStack(companion);
+
+        if (result != null) 
+        {
+            builder.addSlot(RecipeIngredientRole.OUTPUT, 34, 34)
+                .setSlotName("result")
+                .addItemStack(result);
+        }
 
     }
 
@@ -115,9 +164,8 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
     {
         String effectinfo = recipe.describe();
 
-
-        builder.addText(Component.literal(effectinfo), getWidth() - WISHING_WELL_SIZE - 2, HEIGHT)
-                .setPosition(52, 0)
+        builder.addText(Component.literal(effectinfo), getWidth() - TEXT_XPOS, HEIGHT)
+                .setPosition(TEXT_XPOS, 0)
                 .setColor(ChatFormatting.BLACK.getColor());
 
         // Adds the (shitty) picture of a wishing well.
@@ -125,19 +173,6 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
             IDrawableBuilder wwPic = guiHelper.drawableBuilder(wishingwellIllustration, 0, WISHING_WELL_SIZE, WISHING_WELL_SIZE, WISHING_WELL_SIZE);
             wwPic.setTextureSize(WISHING_WELL_SIZE, WISHING_WELL_SIZE);
             builder.addDrawable(wwPic.build(), 0, 0);
-
-        /* Commenting out the ritual effect pictures for now.  Crowds the UI and the words are more informative.
-        ResourceLocation ritualOutcomePicture;
-        
-        // Adds the ritual effect icon, if present.
-        try {
-            ritualOutcomePicture = ResourceLocation.parse(recipe.getRitualTexture());  // Intentional use of parse
-            IDrawableBuilder ritualPic = guiHelper.drawableBuilder(ritualOutcomePicture, 0, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE, RITUAL_ICON_SIZE);
-            ritualPic.setTextureSize(RITUAL_ICON_SIZE, RITUAL_ICON_SIZE);
-            builder.addDrawable(ritualPic.build(), WIDTH - RITUAL_ICON_SIZE, 0);
-        } catch (IllegalArgumentException e) {
-            MCTradePostMod.LOGGER.warn("Unknown ritual texture {} identified in ritual with companion item: {}", recipe.getRitualTexture(), recipe.companionItem());
-        }
-        */
     }
+
 }

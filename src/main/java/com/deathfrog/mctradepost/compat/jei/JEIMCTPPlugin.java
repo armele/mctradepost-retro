@@ -6,10 +6,13 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeType;
+import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
 import java.util.List;
 import javax.annotation.Nonnull;
 
@@ -66,5 +69,13 @@ public class JEIMCTPPlugin implements IModPlugin
         RECIPE_MANAGER.addRecipes(RITUAL_TYPE, allRituals);
 
         MCTradePostMod.LOGGER.info("JEI ritual list reloaded");
+    }
+
+    /**
+     * Registers the mixed stone as a catalyst for all rituals.
+     */ 
+    @Override
+    public void registerRecipeCatalysts(@Nonnull IRecipeCatalystRegistration reg) {
+        reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.MIXED_STONE.get()), RITUAL_TYPE);
     }
 }

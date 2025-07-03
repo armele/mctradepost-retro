@@ -58,7 +58,7 @@ Meticultous Disassembly - Allows the recycling center to reliably strip enchantm
 
 ### Custom Blocks
 * Block implementations of the building huts.
-* A few new building materials (mixed stone, thatch, plaster, rough stone, rough brick)
+* A few new building materials (mixed stone, thatch, plaster, rough stone, rough brick, endethyst, endmarine)
 * A few new Architect's Cutter recipes
 
 ### Configuration
@@ -100,7 +100,7 @@ The marketplace building should have two item frames or glowing item frames for 
 These frames should be mounted in empty (air) blocks tagged with the "display_shelf" tag.  (Apply the tag to a placeholder item, then remove that placeholder and put the frame in.)
 
 ### Wishing Well
-A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) with stone bricks.  (Future designs will be more aesthetically pleasing.)
+A wishing well can be created by surrounding a 2x2 puddle of water (depth 1) with mixed stone.
 
 ### Resort
 A resort requires a number of blocks be identified with the "relaxation_station" tag.  Visitors to the resort will go there and relax.

@@ -5,6 +5,12 @@
     "mctradepost:plaster_stairs",
     "mctradepost:rough_stone_stairs",
     "mctradepost:rough_brick_stairs",
-    "mctradepost:thatch_stairs"
+    "mctradepost:thatch_stairs",
+    "mctradepost:endethyst_stairs",
+    "mctradepost:endethyst_brick_stairs",
+    "mctradepost:endmarine_stairs",
+    "mctradepost:endmarine_brick_stairs",
+    "mctradepost:marine_lapis_stairs",
+    "mctradepost:marine_lapis_brick_stairs"
   ]
 }

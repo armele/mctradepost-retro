@@ -5,6 +5,12 @@
     "mctradepost:plaster_wall",
     "mctradepost:rough_stone_wall",
     "mctradepost:rough_brick_wall",
-    "mctradepost:thatch_wall"
+    "mctradepost:thatch_wall",
+    "mctradepost:endethyst_wall",
+    "mctradepost:endethyst_brick_wall",
+    "mctradepost:endmarine_wall",
+    "mctradepost:endmarine_brick_wall",
+    "mctradepost:marine_lapis_wall",
+    "mctradepost:marine_lapis_brick_wall"
   ]
 }

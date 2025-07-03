@@ -1,0 +1,38 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:prismarine_mortar"
+    },
+    {
+      "item": "mctradepost:prismarine_mortar"
+    },
+    {
+      "item": "mctradepost:prismarine_mortar"
+    },
+    {
+      "item": "mctradepost:prismarine_mortar"
+    },
+    {
+      "item": "minecraft:lapis_lazuli"
+    },
+    {
+      "item": "minecraft:lapis_lazuli"
+    },
+    {
+      "item": "minecraft:lapis_lazuli"
+    },
+    {
+      "item": "minecraft:lapis_lazuli"
+    },
+    {
+      "item": "minecraft:lapis_lazuli"
+    }
+
+  ],
+  "result": {
+    "count": 8,
+    "id": "mctradepost:marine_lapis"
+  }
+}

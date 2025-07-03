@@ -163,7 +163,7 @@ public class BuildingStation extends AbstractBuilding
             return;
         }
         stations.put(sdata.getBuildingPosition(), sdata);
-        LOGGER.info("Adding station to building: {}. There are now {} stations with data recorded.", sdata, stations.size());
+        // LOGGER.info("Adding station to building: {}. There are now {} stations with data recorded.", sdata, stations.size());
     }
 
 

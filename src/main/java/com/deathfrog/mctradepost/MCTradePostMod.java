@@ -191,6 +191,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> END_MORTAR = ITEMS.register("end_mortar",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> PRISMARINE_MORTAR = ITEMS.register("prismarine_mortar",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
@@ -342,6 +345,41 @@ public class MCTradePostMod
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_WALL_NAME, () -> new WallBlock(ENDETHYST_BRICK.get().properties()));
     public static final DeferredBlock<SlabBlock> ENDETHYST_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_SLAB_NAME, () -> new SlabBlock(ENDETHYST_BRICK.get().properties()));
+    public static final DeferredBlock<Block> ENDMARINE = BLOCKS.register(ModBlocksInitializer.ENDMARINE_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> ENDMARINE_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDMARINE_STAIRS_NAME,
+        () -> new StairBlock(ENDMARINE.get().defaultBlockState(), ENDMARINE.get().properties()));
+    public static final DeferredBlock<WallBlock> ENDMARINE_WALL =
+        BLOCKS.register(ModBlocksInitializer.ENDMARINE_WALL_NAME, () -> new WallBlock(ENDMARINE.get().properties()));
+    public static final DeferredBlock<SlabBlock> ENDMARINE_SLAB =
+        BLOCKS.register(ModBlocksInitializer.ENDMARINE_SLAB_NAME, () -> new SlabBlock(ENDMARINE.get().properties()));
+
+    public static final DeferredBlock<Block> ENDMARINE_BRICK = BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> ENDMARINE_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_STAIRS_NAME,
+        () -> new StairBlock(ENDMARINE_BRICK.get().defaultBlockState(), ENDMARINE_BRICK.get().properties()));
+    public static final DeferredBlock<WallBlock> ENDMARINE_BRICK_WALL =
+        BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_WALL_NAME, () -> new WallBlock(ENDMARINE_BRICK.get().properties()));
+    public static final DeferredBlock<SlabBlock> ENDMARINE_BRICK_SLAB =
+        BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_SLAB_NAME, () -> new SlabBlock(ENDMARINE_BRICK.get().properties()));
+
+    public static final DeferredBlock<Block> MARINE_LAPIS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> MARINE_LAPIS_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_STAIRS_NAME,
+        () -> new StairBlock(MARINE_LAPIS.get().defaultBlockState(), MARINE_LAPIS.get().properties()));
+    public static final DeferredBlock<WallBlock> MARINE_LAPIS_WALL =
+        BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_WALL_NAME, () -> new WallBlock(MARINE_LAPIS.get().properties()));
+    public static final DeferredBlock<SlabBlock> MARINE_LAPIS_SLAB =
+        BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS.get().properties()));
+
+    public static final DeferredBlock<Block> MARINE_LAPIS_BRICK = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> MARINE_LAPIS_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_STAIRS_NAME,
+        () -> new StairBlock(MARINE_LAPIS_BRICK.get().defaultBlockState(), MARINE_LAPIS_BRICK.get().properties()));
+    public static final DeferredBlock<WallBlock> MARINE_LAPIS_BRICK_WALL =
+        BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_WALL_NAME, () -> new WallBlock(MARINE_LAPIS_BRICK.get().properties()));
+    public static final DeferredBlock<SlabBlock> MARINE_LAPIS_BRICK_SLAB =
+        BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS_BRICK.get().properties()));
 
     /*
     * ITEMS (Block)
@@ -417,6 +455,55 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> ENDETHYST_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_BRICK_SLAB_NAME, () -> new BlockItem(ENDETHYST_BRICK_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_NAME, () -> new BlockItem(ENDMARINE.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_STAIRS_NAME, () -> new BlockItem(ENDMARINE_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_WALL_NAME, () -> new BlockItem(ENDMARINE_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_SLAB_NAME, () -> new BlockItem(ENDMARINE_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_BRICK_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_NAME, () -> new BlockItem(ENDMARINE_BRICK.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_BRICK_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_STAIRS_NAME, () -> new BlockItem(ENDMARINE_BRICK_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_BRICK_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_WALL_NAME, () -> new BlockItem(ENDMARINE_BRICK_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> ENDMARINE_BRICK_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_SLAB_NAME, () -> new BlockItem(ENDMARINE_BRICK_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_NAME, () -> new BlockItem(MARINE_LAPIS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_STAIRS_NAME, () -> new BlockItem(MARINE_LAPIS_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_WALL_NAME, () -> new BlockItem(MARINE_LAPIS_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_BRICK_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_BRICK_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_STAIRS_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_BRICK_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_WALL_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_LAPIS_BRICK_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_SLAB.get(), new Item.Properties()));
+		
 
     /*
     * Creative Mode Tabs
@@ -663,6 +750,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());
                     event.accept(MCTradePostMod.END_MORTAR.get());
+                    event.accept(MCTradePostMod.PRISMARINE_MORTAR.get());
                     event.accept(MCTradePostMod.MIXED_STONE.get());
                     event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
@@ -690,7 +778,23 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.ENDETHYST_BRICK.get());
                     event.accept(MCTradePostMod.ENDETHYST_BRICK_STAIRS.get());
                     event.accept(MCTradePostMod.ENDETHYST_BRICK_WALL.get());
-                    event.accept(MCTradePostMod.ENDETHYST_BRICK_SLAB.get());		
+                    event.accept(MCTradePostMod.ENDETHYST_BRICK_SLAB.get());	
+                    event.accept(MCTradePostMod.ENDMARINE.get());
+                    event.accept(MCTradePostMod.ENDMARINE_STAIRS.get());
+                    event.accept(MCTradePostMod.ENDMARINE_WALL.get());
+                    event.accept(MCTradePostMod.ENDMARINE_SLAB.get());
+                    event.accept(MCTradePostMod.ENDMARINE_BRICK.get());
+                    event.accept(MCTradePostMod.ENDMARINE_BRICK_STAIRS.get());
+                    event.accept(MCTradePostMod.ENDMARINE_BRICK_WALL.get());
+                    event.accept(MCTradePostMod.ENDMARINE_BRICK_SLAB.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_STAIRS.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_WALL.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_SLAB.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_STAIRS.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_WALL.get());
+                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_SLAB.get());		     	
                 }
             });
 

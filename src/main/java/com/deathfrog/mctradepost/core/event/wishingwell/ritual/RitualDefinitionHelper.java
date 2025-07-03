@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import static com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler.RAIDER_TAG;
@@ -86,7 +87,7 @@ public class RitualDefinitionHelper
      * @return A human-readable description of the effect of this ritual.
      */
     public String describe() {
-        String text = "Not Defined";
+        String text = "Not Defined: " + this.ritualDefinition.effect();
         EntityType<?> entityType = null;
 
         switch (this.ritualDefinition.effect()) 
@@ -134,6 +135,11 @@ public class RitualDefinitionHelper
                 if (item == null) 
                 {
                     text = "Broken ritual! Target item not recognized: " + this.ritualDefinition.target();
+                }
+                else
+                {
+                    ItemStack stack = new ItemStack(item);
+                    text = "Transforms these into " + stack.getHoverName().getString();
                 }
                 break;
 

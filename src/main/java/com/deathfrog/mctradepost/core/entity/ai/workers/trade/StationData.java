@@ -67,7 +67,13 @@ public class StationData
         this.trackConnectionStatus = trackConnectionStatus;
         try
         {
-            lastChecked =  getStation().getColony().getWorld().getGameTime();
+            Level world = getStation().getColony().getWorld();
+            if (world == null)
+            {
+                return;
+            }
+
+            lastChecked =  world.getGameTime();
         }
         catch (Exception e)
         {
@@ -160,12 +166,18 @@ public class StationData
         long now = -1;
         try
         {
-            now =  getStation().getColony().getWorld().getGameTime();
+            Level world = getStation().getColony().getWorld();
+            if (world == null)
+            {
+                return now;
+            }
+
+            lastChecked =  world.getGameTime();
         }
         catch (Exception e)
         {
-            now = -1;
             BuildingStation.LOGGER.warn("Failed to get world time {}.", e.getMessage());
+            return now;
         }
 
         return now - lastChecked;
