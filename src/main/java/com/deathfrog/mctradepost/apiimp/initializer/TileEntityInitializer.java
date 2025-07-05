@@ -22,6 +22,6 @@ public class TileEntityInitializer
         MCTradePostTileEntities.RESORT = BLOCK_ENTITIES.register(ModBuildings.RESORT_ID, () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(null));  
         MCTradePostTileEntities.RECYCLING = BLOCK_ENTITIES.register(ModBuildings.RECYCLING_ID, () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(null));  
         MCTradePostTileEntities.STATION = BLOCK_ENTITIES.register(ModBuildings.STATION_ID, () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(null));  
-        MCTradePostTileEntities.PET_STORE = BLOCK_ENTITIES.register(ModBuildings.PETSTORE_ID, () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(null));  
+        MCTradePostTileEntities.PET_STORE = BLOCK_ENTITIES.register(ModBuildings.PETSHOP_ID, () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(null));  
     }
 }

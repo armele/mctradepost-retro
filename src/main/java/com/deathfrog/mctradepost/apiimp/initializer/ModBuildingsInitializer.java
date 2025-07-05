@@ -17,7 +17,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetstore;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -120,17 +120,17 @@ public final class ModBuildingsInitializer
                 registry.register(ModBuildings.station.getRegistryName(), ModBuildings.station);
             });
 
-            BuildingEntry.Builder petStoreBuilder = new BuildingEntry.Builder();
-            petStoreBuilder.setBuildingBlock(MCTradePostMod.blockHutPetStore.get());
-            petStoreBuilder.setBuildingProducer(BuildingPetstore::new);
-            petStoreBuilder.setBuildingViewProducer(() -> PetstoreView::new);
-            petStoreBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.PETSTORE_ID));
-            petStoreBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
+            BuildingEntry.Builder petShopBuilder = new BuildingEntry.Builder();
+            petShopBuilder.setBuildingBlock(MCTradePostMod.blockHutPetShop.get());
+            petShopBuilder.setBuildingProducer(BuildingPetshop::new);
+            petShopBuilder.setBuildingViewProducer(() -> PetstoreView::new);
+            petShopBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.PETSHOP_ID));
+            petShopBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
 
-            ModBuildings.petstore = petStoreBuilder.createBuildingEntry();
+            ModBuildings.petshop = petShopBuilder.createBuildingEntry();
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.petstore.getRegistryName(), ModBuildings.petstore);
+                registry.register(ModBuildings.petshop.getRegistryName(), ModBuildings.petshop);
             });
         }
         

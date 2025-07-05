@@ -54,7 +54,7 @@ public final class ModBlocksInitializer
     public final static String MARINE_LAPIS_BRICK_STAIRS_NAME = "marine_lapis_brick_stairs";
     public final static String MARINE_LAPIS_BRICK_WALL_NAME = "marine_lapis_brick_wall";
     public final static String MARINE_LAPIS_BRICK_SLAB_NAME = "marine_lapis_brick_slab";
-    public final static String IVY_BLOCK_NAME = "ivy_block";
+    public final static String IVY_BRICK_NAME = "ivy_brick";
     
     private ModBlocksInitializer()
     {
@@ -101,6 +101,6 @@ public final class ModBlocksInitializer
         MCTradePostMod.blockHutResort.get().registerBlockItem(registry, new Item.Properties());
         MCTradePostMod.blockHutRecycling.get().registerBlockItem(registry, new Item.Properties());
         MCTradePostMod.blockHutStation.get().registerBlockItem(registry, new Item.Properties());
-        MCTradePostMod.blockHutPetStore.get().registerBlockItem(registry, new Item.Properties());
+        MCTradePostMod.blockHutPetShop.get().registerBlockItem(registry, new Item.Properties());
     }
 }

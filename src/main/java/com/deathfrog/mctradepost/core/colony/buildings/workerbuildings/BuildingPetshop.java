@@ -8,10 +8,10 @@ import com.minecolonies.core.colony.buildings.AbstractBuilding;
 
 import net.minecraft.core.BlockPos;
 
-public class BuildingPetstore extends AbstractBuilding
+public class BuildingPetshop extends AbstractBuilding
 {
 
-    public BuildingPetstore(@NotNull IColony colony, BlockPos pos)
+    public BuildingPetshop(@NotNull IColony colony, BlockPos pos)
     {
         super(colony, pos);
     }
@@ -19,7 +19,7 @@ public class BuildingPetstore extends AbstractBuilding
     @Override
     public String getSchematicName()
     {
-        return ModBuildings.PETSTORE_ID;
+        return ModBuildings.PETSHOP_ID;
     }
 
     // Armadillo

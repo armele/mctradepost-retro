@@ -7,7 +7,8 @@ public enum ExtendedTimberFrameType implements StringRepresentable {
    DISTRESSED(BlockDistressed.DISTRESSED_ID, "Distressed", false),
    STACKED_SLAB(BlockStackedSlab.STACKED_SLAB_ID, "Stacked Slab", false),
    SIDE_SLAB(BlockSideSlab.SIDE_SLAB_ID, "Side Slab", false),
-   SIDE_SLAB_INTERLEAVED(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, "Side Slab Interleaved", false);
+   SIDE_SLAB_INTERLEAVED(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, "Side Slab Interleaved", false),
+   GLAZED(BlockGlazed.GLAZED_ID, "Glazed", false);;
 
 
    private final String name;

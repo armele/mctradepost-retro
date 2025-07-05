@@ -152,7 +152,7 @@ Vacationers will still complain about needing stuff even when not on vacation. [
 Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
 
 ### Pending Resolution
-Domum cannot preview cutout render_types.
+Ivy Block types not previewable in Domum.
 
 ### Low Priority Issues
 Tracing is global (rather than by colony)

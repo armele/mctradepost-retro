@@ -14,12 +14,13 @@ import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
+import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
-import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetStore;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
@@ -36,6 +37,7 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
+import com.deathfrog.mctradepost.item.BlockGlazedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabInterleavedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
@@ -53,7 +55,9 @@ import com.google.gson.stream.JsonWriter;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -231,7 +235,7 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutResort = BLOCKS.register(BlockHutResort.HUT_NAME, () -> new BlockHutResort());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
-    public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetStore = BLOCKS.register(BlockHutPetStore.HUT_NAME, () -> new BlockHutPetStore());
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetShop = BLOCKS.register(BlockHutPetShop.HUT_NAME, () -> new BlockHutPetShop());
 
     public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -254,6 +258,7 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockStackedSlab> STACKED_SLAB = BLOCKS.register(BlockStackedSlab.STACKED_SLAB_ID, () -> new BlockStackedSlab());
     public static final DeferredBlock<BlockSideSlab> SIDE_SLAB = BLOCKS.register(BlockSideSlab.SIDE_SLAB_ID, () -> new BlockSideSlab());
     public static final DeferredBlock<BlockSideSlabInterleaved> SIDE_SLAB_INTERLEAVED = BLOCKS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleaved());
+    public static final DeferredBlock<BlockGlazed> GLAZED = BLOCKS.register(BlockGlazed.GLAZED_ID, () -> new BlockGlazed());
 
     public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(MIXED_STONE.get().properties()));
 
@@ -329,6 +334,9 @@ public class MCTradePostMod
     public static final DeferredItem<BlockSideSlabInterleavedItem> SIDE_SLAB_INTERLEAVED_ITEM =
         ITEMS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleavedItem(SIDE_SLAB_INTERLEAVED.get(), new BlockSideSlabInterleavedItem.Properties()));
 
+    public static final DeferredItem<BlockGlazedItem> GLAZED_ITEM =
+        ITEMS.register(BlockGlazed.GLAZED_ID, () -> new BlockGlazedItem(GLAZED.get(), new BlockItem.Properties()));
+
     public static final DeferredBlock<Block> ENDETHYST = BLOCKS.register(ModBlocksInitializer.ENDETHYST_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(2.5f, 3.0f).sound(SoundType.STONE)));
     public static final DeferredBlock<StairBlock> ENDETHYST_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDETHYST_STAIRS_NAME,
@@ -382,9 +390,9 @@ public class MCTradePostMod
     public static final DeferredBlock<SlabBlock> MARINE_LAPIS_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS_BRICK.get().properties()));
 
+    public static final DeferredBlock<Block> BLOCK_IVY_BRICK =
+        BLOCKS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new Block(Blocks.VINE.properties()));
 
-    public static final DeferredBlock<Block> IVY_BLOCK =
-        BLOCKS.register(ModBlocksInitializer.IVY_BLOCK_NAME, () -> new Block(Blocks.VINE.properties()));
 
     /*
     * ITEMS (Block)
@@ -509,8 +517,8 @@ public class MCTradePostMod
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_SLAB.get(), new Item.Properties()));
 		
-    public static final DeferredItem<Item> IVY_BLOCK_ITEM =
-        ITEMS.register(ModBlocksInitializer.IVY_BLOCK_NAME, () -> new BlockItem(IVY_BLOCK.get(), new Item.Properties()));
+    public static final DeferredItem<Item> IVY_BRICK_ITEM =
+        ITEMS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new BlockItem(BLOCK_IVY_BRICK.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -742,7 +750,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutResort.get());
                     event.accept(MCTradePostMod.blockHutRecycling.get());
                     event.accept(MCTradePostMod.blockHutStation.get());
-                    event.accept(MCTradePostMod.blockHutPetStore.get());
+                    event.accept(MCTradePostMod.blockHutPetShop.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
@@ -802,7 +810,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_STAIRS.get());
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_WALL.get());
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_SLAB.get());
-                    event.accept(MCTradePostMod.IVY_BLOCK.get());
+                    event.accept(MCTradePostMod.BLOCK_IVY_BRICK.get());
                 }
             });
 

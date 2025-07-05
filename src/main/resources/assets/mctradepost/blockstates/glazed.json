@@ -1,0 +1,52 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "up"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/glazed"
+      },
+      "when": {
+        "facing": "down"
+      }
+    }
+  ]
+}

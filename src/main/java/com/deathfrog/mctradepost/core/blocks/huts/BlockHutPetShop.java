@@ -3,7 +3,7 @@ package com.deathfrog.mctradepost.core.blocks.huts;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 
-public class BlockHutPetStore extends MCTPBaseBlockHut 
+public class BlockHutPetShop extends MCTPBaseBlockHut 
 {
     public static final String HUT_NAME = "blockhutpetstore";
 
@@ -16,6 +16,6 @@ public class BlockHutPetStore extends MCTPBaseBlockHut
     @Override
     public BuildingEntry getBuildingEntry()
     {
-        return ModBuildings.petstore;
+        return ModBuildings.petshop;
     }    
 }

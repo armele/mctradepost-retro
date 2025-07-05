@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:vine"
+    },
+    {
+      "item": "minecraft:vine"
+    },
+    {
+      "item": "minecraft:vine"
+    },
+    {
+      "item": "minecraft:vine"
+    }
+  ],
+  "result": {
+    "id": "mctradepost:ivy_brick",
+    "count": 1
+  },
+  "category": "blocks"
+}

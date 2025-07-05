@@ -116,11 +116,13 @@
     "block.mctradepost.marine_lapis_brick_wall": "Marine Lapis Brick Wall",
     "block.mctradepost.marine_lapis_brick_slab": "Marine Lapis Brick Slab",
 
-    "item.mctradepost.ivy_block": "Ivy Block",
-    "block.mctradepost.ivy_block": "Ivy Block",
+    "item.mctradepost.ivy_brick": "Ivy Brick",
+    "block.mctradepost.ivy_brick": "Ivy Brick",
 
     "block.mctradepost.distressed": "Distressed Frame",
     "mctradepost.timber.frame.type.distressed": "Distressed Frame",
+    "block.mctradepost.glazed": "Glazed Frame",
+    "mctradepost.timber.frame.type.glazed": "Glazed Frame",
     "block.mctradepost.stacked_slab": "Stacked Slab",
     "mctradepost.timber.frame.type.stacked_slab": "Stacked Slab",
     "block.mctradepost.side_slab": "Side Stacked Slab",

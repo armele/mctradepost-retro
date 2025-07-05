@@ -1,0 +1,7 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "mctradepost:block/ivy_brick"
+  },
+  "render_type": "translucent"
+}
