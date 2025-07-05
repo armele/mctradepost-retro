@@ -5,6 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -89,9 +90,10 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             if (station != null)
             {
                 ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
-                exportData.setShipDistance(shipDistance);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
+                exportData.spawnCartForTrade();
+                exportData.setShipDistance(shipDistance);
                 exportList.add(exportData);
             }
         }
@@ -207,7 +209,8 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             if (shipDistance >= 0)
             { 
                 int tradeSpeedBonus = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADESPEED);  
-                shipDistance = shipDistance + building.getBuildingLevel() * (tradeSpeedBonus + 1);
+                shipDistance = shipDistance + (building.getBuildingLevel() * MCTPConfig.baseTradeSpeed.get()) * (tradeSpeedBonus + 1);
+                exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
                 if (exportData.getShipDistance() >= exportData.getTrackDistance())

@@ -49,6 +49,8 @@ public class BuildingResort extends AbstractBuilding {
 
     public final static String VACATIONS_COMPLETED = "vacations.completed";  // Used for stats.
     public final static String TREATS_SERVED = "treats.served";              // Used for stats.
+    
+    public final static int GUESTS_PER_LEVEL = MCTPConfig.guestsPerResortLevel.get();
 
     /**
      * Whether we did init tags
@@ -81,17 +83,34 @@ public class BuildingResort extends AbstractBuilding {
         return ModBuildings.RESORT_ID;
     }
 
+
     /**
-     * Make a reservation for a given guest
-     * @param guest the guest to reserve a room for
-     * If the guest is already in the guest list, update their status to reserved
-     * If the guest is not in the guest list, add them with a reserved status
+     * Makes a reservation for the given guest at the resort.
+     * <p>
+     * If the resort has enough capacity (i.e., the guest count is less than the maximum allowed), the guest is added to the list of guests, the guest's state is set to RESERVED, and the guest is linked to this resort.
+     * <p>
+     * @param guest the guest to make a reservation for
+     * @return true if the reservation was successful, false otherwise
      */
-    public void makeReservation(Vacationer guest) {
-        LOGGER.trace("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
-        guest.setState(Vacationer.VacationState.RESERVED);
-        guest.setResort(this);
-        this.guests.put(guest.getCivilianId(), guest);
+    public boolean makeReservation(Vacationer guest) {
+        if (guests.size() < (getBuildingLevel() * GUESTS_PER_LEVEL)) {
+            LOGGER.trace("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
+            guest.setState(Vacationer.VacationState.RESERVED);
+            guest.setResort(this);
+            this.guests.put(guest.getCivilianId(), guest);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if the resort has reached maximum capacity.
+     * 
+     * @return true if the resort is full, false otherwise
+     */
+    public boolean isFull() {
+        return guests.size() >= (getBuildingLevel() * GUESTS_PER_LEVEL);
     }
 
     /**
@@ -133,17 +152,17 @@ public class BuildingResort extends AbstractBuilding {
                         EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task to the AI automatically
                         advertisingMap.put(advertisingTarget, burnoutTask);
 
+                        Vacationer guest = guests.get(advertisingTarget.getCivilianID());
+                        if (guest != null) {
+                            burnoutTask.setVacationTracker(guest);
+                        }
+
                         LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
                     }
                 }
 
             }
         });
-
-        // Another wave of ads!  Reset the resistedAds flag
-        for (EntityAIBurnoutTask burnoutTask : advertisingMap.values()) {
-            burnoutTask.setResistedAds(false);  // Reset the resistedAds flag
-        }
 
         advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
     }
@@ -162,13 +181,17 @@ public class BuildingResort extends AbstractBuilding {
     @Override
     public void deserializeNBT(@NotNull HolderLookup.@NotNull Provider provider, CompoundTag compound) {
         super.deserializeNBT(provider, compound);
+        guests.clear();
+        
         ListTag guestTagList = compound.getList(GUEST_TAG_ID, 10);
 
         for (int i = 0; i < guestTagList.size(); ++i) {
             CompoundTag vacationCompound = guestTagList.getCompound(i);
             int guestId = vacationCompound.getInt("id");
             if (!this.guests.containsKey(guestId)) {
-                this.guests.put(guestId, new Vacationer(vacationCompound));
+                Vacationer guestFile = new Vacationer(vacationCompound);
+                guestFile.setResort(this);
+                this.guests.put(guestId, guestFile);
             }
         }
 

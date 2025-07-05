@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
@@ -41,12 +41,17 @@ import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_GUESTSERVICES;
 
 /* Heavily inspired by, and modeled after, EntityAIWorkHealer
  * @see com.minecolonies.core.entity.ai.workers.EntityAIWorkHealer
  */
-public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuestServices, BuildingResort> {
+public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuestServices, BuildingResort> 
+{
     public static final Logger LOGGER = LogUtils.getLogger();
     
     /**
@@ -64,19 +69,19 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     /**
      * How many of each resort item it should try to request at a time.
      */
-    private static final int REQUEST_COUNT = 16;
+    private static final int REQUEST_COUNT = 8;
 
 
     public EntityAIWorkGuestServices(@NotNull final JobGuestServices job)
     {
         super(job);
         super.registerTargets(
-          new AITarget<IAIState>(IDLE, START_WORKING, 1),
-          new AITarget<IAIState>(START_WORKING, DECIDE, 1),
-          new AITarget<IAIState>(DECIDE, this::decide, 20),
-          new AITarget<IAIState>(REQUEST_CURE, this::requestCure, 20),
-          new AITarget<IAIState>(CURE, this::cure, 20),
-          new AITarget<IAIState>(WANDER, this::wander, 20)
+          new AITarget<IAIState>(IDLE, START_WORKING, 2),
+          new AITarget<IAIState>(START_WORKING, DECIDE, 2),
+          new AITarget<IAIState>(DECIDE, this::decide, 50),
+          new AITarget<IAIState>(REQUEST_CURE, this::requestCure, 50),
+          new AITarget<IAIState>(CURE, this::cure, 50),
+          new AITarget<IAIState>(WANDER, this::wander, 50)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -84,7 +89,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     @Override
     public IAIState getStateAfterPickUp()
     {
-        LOGGER.trace("I should have picked up what I needed from the building!");
+        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services should have retrieved from building or placed an order for: {}", currentGuest));
         return CURE;
     }
 
@@ -100,15 +105,15 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
         
-        for (final ItemStorage cure : guest.getRemedyItems())
+        for (final ItemStorage remedy : guest.getRemedyItems())
         {
-            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(cure)))
+            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)))
             {
-                if (InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(cure)) >= cure.getAmount())
+                if (InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(remedy)) >= remedy.getAmount())
                 {
-                    LOGGER.trace("Guest services needs cure materials from the building.");
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest services needs remedy materials from the building."));
 
-                    needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(cure), cure.getAmount());
+                    needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(remedy), remedy.getAmount());
                     return GATHERING_REQUIRED_MATERIALS;
                 }
 
@@ -116,16 +121,17 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 boolean hasCureRequested = false;
                 for (final IRequest<? extends Stack> request : list)
                 {
-                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), remedy))
                     {
+                        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("We have already ordered a {}", remedy));
                         hasCureRequested = true;
-                        guest.setState(Vacationer.VacationState.REQUESTED);
-                        break;
+                        guest.setState(Vacationer.VacationState.PENDING);
+                        return null;  // We can make no decisions about the next AI state
                     }
                 }
                 for (final IRequest<? extends Stack> request : completed)
                 {
-                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
+                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), remedy))
                     {
                         hasCureRequested = true;
                         break;
@@ -134,16 +140,33 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 if (!hasCureRequested)
                 {
                     guest.setState(Vacationer.VacationState.CHECKED_IN);
-                    LOGGER.trace("While decideToServe, request remedies to be delivered.", guest.getCivilianId());
-                    worker.getCitizenData().createRequestAsync(new Stack(cure.getItemStack(), REQUEST_COUNT, 1));
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("While decideToServe for {}, request remedy {} to be delivered.", guest.getCivilianId(), remedy));
+                    worker.getCitizenData().createRequestAsync(new Stack(remedy.getItemStack(), REQUEST_COUNT, 1));
                     currentGuest = null;
-                    return DECIDE;
+                    return null;  // We can make no decisions about the next AI state
                 }
+            }
+            else
+            {
+                currentGuest = guest;
+                currentGuest.setState(VacationState.REQUESTED);
             }
         }
         return CURE;
     }
 
+    /**
+     * Decide what the guest services worker should do.
+     * This is the main logic loop for the guest services worker.
+     * It will loop through the guests that are at the resort and decide what to do with them.
+     * It will try to serve guests who are in a CHECKED_IN, REQUESTED, or TREATED state.
+     * If there are no guests on the guest list, it will go into a WANDER state.
+     * If there are guests, but none of them are in a CHECKED_IN, REQUESTED, or TREATED state,
+     * it will go into a WANDER state as well.
+     * If there are guests and at least one of them is in a CHECKED_IN, REQUESTED, or TREATED state,
+     * it will go into a DECIDE state and evaluate each guest in the list to see what to do with them.
+     * @return the next state to go to.
+     */
     private IAIState decide()
     {
         if (!walkToBuilding())
@@ -156,7 +179,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         // Assume guests already on the guest list are not at the resort, unless we find them there in the next step.
         for (final Vacationer guest : building.getGuests())
         {
-            LOGGER.trace("Guest list includes: {} with state: {}", guest.getCivilianId(), guest.getState());
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest list includes: {} with state: {}", guest.getCivilianId(), guest.getState()));
             guest.setCurrentlyAtResort(false);
         }
 
@@ -181,7 +204,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         // There are no guests on the guest list, even after evaluating the people in the building.
         if (resort.getGuests().isEmpty())
         {
-            LOGGER.trace("No guests on the guest list.");
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("No guests on the guest list."));
             return WANDER;
         }
 
@@ -191,7 +214,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getCivilianId());
             if (guestData == null || !guestData.getEntity().isPresent())
             {
-                LOGGER.trace("This guest is missing: {}", guest.getCivilianId());
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("This guest is missing: {}", guest.getCivilianId()));
                 resort.removeGuestFile(guest.getCivilianId());
                 continue;
             }
@@ -200,7 +223,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
             if (guest.getBurntSkill() == null || guest.getState() == Vacationer.VacationState.CHECKED_OUT)
             {
-                LOGGER.trace("This guest is already cured: {}", guest.getCivilianId());
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("This guest is already cured: {}", guest.getCivilianId()));
                 guest.setState(VacationState.CHECKED_OUT);
                 resort.removeGuestFile(guest.getCivilianId());
                 continue;
@@ -212,7 +235,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
         for (final Vacationer guest : checkedInGuests)
         {
-            LOGGER.trace("At CHECKED_IN Request a cure for guest: {}", guest.getCivilianId());
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At CHECKED_IN Request a cure for guest: {}", guest.getCivilianId()));
             this.currentGuest = guest;
             return REQUEST_CURE;
         }
@@ -228,7 +251,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             // Check the worker inventory, and go to CURE If remedy present.
             if (hasCureInInventory(guest, worker.getInventoryCitizen()))
             {
-                LOGGER.trace("At REQUESTED: This cure is on the worker, provide it to guest: {}", guest.getCivilianId());
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At REQUESTED: This cure is on the worker, provide it to guest: {}", guest.getCivilianId()));
                 this.currentGuest = guest;
                 return CURE;
             }
@@ -236,34 +259,27 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             // Check the building inventory and go to GATHERING_REQUIRED_MATERIALS If remedy present.
             if (hasCureInInventory(guest, building.getItemHandlerCap()))
             {
-                LOGGER.trace("At REQUESTED: This cure is in the building, obtain and provide it to guest: {}", guest.getCivilianId());
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At REQUESTED: This cure is in the building, obtain and provide it to guest: {}", guest.getCivilianId()));
                 this.currentGuest = guest;
 
                 // Loop through and see what we need from the building (and get it).
                 for (final ItemStorage remedy : currentGuest.getRemedyItems())
                 {
-                    LOGGER.trace("Checking on this remedy: {}", remedy);
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Checking on this remedy: {}", remedy));
 
                     if (InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)) < remedy.getAmount())
                     {
-                        LOGGER.trace("Needs to get these from the building {}", remedy);
+                        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Needs to get these from the building {}", remedy));
                         needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(remedy), 1);
                         return GATHERING_REQUIRED_MATERIALS;
                     }
                 }
             }
-            
-            if (citizen.getInventoryCitizen().hasSpace())
+
+            IAIState servestate = decideToServe(building, guest);
+            if (servestate != null)
             {
-                IAIState servestate = decideToServe(building, guest);
-                if (servestate != null)
-                {
-                    return servestate;
-                }
-            }
-            else
-            {
-                guestData.triggerInteraction(new StandardInteraction(Component.translatableEscape(GUEST_FULL_INVENTORY), ChatPriority.BLOCKING));
+                return servestate;
             }
         }
 
@@ -279,14 +295,27 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             // Set them back to REQUESTED in case they need another.
             if (!hasCureInInventory(guest, citizen.getInventoryCitizen()))
             {
-                LOGGER.trace("At TREATED: Marked as treated, but no longer has the remedy. Setting back to REQUESTED. Guest: {}", guest.getCivilianId());
-                guest.setState(Vacationer.VacationState.REQUESTED);
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At TREATED: Marked as treated, but no longer has the remedy. Setting back to CHECKED_IN. Guest: {}", guest.getCivilianId()));
+                guest.setState(Vacationer.VacationState.CHECKED_IN);
                 this.currentGuest = guest;
                 return REQUEST_CURE;
             } else {
-                LOGGER.trace("At TREATED: Marked as treated and has the remedy, but not yet satsified. Guest: {}", guest.getCivilianId());
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At TREATED: Marked as treated and has the remedy, but not yet satsified. Guest: {}", guest.getCivilianId()));
             }
         }
+
+        // Handle any guests in a PENDING state next.
+        List<Vacationer> pendingGuests = resort.getGuests().stream().filter(g -> g.getState().equals(Vacationer.VacationState.PENDING) && g.isCurrentlyAtResort()).collect(Collectors.toList());
+        for (final Vacationer guest : pendingGuests)
+        {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At PENDING: Guest: {}", guest.getCivilianId()));
+            IAIState servestate = decideToServe(building, guest);
+            if (servestate != null)
+            {
+                return servestate;
+            }
+        }
+
 
         // Note that we are intentionally ignoring BROWSER here.
 
@@ -313,52 +342,32 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             return DECIDE;
         }
 
+        if (currentGuest.getBurntSkill() == null || currentGuest.getState() == Vacationer.VacationState.CHECKED_OUT)
+        {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("This guest is already cured: {}", currentGuest.getCivilianId()));
+            currentGuest.setState(VacationState.CHECKED_OUT);
+            if (currentGuest.getResort() != null)
+            {
+                currentGuest.getResort().removeGuestFile(currentGuest.getCivilianId());
+            }
+
+            return DECIDE;
+        }
+
         final EntityCitizen citizen = (EntityCitizen) data.getEntity().get();
         if (!walkToSafePos(citizen.blockPosition()))
         {
-            LOGGER.trace("Finding guest: {} to take their order.", currentGuest.getCivilianId());
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Finding guest: {} to take their order.", currentGuest.getCivilianId()));
             currentGuest.setState(Vacationer.VacationState.REQUESTED);
             return REQUEST_CURE;
         }
 
-        final ImmutableList<IRequest<? extends Stack>> list = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
-        final ImmutableList<IRequest<? extends Stack>> completed = building.getCompletedRequestsOfType(worker.getCitizenData(), TypeToken.of(Stack.class));
-
-        for (final ItemStorage cure : currentGuest.getRemedyItems())
+        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Determining if ready to cure guest: {}", currentGuest.getCivilianId()));
+        IAIState servestate = decideToServe(building, currentGuest);
+        if (servestate != null)
         {
-            if (!InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(cure))
-                  && InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(cure)) <= 0)
-            {
-                boolean hasRequest = false;
-                for (final IRequest<? extends Stack> request : list)
-                {
-                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
-                    {
-                        hasRequest = true;
-                        break;
-                    }
-                }
-                for (final IRequest<? extends Stack> request : completed)
-                {
-                    if (Vacationer.isRemedyItem(request.getRequest().getStack(), cure))
-                    {
-                        hasRequest = true;
-                        break;
-                    }
-                }
-                if (!hasRequest)
-                {
-                    LOGGER.trace("Request remedies to be delivered.", currentGuest.getCivilianId());
-                    worker.getCitizenData().createRequestAsync(new Stack(cure.getItemStack(), REQUEST_COUNT, 1));
-                    
-                    currentGuest = null;
-                    return DECIDE;
-                }
-            }
-            LOGGER.trace("We have this remedy to provide: {}", cure);
+            return servestate;
         }
-
-        currentGuest.setState(Vacationer.VacationState.REQUESTED);
 
         return CURE;
     }
@@ -372,78 +381,98 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     {
         if (currentGuest == null)
         {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("I forgot who I was talking to...."));
             return DECIDE;
         }
 
         final ICitizenData data = building.getColony().getCitizenManager().getCivilian(currentGuest.getCivilianId());
         if (data == null || !data.getEntity().isPresent())
         {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("They're gone!"));
             currentGuest = null;
             return DECIDE;
         }
 
-        final EntityCitizen citizen = (EntityCitizen) data.getEntity().get();
+        final EntityCitizen vacationingCitizen = (EntityCitizen) data.getEntity().get();
         if (!walkToSafePos(data.getEntity().get().blockPosition()))
         {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Walking to them..."));
             return CURE;
         }
 
         if (currentGuest.getBurntSkill() == null)
         {
             currentGuest = null;
-            // citizen.heal(10);
-            worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("No burnt skills."));
             return DECIDE;
         }
 
         if (!hasCureInInventory(currentGuest, worker.getInventoryCitizen()))
         {
-            LOGGER.trace("The whole thing is not in our inventory, though. Check the building.");
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("The whole thing is not in our inventory, though. Check the building."));
 
             if (hasAnyCureInInventory(currentGuest, building.getItemHandlerCap()))
             {
-                 LOGGER.trace("Some of it is in the building...");
+                 TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Some of it is in the building..."));
 
                 for (final ItemStorage remedy : currentGuest.getRemedyItems())
                 {
-                    LOGGER.trace("Checking on this remedy: {}", remedy);
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Checking on this remedy: {}", remedy));
 
-                    if (InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)) < remedy.getAmount())
+                    if (InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)) < remedy.getAmount()
+                        && InventoryUtils.getCountFromBuilding(building, Vacationer.hasRemedyItem(remedy)) > 0)
                     {
-                        LOGGER.trace("Needs to get these from the building {}", remedy);
+                        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Needs to get these from the building {}", remedy));
                         needsCurrently = new Tuple<>(Vacationer.hasRemedyItem(remedy), 1);
                         return GATHERING_REQUIRED_MATERIALS;
                     }
+                    else
+                    {
+                        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("This portion isn't in the building: {}", remedy));
+                        currentGuest.setState(VacationState.PENDING); // We don't have what they need any more - put them into pending.
+                        currentGuest = null;
+                        return DECIDE;
+                    }
                 }
             } else {
-                LOGGER.trace("It is not in the building, either.");
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("None of it is in the building, either."));
+                currentGuest.setState(VacationState.PENDING); // We don't have what they need any more - put them into pending.
+                currentGuest = null;
+                return DECIDE;
             }
         } else {
-            LOGGER.trace("The worker has the remedy already.");
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("I have the remedy needed for {}.", vacationingCitizen.getName()));
         }
 
-        LOGGER.trace("At this point I should have a remedy item in hand! Does the guest already have one?");
+        worker.setItemInHand(InteractionHand.MAIN_HAND, currentGuest.getRemedyItems().get(0).getItemStack());
 
-        if (!hasCureInInventory(currentGuest, citizen.getInventoryCitizen()))
+        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At this point I should have a remedy item in hand! Does the guest already have one?"));
+
+        if (!hasCureInInventory(currentGuest, vacationingCitizen.getInventoryCitizen()))
         {
             for (final ItemStorage remedy : currentGuest.getRemedyItems())
             {
-                if (InventoryUtils.getItemCountInItemHandler(citizen.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)) < remedy.getAmount())
+                if (InventoryUtils.getItemCountInItemHandler(vacationingCitizen.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)) < remedy.getAmount())
                 {
-                    if (!citizen.getInventoryCitizen().hasSpace())
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services: They need this remedy: {}", remedy));
+
+                    if (!vacationingCitizen.getInventoryCitizen().hasSpace())
                     {
+                        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services: They don't have space for this remedy: {}", remedy));
                         data.triggerInteraction(new StandardInteraction(Component.translatableEscape(GUEST_FULL_INVENTORY), ChatPriority.BLOCKING));
                         currentGuest = null;
                         return DECIDE;
                     }
-                    LOGGER.trace("Handing over the remedy.");
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Handing over the remedy to {}.", vacationingCitizen.getName()));
                     InventoryUtils.transferXOfFirstSlotInItemHandlerWithIntoNextFreeSlotInItemHandler(
                       worker.getInventoryCitizen(),
                       Vacationer.hasRemedyItem(remedy),
-                      remedy.getAmount(), citizen.getInventoryCitizen()
+                      remedy.getAmount(), vacationingCitizen.getInventoryCitizen()
                     );
                     currentGuest.setState(Vacationer.VacationState.TREATED);
                     currentGuest = null;
+
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
                     StatsUtil.trackStatByStack(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
                     worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
@@ -451,10 +480,10 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 }
             }
         } else {
-            LOGGER.trace("The guest has the remedy already.  I'm keeping this one.");
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services: The guest has the remedy already.  I'm keeping this one."));
         }
 
-        LOGGER.trace("There was nothing I could do for {}...", currentGuest);
+        TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services: There was nothing I could do for {}...", currentGuest));
 
         return DECIDE;
     }
@@ -498,10 +527,10 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         {
             if (InventoryUtils.getItemCountInItemHandler(handler, Vacationer.hasRemedyItem(cure)) < cure.getAmount())
             {
-                LOGGER.trace("hasCure: Item {} NOT in handler {}", cure, handler);
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("hasCure: Item {} NOT in handler {}", cure, handler));
                 return false;
             }
-            LOGGER.trace("hasCure:Item {} IS in handler {}", cure, handler);
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("hasCure:Item {} IS in handler {}", cure, handler));
         }
 
         return true;
@@ -520,7 +549,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
         {
             if (InventoryUtils.getItemCountInItemHandler(handler, Vacationer.hasRemedyItem(cure)) > 0)
             {
-                LOGGER.trace("hasAny: Some {} in handler {}", cure, handler);
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("hasAny: Some {} in handler {}", cure, handler));
                 count++;
             }
         }

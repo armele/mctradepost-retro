@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -70,8 +71,8 @@ public class BuildingStation extends AbstractBuilding
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static String EXPORTS_SHIPPED = "com.minecolonies.coremod.gui.townhall.stats.exports_shipped";
-    public static String IMPORTS_RECEIVED = "com.minecolonies.coremod.gui.townhall.stats.imports_received";
+    public static String EXPORTS_SHIPPED = "exports_shipped";
+    public static String IMPORTS_RECEIVED = "imports_received";
 
     /**
      * List of additional citizens (visitors)
@@ -430,7 +431,6 @@ public class BuildingStation extends AbstractBuilding
 
         for (Map.Entry<BlockPos, StationData> entry : stations.entrySet())
         {
-            BuildingStation.LOGGER.info("Serializing station: {}", entry.getValue());
             stationTagList.add(entry.getValue().toNBT());
         }
 
@@ -559,7 +559,7 @@ public class BuildingStation extends AbstractBuilding
      */
     public void completeExport(ExportData exportData)
     {
-        LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition());
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
 
         // Creates the final deposit and payment stacks.
         ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
@@ -571,7 +571,7 @@ public class BuildingStation extends AbstractBuilding
         // Adds to the remote building inventory or drops on the ground if inventory is full.
         if (!InventoryUtils.addItemStackToItemHandler(exportData.getDestinationStationData().getStation().getItemHandlerCap(), finalDeposit))
         {
-            LOGGER.info("Target station inventory full - dropping in world.");
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Target station inventory full - dropping in world."));
 
             MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getDestinationStationData().getStation().getColony().getWorld(), 
                 exportData.getDestinationStationData().getStation().getPosition(), 
@@ -599,5 +599,11 @@ public class BuildingStation extends AbstractBuilding
         }
 
         exportData.setShipDistance(-1);
+        GhostCartEntity cart = exportData.getCart();
+        if (cart != null) 
+        {
+            cart.discard();
+            exportData.setCart(null);
+        }
     }
 }

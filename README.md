@@ -36,18 +36,7 @@ Currently this building has no functional use. Future purposes include:
 * The Station Master currently has no purpose - work in progress.
 
 ### Research
-This mod introduces the "Economics" line of research. 
-
-#### Tier 1
-Capitalism - Unlocks the Marketplace building.
-Staycations - Unlocks the Resort
-Environmentalism - Unlocks the Recycling Center
-
-#### Tier 2
-Arcane Disassembly - Gives the recycling center a chance to strip enchantments from recycled items.
-
-#### Tier 3
-Meticultous Disassembly - Allows the recycling center to reliably strip enchantments from recycled items.
+This mod introduces the "Economics" line of research. Explore it to unlock Trade Post custom buildings and their capabilities.
 
 ### Custom Items
 * Building huts associated with the buildings described above.
@@ -58,7 +47,7 @@ Meticultous Disassembly - Allows the recycling center to reliably strip enchantm
 
 ### Custom Blocks
 * Block implementations of the building huts.
-* A few new building materials (mixed stone, thatch, plaster, rough stone, rough brick, endethyst, endmarine)
+* A few new building materials (mixed stone, thatch, plaster, rough stone, rough brick, endethyst, endmarine, marine lapis)
 * A few new Architect's Cutter recipes
 
 ### Configuration
@@ -113,18 +102,10 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 A station building must include one or more rail blocks tagged with "station_start". These will be used to determine whether or not a station is connected to other colonies for the purposes of trade.
 
 ## Current Status
-This mod can best be described as an "early alpha" state. It functionality may change rapidly and without warning.
-
-Building: Train Station - Trade Modules. [Testing]
-Building: Train Station - Remove outdated export data. [Testing]
-Building: Train Station - Export module show shipping status.[Testing]
-Building: Train Station - Export module prevent cancellation of in-progress shipment. [Testing]
-Building: Train Station - Elegant handling of chunk loading. [Testing]
-Building: Train Station - Record statistics. [Testing]
-Building: Train Station - Engineer Walking the track during connection testing. [Testing]
+This mod can best be described as an "early alpha" state. The functionality may change rapidly and without warning.
 
 ### Roadmap (Roughly Prioritized)
-Endethyst: Tier 5 building material
+Glazed Timberframe & Ivy Block
 Building: Pet Shop (enables pet functions, pet-related colony roles.)
 Pets - Building: Pet Houses
 Pets - Building Module: Set Owner
@@ -139,6 +120,8 @@ Pets - Ability: sickness decreased (uncertain)
 Pets - Ability: scarecrow effect - bonus to harvest yields (uncertain)
 Pets - Ability: pick up items in the world (confident)
 Pets - Ability: Locate certain ore types or crop types (confident)
+Building: Resort - Add last vacation (x days ago) to citizen screen
+Add Happiness for Trade Post factors (like vacation, etc.)
 Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
@@ -164,7 +147,20 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### In Testing
+Guest services order in groups of 8. [Fixed]
+Ice Cream Shake recipe too much milk (6 scoops initially?) [Test]
+Replace Empty Map with something else as a vacation remedy. [Fixed]
+Immersion blender not destroyed when it reaches 0 durability.[Test]
+Guest Services and Bartender should not vacation where they work. [Fixed]
+Max out resort at two visitors per vacation level [Fixed]
+Allow resort guests to eat (check IAIState...) [Fixed]
+Vacationers will still complain about needing stuff even when not on vacation. [Test]
+Update /mctp resort vacationstatus to show citizen name. [Test]
+Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
 
 ### Pending Resolution
+Add crafting statistics to resort.
+
+### Low Priority Issues
 Tracing is global (rather than by colony)
 Fix custom shopkeeper & recycler sounds

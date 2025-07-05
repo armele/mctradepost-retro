@@ -101,10 +101,6 @@ public class ExportData
     public void setShipDistance(int shipDistance)
     {
         this.shipDistance = shipDistance;
-        if (cart == null)
-        {
-            cart = spawnCartForTrade();
-        }
 
         if (cart != null)
         {

@@ -29,7 +29,7 @@
     ],
     "effects": [
         {
-            "id": "mctradepost:effects/fasttracks",
+            "id": "mctradepost:effects/tradespeed",
             "level": 2
         }
     ],

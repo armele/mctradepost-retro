@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost;
 
+import java.io.ObjectInputFilter.Config;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,6 +41,7 @@ public class MCTPConfig
     public static final ConfigValue<Integer> vacationImmunityThreshold;
     public static final ConfigValue<Integer> vacationHealing;
     public static final ConfigValue<Integer> vacationIncome;
+    public static final ConfigValue<Integer> guestsPerResortLevel;
 
     // Recycling settings
     public static final ConfigValue<Integer>  grindersPerLevel;
@@ -49,6 +51,7 @@ public class MCTPConfig
 
     // Station Settings
     public static final ConfigValue<Integer>  trackValidationFrequency;
+    public static final ConfigValue<Integer>  baseTradeSpeed;
 
     static {
         BUILDER.push("marketplace");
@@ -91,11 +94,11 @@ public class MCTPConfig
 
         vacationSusceptibilityThreshold = BUILDER
             .comment("Under what stat level do citizens become more susceptible to advertising?")
-            .define("vacationSusceptibilityThreshold", 10);
+            .define("vacationSusceptibilityThreshold", 6);
 
         vacationImmunityThreshold = BUILDER
             .comment("At what stat level do citizens become immune to advertising?")
-            .define("vacationImmunityThreshold", 20);
+            .define("vacationImmunityThreshold", 12);
 
         vacationHealing = BUILDER
             .comment("How many stat points will a single vacation restore?")
@@ -104,6 +107,10 @@ public class MCTPConfig
         vacationIncome = BUILDER
             .comment("Trade Coin (‡) generated per vacation.")
             .define("vacationIncome", 1);
+
+        guestsPerResortLevel = BUILDER
+            .comment("Guests per resort level.")
+            .define("guestsPerResortLevel", 2);
 
         BUILDER.pop();
 
@@ -132,6 +139,10 @@ public class MCTPConfig
         trackValidationFrequency = BUILDER
             .comment("Tick frequency of verifying tracks remain connected (processor intensive).")
             .define("trackValidationFrequency", 10000);
+
+        baseTradeSpeed = BUILDER
+            .comment("Base trade speed per building level.")
+            .define("baseTradeSpeed", 2);
             
         BUILDER.pop();
 

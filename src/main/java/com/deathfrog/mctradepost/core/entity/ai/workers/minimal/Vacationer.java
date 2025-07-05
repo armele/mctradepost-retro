@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -26,7 +27,6 @@ public class Vacationer
     protected Skill burntSkill;
     protected int targetLevel = -1;
     protected BuildingResort resort =  null;
-    
     boolean currentlyAtResort = false;
 
     /*
@@ -38,6 +38,7 @@ public class Vacationer
         RESERVED,       // You need a vacation!  Reservations made.
         CHECKED_IN,     // You have checked in at the resort.
         REQUESTED,      // You have ordered your services.
+        PENDING,        // We need something to be provided that isn't available.
         TREATED,        // You have been served.
         CHECKED_OUT     // You have checked out of the resort.
     }
@@ -63,6 +64,7 @@ public class Vacationer
       String skillname = vacationCompound.getString("skill");
       this.burntSkill = skillname.length() == 0 ? null : Skill.valueOf(skillname);
       this.targetLevel = vacationCompound.getInt("targetLevel");
+      this.currentlyAtResort = vacationCompound.getBoolean("currentlyAtResort");
    }
 
    public int getCivilianId() 
@@ -80,12 +82,18 @@ public class Vacationer
       this.state = state;
    }
 
+    /**
+     * Serializes the state of this Vacationer into the given CompoundTag.
+     * 
+     * @param compoundNBT the CompoundTag to write the Vacationer's data into.
+     */
    public void write(CompoundTag compoundNBT) 
    {
       compoundNBT.putInt("id", this.civilianId);
       compoundNBT.putInt("status", this.state.ordinal());
       compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name());
       compoundNBT.putInt("targetLevel", targetLevel);
+      compoundNBT.putBoolean("currentlyAtResort", currentlyAtResort);
    }
 
     public Skill getBurntSkill() 
@@ -108,12 +116,12 @@ public class Vacationer
      */
     public List<ItemStorage> getRemedyItems() 
     {
-        List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(burntSkill);
+        if (burntSkill == null)
+        {
+            return new ArrayList<ItemStorage>();
+        }
 
-        /*
-        List<ItemStorage> cureItems = new ArrayList<>();
-        cureItems.add(new ItemStorage(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), 1)));
-        */
+        List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(burntSkill);
 
         return remedyItems;
     }

@@ -50,9 +50,15 @@ public class CommandVacationStatus extends AbstractCommands
             colony.getBuildingManager().getBestBuilding(pos, BuildingResort.class));
 
         if (resort != null) {
+            if (resort.getGuests().isEmpty()) {
+                source.sendSuccess(() -> Component.literal("There are no guests."), false);
+                return 1;
+            }
+
             for (Vacationer vacation : resort.getGuests()) {
+                String vacationerName = colony.getCitizen(vacation.getCivilianId()).getName();
                 source.sendSuccess(() -> 
-                    net.minecraft.network.chat.Component.literal(vacation.toString()),
+                    net.minecraft.network.chat.Component.literal(vacationerName + ": " + vacation.toString()),
                     false
                 );
             }
