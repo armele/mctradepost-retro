@@ -13,7 +13,7 @@
 
 * Place your texture graphic in src\main\resources\assets\mctradepost\textures\block. Note that for a composite model created through blockbench no new textures might be needed.
 
-* Create a loot table .json file at src\main\resources\data\mctradepost\loot_tables\blocks that describes what drops when the block is broken.
+* Create a loot table .json file at src\main\resources\data\mctradepost\loot_table\blocks that describes what drops when the block is broken.
 
 * Create a recipe file (if this block can be created through a recipe) at src\main\resources\data\mctradepost\recipe
 

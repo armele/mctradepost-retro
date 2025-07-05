@@ -72,7 +72,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.13.001 -> MineColonies 1.1.1020 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.13.007 -> MineColonies 1.1.1020 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -105,8 +105,9 @@ A station building must include one or more rail blocks tagged with "station_sta
 This mod can best be described as an "early alpha" state. The functionality may change rapidly and without warning.
 
 ### Roadmap (Roughly Prioritized)
-Glazed Timberframe & Ivy Block
-Building: Pet Shop (enables pet functions, pet-related colony roles.)
+Glazed Timberframe & Ivy Block [In Progress]
+Quartz Mortar & "nicer" rough stone.
+Building: Pet Shop (enables pet functions, pet-related colony roles.) [Non-functional hut exists]
 Pets - Building: Pet Houses
 Pets - Building Module: Set Owner
 Pets - Building Module: Set Ability
@@ -151,7 +152,7 @@ Vacationers will still complain about needing stuff even when not on vacation. [
 Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
 
 ### Pending Resolution
-
+Domum cannot preview cutout render_types.
 
 ### Low Priority Issues
 Tracing is global (rather than by colony)

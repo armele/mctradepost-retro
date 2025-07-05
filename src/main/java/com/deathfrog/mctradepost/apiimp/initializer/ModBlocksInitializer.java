@@ -54,7 +54,8 @@ public final class ModBlocksInitializer
     public final static String MARINE_LAPIS_BRICK_STAIRS_NAME = "marine_lapis_brick_stairs";
     public final static String MARINE_LAPIS_BRICK_WALL_NAME = "marine_lapis_brick_wall";
     public final static String MARINE_LAPIS_BRICK_SLAB_NAME = "marine_lapis_brick_slab";
-
+    public final static String IVY_BLOCK_NAME = "ivy_block";
+    
     private ModBlocksInitializer()
     {
         throw new IllegalStateException("Tried to initialize: ModBlockInitializer but this is a Utility class.");

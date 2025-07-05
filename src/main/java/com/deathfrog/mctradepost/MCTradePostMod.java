@@ -69,6 +69,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
@@ -381,6 +382,10 @@ public class MCTradePostMod
     public static final DeferredBlock<SlabBlock> MARINE_LAPIS_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS_BRICK.get().properties()));
 
+
+    public static final DeferredBlock<Block> IVY_BLOCK =
+        BLOCKS.register(ModBlocksInitializer.IVY_BLOCK_NAME, () -> new Block(Blocks.VINE.properties()));
+
     /*
     * ITEMS (Block)
     */
@@ -504,6 +509,8 @@ public class MCTradePostMod
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_SLAB.get(), new Item.Properties()));
 		
+    public static final DeferredItem<Item> IVY_BLOCK_ITEM =
+        ITEMS.register(ModBlocksInitializer.IVY_BLOCK_NAME, () -> new BlockItem(IVY_BLOCK.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -794,7 +801,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK.get());
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_STAIRS.get());
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_WALL.get());
-                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_SLAB.get());		     	
+                    event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_SLAB.get());
+                    event.accept(MCTradePostMod.IVY_BLOCK.get());
                 }
             });
 

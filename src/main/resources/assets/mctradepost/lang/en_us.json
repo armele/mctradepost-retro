@@ -116,6 +116,9 @@
     "block.mctradepost.marine_lapis_brick_wall": "Marine Lapis Brick Wall",
     "block.mctradepost.marine_lapis_brick_slab": "Marine Lapis Brick Slab",
 
+    "item.mctradepost.ivy_block": "Ivy Block",
+    "block.mctradepost.ivy_block": "Ivy Block",
+
     "block.mctradepost.distressed": "Distressed Frame",
     "mctradepost.timber.frame.type.distressed": "Distressed Frame",
     "block.mctradepost.stacked_slab": "Stacked Slab",
