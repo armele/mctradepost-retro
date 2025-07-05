@@ -147,19 +147,11 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### In Testing
-Guest services order in groups of 8. [Fixed]
-Ice Cream Shake recipe too much milk (6 scoops initially?) [Test]
-Replace Empty Map with something else as a vacation remedy. [Fixed]
-Immersion blender not destroyed when it reaches 0 durability.[Test]
-Guest Services and Bartender should not vacation where they work. [Fixed]
-Max out resort at two visitors per vacation level [Fixed]
-Allow resort guests to eat (check IAIState...) [Fixed]
 Vacationers will still complain about needing stuff even when not on vacation. [Test]
-Update /mctp resort vacationstatus to show citizen name. [Test]
 Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
 
 ### Pending Resolution
-Add crafting statistics to resort.
+
 
 ### Low Priority Issues
 Tracing is global (rather than by colony)

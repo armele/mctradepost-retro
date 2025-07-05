@@ -456,7 +456,7 @@ public class EntityAIBurnoutTask
             // Their burnout has been cleared...
             TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacationer {} tracker has been cleared.", citizen));
             reset();
-            return CitizenAIState.IDLE;
+            return AIWorkerState.START_WORKING;
         }
 
         TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacationer {} has everything they need.  Apply it next!", citizen));

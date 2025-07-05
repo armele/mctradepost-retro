@@ -52,17 +52,31 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
         return BuildingResort.class;
     }
 
+
     /**
-     * Set the visible status of the worker to be crafting, before actually doing the crafting.
-     * This is a special case, as the bartender is just a special case of the crafting AI.
-     * @return the next state to transition to.
+     * Perform the crafting operation for the bartender. This method is called by the
+     * {@link AbstractEntityAICrafting} class when the AI is in the CRAFT state.
+     * <p>
+     * This method is responsible for setting the visible status of the citizen to
+     * {@link #CRAFTING} and then calling the superclass's {@link #craft()} method.
+     * <p>
+     * The superclass's method will then perform the actual crafting operation and
+     * update the building's statistics accordingly.
+     * <p>
+     * The visible status is set to {@link #CRAFTING} so that the client knows to
+     * display the bartender as being in the crafting state.
+     * <p>
+     * The superclass's method will also call this method recursively until all
+     * items have been crafted or the AI is interrupted.
+     * <p>
+     * @return the next AI state to transition to.
      */
     @Override
     protected IAIState craft()
     {
         MCTradePostMod.LOGGER.info("Bartender crafting...");
         worker.getCitizenData().setVisibleStatus(CRAFTING);
-        return AIWorkerState.INVENTORY_FULL;
+        return super.craft();
     }
 
     /**
