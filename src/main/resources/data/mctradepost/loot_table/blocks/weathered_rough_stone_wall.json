@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mctradepost:weathered_rough_stone_wall"
+        }
+      ]
+    }
+  ]
+}

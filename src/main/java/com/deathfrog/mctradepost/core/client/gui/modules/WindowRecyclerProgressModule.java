@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
 import com.ldtteam.blockui.Pane;
-import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -16,6 +16,7 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
+import io.netty.util.Recycler;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
@@ -25,8 +26,8 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
 
     private static final int MAX_OUTPUT_SHOWN = 10;     // How many stacks of output items will we display?
 
-    private List<RecyclingProcessor> recyclingProcessors = null;
-    
+    private RecyclerProgressView moduleView = null;
+
     /**
      * Scrollinglist of the resources.
      */
@@ -35,10 +36,10 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
     protected Text capacityPane;
     protected int maxProcessors;
 
-    public WindowRecyclerProgressModule(IBuildingView buildingView, Set<RecyclingProcessor> recyclingProcessors, int maxProcessors)
+    public WindowRecyclerProgressModule(IBuildingView buildingView, RecyclerProgressView moduleView, int maxProcessors)
     {
         super(buildingView, MCTradePostMod.MODID + RECYCPROGRESSWINDOW_RESOURCE_SUFFIX);
-        this.recyclingProcessors = recyclingProcessors.stream().toList();
+        this.moduleView = moduleView;
         processorDisplayList = findPaneOfTypeByID(WindowConstants.WINDOW_ID_LIST_REQUESTS, ScrollingList.class);
         capacityPane = findPaneOfTypeByID("capacity", Text.class);
         this.maxProcessors = maxProcessors;
@@ -48,14 +49,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
     public void onOpened()
     {
         super.onOpened();
-
-        if (processorDisplayList != null && recyclingProcessors != null)
-        {
-            capacityPane.setText(Component.literal(recyclingProcessors.size() + " of " + maxProcessors + " in use."));
-            updateProcessors();
-        } else {
-            MCTradePostMod.LOGGER.warn("ProcessorDisplayList or recyclingProcessors is null.");
-        }
+        updateProcessors();
     }
 
     /**
@@ -63,24 +57,32 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
      * @see {@link ScrollingList.DataProvider}
      */
     public void updateProcessors() {
-
+        if (processorDisplayList == null)
+        {
+            MCTradePostMod.LOGGER.warn("ProcessorDisplayList is null.");
+            return;
+        }
         processorDisplayList.setDataProvider(new ScrollingList.DataProvider()
         {
+            List<RecyclingProcessor> recyclingProcessors = moduleView.getRecyclingProcessors().stream().toList();
 
             @Override
             public int getElementCount()
             {
+                capacityPane.setText(Component.literal(recyclingProcessors.size() + " of " + maxProcessors + " in use."));
                 return recyclingProcessors.size();
             }
 
             @Override
             public void updateElement(final int index, final Pane rowPane)
             {
+
+                recyclingProcessors = moduleView.getRecyclingProcessors().stream().toList();
+
                 if (index < 0 || index >= recyclingProcessors.size())
                 {
                     return;
                 }
-
 
                 final Box wrapperBox = rowPane.findPaneOfTypeByID(WindowConstants.WINDOW_ID_REQUEST_BOX, Box.class);
                 wrapperBox.setPosition(wrapperBox.getX(), wrapperBox.getY());

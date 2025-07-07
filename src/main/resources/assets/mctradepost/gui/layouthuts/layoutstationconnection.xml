@@ -3,6 +3,8 @@
     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
     <text size="120 11" pos="30 14" textalign="MIDDLE" color="black"
            label="$(com.mctradepost.core.gui.modules.stationconnections)"/>
+    <text id="tabHelp" size="120 22" pos="30 40" textalign="MIDDLE" color="black"
+           label="$(com.minecolonies.coremod.gui.station.connection.empty)"/>
     <list id="stations" size="170 154" pos="13 46">
         <box id="stationx" size="100% 25" linewidth="1">
             <text id="location" size="150 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>

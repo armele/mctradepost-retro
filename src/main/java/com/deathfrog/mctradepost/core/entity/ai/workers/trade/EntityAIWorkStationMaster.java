@@ -49,7 +49,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     public static final int MESSAGE_COOLDOWN_TIME = 1000;
 
-    public static final String TRACK_VALIDATIONS = "com.minecolonies.coremod.gui.townhall.stats.tracks_validated";
+    public static final String TRACK_VALIDATIONS = "tracks_validated";
 
     public static final int BASE_XP_NEW_TRACK = 5;
     public static final int BASE_XP_EXISTING_TRACK = 1;
@@ -194,13 +194,17 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 {
                     if (remoteHasFunds)
                     {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} and necessary funds are availalbe - mark for shipment.", exportData.getItemStorage()));
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} and necessary funds are available - mark for shipment.", exportData.getItemStorage()));
                         currentExport = exportData;
+                        exportData.setInsufficientFunds(false);
 
                         return StationMasterStates.SEND_SHIPMENT;
                     }
                     else
                     {
+
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", exportData.getItemStorage()));
+                        exportData.setInsufficientFunds(true);
                         // Announce to the remote colony that the station does not have the required funds (with a cooldown)
                         int cooldown = remoteStationMessageCooldown.getOrDefault(exportData.getDestinationStationData(), 0);
                         if (cooldown == 0)

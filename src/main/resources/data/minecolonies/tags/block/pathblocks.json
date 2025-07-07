@@ -6,6 +6,14 @@
         "mctradepost:rough_brick",
         "mctradepost:mixed_stone_slab",
         "mctradepost:rough_stone_slab",
-        "mctradepost:rough_brick_slab"
+        "mctradepost:rough_brick_slab",
+        "mctradepost:endmarine_brick",
+        "mctradepost:endmarine_brick_slab",
+        "mctradepost:marine_lapis_brick",
+        "mctradepost:marine_lapis_brick_slab",
+        "mctradepost:weathered_rough_stone",
+        "mctradepost:weathered_rough_stone_slab",
+        "mctradepost:endethyst_brick",
+        "mctradepost:endethyst_brick_slab"
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:weathered_rough_stone"
+    }
+  },
+  "result": {
+    "id": "mctradepost:weathered_rough_stone_slab",
+    "count": 6
+  }
+}

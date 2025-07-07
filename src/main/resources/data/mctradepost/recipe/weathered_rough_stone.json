@@ -1,0 +1,34 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:quartz_mortar"
+    },
+    {
+      "item": "mctradepost:quartz_mortar"
+    },
+    {
+      "item": "mctradepost:quartz_mortar"
+    },
+    {
+      "item": "mctradepost:quartz_mortar"
+    },
+    {
+      "item": "mctradepost:rough_stone"
+    },
+    {
+      "item": "mctradepost:rough_stone"
+    },
+    {
+      "item": "mctradepost:rough_stone"
+    },
+    {
+      "item": "mctradepost:rough_stone"
+    }
+  ],
+  "result": {
+    "count": 8,
+    "id": "mctradepost:weathered_rough_stone"
+  }
+}

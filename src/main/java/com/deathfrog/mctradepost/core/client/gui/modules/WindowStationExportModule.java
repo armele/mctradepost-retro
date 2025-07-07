@@ -78,6 +78,8 @@ public class WindowStationExportModule extends AbstractModuleWindow
         private Integer cost = null;
         private int shipDistance = -1;
         private int trackDistance = -1;
+        private int lastShipDay = -1;
+        private boolean nsf = false;
 
         ExportGui(StationData destinationStation, boolean selected, ItemStorage itemStorage, Integer cost)
         {
@@ -145,7 +147,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
         public Integer getCost()
         {
             return cost;
-        }
+        } 
     }
 
     public WindowStationExportModule(IBuildingView buildingView, BuildingStationExportModuleView moduleView)
@@ -156,7 +158,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
         stations = ((StationView) buildingView).getStations();
         registerButton(TAG_BUTTON_TAKETRADE, this::takeTradeClicked);
 
-        MCTradePostMod.LOGGER.info("Configuring exports module window with {} connected stations.", stations.size());
+        // MCTradePostMod.LOGGER.info("Configuring exports module window with {} connected stations.", stations.size());
 
         for (StationData station : stations.values())
         {
@@ -176,7 +178,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
         {
             if (TrackConnectionStatus.CONNECTED.equals(exportGui.destinationStation.getTrackConnectionStatus()))
             {
-                MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
+                // MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
 
                 for (ExportData export : moduleView.getExportList())
                 {
@@ -187,6 +189,8 @@ public class WindowStationExportModule extends AbstractModuleWindow
                         exportGui.selected = true;
                         exportGui.shipDistance = export.getShipDistance();
                         exportGui.trackDistance = export.getTrackDistance();
+                        exportGui.lastShipDay = export.getLastShipDay();
+                        exportGui.nsf = export.isInsufficientFunds();
                         break;
                     }
                 }
@@ -229,10 +233,24 @@ public class WindowStationExportModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, final Pane rowPane)
             {
+                Pane helpPane = findPaneOfTypeByID("tabHelp", Text.class);
+
+                if (potentialExportMap == null || potentialExportMap.isEmpty())
+                {
+
+                    helpPane.setVisible(true);
+                    exportDisplayList.setVisible(false);
+                    return;
+                }
+
+
                 if (index < 0 || index >= potentialExportMap.size())
                 {
                     return;
                 }
+
+                helpPane.setVisible(false);
+                exportDisplayList.setVisible(true);
 
                 final ExportGui export = potentialExportMap.get(index);
                 final StationData destinationStation = export.getDestinationStation();
@@ -272,14 +290,37 @@ public class WindowStationExportModule extends AbstractModuleWindow
                 }
 
                 final Box progressBar = rowPane.findPaneOfTypeByID(GuiUtil.PROGRESS_BAR, Box.class);
+                final Text exportSpecificHelp = rowPane.findPaneOfTypeByID("exportSpecificHelp", Text.class);
+
                 if (export.shipDistance >= 0) 
                 {
                     progressBar.setVisible(true);
+                    exportSpecificHelp.setVisible(false);
                     GuiUtil.drawProgressBar(wrapperBox, progressBar, export.shipDistance, export.trackDistance, 1);
                 }
                 else
                 {
                     progressBar.setVisible(false);
+                    exportSpecificHelp.setVisible(true);
+
+                    if (export.isSelected())
+                    {
+
+                        exportSpecificHelp.setText(Component.literal("No shipment in progress."));
+
+                        // MCTradePostMod.LOGGER.warn("Ship distance is less than 0: {} Last ship day: {} Current day: {} Insufficient funds: {}", export.shipDistance, export.lastShipDay, buildingView.getColony().getDay(), export.nsf);
+                        if (export.lastShipDay == buildingView.getColony().getDay())
+                        {
+                            exportSpecificHelp.setText(Component.literal("Already shipped today."));
+                        } else if (export.nsf)
+                        {
+                            exportSpecificHelp.setText(Component.literal("Insufficient funds at destination."));
+                        }
+                    } 
+                    else
+                    {
+                        exportSpecificHelp.setText(Component.literal("Check box to take offer."));
+                    }
                 }
 
 

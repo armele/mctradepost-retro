@@ -24,9 +24,9 @@
     ],
     "effects": [
         {
-            "id": "mctradepost:effects/blockhutpetstore",
+            "id": "mctradepost:effects/blockhutpetshop",
             "level": 1
         }
     ],
-    "icon": "mctradepost:blockhutpetstore"
+    "icon": "mctradepost:blockhutpetshop"
 }

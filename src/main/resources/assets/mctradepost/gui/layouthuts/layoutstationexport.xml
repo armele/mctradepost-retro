@@ -3,6 +3,8 @@
     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
     <text size="120 11" pos="30 14" textalign="MIDDLE" color="black"
            label="$(com.minecolonies.coremod.gui.station.exports)"/>
+    <text id="tabHelp" size="120 22" pos="30 40" textalign="MIDDLE" color="black"
+           label="$(com.minecolonies.coremod.gui.station.exports.empty)"/>
     <list id="stations" size="173 160" pos="12 40">
         <box id="stationx" size="100% 30" linewidth="1">
             <text id="location" size="100 11" pos="2 4" textalign="MIDDLE_LEFT" color="black"/>
@@ -11,7 +13,8 @@
             <button id="takeTrade" pos="145 2" size="14 15"
                         source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
                         disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disable"/>
-            <box id="progressBar" size="100% 9" pos="0 20" visible="true"/>
+            <box id="progressBar" size="100% 11" pos="0 19" visible="true"/>
+            <text id="exportSpecificHelp" size="100% 11" pos="0 19" textalign="MIDDLE" color="black" visible="true"/>
         </box>
     </list>
 </window>

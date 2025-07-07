@@ -5,7 +5,7 @@ import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 
 public class BlockHutPetShop extends MCTPBaseBlockHut 
 {
-    public static final String HUT_NAME = "blockhutpetstore";
+    public static final String HUT_NAME = "blockhutpetshop";
 
     @Override
     public String getHutName()

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab_top",
+  "textures": {
+    "bottom": "mctradepost:block/weathered_rough_stone",
+    "top":    "mctradepost:block/weathered_rough_stone",
+    "side":   "mctradepost:block/weathered_rough_stone"
+  }
+}

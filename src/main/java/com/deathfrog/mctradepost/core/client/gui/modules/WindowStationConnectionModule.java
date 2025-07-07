@@ -68,10 +68,22 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, final Pane rowPane)
             {
+                Pane helpPane = findPaneOfTypeByID("tabHelp", Text.class);
+
+                if (stations == null || stations.isEmpty())
+                {
+                    helpPane.setVisible(true);
+                    connectionDisplayList.setVisible(false);
+                    return;
+                }
+
                 if (index < 0 || index >= stations.size())
                 {
                     return;
                 }
+
+                helpPane.setVisible(false);
+                connectionDisplayList.setVisible(true);
 
                 final BlockPos pos = stations.keySet().toArray(new BlockPos[0])[index];
                 final StationData station = stations.get(pos);

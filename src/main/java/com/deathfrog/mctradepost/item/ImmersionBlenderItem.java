@@ -34,11 +34,19 @@ public class ImmersionBlenderItem extends Item
      * inventory.
      */
     @Override
-    public ItemStack getCraftingRemainingItem(@Nonnull ItemStack stack)
+    public ItemStack getCraftingRemainingItem(@Nonnull ItemStack stack) 
     {
         ItemStack remainder = stack.copy();
-        remainder.hurtAndBreak(1, ServerLifecycleHooks.getCurrentServer().overworld(), null, item -> {});  // player is null in a
-                                                                                                           // crafting grid
-        return remainder.isEmpty() ? ItemStack.EMPTY : remainder;
+        
+        // Directly set the damage instead of using hurtAndBreak
+        int currentDamage = remainder.getDamageValue(); 
+        int maxDamage = remainder.getMaxDamage(); 
+        
+        if (currentDamage < maxDamage) {
+            remainder.setDamageValue(currentDamage + 1); 
+        }
+        
+        // Return an empty stack if the item breaks, otherwise return the damaged stack
+        return remainder.getDamageValue() >= maxDamage ? ItemStack.EMPTY : remainder; 
     }
 }

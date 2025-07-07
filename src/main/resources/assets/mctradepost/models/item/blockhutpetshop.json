@@ -1,5 +1,5 @@
 {
-  "parent": "mctradepost:block/blockhutpetstore",
+  "parent": "mctradepost:block/blockhutpetshop",
   "display": {
     "thirdperson_righthand": {
       "rotation": [

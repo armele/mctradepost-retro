@@ -22,6 +22,7 @@ public class ExportData
     private int shipDistance = -1;
     private int trackDistance = -1;
     private int lastShipDay = -1;
+    private boolean insufficientFunds = false;
     private GhostCartEntity cart = null;
 
     public ExportData(BuildingStation sourceStation, StationData destinationStationData, ItemStorage itemStorage, int cost)
@@ -33,6 +34,7 @@ public class ExportData
         this.shipDistance = -1;
         this.trackDistance = -1;
         this.lastShipDay = -1;
+        this.insufficientFunds = false;
     }
 
     public StationData getDestinationStationData()
@@ -102,7 +104,7 @@ public class ExportData
     {
         this.shipDistance = shipDistance;
 
-        if (cart != null)
+        if (cart != null && shipDistance >= 0)
         {
             cart.setSegment(shipDistance);
         }
@@ -190,5 +192,24 @@ public class ExportData
     public void setCart(GhostCartEntity cart)
     {
         this.cart = cart;
+    }
+
+    /**
+     * Sets the insufficient funds status for this export.
+     *
+     * @param insufficientFunds true if there are insufficient funds for the export, false otherwise.
+     */
+    public void setInsufficientFunds(boolean insufficientFunds)
+    {
+        this.insufficientFunds = insufficientFunds;
+    }
+
+    /**
+     * Returns true if there are insufficient funds for this export, false otherwise.
+     * @return true if there are insufficient funds, false otherwise.
+     */
+    public boolean isInsufficientFunds()
+    {
+        return insufficientFunds;
     }
 }

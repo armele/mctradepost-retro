@@ -199,6 +199,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> PRISMARINE_MORTAR = ITEMS.register("prismarine_mortar",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> QUARTZ_MORTAR = ITEMS.register("quartz_mortar",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
@@ -224,9 +227,9 @@ public class MCTradePostMod
                 () -> EntityType.Builder.<GhostCartEntity>of(
                     GhostCartEntity::new, MobCategory.MISC)
                     .sized(0.98f, 0.7f)          // same hitbox as normal cart
-                    .clientTrackingRange(64)
+                    .clientTrackingRange(128)
                     .updateInterval(1)            // send pos every tick
-                    .build("ghost_cart"));;
+                    .build("mctradepost:ghost_cart"));;
 
     /*
     * BLOCKS
@@ -393,6 +396,15 @@ public class MCTradePostMod
     public static final DeferredBlock<Block> BLOCK_IVY_BRICK =
         BLOCKS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new Block(Blocks.VINE.properties()));
 
+    public static final DeferredBlock<Block> WEATHERED_ROUGH_STONE = BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> WEATHERED_ROUGH_STONE_STAIRS = BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_STAIRS_NAME,
+        () -> new StairBlock(WEATHERED_ROUGH_STONE.get().defaultBlockState(), WEATHERED_ROUGH_STONE.get().properties()));
+    public static final DeferredBlock<WallBlock> WEATHERED_ROUGH_STONE_WALL =
+        BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_WALL_NAME, () -> new WallBlock(WEATHERED_ROUGH_STONE.get().properties()));
+    public static final DeferredBlock<SlabBlock> WEATHERED_ROUGH_STONE_SLAB =
+        BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new SlabBlock(WEATHERED_ROUGH_STONE.get().properties()));
+
 
     /*
     * ITEMS (Block)
@@ -519,6 +531,18 @@ public class MCTradePostMod
 		
     public static final DeferredItem<Item> IVY_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new BlockItem(BLOCK_IVY_BRICK.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_ITEM =
+        ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_STAIRS_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_WALL_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_SLAB.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -766,6 +790,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.NAPKIN.get());
                     event.accept(MCTradePostMod.END_MORTAR.get());
                     event.accept(MCTradePostMod.PRISMARINE_MORTAR.get());
+                    event.accept(MCTradePostMod.QUARTZ_MORTAR.get());
                     event.accept(MCTradePostMod.MIXED_STONE.get());
                     event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
@@ -811,6 +836,10 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_WALL.get());
                     event.accept(MCTradePostMod.MARINE_LAPIS_BRICK_SLAB.get());
                     event.accept(MCTradePostMod.BLOCK_IVY_BRICK.get());
+                    event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE.get());
+                    event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_STAIRS.get());
+                    event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_WALL.get());
+                    event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_SLAB.get());	
                 }
             });
 

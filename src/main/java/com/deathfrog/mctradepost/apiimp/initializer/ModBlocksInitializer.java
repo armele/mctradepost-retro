@@ -55,6 +55,10 @@ public final class ModBlocksInitializer
     public final static String MARINE_LAPIS_BRICK_WALL_NAME = "marine_lapis_brick_wall";
     public final static String MARINE_LAPIS_BRICK_SLAB_NAME = "marine_lapis_brick_slab";
     public final static String IVY_BRICK_NAME = "ivy_brick";
+	public final static String WEATHERED_ROUGH_STONE_NAME = "weathered_rough_stone";
+    public final static String WEATHERED_ROUGH_STONE_STAIRS_NAME = "weathered_rough_stone_stairs";
+    public final static String WEATHERED_ROUGH_STONE_WALL_NAME = "weathered_rough_stone_wall";
+    public final static String WEATHERED_ROUGH_STONE_SLAB_NAME = "weathered_rough_stone_slab";
     
     private ModBlocksInitializer()
     {

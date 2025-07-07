@@ -57,6 +57,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     private static final String TAG_LAST_SHIP_DAY = "lastShipDay";
 
     /**
+     * Tag for the flag of insufficient funds
+     */
+    private static final String TAG_NSF = "nsf";
+
+    /**
      * The list of exports configured.
      */
     protected final List<ExportData> exportList = new ArrayList<>();
@@ -87,6 +92,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
             int trackDistance = compoundNBT.getInt(TAG_TRACK_DISTANCE);
             int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
+            boolean nsf = compoundNBT.getBoolean(TAG_NSF);
             if (station != null)
             {
                 ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
@@ -94,6 +100,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 exportData.setLastShipDay(lastShipDay);
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
+                exportData.setInsufficientFunds(nsf);
                 exportList.add(exportData);
             }
         }
@@ -120,6 +127,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
             compoundNBT.putInt(TAG_TRACK_DISTANCE, exportData.getTrackDistance());
             compoundNBT.putInt(TAG_LAST_SHIP_DAY, exportData.getLastShipDay());
+            compoundNBT.putBoolean(TAG_NSF, exportData.isInsufficientFunds());
             exportListTag.add(compoundNBT);
         }
         compound.put(TAG_EXPORTS, exportListTag);
@@ -143,6 +151,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             buf.writeInt(exportData.getShipDistance());
             buf.writeInt(exportData.getTrackDistance());
             buf.writeInt(exportData.getLastShipDay());
+            buf.writeBoolean(exportData.isInsufficientFunds());
         }
     }
 

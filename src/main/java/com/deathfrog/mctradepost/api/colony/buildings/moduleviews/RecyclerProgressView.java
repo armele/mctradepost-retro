@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowRecyclerProgressModule;
@@ -21,7 +21,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
 {
 
 
-    private Set<RecyclingProcessor> recyclingProcessors = new HashSet<RecyclingProcessor>();
+    private Set<RecyclingProcessor> recyclingProcessors = new LinkedHashSet<RecyclingProcessor>();
     private int maxProcessors = -1;
 
     public RecyclerProgressView() {
@@ -50,7 +50,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowRecyclerProgressModule(getBuildingView(), recyclingProcessors, maxProcessors);
+        return new WindowRecyclerProgressModule(getBuildingView(), this, maxProcessors);
     }
 
     /**
@@ -86,5 +86,15 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
             int maxProcessors = max.getInt("maxProcessors");
             this.maxProcessors = maxProcessors;
         }
+    }
+
+    /**
+     * Retrieves a set of RecyclingProcessor objects representing the current
+     * state of all recycling processors associated with this building.
+     * @return a set of RecyclingProcessor objects representing the current
+     *         state of all recycling processors associated with this building.
+     */
+    public Set<RecyclingProcessor> getRecyclingProcessors() {
+        return recyclingProcessors;
     }
 }

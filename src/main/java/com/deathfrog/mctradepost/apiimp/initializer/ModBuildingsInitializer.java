@@ -11,7 +11,7 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
-import com.deathfrog.mctradepost.api.colony.buildings.views.PetstoreView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.PetshopView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
@@ -123,7 +123,7 @@ public final class ModBuildingsInitializer
             BuildingEntry.Builder petShopBuilder = new BuildingEntry.Builder();
             petShopBuilder.setBuildingBlock(MCTradePostMod.blockHutPetShop.get());
             petShopBuilder.setBuildingProducer(BuildingPetshop::new);
-            petShopBuilder.setBuildingViewProducer(() -> PetstoreView::new);
+            petShopBuilder.setBuildingViewProducer(() -> PetshopView::new);
             petShopBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.PETSHOP_ID));
             petShopBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
 

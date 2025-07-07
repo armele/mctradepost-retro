@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mctradepost:block/blockhutpetshop",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mctradepost:block/blockhutpetshop",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mctradepost:block/blockhutpetshop",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "mctradepost:block/blockhutpetshop",
+      "y": 0
+    }
+  }
+}

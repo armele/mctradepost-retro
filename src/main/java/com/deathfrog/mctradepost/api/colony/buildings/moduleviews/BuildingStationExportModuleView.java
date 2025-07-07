@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
@@ -44,10 +43,12 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
             int shipDistance = buf.readInt();
             int trackDistance = buf.readInt();
             int lastShipDay = buf.readInt();
+            boolean nsf = buf.readBoolean();
             ExportData exportData = new ExportData(null, destinationStation, itemStorage, cost);
             exportData.setShipDistance(shipDistance);
             exportData.setTrackDistance(trackDistance);
             exportData.setLastShipDay(lastShipDay);
+            exportData.setInsufficientFunds(nsf);
             exportList.add(exportData);
         }
     }
