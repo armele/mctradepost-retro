@@ -212,10 +212,12 @@
     "com.minecolonies.coremod.setting.mctradepost:iterative_processing" : "Iterative Recycling",
     "com.minecolonies.coremod.gui.station.imports" : "Imports",
     "com.minecolonies.coremod.gui.station.exports" : "Exports",
-    "com.minecolonies.coremod.gui.trade.limitreached" : "Trade Limit Reached",
+    "com.minecolonies.coremod.gui.trade.limitreached" : "Limit Reached",
     "com.minecolonies.coremod.gui.trade.empty" : "No trades configured.",
     "com.minecolonies.coremod.gui.trade.price" : "‡ Coins",
     "com.minecolonies.coremod.gui.trade.price.tooltip" : "How many trade coins to pay for the selected stack.",
+    "com.minecolonies.coremod.gui.trade.quantity" : "#",
+    "com.minecolonies.coremod.gui.trade.quantity.tooltip" : "How many of the selected item to trade.",
 
     "mctradepost.configuration.marketplace": "Marketplace Settings",
     "mctradepost.configuration.tradeCoinValue.tooltip": "What is the value of a single trade coin?",
@@ -260,7 +262,9 @@
     "mctradepost.configuration.trackValidationFrequency.tooltip": "Tick frequency of verifying tracks remain connected (processor intensive).",
     "mctradepost.configuration.baseTradeSpeed": "Base Trade Speed",
     "mctradepost.configuration.baseTradeSpeed.tooltip": "How fast should trades be processed? Block positions per colony tick (per building level).",
-
+    "mctradepost.configuration.importsPerLevel": "Imports Per Level",
+    "mctradepost.configuration.importsPerLevel.tooltip": "Number of imports allowed per Station building level.",
+    
     "com.mctradepost.research.effects.blockhutmarketplace.description": "Allows building of the Marketplace.",
     "com.mctradepost.research.effects.blockhutrecycling.description": "Allows building of the Recycling Center.",
     "com.mctradepost.research.effects.disenchanting.description": "A chance to recover enchantments from recycled enchanted items.",

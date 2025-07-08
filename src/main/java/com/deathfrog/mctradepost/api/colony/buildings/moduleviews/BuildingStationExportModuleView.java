@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
@@ -14,6 +15,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -40,11 +42,12 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
             StationData destinationStation = StationData.fromNBT(buf.readNbt());
             ItemStorage itemStorage = new ItemStorage(Utils.deserializeCodecMess(buf));
             int cost = buf.readInt();
+            int quantity = buf.readInt();
             int shipDistance = buf.readInt();
             int trackDistance = buf.readInt();
             int lastShipDay = buf.readInt();
             boolean nsf = buf.readBoolean();
-            ExportData exportData = new ExportData(null, destinationStation, itemStorage, cost);
+            ExportData exportData = new ExportData(null, destinationStation, itemStorage, cost, quantity);
             exportData.setShipDistance(shipDistance);
             exportData.setTrackDistance(trackDistance);
             exportData.setLastShipDay(lastShipDay);
@@ -60,10 +63,15 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
         return new WindowStationExportModule(buildingView, this);
     }
 
-    @Override
-    public String getIcon()
+    /**
+     * Get the icon of the module.
+     * 
+     * @return the icon to show.
+     */
+   @Override
+    public ResourceLocation getIconResourceLocation()
     {
-        return("info");
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/modules/export.png");
     }
 
     @Override

@@ -1,5 +1,8 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.modules.*;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
@@ -19,15 +22,9 @@ import net.minecraft.nbt.ListTag;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import static com.minecolonies.api.util.constant.NbtTagConstants.TAG_QUANTITY;
 
 public class BuildingStationImportModule extends AbstractBuildingModule implements IPersistentModule
 {
-    /**
-     * Number of trades it can hold per level.
-     */
-    private static final int TRADES_PER_LEVEL = 3;
-
     /**
      * The import tag name.
      */
@@ -36,7 +33,7 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
     /**
      * The list of trades configured.
      */
-    protected final Map<ItemStorage, Integer> importMap = new HashMap<>();
+    protected final Map<ItemStorage, TradeDefinition> importMap = new HashMap<>();
 
     /**
      * Calculate the minimum stock size.
@@ -45,22 +42,24 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
      */
     private int allowedTrades()
     {
-        // TODO: Implement research to increase this.
-
-        return (int) (building.getBuildingLevel() * TRADES_PER_LEVEL);
+        int base = (int) (building.getBuildingLevel() * MCTPConfig.importsPerLevel.get());
+        int bonus = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADECAPACITY);
+        return base + bonus;
     }
 
     /**
      * Adds a trade to the list of imports if the list is not full, or if the item is already in the list.
      *
      * @param itemStack the itemstack to add.
-     * @param quantity  the quantity to add.
+     * @param cost  the price at which this purchase will be made.
      */
-    public void addImport(final ItemStack itemStack, final int quantity)
+    public void addImport(final ItemStack itemStack, final int cost, final int quantity)
     {
-        if (importMap.containsKey(new ItemStorage(itemStack)) || importMap.size() < allowedTrades())
+        ItemStorage tradeItem = new ItemStorage(itemStack);
+
+        if (importMap.containsKey(tradeItem) || importMap.size() < allowedTrades())
         {
-            importMap.put(new ItemStorage(itemStack), quantity);
+            importMap.put(tradeItem, new TradeDefinition(tradeItem, cost, quantity));
             markDirty();
         }
     }
@@ -131,7 +130,10 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         for (int i = 0; i < importTagList.size(); i++)
         {
             final CompoundTag compoundNBT = importTagList.getCompound(i);
-            importMap.put(new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK))), compoundNBT.getInt(TAG_QUANTITY));
+            ItemStorage tradeItem = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
+            int cost = compoundNBT.getInt(ExportData.TAG_COST);
+            int quantity = compoundNBT.getInt(ExportData.TAG_QUANTITY);
+            importMap.put(tradeItem, new TradeDefinition(tradeItem, cost, quantity));
         }
     }
 
@@ -147,11 +149,13 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
     public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
         @NotNull final ListTag importTagList = new ListTag();
-        for (@NotNull final Map.Entry<ItemStorage, Integer> entry : importMap.entrySet())
+        for (@NotNull final Map.Entry<ItemStorage, TradeDefinition> entry : importMap.entrySet())
         {
+            TradeDefinition tradeDef = entry.getValue();
             final CompoundTag compoundNBT = new CompoundTag();
-            compoundNBT.put(NbtTagConstants.STACK, entry.getKey().getItemStack().saveOptional(provider));
-            compoundNBT.putInt(TAG_QUANTITY, entry.getValue());
+            compoundNBT.put(NbtTagConstants.STACK, tradeDef.tradeItem().getItemStack().saveOptional(provider));
+            compoundNBT.putInt(ExportData.TAG_COST, tradeDef.price());
+            compoundNBT.putInt(ExportData.TAG_QUANTITY, tradeDef.quantity());
             importTagList.add(compoundNBT);
         }
         compound.put(TAG_IMPORTS, importTagList);
@@ -167,10 +171,12 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
     public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         buf.writeInt(importMap.size());
-        for (final Map.Entry<ItemStorage, Integer> entry : importMap.entrySet())
+        for (final Map.Entry<ItemStorage, TradeDefinition> entry : importMap.entrySet())
         {
-            Utils.serializeCodecMess(buf, entry.getKey().getItemStack());
-            buf.writeInt(entry.getValue());
+            TradeDefinition tradeDef = entry.getValue();
+            Utils.serializeCodecMess(buf, tradeDef.tradeItem().getItemStack());
+            buf.writeInt(tradeDef.price());
+            buf.writeInt(tradeDef.quantity());
         }
         buf.writeBoolean(importMap.size() >= allowedTrades());
     }
@@ -182,8 +188,15 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
      * @param cost  the cost to check.
      * @return true if the itemStack and cost are in the trade list, false otherwise.
      */
-    public boolean hasTrade(ItemStack stack, int cost)
+    public boolean hasTrade(ItemStack stack, int cost, int quantity)
     {
-        return importMap.containsKey(new ItemStorage(stack)) && importMap.get(new ItemStorage(stack)) == cost;
+        TradeDefinition tradeDef = importMap.get(new ItemStorage(stack));
+
+        if (tradeDef != null && tradeDef.price() == cost && tradeDef.quantity() == quantity)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

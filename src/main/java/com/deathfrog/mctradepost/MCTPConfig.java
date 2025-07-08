@@ -1,6 +1,5 @@
 package com.deathfrog.mctradepost;
 
-import java.io.ObjectInputFilter.Config;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +51,7 @@ public class MCTPConfig
     // Station Settings
     public static final ConfigValue<Integer>  trackValidationFrequency;
     public static final ConfigValue<Integer>  baseTradeSpeed;
+    public static final ConfigValue<Integer>  importsPerLevel;
 
     static {
         BUILDER.push("marketplace");
@@ -142,7 +142,11 @@ public class MCTPConfig
 
         baseTradeSpeed = BUILDER
             .comment("Base trade speed per building level.")
-            .define("baseTradeSpeed", 2);
+            .define("baseTradeSpeed", 3);
+
+        importsPerLevel = BUILDER
+            .comment("Number of imports allowed per Station level.")
+            .define("importsPerLevel", 5);
             
         BUILDER.pop();
 

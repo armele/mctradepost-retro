@@ -2,9 +2,11 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.Utils;
@@ -46,9 +48,14 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
     private ItemStack itemStack;
 
     /**
-     * How many coins will this item be exchanged for?
+     * How many coins will these items be exchanged for?
      */
     private int cost;
+
+    /**
+     * How many items are we trading?
+     */
+    private int quantity;
 
     /**
      * Creates a Transfer Items request
@@ -57,7 +64,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
      * @param cost  coins being exchanged for
      * @param building  the building we're executing on.
      */
-    public TradeMessage(final IBuildingView building, TradeAction action, TradeType type, final StationData remoteStation, final ItemStack itemStack, final int cost)
+    public TradeMessage(final IBuildingView building, TradeAction action, TradeType type, final StationData remoteStation, final ItemStack itemStack, final int cost, final int quantity)
     {
         super(TYPE, building);
         if (remoteStation != null)
@@ -72,6 +79,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
         this.cost = cost;
         this.tradeAction = action;
         this.tradeType = type;
+        this.quantity = quantity;
     }
 
     protected TradeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
@@ -80,6 +88,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
         remoteStation = StationData.fromNBT(buf.readNbt());
         itemStack = Utils.deserializeCodecMess(buf);
         cost = buf.readInt();
+        quantity = buf.readInt();
         tradeAction = TradeAction.values()[buf.readInt()];
         tradeType = TradeType.values()[buf.readInt()];
     }
@@ -91,6 +100,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
         buf.writeNbt(remoteStation.toNBT());
         Utils.serializeCodecMess(buf, itemStack);
         buf.writeInt(cost);
+        buf.writeInt(quantity);
         buf.writeInt(tradeAction.ordinal());
         buf.writeInt(tradeType.ordinal());
     }
@@ -110,7 +120,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                 else
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
-                    building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost);
+                    building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost, quantity);
                 }
             }
         }
@@ -126,7 +136,29 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                 else
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add import."));
-                    building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost);
+                    building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost, quantity);
+                }
+                notifyAllStations();
+            }
+        }
+    }
+
+    /**
+     * Notifies all stations in all colonies by marking them dirty, which indicates
+     * that they require an update or reevaluation. This method iterates over all
+     * colonies and their buildings, checking each building to see if it is an
+     * instance of BuildingStation and not the current station. If conditions are
+     * met, the station is marked as dirty.
+     */
+    protected void notifyAllStations()
+    {
+        for (IColony colony : IColonyManager.getInstance().getAllColonies())
+        {
+            for (IBuilding checkbuilding : colony.getBuildingManager().getBuildings().values())
+            {
+                if (checkbuilding instanceof BuildingStation station)
+                {
+                    station.markDirty();
                 }
             }
         }

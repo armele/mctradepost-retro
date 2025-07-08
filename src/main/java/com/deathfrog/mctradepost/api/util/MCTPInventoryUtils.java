@@ -14,10 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.IBuilding;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
@@ -39,7 +37,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import static com.ldtteam.structurize.items.ModItems.buildTool;
 
 public class MCTPInventoryUtils
 {
@@ -221,4 +218,41 @@ public class MCTPInventoryUtils
 
         return true;
     };
+
+    /**
+     * Attempts to insert the given amount of the given item into the specified building.
+     * If any items cannot be inserted into the inventory, they will be dropped into the world.
+     * Items are inserted at their maximum stack size.
+     * @param building The building to insert into.
+     * @param itemToDeposit     The item to deposit.
+     * @param amountToDeposit   The amount of the item to deposit.
+     */
+    public static void InsertOrDropByQuantity(IBuilding building, ItemStorage itemToDeposit, int amountToDeposit) 
+    {
+        if (building == null || building.getItemHandlerCap() == null || itemToDeposit == null || itemToDeposit.getItemStack() == null) 
+        {
+            MCTradePostMod.LOGGER.warn("No building, building inventory or deposit item found attempting to deposit {} {} - this should not happen.", amountToDeposit, itemToDeposit);
+            return;
+        }
+
+        List<ItemStack> finalDeposit = new ArrayList<>();
+        int amountRemaining = amountToDeposit;
+
+        while (amountRemaining > 0) {
+            ItemStack deposit = itemToDeposit.getItemStack().copy();
+            deposit.setCount(Math.min(deposit.getMaxStackSize(), amountRemaining));
+            finalDeposit.add(deposit);
+            amountRemaining -= deposit.getCount();
+        }
+
+        for (ItemStack finalDepositItem : finalDeposit)
+        {
+            if (!InventoryUtils.addItemStackToItemHandler(building.getItemHandlerCap(), finalDepositItem))
+            {
+                MCTPInventoryUtils.dropItemsInWorld((ServerLevel) building.getColony().getWorld(), 
+                    building.getPosition(), 
+                    finalDepositItem);
+            }
+        }
+    }
 }

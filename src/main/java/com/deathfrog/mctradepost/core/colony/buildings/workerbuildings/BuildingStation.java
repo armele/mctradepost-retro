@@ -559,24 +559,19 @@ public class BuildingStation extends AbstractBuilding
      */
     public void completeExport(ExportData exportData)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
 
-        // Creates the final deposit and payment stacks.
-        ItemStack finalDeposit = new ItemStack(exportData.getItemStorage().getItem(), exportData.getMaxStackSize());
         ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
 
-        StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
-        StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, finalDeposit.getDescriptionId(), finalDeposit.getCount());
+        StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
 
         // Adds to the remote building inventory or drops on the ground if inventory is full.
-        if (!InventoryUtils.addItemStackToItemHandler(exportData.getDestinationStationData().getStation().getItemHandlerCap(), finalDeposit))
-        {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Target station inventory full - dropping in world."));
+        BuildingStation remoteStation = exportData.getDestinationStationData().getStation();
+ 
+        MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
 
-            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) exportData.getDestinationStationData().getStation().getColony().getWorld(), 
-                exportData.getDestinationStationData().getStation().getPosition(), 
-                finalDeposit);
-        }
+        remoteStation.createPickupRequest(remoteStation.getPickUpPriority());
 
         // Adds to the local building inventory or drops on the ground if inventory is full.
         if (!InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
@@ -591,7 +586,7 @@ public class BuildingStation extends AbstractBuilding
             exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
         
-        ICitizenData remoteWorker = exportData.getDestinationStationData().getStation().getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
         if (remoteWorker != null)
         {

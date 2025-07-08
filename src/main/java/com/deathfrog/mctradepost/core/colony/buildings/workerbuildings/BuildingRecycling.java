@@ -71,7 +71,7 @@ public class BuildingRecycling extends AbstractBuilding
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final String ITEMS_RECOVERED = "com.minecolonies.coremod.gui.townhall.stats.items_recovered";
+    public static final String ITEMS_RECOVERED = "items_recovered";
 
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
     public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING =

@@ -15,10 +15,12 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.util.MathUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
 
+import io.netty.util.internal.ThreadLocalRandom;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -40,6 +42,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * The cost tag name.
      */
     private static final String TAG_COST = "cost";
+
+    /**
+     * The cost tag name.
+     */
+    private static final String TAG_QUANTITY = "quantity";
 
     /**
      * The ship distance tag name.
@@ -89,13 +96,14 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             }
             ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
             int cost = compoundNBT.getInt(TAG_COST);
+            int quantity = compoundNBT.getInt(TAG_QUANTITY);
             int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
             int trackDistance = compoundNBT.getInt(TAG_TRACK_DISTANCE);
             int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
             boolean nsf = compoundNBT.getBoolean(TAG_NSF);
             if (station != null)
             {
-                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
+                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost, quantity);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
                 exportData.spawnCartForTrade();
@@ -122,8 +130,9 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         {
             final CompoundTag compoundNBT = new CompoundTag();
             compoundNBT.put("exportStation", exportData.getDestinationStationData().toNBT());
-            compoundNBT.put(NbtTagConstants.STACK, exportData.getItemStorage().getItemStack().saveOptional(provider));
+            compoundNBT.put(NbtTagConstants.STACK, exportData.getTradeItem().getItemStack().saveOptional(provider));
             compoundNBT.putInt(TAG_COST, exportData.getCost());
+            compoundNBT.putInt(TAG_QUANTITY, exportData.getQuantity());
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
             compoundNBT.putInt(TAG_TRACK_DISTANCE, exportData.getTrackDistance());
             compoundNBT.putInt(TAG_LAST_SHIP_DAY, exportData.getLastShipDay());
@@ -146,8 +155,9 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (ExportData exportData : exportList)
         {
             buf.writeNbt(exportData.getDestinationStationData().toNBT());
-            Utils.serializeCodecMess(buf, exportData.getItemStorage().getItemStack());
+            Utils.serializeCodecMess(buf, exportData.getTradeItem().getItemStack());
             buf.writeInt(exportData.getCost());
+            buf.writeInt(exportData.getQuantity());
             buf.writeInt(exportData.getShipDistance());
             buf.writeInt(exportData.getTrackDistance());
             buf.writeInt(exportData.getLastShipDay());
@@ -161,9 +171,9 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param itemStack the itemstack to add.
      * @param quantity  the quantity to add.
      */
-    public void addExport(StationData destinationStation, final ItemStack itemStack, final int cost)
+    public void addExport(StationData destinationStation, final ItemStack itemStack, final int cost, final int quantity)
     {
-        exportList.add(new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost));
+        exportList.add(new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost, quantity));
         markDirty();
     }
 
@@ -176,7 +186,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     {
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Pre-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
-        exportList.removeIf(exportData -> exportData.getDestinationStationData().equals(station) && exportData.getItemStorage().getItemStack().is(itemStack.getItem()));
+        exportList.removeIf(exportData -> exportData.getDestinationStationData().equals(station) && exportData.getTradeItem().getItemStack().is(itemStack.getItem()));
 
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Post-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
@@ -222,19 +232,25 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
+                // randomly mark dirty 20% of the time
+                if (ThreadLocalRandom.current().nextInt(5) == 0)
+                {
+                    markDirty();
+                }
+
                 if (exportData.getShipDistance() >= exportData.getTrackDistance())
                 {
                     ((BuildingStation) building).completeExport(exportData);
                 }
                 else
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getItemStorage().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
                 }
                 markDirty();
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} not shipping.", exportData.getItemStorage().getItem(), exportData.getCost()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} not shipping.", exportData.getTradeItem().getItem(), exportData.getCost()));
             }
         }
     }

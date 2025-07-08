@@ -189,25 +189,4 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
         worker.getCitizenData().setVisibleStatus(CRAFTING);
         return super.craft();
     }
-
-    /**
-     * Records the items crafted in the building statistics.
-     *
-     * @param request the request that was completed.
-     * @param recipe  the recipe that was used.
-     */
-    @Override
-    protected void recordCraftingBuildingStats(IRequest<?> request, IRecipeStorage recipe)
-    {
-        // MCTradePostMod.LOGGER.info("Recording bartender stats");
-        if (recipe == null)
-        {
-            return;
-        }
-
-        StatsUtil.trackStatByName(building,
-            ITEMS_CRAFTED_DETAIL,
-            recipe.getPrimaryOutput().getDescriptionId(),
-            recipe.getPrimaryOutput().getCount());
-    }
 }

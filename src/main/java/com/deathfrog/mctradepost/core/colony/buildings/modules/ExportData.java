@@ -15,22 +15,32 @@ import net.minecraft.world.item.ItemStack;
 
 public class ExportData
 {
+    public static final String TAG_COST = "cost";
+    public static final String TAG_QUANTITY = "quantity";
+
+    public record TradeDefinition(ItemStorage tradeItem, int price, int quantity)
+    {
+    };
+
     private final BuildingStation sourceStation;
     private final StationData destinationStationData;
-    private final ItemStorage itemStorage;
+    private final ItemStorage tradeItem;
     private final int cost;
+    private final int quantity;
     private int shipDistance = -1;
     private int trackDistance = -1;
     private int lastShipDay = -1;
     private boolean insufficientFunds = false;
     private GhostCartEntity cart = null;
 
-    public ExportData(BuildingStation sourceStation, StationData destinationStationData, ItemStorage itemStorage, int cost)
+
+    public ExportData(BuildingStation sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, int quantity)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
-        this.itemStorage = itemStorage;
+        this.tradeItem = tradeItem;
         this.cost = cost;
+        this.quantity = quantity;
         this.shipDistance = -1;
         this.trackDistance = -1;
         this.lastShipDay = -1;
@@ -45,6 +55,11 @@ public class ExportData
     public int getCost()
     {
         return cost;
+    }
+
+    public int getQuantity()
+    {
+        return quantity;
     }
 
     public int getShipDistance()
@@ -63,7 +78,7 @@ public class ExportData
     {
         GhostCartEntity cart =
             GhostCartEntity.spawn((ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld(), path);
-        cart.setTradeItem(this.getItemStorage().getItemStack());
+        cart.setTradeItem(this.getTradeItem().getItemStack());
         this.setCart(cart);
 
         return cart;
@@ -120,14 +135,14 @@ public class ExportData
         this.trackDistance = trackDistance;
     }
 
-    public ItemStorage getItemStorage()
+    public ItemStorage getTradeItem()
     {
-        return itemStorage;
+        return tradeItem;
     }
 
     public int getMaxStackSize()
     {
-        return itemStorage.getItemStack().getMaxStackSize();
+        return tradeItem.getItemStack().getMaxStackSize();
     }
 
     public int getLastShipDay()

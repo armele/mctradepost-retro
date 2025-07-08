@@ -4,6 +4,8 @@
 
 This add-on extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function. MineColonies base functionality is not altered. The team supporting MineColonies has created a great mod that has provided hours of fun, and inspired these small additions.
 
+__WARNING__: It has been reported that removing the Trade Post mod once it has been used in a colony causes the colony to become corrupt beyond repair. If you no longer want to use Trade Post I recommend you deconstruct the buildings but leave the jar file in place.
+
 MC Trade Post introduces an economic system which allows the selling of excess items for Trade Coins (‡). These coins are used for a variety of purposes, including making wishes at a wishing well, unlocking vacations and resorts at which your colonists can improve stats and get happier, unlocking a recycling center to turn your warehouse full of old parts into useful materials and other additional upgrades and features that will be added as the mod progresses.
 
 ### In-Game How-To
@@ -72,7 +74,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.14.002 -> MineColonies 1.1.1020 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.14.006 -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -129,7 +131,6 @@ Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rath
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
 Building: Marketplace - Autominting + Delivery to warehouse of coins?
-Building: Station - Research to increase number of trades supported per station level.
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
@@ -151,17 +152,19 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### In Testing
+Building: Station - Research to increase number of trades supported per station level. [Test]
 Station: Stats string corrections (connected track) [Test]
-Station: Helpful text when Connections and Exports tab are blank. [Test]
 Vacationers will still complain about needing stuff even when not on vacation. [Test]
 Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
+Station: Configuring imports should mark all stations as dirty (trigger export availability) [Test]
+Station: Export module view should update periodically while open. [Test]
+Station: After trade arrives, request pick-up by courier. [Test]
+Station: Only one stack per item per day is possible to import currently. This should be higher. [Test]
 
 ### Pending Resolution
-Station: Configuring imports should mark all stations as dirty (trigger export availability)
-Station: Export module view should update periodically while open.
-Station Master not currently walking the track.
+Station Master not currently walking the track. [Verify]
+Resort: Replace Yogurt as a remedy (stay independent of food system)
 Ivy Block types not previewable in Domum.
-Only one stack per item per day is possible to import currently. This should be higher.
 
 ### Low Priority Issues
 Tracing is global (rather than by colony)

@@ -1,6 +1,6 @@
 {
-    "name": "Fast Tracks",
-    "subtitle": "I need it NOW.",
+    "name": "Wheeler Dealer",
+    "subtitle": "Let's make a deal!",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/tourism",
@@ -19,8 +19,12 @@
     ],
     "costs": [
         {
-            "count": 64,
-            "item": "minecraft:powered_rail"        
+            "count": 4,
+            "item": "minecraft:chest_minecart"        
+        },
+        {
+            "count": 32,
+            "item": "minecraft:detector_rail"        
         },
         {
             "count": 15,
@@ -29,7 +33,7 @@
     ],
     "effects": [
         {
-            "id": "mctradepost:effects/tradespeed",
+            "id": "mctradepost:effects/tradecapacity",
             "level": 2
         }
     ],

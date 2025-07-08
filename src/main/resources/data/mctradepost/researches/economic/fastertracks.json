@@ -1,9 +1,9 @@
 {
-    "name": "Fast Tracks",
-    "subtitle": "I need it NOW.",
+    "name": "Faster Tracks",
+    "subtitle": "I need it YESTERDAY.",
     "branch": "economic",
-    "researchLevel": 3,
-    "parentResearch": "mctradepost:economic/tourism",
+    "researchLevel": 4,
+    "parentResearch": "mctradepost:economic/fasttracks",
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,
@@ -14,23 +14,23 @@
         {
             "type": "minecolonies:building",
             "building": "station",
-            "level": 3
+            "level": 5
         }
     ],
     "costs": [
         {
-            "count": 64,
+            "count": 128,
             "item": "minecraft:powered_rail"        
         },
         {
-            "count": 15,
+            "count": 30,
             "item": "mctradepost:mctp_coin"        
         }
     ],
     "effects": [
         {
             "id": "mctradepost:effects/tradespeed",
-            "level": 2
+            "level": 4
         }
     ],
     "icon": "mctradepost:blockhutstation"

@@ -129,8 +129,8 @@ dependencies {
 
     //compileOnly name: 'minecolonies-1.1.978-1.21.1-snapshot'  // use the actual filename without .jar
     //localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.978-1.21.1-snapshot.jar')
-    compileOnly name: 'minecolonies-1.1.1020-1.21.1-snapshot'
-    localRuntime files ('../Minecolonies/build/libs/minecolonies-1.1.1020-1.21.1-snapshot.jar')
+    compileOnly name: 'minecolonies-1.1.1025-1.21.1-snapshot'
+    localRuntime files ('../Minecolonies/build/libs/minecolonies-1.1.1025-1.21.1-snapshot.jar')
     
     compileOnly name: 'blockui-1.0.205-1.21.1'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/blockui-1.0.205-1.21.1.jar')    

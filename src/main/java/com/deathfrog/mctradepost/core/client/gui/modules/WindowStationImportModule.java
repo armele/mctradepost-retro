@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Button;
@@ -10,8 +11,6 @@ import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
-import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
@@ -35,6 +34,16 @@ public class WindowStationImportModule extends AbstractModuleWindow
      * Limit reached label.
      */
     private static final String LABEL_LIMIT_REACHED = "com.minecolonies.coremod.gui.trade.limitreached";
+
+    /**
+     * The price label
+     */
+    private static final String LABEL_PRICE = "resourcePrice";
+
+    /**
+     * The quantity label
+     */
+    private static final String LABEL_QUANTITY = "resourceQuantity";
 
     /**
      * Resource scrolling list.
@@ -79,11 +88,11 @@ public class WindowStationImportModule extends AbstractModuleWindow
     private void removeStock(final Button button)
     {
         final int row = resourceList.getListElementIndexByPane(button);
-        final Tuple<ItemStorage, Integer> tuple = moduleView.getImports().get(row);
+        final TradeDefinition selected = moduleView.getImports().get(row);
         moduleView.getImports().remove(row);
         new TradeMessage(buildingView,TradeMessage.TradeAction.REMOVE, TradeMessage.TradeType.IMPORT, null,
-            tuple.getA().getItemStack(),
-            moduleView.getProducer().getRuntimeID()).sendToServer();
+            selected.tradeItem().getItemStack(), selected.price(), selected.quantity()
+            ).sendToServer();
         updateTradeList();
     }
 
@@ -96,8 +105,7 @@ public class WindowStationImportModule extends AbstractModuleWindow
         {
             new WindowSelectImportResources(this,
                 (stack) -> true,
-                (stack, qty) -> new TradeMessage(buildingView, TradeMessage.TradeAction.ADD, TradeMessage.TradeType.IMPORT, null, stack, qty).sendToServer(),
-                true).open();
+                (stack, price, quantity) -> new TradeMessage(buildingView, TradeMessage.TradeAction.ADD, TradeMessage.TradeType.IMPORT, null, stack, price, quantity).sendToServer()).open();
         }
         else
         {
@@ -105,6 +113,11 @@ public class WindowStationImportModule extends AbstractModuleWindow
         }
     }
 
+    /**
+     * Called when the window is opened.
+     * 
+     * @see AbstractModuleWindow#onOpened()
+     */
     @Override
     public void onOpened()
     {
@@ -143,12 +156,14 @@ public class WindowStationImportModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
-                final ItemStack resource = moduleView.getImports().get(index).getA().getItemStack().copy();
-                resource.setCount(resource.getMaxStackSize());
+                final ItemStack resource = moduleView.getImports().get(index).tradeItem().getItemStack().copy();
+                resource.setCount(moduleView.getImports().get(index).quantity());
 
                 rowPane.findPaneOfTypeByID(RESOURCE_NAME, Text.class).setText(resource.getHoverName());
-                rowPane.findPaneOfTypeByID(QUANTITY_LABEL, Text.class)
-                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).getB())));
+                rowPane.findPaneOfTypeByID(LABEL_PRICE, Text.class)
+                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).price())));
+                rowPane.findPaneOfTypeByID(LABEL_QUANTITY, Text.class)
+                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).quantity())));
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);
             }
         });

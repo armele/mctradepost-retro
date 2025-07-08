@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.function.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
 {
 
     private static final String TRADE_COST_TOOLTIP = "com.minecolonies.coremod.gui.trade.price.tooltip";
+    private static final String TRADE_QUANTITY_TOOLTIP = "com.minecolonies.coremod.gui.trade.quantity.tooltip";
 
     /**
      * Static vars.
@@ -61,7 +63,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
     /**
      * The consumer that receives the block quantity.
      */
-    private final BiConsumer<ItemStack, Integer> consumer;
+    private final TriConsumer<ItemStack, Integer, Integer> consumer;
 
     /**
      * The filter string.
@@ -79,7 +81,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
      * @param origin the origin.
      * @param test   the testing predicate for the selector.
      */
-    public WindowSelectImportResources(final BOWindow origin, final Predicate<ItemStack> test, final BiConsumer<ItemStack, Integer> consumer, final boolean displayQty)
+    public WindowSelectImportResources(final BOWindow origin, final Predicate<ItemStack> test, final TriConsumer<ItemStack, Integer, Integer> consumer)
     {
         super(MCTradePostMod.MODID + ":gui/windowselectresfortrade.xml", origin);
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
@@ -91,11 +93,10 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
         priceInput.setText("1");
         PaneBuilders.tooltipBuilder().hoverPane(priceInput).build().setText(Component.translatable(TRADE_COST_TOOLTIP));
 
-        if (!displayQty)
-        {
-            this.findPaneOfTypeByID("price", TextField.class).hide();
-            this.findPaneOfTypeByID("pricelabel", Text.class).hide();
-        }
+        TextField quantityInput = this.findPaneOfTypeByID("quantity", TextField.class);
+        quantityInput.setText("64");
+        PaneBuilders.tooltipBuilder().hoverPane(quantityInput).build().setText(Component.translatable(TRADE_QUANTITY_TOOLTIP));
+
         this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(new ItemStack(Items.AIR));
         this.findPaneOfTypeByID("resourceName", Text.class).setText(new ItemStack(Items.AIR).getHoverName());
         this.test = test;
@@ -138,17 +139,27 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
     private void doneClicked()
     {
         final ItemStack to = this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).getItem();
-        int qty = 1;
+        int cost = 1;
         try
         {
-            qty = Integer.parseInt(this.findPaneOfTypeByID("price", TextField.class).getText());
+            cost = Integer.parseInt(this.findPaneOfTypeByID("price", TextField.class).getText());
         }
         catch (final NumberFormatException ex)
         {
-            Log.getLogger().warn("Invalid input in Selection BOWindow for Quantity, defaulting to 1!");
+            Log.getLogger().warn("Invalid input in Selection BOWindow for Cost, defaulting to 1!");
         }
 
-        this.consumer.accept(to, qty);
+        int quantity = 64;
+        try
+        {
+            quantity = Integer.parseInt(this.findPaneOfTypeByID("quantity", TextField.class).getText());
+        }
+        catch (final NumberFormatException ex)
+        {
+            Log.getLogger().warn("Invalid input in Selection BOWindow for Quantity, defaulting to 64!");
+        }
+
+        this.consumer.accept(to, cost, quantity);
         this.close();
     }
 

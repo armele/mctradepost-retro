@@ -11,6 +11,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStatio
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
@@ -24,7 +25,6 @@ import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
@@ -37,12 +37,10 @@ public class WindowStationExportModule extends AbstractModuleWindow
 {
     private static final String PANE_STATIONS = "stations";
     private static final String STATION_EXPORT_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationexport.xml";
-    private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
     BuildingStationExportModuleView moduleView = null;
-
-    protected List<ExportGui> potentialExportMap = new ArrayList<>();
-
+    List<ExportGui> potentialExportMap = new ArrayList<>();
+ 
     /**
      * Scrollinglist of the resources.
      */
@@ -76,17 +74,19 @@ public class WindowStationExportModule extends AbstractModuleWindow
         private boolean selected = false;
         private ItemStorage itemStorage = null;
         private Integer cost = null;
+        private Integer quantity = null;
         private int shipDistance = -1;
         private int trackDistance = -1;
         private int lastShipDay = -1;
         private boolean nsf = false;
 
-        ExportGui(StationData destinationStation, boolean selected, ItemStorage itemStorage, Integer cost)
+        ExportGui(StationData destinationStation, boolean selected, ItemStorage itemStorage, Integer cost, Integer quantity)
         {
             this.destinationStation = destinationStation;
             this.selected = selected;
             this.itemStorage = itemStorage;
             this.cost = cost;
+            this.quantity = quantity;
         }
 
         /**
@@ -148,6 +148,16 @@ public class WindowStationExportModule extends AbstractModuleWindow
         {
             return cost;
         } 
+
+        /**
+         * Retrieves the quantity of this export configuration.
+         * 
+         * @return the quantity of this export configuration.
+         */
+        public Integer getQuantity()
+        {
+            return quantity;
+        }
     }
 
     public WindowStationExportModule(IBuildingView buildingView, BuildingStationExportModuleView moduleView)
@@ -155,64 +165,22 @@ public class WindowStationExportModule extends AbstractModuleWindow
         super(buildingView, MCTradePostMod.MODID + STATION_EXPORT_WINDOW_RESOURCE_SUFFIX);
         this.buildingView = buildingView;
         this.moduleView = moduleView;
-        stations = ((StationView) buildingView).getStations();
         registerButton(TAG_BUTTON_TAKETRADE, this::takeTradeClicked);
 
         // MCTradePostMod.LOGGER.info("Configuring exports module window with {} connected stations.", stations.size());
 
-        for (StationData station : stations.values())
-        {
-            IBuildingView remoteStationView = IColonyManager.getInstance().getBuildingView(station.getDimension(), station.getBuildingPosition());
-            if (remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS) && !buildingView.getPosition().equals(remoteStationView.getPosition()))
-            {
-                List<Tuple<ItemStorage, Integer>> imports = remoteStationView.getModuleView(MCTPBuildingModules.IMPORTS).getImports();
-
-                for (Tuple<ItemStorage, Integer> importTuple : imports)
-                {
-                    potentialExportMap.add(new ExportGui(station, false, importTuple.getA(), importTuple.getB()));
-                }
-            }
-        }
-
-        for (ExportGui exportGui : potentialExportMap)
-        {
-            if (TrackConnectionStatus.CONNECTED.equals(exportGui.destinationStation.getTrackConnectionStatus()))
-            {
-                // MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
-
-                for (ExportData export : moduleView.getExportList())
-                {
-                    if (exportGui.isEnabled() && export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
-                        export.getItemStorage().getItemStack().is(exportGui.getItemStorage().getItem()) &&
-                        exportGui.cost.equals(export.getCost()))
-                    {
-                        exportGui.selected = true;
-                        exportGui.shipDistance = export.getShipDistance();
-                        exportGui.trackDistance = export.getTrackDistance();
-                        exportGui.lastShipDay = export.getLastShipDay();
-                        exportGui.nsf = export.isInsufficientFunds();
-                        break;
-                    }
-                }
-            }
-        }
 
         exportDisplayList = findPaneOfTypeByID(PANE_STATIONS, ScrollingList.class);
     }
-
+    
+    /**
+     * Called when the window is opened, this updates the list of potential exports based on the connected stations.
+     */
     @Override
     public void onOpened()
     {
         super.onOpened();
-
-        if (stations != null && !stations.isEmpty())
-        {
-            updatePotentialExports();
-        }
-        else
-        {
-            // MCTradePostMod.LOGGER.warn("Station list is empty or null.");
-        }
+        updatePotentialExports();
     }
 
     /**
@@ -227,12 +195,14 @@ public class WindowStationExportModule extends AbstractModuleWindow
             @Override
             public int getElementCount()
             {
+                refreshExportData();
                 return potentialExportMap.size();
             }
 
             @Override
             public void updateElement(final int index, final Pane rowPane)
             {
+                refreshExportData();
                 Pane helpPane = findPaneOfTypeByID("tabHelp", Text.class);
 
                 if (potentialExportMap == null || potentialExportMap.isEmpty())
@@ -263,6 +233,10 @@ public class WindowStationExportModule extends AbstractModuleWindow
                 location.setText(Component.literal(IColonyManager.getInstance()
                     .getColonyView(destinationStation.getColonyId(), destinationStation.getDimension())
                     .getName()));
+
+                final Text quantity = wrapperBox.findPaneOfTypeByID("quantity", Text.class);
+                location.setText(Component.literal(export.getQuantity().toString()));
+                PaneBuilders.tooltipBuilder().hoverPane(quantity).build().setText(Component.literal("Quantity: " + export.getQuantity().toString()));
 
                 final ItemIcon outputStackDisplay = rowPane.findPaneOfTypeByID("wantedItemStack", ItemIcon.class);
                 outputStackDisplay.setVisible(true);
@@ -322,9 +296,54 @@ public class WindowStationExportModule extends AbstractModuleWindow
                         exportSpecificHelp.setText(Component.literal("Check box to take offer."));
                     }
                 }
-
-
             }
+
+            /**
+             * Updates the list of stations that can be exported to and their associated costs and selection status.
+             */
+            protected void refreshExportData() 
+            {
+                Map<BlockPos, StationData> stations = ((StationView) buildingView).getStations();
+                potentialExportMap.clear();
+
+                for (StationData station : stations.values())
+                {
+                    IBuildingView remoteStationView = IColonyManager.getInstance().getBuildingView(station.getDimension(), station.getBuildingPosition());
+                    if (remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS) && !buildingView.getPosition().equals(remoteStationView.getPosition()))
+                    {
+                        List<TradeDefinition> imports = remoteStationView.getModuleView(MCTPBuildingModules.IMPORTS).getImports();
+
+                        for (TradeDefinition importEntry : imports)
+                        {
+                            potentialExportMap.add(new ExportGui(station, false, importEntry.tradeItem(), importEntry.price(), importEntry.quantity()));
+                        }
+                    }
+                }
+
+                for (ExportGui exportGui : potentialExportMap)
+                {
+                    if (TrackConnectionStatus.CONNECTED.equals(exportGui.destinationStation.getTrackConnectionStatus()))
+                    {
+                        // MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
+
+                        for (ExportData export : moduleView.getExportList())
+                        {
+                            if (exportGui.isEnabled() && export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                                export.getTradeItem().getItemStack().is(exportGui.getItemStorage().getItem()) &&
+                                exportGui.cost.equals(export.getCost()))
+                            {
+                                exportGui.selected = true;
+                                exportGui.shipDistance = export.getShipDistance();
+                                exportGui.trackDistance = export.getTrackDistance();
+                                exportGui.lastShipDay = export.getLastShipDay();
+                                exportGui.nsf = export.isInsufficientFunds();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
         });
     }
 
@@ -344,7 +363,8 @@ public class WindowStationExportModule extends AbstractModuleWindow
             TradeMessage.TradeType.EXPORT, 
             selectedTrade.getDestinationStation(), 
             selectedTrade.getItemStorage().getItemStack(), 
-            selectedTrade.getCost());
+            selectedTrade.getCost(),
+            selectedTrade.getQuantity());
 
         exportTrade.sendToServer();
     }

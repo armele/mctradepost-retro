@@ -9,8 +9,10 @@
     <itemicon id="resourceIcon" size="17 17" pos="70 1"/>
     <text id="resourceName" size="140 12" pos="100 4" color="white"/>
 
-    <input id="price" size="25 14" pos="200 2" maxlength="25"/>
-    <text id="pricelabel" label="$(com.minecolonies.coremod.gui.trade.price)" size="50 12" pos="235 4"/>
+    <input id="quantity" size="33 14" pos="210 2" maxlength="3"/>
+    <text id="quantitylabel" label="$(com.minecolonies.coremod.gui.trade.quantity)" size="10 14" pos="200 4"/>
+    <input id="price" size="22 14" pos="270 2" maxlength="2"/>
+    <text id="pricelabel" label="$(com.minecolonies.coremod.gui.trade.price)" size="50 12" pos="305 4"/>
 
     <list id="resources" size="300 120" pos="60 65">
         <box size="100% 17" linewidth="1">

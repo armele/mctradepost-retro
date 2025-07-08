@@ -1,12 +1,14 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationImportModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.Utils;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +20,7 @@ public class BuildingStationImportModuleView extends AbstractBuildingModuleView
     /**
      * The minimum stock.
      */
-    private List<Tuple<ItemStorage, Integer>> importList = new ArrayList<>();
+    private List<TradeDefinition> importList = new ArrayList<>();
 
     /**
      * If the stock limit was reached.
@@ -37,7 +39,7 @@ public class BuildingStationImportModuleView extends AbstractBuildingModuleView
         final int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
-            importList.add(new Tuple<>(new ItemStorage(Utils.deserializeCodecMess(buf)), buf.readInt()));
+            importList.add(new TradeDefinition(new ItemStorage(Utils.deserializeCodecMess(buf)), buf.readInt(), buf.readInt()));
         }
         reachedLimit = buf.readBoolean();
     }
@@ -54,7 +56,7 @@ public class BuildingStationImportModuleView extends AbstractBuildingModuleView
      *
      * @return a list of tuples, with the first element being the item storage and the second element being the amount.
      */
-    public List<Tuple<ItemStorage, Integer>> getImports()
+    public List<TradeDefinition> getImports()
     {
         return importList;
     }
@@ -70,14 +72,14 @@ public class BuildingStationImportModuleView extends AbstractBuildingModuleView
     }
 
     /**
-     * Gets the icon of the module to display in the GUI.
+     * Get the icon of the module.
      * 
      * @return the icon to show.
      */
-    @Override
-    public String getIcon()
+   @Override
+    public ResourceLocation getIconResourceLocation()
     {
-        return "stock";
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/modules/import.png");
     }
 
     /**

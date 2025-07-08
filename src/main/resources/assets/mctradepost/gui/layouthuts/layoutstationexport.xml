@@ -8,6 +8,7 @@
     <list id="stations" size="173 160" pos="12 40">
         <box id="stationx" size="100% 30" linewidth="1">
             <text id="location" size="100 11" pos="2 4" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="quantity" size="20 11" pos="80 4" textalign="MIDDLE_LEFT" color="black"/>
             <itemicon id="wantedItemStack" size="16 16" pos="102 2"/>
             <itemicon id="costStack" size="16 16" pos="120 2"/>
             <button id="takeTrade" pos="145 2" size="14 15"

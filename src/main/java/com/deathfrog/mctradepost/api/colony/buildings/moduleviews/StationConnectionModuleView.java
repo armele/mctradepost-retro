@@ -1,11 +1,14 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import org.jetbrains.annotations.NotNull;
+
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationConnectionModule;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Building statistic module.
@@ -24,9 +27,9 @@ public class StationConnectionModuleView extends AbstractBuildingModuleView
      * @return the icon to show.
      */
    @Override
-    public String getIcon()
+    public ResourceLocation getIconResourceLocation()
     {
-        return "requests";
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/modules/connections.png");
     }
 
     @Override

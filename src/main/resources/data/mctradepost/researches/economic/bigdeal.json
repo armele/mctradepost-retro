@@ -1,9 +1,9 @@
 {
-    "name": "Fast Tracks",
-    "subtitle": "I need it NOW.",
+    "name": "Big Deal",
+    "subtitle": "I'm kind of a big deal.",
     "branch": "economic",
-    "researchLevel": 3,
-    "parentResearch": "mctradepost:economic/tourism",
+    "researchLevel": 4,
+    "parentResearch": "mctradepost:economic/wheelerdealer",
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,
@@ -14,23 +14,27 @@
         {
             "type": "minecolonies:building",
             "building": "station",
-            "level": 3
+            "level": 5
         }
     ],
     "costs": [
         {
-            "count": 64,
-            "item": "minecraft:powered_rail"        
+            "count": 8,
+            "item": "minecraft:chest_minecart"        
         },
         {
-            "count": 15,
+            "count": 64,
+            "item": "minecraft:detector_rail"        
+        },
+        {
+            "count": 30,
             "item": "mctradepost:mctp_coin"        
         }
     ],
     "effects": [
         {
-            "id": "mctradepost:effects/tradespeed",
-            "level": 2
+            "id": "mctradepost:effects/tradecapacity",
+            "level": 4
         }
     ],
     "icon": "mctradepost:blockhutstation"

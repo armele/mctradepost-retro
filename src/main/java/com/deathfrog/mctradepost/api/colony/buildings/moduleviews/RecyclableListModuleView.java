@@ -3,11 +3,14 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 import java.util.ArrayList;
 import java.util.List;
 import org.jetbrains.annotations.NotNull;
+
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.api.util.Utils;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 
 public class RecyclableListModuleView extends ItemListModuleView
 {
@@ -25,9 +28,9 @@ public class RecyclableListModuleView extends ItemListModuleView
      * @return The icon to display.
      */
     @Override
-    public String getIcon()
+    public ResourceLocation getIconResourceLocation()
     {
-        return "info";
+        return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/modules/recycling.png");
     }
 
     /**
