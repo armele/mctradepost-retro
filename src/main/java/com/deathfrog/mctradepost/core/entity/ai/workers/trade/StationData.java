@@ -172,7 +172,7 @@ public class StationData
                 return now;
             }
 
-            lastChecked =  world.getGameTime();
+            now =  world.getGameTime();
         }
         catch (Exception e)
         {

@@ -227,6 +227,7 @@ public class BuildingStation extends AbstractBuilding
             if (server == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", remoteStation);
+                markDirty();
                 continue;
             }
 
@@ -235,6 +236,7 @@ public class BuildingStation extends AbstractBuilding
             if (level == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", remoteStation);
+                markDirty();
                 continue;
             }
 
@@ -243,6 +245,7 @@ public class BuildingStation extends AbstractBuilding
             if (stationColony == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", remoteStation);
+                markDirty();
                 continue;
             }
 
@@ -251,6 +254,7 @@ public class BuildingStation extends AbstractBuilding
             if (building == null || !(building instanceof BuildingStation)) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
+                markDirty();
                 continue;
             }
 
@@ -259,6 +263,7 @@ public class BuildingStation extends AbstractBuilding
                 TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
                     this.getRailStartPosition(), remoteStation.getRailStartPosition(), false);
                 putTrackConnectionResult(remoteStation, trackConnectionResult);
+                markDirty();
             }
         }
     }

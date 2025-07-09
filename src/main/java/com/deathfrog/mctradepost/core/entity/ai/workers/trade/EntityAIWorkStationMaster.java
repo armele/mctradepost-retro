@@ -26,13 +26,11 @@ import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
-import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -53,6 +51,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     public static final int BASE_XP_NEW_TRACK = 5;
     public static final int BASE_XP_EXISTING_TRACK = 1;
+    public static final int BASE_XP_SEND_SHIPMENT = 2;
 
     public static final Map<StationData, Integer> remoteStationMessageCooldown = new HashMap<>();
 
@@ -147,6 +146,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState findMatchingOffers() 
     {
+        if (!walkToBuilding())
+        {
+            setDelay(2);
+            return getState();
+        }
+
         if (building.getModule(MCTPBuildingModules.EXPORTS).exportCount() > 0)
         {
             for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
@@ -223,7 +228,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 }
                 else
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed to export {}.", exportData.getTradeItem()));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed to export {}: {}.", exportData.getTradeItem().getItem(), exportData.getQuantity()));
                     return AIWorkerState.GET_MATERIALS;
                 }
             }
@@ -305,11 +310,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 return AIWorkerState.START_WORKING;
             }
 
+            worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
             GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.path);
             if (cart == null) {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Could not spawn cart for export: {}", currentExport));
             }
 
+            building.markDirty();
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", currentExport));
 
             currentExport = null;
@@ -376,12 +383,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState checkConnection()
     {
-        if (!walkToBuilding())
-        {
-            setDelay(2);
-            return getState();
-        }
-
         if (currentRemoteStation != null)
         {
             TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
@@ -508,32 +509,27 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             final ArrayList<ItemStack> itemList = new ArrayList<>();
             for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
             {
-                final ItemStack itemStack = exportData.getTradeItem().getItemStack();
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Preparing order for {}.", itemStack));
+                int availableExportItemCount = availableCount(building, exportData.getTradeItem());
+
+                itemList.clear();
                 int quantity = exportData.getQuantity();
+                
+                int amountRemaining = quantity - availableExportItemCount;
 
-                while (quantity > 0)
+                while (amountRemaining > 0)
                 {
-                    final int count = Math.min(quantity, exportData.getTradeItem().getItemStack().getMaxStackSize());
-                    quantity -= count;
-                    itemList.add(new ItemStack(exportData.getTradeItem().getItemStack().getItem(), count));
+                    final ItemStack itemStack = exportData.getTradeItem().getItemStack().copy();
+
+                    int amountToTake = Math.min(itemStack.getMaxStackSize(), amountRemaining);
+                    itemStack.setCount(amountToTake);
+                    amountRemaining -= amountToTake;
+
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list.", itemStack));
+
+                    itemList.add(itemStack);
                 }
-            }
 
-            if (!itemList.isEmpty())
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Placing {} orders.", itemList.size()));
-
-                worker.getCitizenData()
-                    .createRequestAsync(new StackList(itemList,
-                        BuildingStation.EXPORT_ITEMS,
-                        Constants.STACKSIZE,
-                        16,
-                        0));
-            }
-            else
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("{} does not not need to place any orders.", worker.getCitizenData().getName()));
+                worker.getCitizenData().createRequestAsync(new StackList(itemList, BuildingStation.EXPORT_ITEMS, quantity));
             }
         }
         else

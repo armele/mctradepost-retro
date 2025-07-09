@@ -161,7 +161,7 @@ public class WindowStationImportModule extends AbstractModuleWindow
 
                 rowPane.findPaneOfTypeByID(RESOURCE_NAME, Text.class).setText(resource.getHoverName());
                 rowPane.findPaneOfTypeByID(LABEL_PRICE, Text.class)
-                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).price())));
+                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).price()) + "‡"));
                 rowPane.findPaneOfTypeByID(LABEL_QUANTITY, Text.class)
                     .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).quantity())));
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);

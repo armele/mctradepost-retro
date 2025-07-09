@@ -234,17 +234,22 @@ public class WindowStationExportModule extends AbstractModuleWindow
                     .getColonyView(destinationStation.getColonyId(), destinationStation.getDimension())
                     .getName()));
 
+                /*
                 final Text quantity = wrapperBox.findPaneOfTypeByID("quantity", Text.class);
-                location.setText(Component.literal(export.getQuantity().toString()));
+                quantity.setText(Component.literal(export.getQuantity().toString()));
                 PaneBuilders.tooltipBuilder().hoverPane(quantity).build().setText(Component.literal("Quantity: " + export.getQuantity().toString()));
+                */
 
                 final ItemIcon outputStackDisplay = rowPane.findPaneOfTypeByID("wantedItemStack", ItemIcon.class);
                 outputStackDisplay.setVisible(true);
-                outputStackDisplay.setItem(export.getItemStorage().getItemStack());
+                ItemStack stackDisplay = export.getItemStorage().getItemStack().copy();
+                stackDisplay.setCount(export.getQuantity());
+                outputStackDisplay.setItem(stackDisplay);
 
                 final ItemIcon costStackDisplay = rowPane.findPaneOfTypeByID("costStack", ItemIcon.class);
                 costStackDisplay.setVisible(true);
-                ItemStack stack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), export.getCost());
+                ItemStack stack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get());
+                stack.setCount(export.getCost());
                 costStackDisplay.setItem(stack);
 
                 final ButtonImage takeTradeButton = rowPane.findPaneOfTypeByID(TAG_BUTTON_TAKETRADE, ButtonImage.class);
@@ -303,13 +308,19 @@ public class WindowStationExportModule extends AbstractModuleWindow
              */
             protected void refreshExportData() 
             {
+                if (buildingView == null)
+                {
+                    MCTradePostMod.LOGGER.warn("Building view is null.");
+                    return;
+                }
+
                 Map<BlockPos, StationData> stations = ((StationView) buildingView).getStations();
                 potentialExportMap.clear();
 
                 for (StationData station : stations.values())
                 {
                     IBuildingView remoteStationView = IColonyManager.getInstance().getBuildingView(station.getDimension(), station.getBuildingPosition());
-                    if (remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS) && !buildingView.getPosition().equals(remoteStationView.getPosition()))
+                    if (remoteStationView != null && remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS) && !buildingView.getPosition().equals(remoteStationView.getPosition()))
                     {
                         List<TradeDefinition> imports = remoteStationView.getModuleView(MCTPBuildingModules.IMPORTS).getImports();
 

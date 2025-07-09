@@ -917,25 +917,7 @@ public class BuildingRecycling extends AbstractBuilding
                 whItems = MCTPInventoryUtils.contentsForBuilding(warehouse);
                 for (final Entry<ItemStorage> entry : whItems.object2IntEntrySet())
                 {
-                    ItemStack stack = entry.getKey().getItemStack();
-                    RecyclableRecord recyclableRecord = RecyclableRecord.fromStack(stack);
-
-                    if (recyclableRecord == null)
-                    {
-                        if (isRecyclable(stack))
-                        {
-                            recyclableRecord = new RecyclableRecord(true);
-
-                        }
-                        else
-                        {
-                            recyclableRecord = new RecyclableRecord(false);
-                        }
-                        
-                        stack.set(MCTPModDataComponents.RECYCLABLE_COMPONENT, recyclableRecord);
-                    }
-
-                    if (recyclableRecord.isRecyclable() && !pendingRecyclingQueue.contains(entry.getKey())) 
+                    if (!pendingRecyclingQueue.contains(entry.getKey())) 
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }
@@ -944,6 +926,35 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         markDirty();
+    }
+
+    /**
+     * Records whether the given item is recyclable or not, and returns the modified item stack.
+     * If the stack is not recyclable, the item stack is not modified.
+     * If the stack is recyclable, a RecyclableRecord component is added to the stack with isRecyclable set to true.
+     * @param stackToCheck the item stack to check and modify.
+     * @return the modified item stack.
+     */
+    public ItemStack recordRecyclability(ItemStack stackToCheck)
+    {
+        RecyclableRecord recyclableRecord = RecyclableRecord.fromStack(stackToCheck);
+
+        if (recyclableRecord == null)
+        {
+            if (isRecyclable(stackToCheck))
+            {
+                recyclableRecord = new RecyclableRecord(true);
+
+            }
+            else
+            {
+                recyclableRecord = new RecyclableRecord(false);
+            }
+            
+            stackToCheck.set(MCTPModDataComponents.RECYCLABLE_COMPONENT, recyclableRecord);
+        }
+
+        return stackToCheck;
     }
 
     /**

@@ -268,8 +268,10 @@
     "com.mctradepost.research.effects.blockhutmarketplace.description": "Allows building of the Marketplace.",
     "com.mctradepost.research.effects.blockhutrecycling.description": "Allows building of the Recycling Center.",
     "com.mctradepost.research.effects.disenchanting.description": "A chance to recover enchantments from recycled enchanted items.",
-    "com.mctradepost.research.effects.tourists": "Get visitors by rail.",
-    "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
+    "com.mctradepost.research.effects.tourists.description": "Get visitors by rail.",
+    "com.mctradepost.research.effects.tradecapacty.description": "Increase the amount of items that can be traded per building level.",
+    "com.mctradepost.research.effects.tradespeed.description": "Exports travel faster to their destination.",
+    "com.mctradepost.core.gui.modules.stationconnections.description": "Station Connections",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
@@ -286,7 +288,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.exports_shipped": "Exported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Tracks Validated: %d",
-    "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d %s",
     
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",

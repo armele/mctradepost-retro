@@ -11,19 +11,21 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 import org.jetbrains.annotations.NotNull;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
-    protected static Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "export_message", TradeMessage::new);
 
@@ -147,8 +149,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
      * Notifies all stations in all colonies by marking them dirty, which indicates
      * that they require an update or reevaluation. This method iterates over all
      * colonies and their buildings, checking each building to see if it is an
-     * instance of BuildingStation and not the current station. If conditions are
-     * met, the station is marked as dirty.
+     * instance of BuildingStation and marking it dirty if so.
      */
     protected void notifyAllStations()
     {
@@ -158,6 +159,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
             {
                 if (checkbuilding instanceof BuildingStation station)
                 {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of import changes.", station.getPosition()));
                     station.markDirty();
                 }
             }

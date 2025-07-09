@@ -2,6 +2,13 @@
   "replace": false,
   "values": [
     "mctradepost:marine_lapis",
-    "mctradepost:marine_lapis_brick"
+    "mctradepost:marine_lapis_brick",
+    "mctradepost:marine_lapis_stairs",
+    "mctradepost:marine_lapis_wall",
+    "mctradepost:marine_lapis_slab",
+    "mctradepost:marine_lapis_brick",
+    "mctradepost:marine_lapis_brick_stairs",
+    "mctradepost:marine_lapis_brick_wall",
+    "mctradepost:marine_lapis_brick_slab"
   ]
 }
