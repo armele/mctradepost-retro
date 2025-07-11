@@ -14,6 +14,7 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
+import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
@@ -93,6 +94,11 @@ public class BuildingMarketplace extends AbstractBuilding
      * Key for min remainder at warehouse.
      */
     public static final ISettingKey<IntSetting> MIN = new SettingKey<>(IntSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "warehousemin"));
+    
+    /**
+     * Key for autominting setting.
+     */
+    public static final ISettingKey<BoolSetting> AUTOMINT = new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "automint"));
 
     /**
      * Return a list of display shelves assigned to this hut.
@@ -313,31 +319,38 @@ public class BuildingMarketplace extends AbstractBuilding
 
     /**
      * Mints a given number of trade coins, removing the corresponding amount of value from the building's economy.
-     * @param player the player using the minting function (not used, but required for later potential functionality)
+     * 
+     * @param player      the player using the minting function (not used, but required for later potential functionality)
      * @param coinsToMint the number of coins to mint
      * @return a stack of the minted coins
      */
-    public ItemStack mintCoins(Player player, int coinsToMint) {
+    public ItemStack mintCoins(Player player, int coinsToMint)
+    {
         int coinValue = MCTPConfig.tradeCoinValue.get();
         ItemStack coinStack = ItemStack.EMPTY;
 
-        if (coinsToMint > 0) {
+        if (coinsToMint > 0)
+        {
             int valueToRemove = coinsToMint * coinValue;
 
             BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
-            if (valueToRemove < econ.getTotalBalance()) {
+            if (valueToRemove < econ.getTotalBalance())
+            {
                 coinStack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), coinsToMint);
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
                 econ.deposit(-valueToRemove);
-
-            } else {
-                MessageUtils.format("mctradepost.marketplace.nsf").sendTo(player);
+            }
+            else
+            {
+                if (player != null)
+                {
+                    MessageUtils.format("mctradepost.marketplace.nsf").sendTo(player);
+                }
             }
         }
 
         return coinStack;
-    }      
-
+    }
 
     /**
      * Deposits a given stack of trade coins into the building's economy, adding the corresponding amount of value to the economy.

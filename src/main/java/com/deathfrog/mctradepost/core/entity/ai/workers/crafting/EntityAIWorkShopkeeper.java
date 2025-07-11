@@ -4,9 +4,11 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.RequestUtil;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -14,7 +16,12 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCa
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.item.SouvenirItem;
+import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
@@ -22,6 +29,9 @@ import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
+import com.minecolonies.core.colony.buildings.modules.SettingsModule;
+import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
+import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.mojang.logging.LogUtils;
 import com.minecolonies.api.util.constant.Constants;
@@ -38,11 +48,13 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import java.util.Map;
+import java.util.Optional;
 import com.minecolonies.api.util.InventoryUtils;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.minecolonies.api.util.constant.Constants.*;
 import com.minecolonies.api.crafting.ItemStorage;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import static com.minecolonies.api.util.constant.StatisticsConstants.ITEM_USED;
 import static com.minecolonies.core.colony.buildings.modules.BuildingModules.STATS_MODULE;
@@ -57,7 +69,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
     public enum ShopkeeperState implements IAIState
     {
-        FILL_DISPLAYS, SELL_MERCHANDISE;
+        FILL_DISPLAYS, SELL_MERCHANDISE, MINT_COINS;
 
         @Override
         public boolean isOkayToEat()
@@ -118,6 +130,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/shopkeeper_commute.png"),
         "com.mctradepost.gui.visiblestatus.shopkeeper");
 
+    /*
+     * The number of coins to mint
+     */
+    private int coinsToMint = 0;
+
     /**
      * Constructor for the AI
      *
@@ -131,7 +148,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
             new AITarget<IAIState>(START_WORKING, this::decideWhatToDo, 10),
             new AITarget<IAIState>(ShopkeeperState.SELL_MERCHANDISE, this::sellFromDisplay, 5),
-            new AITarget<IAIState>(ShopkeeperState.FILL_DISPLAYS, this::fillDisplays, 10));
+            new AITarget<IAIState>(ShopkeeperState.FILL_DISPLAYS, this::fillDisplays, 10),
+            new AITarget<IAIState>(ShopkeeperState.MINT_COINS, this::mintCoins, 50));
         worker.setCanPickUpLoot(true);
     }
 
@@ -192,9 +210,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
-        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue); // Cash generated over all time.
-        building.getColony().getStatisticsManager()
-            .incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue, building.getColony().getDay());                // Current balance.
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue); // Cash generated
+                                                                                                                     // over all time.
+        building.getColony()
+            .getStatisticsManager()
+            .incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue, building.getColony().getDay());                // Current
+                                                                                                                     // balance.
     }
 
     /**
@@ -214,7 +235,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
         if (list.isEmpty())
         {
-            complain();
+            complain("entity.shopkeeper.noitems");
             return getState();
         }
 
@@ -278,6 +299,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         final BuildingMarketplace building = this.building;
 
+        coinsToMint = coinsNeededInColony();
+
+        if (coinsToMint > 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Coins are needed: {}", coinsToMint));
+            return ShopkeeperState.MINT_COINS;
+        }
+
         building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
@@ -327,6 +356,106 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         return START_WORKING;
     }
 
+    /**
+     * Mint coins for the shopkeeper if the econ settings allow it.
+     *
+     * @return the next state to transition to.
+     */
+    protected IAIState mintCoins()
+    {
+        SettingsModule settings = building.getModule(MCTPBuildingModules.ECON_SETTINGS);
+        Optional<BoolSetting> shouldMintCoins = settings.getOptionalSetting(BuildingMarketplace.AUTOMINT);
+
+        if (coinsToMint > 0 && shouldMintCoins.isPresent() && shouldMintCoins.get().getValue())
+        {
+            ItemStack stack = building.mintCoins(null, coinsToMint);
+
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
+                () -> LOGGER.info("Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", coinsToMint, stack));
+            
+            if (stack.isEmpty())
+            {
+                MessageUtils.format("mctradepost.marketplace.nsf").sendTo(building.getColony()).forAllPlayers();
+                settings.with(BuildingMarketplace.AUTOMINT, new BoolSetting(false));
+                return DECIDE;
+            }
+
+            coinsToMint = 0;
+
+            if (!InventoryUtils.addItemStackToProvider(building, stack))
+            {
+                if (!InventoryUtils.addItemStackToProvider(worker, stack))
+                {
+                    BuildingEconModule econ = building.getModule(MCTPBuildingModules.ECON_MODULE);
+                    econ.deposit(coinsToMint * MCTPConfig.tradeCoinValue.get());
+
+                    MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(building.getColony()).forAllPlayers();
+
+                    return DECIDE;
+                }
+            }
+            building.createPickupRequest(building.getPickUpPriority());
+        }
+
+        return DECIDE;
+    }
+
+    /**
+     * Counts the number of coins needed to fulfill open requests in the colony.
+     * 
+     * @return the number of coins needed
+     */
+    protected int coinsNeededInColony()
+    {
+        int coinsNeeded = 0;
+
+        for (IBuilding building : building.getColony().getBuildingManager().getBuildings().values())
+        {
+            ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(building, false);
+
+            // LOGGER.info("Building {} has open requests: {}", building.getBuildingDisplayName(), openRequests.size());
+
+            for (IRequest<?> request : openRequests)
+            {
+                if (request instanceof ItemStackRequest itemRequest)
+                {
+                    Stack stack = itemRequest.getRequest();
+
+                    // LOGGER.info("Stack Request: {}", stack.getStack());
+
+                    if (stack != null && stack.getStack().is(MCTradePostMod.MCTP_COIN_ITEM.get()))
+                    {
+                        coinsNeeded = coinsNeeded + stack.getStack().getCount();
+                    }
+                }
+                else
+                {
+                    // LOGGER.info("Ignoring Request: {}", request);
+                }
+            }
+        }
+
+        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount((IBuilding)building, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+
+        if (coinsNeeded > 0 && coinsOnHand >= coinsNeeded)
+        {
+            building.createPickupRequest(building.getPickUpPriority());
+        }
+        
+        coinsNeeded = Math.max(coinsNeeded - coinsOnHand, 0);
+        
+        // Also override the sellables module method to keep in the building anything that is being converted to a souvenir.
+
+        return coinsNeeded;
+    }
+
+    /**
+     * Evaluates the item frames on display shelves to determine if any are empty and available to be filled. If an empty frame is
+     * found, the AI state transitions to FILL_DISPLAYS for that frame's location. If no empty frames are found, the function returns
+     * null.
+     *
+     * @return the next state to transition to (FILL_DISPLAYS) if an empty frame is found, or null if none are available.
+     */
     private IAIState evaluateFramesForFilling()
     {
         // First pass: Find any empty item frame (considered available to fill)
@@ -538,7 +667,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 ItemStack souvenir = null;
 
                 // If the shopkeeper has gotten their hands on unsold souvenirs somehow, don't re-souvenir them.
-                if (placed.is(MCTradePostMod.SOUVENIR.get())) 
+                if (placed.is(MCTradePostMod.SOUVENIR.get()))
                 {
                     souvenir = placed;
                 }
@@ -550,8 +679,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 final ItemStack souvenirFinal = souvenir.copy();
 
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                    () -> LOGGER
-                        .info("Shopkeeper: Placing souvenir {} in display at {}", SouvenirItem.toString(souvenirFinal), currentTarget));
+                    () -> LOGGER.info("Shopkeeper: Placing souvenir {} in display at {}",
+                        SouvenirItem.toString(souvenirFinal),
+                        currentTarget));
 
                 frame.setItem(souvenir);                        // Show the item
                 displayCase.setStack(souvenir);                 // Record what the case is holding (for persistance)
@@ -581,12 +711,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * If the list of allowed items is empty, the AI will message all the officers of the colony asking for them to set the list.
      * Happens more or less once a day if the list is not filled
      */
-    private void complain()
+    private void complain(String complaint)
     {
         if (ticksToComplain <= 0)
         {
             ticksToComplain = TICKS_UNTIL_COMPLAIN;
-            MessageUtils.format("entity.shopkeeper.noitems").sendTo(building.getColony()).forAllPlayers();
+            MessageUtils.format(complaint).sendTo(building.getColony()).forAllPlayers();
         }
         else
         {

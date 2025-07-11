@@ -4,16 +4,25 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
+import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipe;
+import com.minecolonies.api.crafting.registry.CraftingType;
 import com.minecolonies.api.items.ModTags;
+import com.minecolonies.core.recipes.ArchitectsCutterCraftingType;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 /* Sets up crafting information for this mod's Minecolonies crafters.
  * ModTags.initCrafterRules() and its supporting constants are
  * not public, so this class reproduces some of that code.
  * 
  */
-public class MCTPCraftingSetup {
+public class MCTPCraftingSetup 
+{
+
     /**
      * Tag specifier for Products to Include
      */
@@ -38,7 +47,7 @@ public class MCTPCraftingSetup {
      * Tag specifier for Ingredients to include
      */
     private static final String DO_INGREDIENT = "_do_ingredient";
-    
+
     /**
      * Injects Minecolonies crafting rules for the Bartender (Marketplace).
      * This method is called by the mod's DeferredRegister callback.
@@ -46,6 +55,7 @@ public class MCTPCraftingSetup {
     public static void injectCraftingRules() 
     { 
         initCrafterRules(MCTPModJobs.BARTENDER_TAG);
+        initCrafterRules(MCTPModJobs.SHOPKEEPER_TAG);
     }
 
     /**

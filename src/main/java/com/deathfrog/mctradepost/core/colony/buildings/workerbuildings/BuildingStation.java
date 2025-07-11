@@ -21,7 +21,10 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -167,7 +170,6 @@ public class BuildingStation extends AbstractBuilding
         // LOGGER.info("Adding station to building: {}. There are now {} stations with data recorded.", sdata, stations.size());
     }
 
-
     /**
      * Checks if the given station is contained in the list of stations for this building.
      *
@@ -206,6 +208,30 @@ public class BuildingStation extends AbstractBuilding
         return stations.get(pos);
     }
 
+    /**
+     * Marks the trades as dirty, so that they will be re-sent to the client on the next update.
+     * This cascades to both the import and export modules.
+     * This is useful when the user changes the trade settings, so that the client can receive the
+     * updated trade data.
+     */
+    public void markTradesDirty()
+    {
+        markDirty();
+        BuildingStationImportModule imports = getModule(MCTPBuildingModules.IMPORTS);
+
+        if (imports != null)
+        {
+            imports.markDirty();
+        }
+
+        BuildingStationExportModule exports = getModule(MCTPBuildingModules.EXPORTS);
+
+        if (exports != null)
+        {
+            exports.markDirty();
+        }
+    }
+
 
     /**
      * Validates the stations that are connected to this station.
@@ -227,7 +253,7 @@ public class BuildingStation extends AbstractBuilding
             if (server == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", remoteStation);
-                markDirty();
+                markTradesDirty();
                 continue;
             }
 
@@ -236,7 +262,7 @@ public class BuildingStation extends AbstractBuilding
             if (level == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", remoteStation);
-                markDirty();
+                markTradesDirty();
                 continue;
             }
 
@@ -245,7 +271,7 @@ public class BuildingStation extends AbstractBuilding
             if (stationColony == null) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", remoteStation);
-                markDirty();
+                markTradesDirty();
                 continue;
             }
 
@@ -254,7 +280,7 @@ public class BuildingStation extends AbstractBuilding
             if (building == null || !(building instanceof BuildingStation)) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
-                markDirty();
+                markTradesDirty();
                 continue;
             }
 
@@ -263,7 +289,7 @@ public class BuildingStation extends AbstractBuilding
                 TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
                     this.getRailStartPosition(), remoteStation.getRailStartPosition(), false);
                 putTrackConnectionResult(remoteStation, trackConnectionResult);
-                markDirty();
+                markTradesDirty();
             }
         }
     }
@@ -555,6 +581,7 @@ public class BuildingStation extends AbstractBuilding
         return paymentRequests.poll();
     }
 
+
     /**
      * Completes a shipment of goods from this station to another station specified by the export data.
      * This method will add the goods to the remote station's inventory or drop them on the ground if the inventory is full.
@@ -575,6 +602,8 @@ public class BuildingStation extends AbstractBuilding
         BuildingStation remoteStation = exportData.getDestinationStationData().getStation();
  
         MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", remoteStation.getBuildingDisplayName(), remoteStation.getPosition()));
 
         remoteStation.createPickupRequest(remoteStation.getPickUpPriority());
 

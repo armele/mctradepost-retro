@@ -30,7 +30,7 @@
     "effects": [
         {
             "id": "mctradepost:effects/tradespeed",
-            "level": 4
+            "level": 2
         }
     ],
     "icon": "mctradepost:blockhutstation"

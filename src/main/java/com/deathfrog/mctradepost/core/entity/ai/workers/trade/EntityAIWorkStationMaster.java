@@ -132,6 +132,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if (currentExport != null)
         {
             building.getModule(MCTPBuildingModules.EXPORTS).removeExport(currentExport.getDestinationStationData(), currentExport.getTradeItem().getItemStack());
+            building.markTradesDirty();
             currentExport = null;
         }
         return AIWorkerState.START_WORKING;
@@ -154,6 +155,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         if (building.getModule(MCTPBuildingModules.EXPORTS).exportCount() > 0)
         {
+            int unsatisfiedNeeds = 0;
+
             for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
             {
                 if ((exportData.getShipDistance() >= 0) || (exportData.getLastShipDay() == building.getColony().getDay()))
@@ -192,6 +195,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 if ((availableRemoteFunds >= exportData.getCost()) && (remoteWorker != null))  
                 {
                     remoteHasFunds = true;
+                    exportData.setInsufficientFunds(false);
                 }
 
                 if (hasExports)
@@ -200,15 +204,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     {
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} and necessary funds are available - mark for shipment.", exportData.getTradeItem()));
                         currentExport = exportData;
-                        exportData.setInsufficientFunds(false);
 
                         return StationMasterStates.SEND_SHIPMENT;
                     }
                     else
                     {
-
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", exportData.getTradeItem()));
                         exportData.setInsufficientFunds(true);
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", exportData.getTradeItem()));
+
                         // Announce to the remote colony that the station does not have the required funds (with a cooldown)
                         int cooldown = remoteStationMessageCooldown.getOrDefault(exportData.getDestinationStationData(), 0);
                         if (cooldown == 0)
@@ -221,16 +224,20 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                         {
                             remoteStationMessageCooldown.put(exportData.getDestinationStationData(), cooldown - 1);
                         }         
-                        
-                        setDelay(2);
-                        return START_WORKING;
+                        building.markTradesDirty();
                     }
                 }
                 else
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed to export {}: {}.", exportData.getTradeItem().getItem(), exportData.getQuantity()));
-                    return AIWorkerState.GET_MATERIALS;
+                    unsatisfiedNeeds += 1;
                 }
+            }
+
+            if (unsatisfiedNeeds > 0)
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed for exports."));
+                return AIWorkerState.GET_MATERIALS;
             }
         }
         else
@@ -240,7 +247,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         }
 
         currentExport = null;
-        return AIWorkerState.IDLE;
+        return AIWorkerState.START_WORKING;
     }
 
     /**
@@ -316,7 +323,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Could not spawn cart for export: {}", currentExport));
             }
 
-            building.markDirty();
+            building.markTradesDirty();
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", currentExport));
 
             currentExport = null;
@@ -514,19 +521,24 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 itemList.clear();
                 int quantity = exportData.getQuantity();
                 
-                int amountRemaining = quantity - availableExportItemCount;
+                int amountStillNeeded = quantity - availableExportItemCount;
 
-                while (amountRemaining > 0)
+                while (amountStillNeeded > 0)
                 {
                     final ItemStack itemStack = exportData.getTradeItem().getItemStack().copy();
 
-                    int amountToTake = Math.min(itemStack.getMaxStackSize(), amountRemaining);
+                    int amountToTake = Math.min(itemStack.getMaxStackSize(), amountStillNeeded);
                     itemStack.setCount(amountToTake);
-                    amountRemaining -= amountToTake;
+                    amountStillNeeded -= amountToTake;
 
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list.", itemStack));
 
                     itemList.add(itemStack);
+                }
+
+                if (itemList.isEmpty())
+                {
+                    continue;
                 }
 
                 worker.getCitizenData().createRequestAsync(new StackList(itemList, BuildingStation.EXPORT_ITEMS, quantity));

@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.google.common.reflect.TypeToken;
@@ -19,11 +20,14 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+
+import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.Predicate;
 
-public class BuildingStationImportModule extends AbstractBuildingModule implements IPersistentModule
+public class BuildingStationImportModule extends AbstractBuildingModule implements IPersistentModule, IAltersRequiredItems
 {
     /**
      * The import tag name.
@@ -198,5 +202,22 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         }
 
         return false;
+    }
+
+    /**
+     * Modifies the items to be kept in the inventory. This method is called when the inventory is about to be cleared.
+     * If imports are configured, funds required to support configured imports are added to the list of items to be kept.
+     * Keeps up to 1 stack worth of trade coins.
+     * @param consumer The consumer to call for each item in the inventory.
+     */
+    @Override
+    public void alterItemsToBeKept(final TriConsumer<Predicate<ItemStack>, Integer, Boolean> consumer)
+    {
+        if(!importMap.isEmpty())
+        {
+            ItemStorage item = new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get());
+
+            consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true), item.getItemStack().getMaxStackSize(), false);
+        }
     }
 }

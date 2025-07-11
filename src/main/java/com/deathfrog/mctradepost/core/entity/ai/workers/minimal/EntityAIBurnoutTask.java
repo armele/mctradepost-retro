@@ -254,10 +254,10 @@ public class EntityAIBurnoutTask
      *
      * @return the AI state to transition to, either START_WORKING or VACATIONING.
      */
-    public IState cannotVacation()
+    protected IState cannotVacation()
     {
         // TODO: impact citizen happiness
-        TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Could not find a vacation location for {}.", citizen.getName()));
+        TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Unable to take a vacation: {}.", citizen.getName()));
         reset();
         return START_WORKING;
     }
@@ -277,7 +277,7 @@ public class EntityAIBurnoutTask
             if (vacationTracker.getResort().getGuestFile(citizen.getCivilianID()) == null)
             {
                 TraceUtils.dynamicTrace(TRACE_BURNOUT,
-                    () -> LOGGER.info("Removing out of date vacation tracker for {} (state {}).", citizen.getName()));
+                    () -> LOGGER.info("Removing out of date vacation tracker for {} (state {}).", citizen.getName(), vacationTracker.getState()));
                 vacationTracker.reset();
                 vacationTracker = null;
             }
@@ -308,6 +308,10 @@ public class EntityAIBurnoutTask
             }
             else
             {
+                TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                    () -> LOGGER.info("Resort full. {} cannot take a vacation.", citizen.getName()));
+                vacationTracker.reset();
+                vacationTracker = null;
                 return cannotVacation();
             }
         }

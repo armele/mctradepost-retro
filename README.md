@@ -73,7 +73,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.14.006 -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.14.009 -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -103,11 +103,13 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 A station building must include one or more rail blocks tagged with "station_start". These are used to determine whether or not a station is connected to other colonies for the purposes of trade. Once connected, you can configure what goods you want to import, or choose to satisfy other colonies' needs by exporting goods.
 
 ### Pet Shop
+No functional effect at this time. It will unlock all of the "Pets" capabilities in the roadmap below.
 
 ## Current Status
-This mod can best be described as an "early alpha" state. The functionality may change rapidly and without warning.
+This mod can best be described as in a "beta" state. Existing functionality is mostly stable, with tweaks and adjustments being made based on testing and feedback.
 
 ### Roadmap (Roughly Prioritized)
+Building: Station - Improve intelligence of trade item receipt (take only new incoming trade items)
 Building: Pet Shop (enables pet functions, pet-related colony roles.) [Non-functional hut exists]
 Pets - Building: Pet Houses
 Pets - Building Module: Set Owner
@@ -126,12 +128,13 @@ Job - Ritualist (can learn and perform rituals)
 Recycling: Cancel button for the processor
 Recycling: Add "Sort" module.
 Recycling: Incinerator mode.
+Recycling: Repair mode (identify damaged items and if the material they were created with is available in the recycling center OR multiple of the same type of item exist, repair the damage)
 Building: Resort - Add last vacation (x days ago) to citizen screen
 Add Happiness for Trade Post factors (like vacation, etc.)
 Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
+Building: Station - Link multiple trades at similiar positions on the track into one connected train. (Aesthetic)
 Building Effect: Happiness based on colony wealth per citizen  
 Item: In-Game Instructions
-Building: Marketplace - Autominting + Delivery to warehouse of coins?
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
@@ -156,14 +159,9 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 ### Fix Implemented - In Testing
 Building: Station - Research to increase number of trades supported per station level. [Test]
 Station: Stats string corrections (connected track) [Test]
-Vacationers will still complain about needing stuff even when not on vacation. [Test]
-Update /mctp resort clearvacations to set citizens to START_WORKING [Test]
+Vacationers will sometimes complain about needing stuff even when not on vacation. [Test]
 Station: Configuring imports should mark all stations as dirty (trigger export availability) [Test]
-Station: Export module view should update periodically while open. [Test]
 Station: After trade arrives, request pick-up by courier. [Test]
-Station: Only one stack per item per day is possible to import currently. This should be higher. [Test]
-Station Master not currently walking the track. [Test]
-Recycling Center: Causes lag spike with large warehouses. Refactor to eliminate recipe testing. [Test]
 
 ### Pending Resolution
 Ivy Block types not previewable in Domum.

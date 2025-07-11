@@ -109,6 +109,7 @@ public final class ModBuildingsInitializer
             stationBuilder.setBuildingViewProducer(() -> StationView::new);
             stationBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.STATION_ID));
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATIONMASTER_WORK);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATION_CONNECTION);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.IMPORTS);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.EXPORTS);

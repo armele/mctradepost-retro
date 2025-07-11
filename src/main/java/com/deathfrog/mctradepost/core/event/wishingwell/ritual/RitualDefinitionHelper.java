@@ -4,17 +4,15 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.StringUtils;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-
 import static com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler.RAIDER_TAG;
 
-public class RitualDefinitionHelper  
+public class RitualDefinitionHelper
 {
     protected String originatingModId;
     protected String fileName;
@@ -192,4 +190,5 @@ public class RitualDefinitionHelper
     {
         return this.ritualDefinition;
     }
+
 }

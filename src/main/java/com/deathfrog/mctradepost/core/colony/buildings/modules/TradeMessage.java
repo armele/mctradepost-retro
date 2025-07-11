@@ -160,7 +160,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                 if (checkbuilding instanceof BuildingStation station)
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of import changes.", station.getPosition()));
-                    station.markDirty();
+                    station.markTradesDirty();
                 }
             }
         }

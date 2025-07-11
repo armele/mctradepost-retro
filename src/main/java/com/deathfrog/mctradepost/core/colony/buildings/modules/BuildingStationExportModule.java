@@ -2,6 +2,9 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
+
+import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -12,10 +15,11 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingS
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
+import com.minecolonies.api.colony.buildings.modules.IAltersRequiredItems;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.MathUtils;
+import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
@@ -29,7 +33,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
-public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule
+public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule, IAltersRequiredItems
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -228,7 +232,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             if (shipDistance >= 0)
             { 
                 int tradeSpeedBonus = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADESPEED);  
-                shipDistance = shipDistance + (building.getBuildingLevel() * MCTPConfig.baseTradeSpeed.get()) * (tradeSpeedBonus + 1);
+                shipDistance = shipDistance + (building.getBuildingLevel() * MCTPConfig.baseTradeSpeed.get());
+
+                if (tradeSpeedBonus > 0)
+                {
+                    shipDistance = shipDistance * tradeSpeedBonus;
+                }
+
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
@@ -251,6 +261,25 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             else
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} not shipping.", exportData.getTradeItem().getItem(), exportData.getCost()));
+            }
+        }
+    }
+
+    /**
+     * Modifies the items to be kept in the inventory. This method is called when the inventory is about to be cleared.
+     * Any items expected to be exported are added to the list of items to be kept.
+     * @param consumer The consumer to call for each item in the inventory.
+     */
+    @Override
+    public void alterItemsToBeKept(final TriConsumer<Predicate<ItemStack>, Integer, Boolean> consumer)
+    {
+        if(!exportList.isEmpty())
+        {
+            for(ExportData data : exportList)
+            {
+                ItemStorage item = data.getTradeItem();
+                int quantity = data.getQuantity();
+                consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true), quantity, false);
             }
         }
     }

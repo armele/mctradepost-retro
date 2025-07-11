@@ -1,0 +1,19 @@
+{
+  "type": "recipe",
+  "crafter": "enchanter_custom",
+  "inputs": [
+    {
+      "count": 16,
+      "id": "minecraft:quartz"
+    },
+    {
+      "id": "mctradepost:mctp_coin"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "count": 16,
+    "id": "mctradepost:quartz_mortar"
+  },
+  "show-tooltip": true
+}

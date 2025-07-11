@@ -15,6 +15,11 @@
         </dropdown>
         <text size="70 11" pos="20 55" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.currentbalance)"/>
         <text size="60 11" pos="90 55" textalign="MIDDLE_RIGHT" color="black" id="currentbalance"/>
+
+        <button id="withdrawCoin" pos="154 51" size="14 15" label="‡" color="black"
+                        source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
+                        disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disable"/>
+
         <text size="70 11" pos="20 70" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.cash.generated)"/>
         <text size="60 11" pos="90 70" textalign="MIDDLE_RIGHT" color="black" id="totalcash"/>
         <text size="70 11" pos="20 85" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>

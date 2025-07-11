@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
@@ -13,7 +14,6 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -163,8 +163,34 @@ public class MCTPInventoryUtils
         }
     }
 
+
     /**
-     * Attempts to remove the given amount of the given item from the building and assigned worker's inventories.
+     * Counts the number of items in the given {@link ItemStorage} that are in the building's inventory and all of its assigned workers' inventories.
+     * 
+     * @param building     the building to check
+     * @param itemToCount  the item to count
+     * @return the count of the given item in the building and its assigned workers' inventories
+     */
+    public static int combinedInventoryCount(IBuilding building, ItemStorage itemToCount)
+    {
+        if (building == null || building.getItemHandlerCap() == null) 
+        {
+            return 0;
+        }
+
+        int buildingCount = InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(), stack -> Objects.equals(new ItemStorage(stack), itemToCount));
+        int workerCount = 0;
+
+        for (ICitizenData buildingWorker : building.getAllAssignedCitizen())
+        {
+            workerCount = workerCount + InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), stack -> Objects.equals(new ItemStorage(stack), itemToCount));
+        }
+
+        return buildingCount + workerCount;
+    }
+
+    /**
+     * Attempts to remove the given amount of the given item from the building and assigned workers' inventories.
      * Building inventory takes precendence.
      * 
      * @param buildingStation The building to deduct from.
@@ -182,10 +208,14 @@ public class MCTPInventoryUtils
             return false;
         }
 
-        int buildingCount = InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(), ExportData.hasExportItem(itemToDeduct));
-        ICitizenData buildingWorker = building.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        int buildingCount = InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(), stack -> Objects.equals(new ItemStorage(stack), itemToDeduct));
+        int workerCount = 0;
 
-        int workerCount = buildingWorker != null ? InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), ExportData.hasExportItem(itemToDeduct)) : 0;
+        for (ICitizenData buildingWorker : building.getAllAssignedCitizen())
+        {
+            workerCount = workerCount + InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), stack -> Objects.equals(new ItemStorage(stack), itemToDeduct));
+        }
+
 
         if (buildingCount + workerCount < amountToDeduct)
         {
@@ -205,15 +235,26 @@ public class MCTPInventoryUtils
 
         if (remainingNeed > 0)
         {
-            if ((workerCount >= remainingNeed) && (buildingWorker != null) && (buildingWorker.getInventory() != null))
+            for (ICitizenData buildingWorker : building.getAllAssignedCitizen())
             {
-                InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack(), remainingNeed);
+                workerCount = InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), stack -> Objects.equals(new ItemStorage(stack), itemToDeduct));
+                if ((workerCount >= remainingNeed) && (buildingWorker != null) && (buildingWorker.getInventory() != null))
+                {   
+                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack(), remainingNeed);
+                    remainingNeed = 0;
+                }
+                else
+                {
+                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack(), workerCount);
+                    remainingNeed = remainingNeed - workerCount;
+                }
             }
-            else
-            {
-                MCTradePostMod.LOGGER.warn("Not enough {} in worker inventory - this should not happen.", itemToDeduct);
-                return false;
-            }
+        }
+
+        if (remainingNeed > 0)
+        {
+            MCTradePostMod.LOGGER.warn("Partial removal of {} {} from building inventory and worker inventories - should not happen.", remainingNeed, itemToDeduct);
+            return false;
         }
 
         return true;

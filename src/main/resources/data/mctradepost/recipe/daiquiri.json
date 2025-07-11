@@ -9,7 +9,7 @@
       "item": "minecraft:sweet_berries"
     },
     {
-      "item": "minecraft:glass_bottle"
+      "item": "minecolonies:large_empty_bottle"
     },
     {
       "item": "minecraft:sugar"
@@ -19,7 +19,7 @@
     }
   ],
   "result": {
-    "count": 1,
+    "count": 8,
     "id": "mctradepost:daiquiri"
   }
 }

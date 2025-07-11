@@ -34,7 +34,7 @@
     "effects": [
         {
             "id": "mctradepost:effects/tradecapacity",
-            "level": 2
+            "level": 1
         }
     ],
     "icon": "mctradepost:blockhutstation"

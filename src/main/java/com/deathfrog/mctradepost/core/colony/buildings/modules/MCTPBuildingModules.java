@@ -85,7 +85,7 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> ECON_SETTINGS              =
       new BuildingEntry.ModuleProducer<>("marketplace_settings",
-        () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)),
+        () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)).with(BuildingMarketplace.AUTOMINT, new BoolSetting(true)),
         () -> SettingsModuleView::new);
 
     // TODO: [Enhancement] Customize the sellable item list to display the sell value.

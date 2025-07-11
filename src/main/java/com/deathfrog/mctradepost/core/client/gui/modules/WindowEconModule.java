@@ -2,6 +2,11 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.client.gui.modules.WindowStationExportModule.ExportGui;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
+import com.ldtteam.blockui.PaneBuilders;
+import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
@@ -10,10 +15,13 @@ import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.entity.monster.Witch;
 import net.minecraft.world.item.ItemStack;
 
 import java.text.NumberFormat;
 import java.util.*;
+
+import org.jetbrains.annotations.NotNull;
 
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
@@ -38,7 +46,8 @@ public class WindowEconModule extends AbstractModuleWindow
     public static final String COINS_MINTED = "coins.minted";
     public static final String CURRENT_BALANCE = "current_balance";
     public static final String PARTIAL_ECON_MODIFIER_NAME = "com.mctradepost.coremod.gui.econ.";
-
+    public static final String WITHDRAW_TOOLTIP = "com.mctradepost.coremod.gui.econ.withdraw.tooltip";
+    public static final String TAG_BUTTON_WITHDRAW_COIN = "withdrawCoin";
     /**
      * Util tags.
      */
@@ -47,6 +56,10 @@ public class WindowEconModule extends AbstractModuleWindow
     public WindowEconModule(IBuildingView building, IStatisticsManager statsManager) {
         super(building, MCTradePostMod.MODID + ECONWINDOW_RESOURCE_SUFFIX);
         this.statsManager = statsManager;
+
+        Button withdraw = findPaneOfTypeByID(TAG_BUTTON_WITHDRAW_COIN, Button.class);
+        registerButton(TAG_BUTTON_WITHDRAW_COIN, this::withdrawCoin);
+        PaneBuilders.tooltipBuilder().hoverPane(withdraw).build().setText(Component.translatable(WITHDRAW_TOOLTIP));
     }
 
     /**
@@ -141,5 +154,17 @@ public class WindowEconModule extends AbstractModuleWindow
             selectedInterval = temp;
             updateStats();
         }
+    }
+
+    /**
+     * On click withdraw one trade coin.
+     *
+     * @param button the clicked button.
+     */
+    private void withdrawCoin(@NotNull final Button button)
+    {
+        WithdrawMessage withdrawal = new WithdrawMessage(buildingView);
+        withdrawal.sendToServer();
+        updateStats();
     }
 }
