@@ -13,7 +13,7 @@
         {
             "type": "minecolonies:building",
             "building": "tavern",
-            "level": 3
+            "level": 1
         }
     ],
     "costs": [

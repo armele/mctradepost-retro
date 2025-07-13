@@ -408,6 +408,14 @@ public class MCTradePostMod
     public static final DeferredBlock<SlabBlock> WEATHERED_ROUGH_STONE_SLAB =
         BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new SlabBlock(WEATHERED_ROUGH_STONE.get().properties()));
 
+    public static final DeferredBlock<Block> MARINE_BASALT = BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> MARINE_BASALT_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_STAIRS_NAME,
+        () -> new StairBlock(MARINE_BASALT.get().defaultBlockState(), MARINE_BASALT.get().properties()));
+    public static final DeferredBlock<WallBlock> MARINE_BASALT_WALL =
+        BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_WALL_NAME, () -> new WallBlock(MARINE_BASALT.get().properties()));
+    public static final DeferredBlock<SlabBlock> MARINE_BASALT_SLAB =
+        BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new SlabBlock(MARINE_BASALT.get().properties()));
 
     /*
     * ITEMS (Block)
@@ -546,6 +554,18 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_BASALT_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_BASALT_NAME, () -> new BlockItem(MARINE_BASALT.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_BASALT_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_BASALT_STAIRS_NAME, () -> new BlockItem(MARINE_BASALT_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_BASALT_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_BASALT_WALL_NAME, () -> new BlockItem(MARINE_BASALT_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> MARINE_BASALT_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new BlockItem(MARINE_BASALT_SLAB.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -844,6 +864,10 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_WALL.get());
                     event.accept(MCTradePostMod.WEATHERED_ROUGH_STONE_SLAB.get());	
+                    event.accept(MCTradePostMod.MARINE_BASALT.get());
+                    event.accept(MCTradePostMod.MARINE_BASALT_STAIRS.get());
+                    event.accept(MCTradePostMod.MARINE_BASALT_WALL.get());
+                    event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());		
                 }
             });
 

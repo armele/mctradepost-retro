@@ -126,6 +126,15 @@
     "block.mctradepost.weathered_rough_stone_wall": "Weathered Rough Stone Wall",
     "block.mctradepost.weathered_rough_stone_slab": "Weathered Rough Stone Slab",
     
+    "item.mctradepost.marine_basalt": "Marine Basalt Brick",
+    "item.mctradepost.marine_basalt_stairs": "Marine Basalt Brick Stairs",
+    "item.mctradepost.marine_basalt_wall": "Marine Basalt Brick Wall",
+    "item.mctradepost.marine_basalt_slab": "Marine Basalt Brick Slab",
+    "block.mctradepost.marine_basalt": "Marine Basalt Brick",
+    "block.mctradepost.marine_basalt_stairs": "Marine Basalt Brick Stairs",
+    "block.mctradepost.marine_basalt_wall": "Marine Basalt Brick Wall",
+    "block.mctradepost.marine_basalt_slab": "Marine Basalt Brick Slab",
+
     "item.mctradepost.ivy_brick": "Ivy Brick",
     "block.mctradepost.ivy_brick": "Ivy Brick",
 

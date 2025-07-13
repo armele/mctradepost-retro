@@ -132,7 +132,7 @@ public class EntityAIBurnoutTask
 
         if (skillToHeal == null)
         {
-            LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal.");
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Citizen " + citizen.getName() + " has no skill to heal."));
         }
 
         ITickRateStateMachine<IState> ai = citizen.getCitizenAI();
@@ -338,30 +338,38 @@ public class EntityAIBurnoutTask
             return false;
         }
 
+        // No vacations during raids.
+        if (citizen.getCitizenColonyHandler().getColonyOrRegister().getRaiderManager().isRaided())
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No vacations during raids: {}", citizen));
+            reset();
+            return false;
+        }
+
         if (citizenData.getCitizenDiseaseHandler().isSick())
         {
-            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No vacations while sick."));
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No vacations while sick: {}", citizen));
             reset();
             return false;
         }
 
         if (citizenData.getWorkBuilding() instanceof BuildingResort)
         {
-            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers don't take vacations."));
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers don't take vacations: {}", citizen));
             reset();
             return false;
         }
 
         if (vacationTracker != null && vacationTracker.getState() != Vacationer.VacationState.CHECKED_OUT)
         {
-            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Continuing an interrupted vacation..."));
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Continuing an interrupted vacation: {}", citizen));
             return true;
         }
 
         if (isResistedAds(citizenData.getColony().getDay()))
         {
-            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("{} resisted ads {}. Today is {}...", 
-                citizen.getName(), dayLastResisted, citizenData.getColony().getDay()));
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resisted ads {}. Today is {}: {}", 
+                dayLastResisted, citizenData.getColony().getDay(), citizen));
             return false;
         }
 
@@ -376,7 +384,7 @@ public class EntityAIBurnoutTask
         // This probably means they are unemployed - no need for a vacation!
         if (skillToHeal == null)
         {
-            LOGGER.warn("Citizen " + citizen.getName() + " has no skill to heal.");
+            LOGGER.info("No skill to heal: {}", citizen);
             reset();
             return false;
         }
@@ -386,7 +394,7 @@ public class EntityAIBurnoutTask
             if (currentSkillLevel >= VACATION_IMMUNITY_THRESHOLD)
             {
                 TraceUtils.dynamicTrace(TRACE_BURNOUT,
-                    () -> LOGGER.info("This citizen doesn't need a vacation - they're doing great: {}", citizen.getName()));
+                    () -> LOGGER.info("This citizen doesn't need a vacation - they're doing great: {}", citizen));
 
                 reset();
                 return false;

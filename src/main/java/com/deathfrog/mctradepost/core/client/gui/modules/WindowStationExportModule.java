@@ -10,10 +10,13 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage.TradeType;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.blockui.Pane;
@@ -25,9 +28,14 @@ import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
+import com.minecolonies.core.colony.ColonyManager;
+import com.minecolonies.core.network.messages.server.colony.building.MarkBuildingDirtyMessage;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -172,6 +180,17 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
         exportDisplayList = findPaneOfTypeByID(PANE_STATIONS, ScrollingList.class);
     }
+
+    /**
+     * Asks the server to mark all stations as dirty. This is necessary because the station window
+     * needs to know which stations are available to send resources to, and the station window is opened on the client
+     * so we need to communicate to the server which stations we have.
+     */
+    protected void signalForStationData()
+    {       
+        new TradeMessage(buildingView, TradeType.QUERY).sendToServer();
+    }
+
     
     /**
      * Called when the window is opened, this updates the list of potential exports based on the connected stations.
@@ -180,6 +199,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
     public void onOpened()
     {
         super.onOpened();
+        signalForStationData();
         updatePotentialExports();
     }
 

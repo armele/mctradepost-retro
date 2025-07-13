@@ -9,6 +9,7 @@ import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
@@ -93,7 +94,15 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
                 wrapperBox.setSize(wrapperBox.getParent().getWidth(), wrapperBox.getHeight());
 
                 final Text location = wrapperBox.findPaneOfTypeByID("location", Text.class);
-                location.setText(Component.literal(IColonyManager.getInstance().getColonyView(station.getColonyId(), station.getDimension()).getName()));
+                IColonyView colonyView = IColonyManager.getInstance().getColonyView(station.getColonyId(), station.getDimension());
+                if (colonyView != null) 
+                {
+                    location.setText(Component.literal(colonyView.getName()));
+                }
+                else
+                {
+                    location.setText(Component.literal("Unknown Colony (ID: " + station.getColonyId() + ", Dimension: " + station.getDimension() + ")"));
+                }
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
                 status.setText(Component.literal(station.getTrackConnectionStatus().toString()));

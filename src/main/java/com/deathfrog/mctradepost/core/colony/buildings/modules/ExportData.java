@@ -8,6 +8,8 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import com.minecolonies.api.crafting.ItemStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -76,8 +78,10 @@ public class ExportData
      */
     public GhostCartEntity spawnCartForTrade(List<BlockPos> path)
     {
+        if (path == null || path.isEmpty()) return null;
+
         GhostCartEntity cart =
-            GhostCartEntity.spawn((ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld(), path);
+            GhostCartEntity.spawn((ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld(), ImmutableList.copyOf(path));
         cart.setTradeItem(this.getTradeItem().getItemStack());
         this.setCart(cart);
 

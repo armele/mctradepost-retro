@@ -119,8 +119,9 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.FIND_MATCHING_OFFERS;
         }
 
-        EntityNavigationUtils.walkToRandomPos(worker, 10, 0.6D);
-        return AIWorkerState.IDLE;
+        EntityNavigationUtils.walkToRandomPos(worker, 15, 0.6D);
+
+        return AIWorkerState.DECIDE;
     }
 
     /**
@@ -135,7 +136,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             building.markTradesDirty();
             currentExport = null;
         }
-        return AIWorkerState.START_WORKING;
+
+        return StationMasterStates.FIND_MATCHING_OFFERS;
     }
 
     /**
@@ -247,7 +249,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         }
 
         currentExport = null;
-        return AIWorkerState.START_WORKING;
+        return AIWorkerState.DECIDE;
     }
 
     /**
@@ -307,14 +309,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
                     currentExport = null;
                     incrementActionsDoneAndDecSaturation();
-                    return AIWorkerState.START_WORKING;
+                    return AIWorkerState.DECIDE;
                 } 
             }
             else
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No longer enough {} in worker inventory to ship.", currentExport.getTradeItem().getItem()));
                 currentExport = null;
-                return AIWorkerState.START_WORKING;
+                return AIWorkerState.DECIDE;
             }
 
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
@@ -329,7 +331,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             currentExport = null;
         }
         
-        return AIWorkerState.START_WORKING;
+        return AIWorkerState.DECIDE;
     }
 
     /**
@@ -431,11 +433,16 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         return StationMasterStates.WALK_THE_TRACK;
     }
 
+
     /**
-     * Walks the track to validate its existence. If the track is fully validated, returns START_WORKING state.
-     * Otherwise, returns StationMasterStates.WALK_THE_TRACK state.
+     * Walks the station master along the track to simulate verifying the connection.
+     * If there is no track to check, transitions to the DECIDE state.
+     * Otherwise, the station master moves to the next target position on the track.
+     * If the target position is outside the colony borders, the process is stopped 
+     * and transitions to the DECIDE state. Otherwise, continues walking the track.
      *
-     * @return the next AI state to transition to.
+     * @return the next AI state to transition to, either continuing to walk the track
+     *         or deciding the next action if the track is complete or invalid.
      */
     private IAIState walkTheTrack()
     {
@@ -495,7 +502,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         currentFundRequest = null;
 
         setDelay(2);
-        return START_WORKING;
+        return DECIDE;
     }
 
     /**
@@ -550,7 +557,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         }
 
         setDelay(2);
-        return START_WORKING;
+        return DECIDE;
     }
 
     /**

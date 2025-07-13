@@ -4,6 +4,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.modules.*;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
@@ -64,7 +65,11 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         if (importMap.containsKey(tradeItem) || importMap.size() < allowedTrades())
         {
             importMap.put(tradeItem, new TradeDefinition(tradeItem, cost, quantity));
-            markDirty();
+            
+            if (building instanceof BuildingStation station)
+            {
+                station.markTradesDirty();
+            }
         }
     }
 
@@ -85,7 +90,10 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
             building.getColony().getRequestManager().updateRequestState(token, RequestState.CANCELLED);
         }
 
-        markDirty();
+        if (building instanceof BuildingStation station)
+        {
+            station.markTradesDirty();
+        }
     }
 
     /**

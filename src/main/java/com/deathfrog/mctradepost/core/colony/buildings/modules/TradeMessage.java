@@ -4,9 +4,9 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.Utils;
@@ -31,12 +31,12 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 
     public enum TradeAction
     {
-        ADD, REMOVE
+        ADD, REMOVE, QUERY
     }
 
     public enum TradeType
     {
-        IMPORT, EXPORT
+        IMPORT, EXPORT, QUERY
     }
 
     private TradeAction tradeAction;
@@ -66,7 +66,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
      * @param cost  coins being exchanged for
      * @param building  the building we're executing on.
      */
-    public TradeMessage(final IBuildingView building, TradeAction action, TradeType type, final StationData remoteStation, final ItemStack itemStack, final int cost, final int quantity)
+    public TradeMessage(final IBuildingView building, TradeAction action, TradeType tradeType, final StationData remoteStation, final ItemStack itemStack, final int cost, final int quantity)
     {
         super(TYPE, building);
         if (remoteStation != null)
@@ -80,8 +80,17 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
         this.itemStack = itemStack;
         this.cost = cost;
         this.tradeAction = action;
-        this.tradeType = type;
+        this.tradeType = tradeType;
         this.quantity = quantity;
+    }
+
+    public TradeMessage(final IBuildingView building, TradeType tradeType)
+    {
+        super(TYPE, building);
+        this.tradeType = tradeType;
+        this.remoteStation = StationData.EMPTY;
+        this.itemStack = ItemStack.EMPTY;
+        this.tradeAction = TradeAction.QUERY;
     }
 
     protected TradeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
@@ -110,57 +119,69 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
     @Override
     protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
-        if (tradeType == TradeType.EXPORT)
+        switch (tradeType)
         {
-            if (building.hasModule(MCTPBuildingModules.EXPORTS))
-            {
-                if (tradeAction == TradeAction.REMOVE)
+            case EXPORT:
+                if (building.hasModule(MCTPBuildingModules.EXPORTS))
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove export."));
-                    building.getModule(MCTPBuildingModules.EXPORTS).removeExport(remoteStation, itemStack);
+                    if (tradeAction == TradeAction.REMOVE)
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove export."));
+                        building.getModule(MCTPBuildingModules.EXPORTS).removeExport(remoteStation, itemStack);
+                    }
+                    else
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
+                        building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost, quantity);
+                    }
+                    notifyConnectedStations(building, player);
                 }
-                else
+                break;
+
+            case IMPORT:
+                if (building.hasModule(MCTPBuildingModules.IMPORTS))
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
-                    building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost, quantity);
+                    if (tradeAction == TradeAction.REMOVE)
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove import."));
+                        building.getModule(MCTPBuildingModules.IMPORTS).removeImport(itemStack);
+                    }
+                    else
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add import."));
+                        building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost, quantity);
+                    }
+                    notifyConnectedStations(building, player);
                 }
-            }
-        }
-        else 
-        {
-            if (building.hasModule(MCTPBuildingModules.IMPORTS))
-            {
-                if (tradeAction == TradeAction.REMOVE)
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to remove import."));
-                    building.getModule(MCTPBuildingModules.IMPORTS).removeImport(itemStack);
-                }
-                else
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add import."));
-                    building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost, quantity);
-                }
-                notifyAllStations();
-            }
+                break;
+
+            case QUERY:
+                notifyConnectedStations(building, player);
+                break;
+
         }
     }
 
     /**
-     * Notifies all stations in all colonies by marking them dirty, which indicates
-     * that they require an update or reevaluation. This method iterates over all
-     * colonies and their buildings, checking each building to see if it is an
-     * instance of BuildingStation and marking it dirty if so.
+     * Notifies connected stations by marking them dirty (which indicates
+     * that they require an update or reevaluation) and subscribing the player
+     * who initiated this message as to the remote colony view.
      */
-    protected void notifyAllStations()
+    protected void notifyConnectedStations(IBuilding building, final ServerPlayer player)
     {
-        for (IColony colony : IColonyManager.getInstance().getAllColonies())
+        if (building instanceof BuildingStation station)
         {
-            for (IBuilding checkbuilding : colony.getBuildingManager().getBuildings().values())
+
+            for (StationData remoteStationData : station.getStations().values())
             {
-                if (checkbuilding instanceof BuildingStation station)
+                if (remoteStationData.getStation() != null && remoteStationData.getTrackConnectionStatus() == TrackConnectionStatus.CONNECTED)
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of import changes.", station.getPosition()));
-                    station.markTradesDirty();
+                    BuildingStation remoteStation = remoteStationData.getStation();
+                    remoteStation.markTradesDirty();
+                    IColony colony = remoteStation.getColony();
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));
+
+                    colony.getPackageManager().addCloseSubscriber(player);
                 }
             }
         }

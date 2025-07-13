@@ -109,8 +109,9 @@ No functional effect at this time. It will unlock all of the "Pets" capabilities
 This mod can best be described as in a "beta" state. Existing functionality is mostly stable, with tweaks and adjustments being made based on testing and feedback.
 
 ### Roadmap (Roughly Prioritized)
-Building: Station - Improve intelligence of trade item receipt (take only new incoming trade items)
+Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
 Building: Pet Shop (enables pet functions, pet-related colony roles.) [Non-functional hut exists]
+Achievements
 Pets - Building: Pet Houses
 Pets - Building Module: Set Owner
 Pets - Building Module: Set Ability

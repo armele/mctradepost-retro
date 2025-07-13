@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:marine_basalt"
+    }
+  },
+  "result": {
+    "id": "mctradepost:marine_basalt_slab",
+    "count": 6
+  }
+}
