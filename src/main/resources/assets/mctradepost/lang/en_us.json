@@ -303,7 +303,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.recycling_stat": "Items Recycled: %d",
     "com.minecolonies.coremod.gui.townhall.stats.exports_shipped": "Exported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
-    "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Tracks Validated: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Track Validations: %d",
     "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d %s",
     
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",

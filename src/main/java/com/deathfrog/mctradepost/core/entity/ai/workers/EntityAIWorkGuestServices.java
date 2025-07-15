@@ -142,9 +142,12 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest services has something to distribute: {}", remedy));
-                somethingToHandOut = true;
-                guest.setState(VacationState.REQUESTED);
+                if (InventoryUtils.hasItemInItemHandler(vacationingCitizen.getInventoryCitizen(), Vacationer.hasRemedyItem(remedy)))
+                {
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest services has something to distribute: {}", remedy));
+                    somethingToHandOut = true;
+                    guest.setState(VacationState.REQUESTED);
+                }
             }
         }
 
