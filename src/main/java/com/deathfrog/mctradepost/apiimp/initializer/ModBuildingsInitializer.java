@@ -109,7 +109,7 @@ public final class ModBuildingsInitializer
             stationBuilder.setBuildingViewProducer(() -> StationView::new);
             stationBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.STATION_ID));
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATIONMASTER_WORK);
-            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
+            stationBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATION_CONNECTION);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.IMPORTS);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.EXPORTS);
@@ -126,6 +126,7 @@ public final class ModBuildingsInitializer
             petShopBuilder.setBuildingProducer(BuildingPetshop::new);
             petShopBuilder.setBuildingViewProducer(() -> PetshopView::new);
             petShopBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.PETSHOP_ID));
+            petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.ANIMALTRAINER_WORK);
             petShopBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
 
             ModBuildings.petshop = petShopBuilder.createBuildingEntry();

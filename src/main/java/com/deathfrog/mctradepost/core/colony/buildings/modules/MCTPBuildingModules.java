@@ -99,6 +99,11 @@ public class MCTPBuildingModules
         () -> new WorkerBuildingModule(MCTPModJobs.stationmaster.get(), Skill.Knowledge, Skill.Focus, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> ANIMALTRAINER_WORK          =
+      new BuildingEntry.ModuleProducer<>("animaltrainer_work", 
+        () -> new WorkerBuildingModule(MCTPModJobs.animaltrainer.get(), Skill.Dexterity, Skill.Athletics, false, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
+
    public static final BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView> STATION_CONNECTION     =
       new BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView>("station_connection", () -> new BuildingStationConnectionModule(), () -> StationConnectionModuleView::new);
 

@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobBartender;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobRecyclingEngineer;
@@ -58,6 +59,13 @@ public final class ModJobsInitializer
           .setJobViewProducer(() -> DefaultJobView::new)
           .setRegistryName(MCTPModJobs.STATIONMASTER_ID)
           .createJobEntry());
+
+        MCTPModJobs.animaltrainer = register(DEFERRED_REGISTER, MCTPModJobs.ANIMALTRAINER_ID.getPath(), () -> new JobEntry.Builder()
+          .setJobProducer(JobAnimalTrainer::new)
+          .setJobViewProducer(() -> CrafterJobView::new)
+          .setRegistryName(MCTPModJobs.ANIMALTRAINER_ID)
+          .createJobEntry());
+
     }
 
     /**

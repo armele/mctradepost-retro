@@ -976,7 +976,6 @@ public class BuildingRecycling extends AbstractBuilding
         ItemEnchantments enchantments = enchantedItem.getTagEnchantments();
 
         // Apply these enchantments to the book
-        // TODO: RECYCLER [Enhancement] Figure out how to split these into multiple books (ItemEnchantments is not directly constructable)
         book.set(DataComponents.STORED_ENCHANTMENTS, enchantments);
 
         // Clear the enchantments from the original item

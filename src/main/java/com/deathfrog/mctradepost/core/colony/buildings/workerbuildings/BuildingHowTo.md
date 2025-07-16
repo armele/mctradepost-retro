@@ -53,7 +53,7 @@ Define the AI associated with the Job
 - Implement the desired logic (the hard part - and the fun part)
 - If desired, add a new work state visual icon: src\main\resources\assets\mctradepost\textures\icons\work\
 
-Define the models that animate the worker for the Job (not necessary if calling super() in getModel of the job class)
+Define the models that animate the worker for the Job (not necessary if calling or using super() in getModel of the job class)
 - Create new models at src\main\java\com\deathfrog\mctradepost\core\client\model\
 - Create male and female variants of the model textures at src\main\resources\assets\mctradepost\textures\entity\citizen\default\
 

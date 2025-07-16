@@ -21,6 +21,7 @@ public class BuildingPetshop extends AbstractBuilding
     {
         return ModBuildings.PETSHOP_ID;
     }
+    // TODO: Persist pet list.
 
     // Armadillo
     // Axolotl

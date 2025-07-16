@@ -127,6 +127,17 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
         return decide();
     }
 
+    /**
+     * Determines the next action for the bartender based on the current state of guests
+     * and their remedy needs. Clears the current inventory needs and checks each guest
+     * to see if they are checked out. If not, examines the remedy items required by each
+     * guest and adds them to the inventory needs if available. If there are items needed
+     * in the inventory, transitions to the STOCK_BUILDING state. Otherwise, proceeds with
+     * the default decision process.
+     *
+     * @return the next AI state to transition to, either STOCK_BUILDING or as per the superclass's decide method.
+     */
+
     protected IAIState decide()
     {
         needsInInventory.clear();

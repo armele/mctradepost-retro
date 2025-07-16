@@ -112,12 +112,7 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
-
-/*
- */
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
-
-// TODO: Add missing sounds (anything mapped to replaceme.ogg)
 
 @Mod(MCTradePostMod.MODID)
 public class MCTradePostMod
@@ -232,7 +227,7 @@ public class MCTradePostMod
                     .sized(0.98f, 0.7f)          // same hitbox as normal cart
                     .clientTrackingRange(128)
                     .updateInterval(1)            // send pos every tick
-                    .build("mctradepost:ghost_cart"));;
+                    .build("mctradepost:ghost_cart"));
 
     /*
     * BLOCKS

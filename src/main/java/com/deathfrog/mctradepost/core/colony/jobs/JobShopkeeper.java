@@ -6,9 +6,6 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkSho
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
 
-
-// TODO: Test - Multiplayer the non-hosting player cannot interact with the Shopkeeper (new after fixing sounds)
-
 /**
  * Class of the Shopkeeper job.
  * 

@@ -6,6 +6,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.level.Level;
 
+
+// TODO: Eliminate if unneeded.
 public class MCTPEntityCitizen extends EntityCitizen {
 
     public MCTPEntityCitizen(EntityType<? extends PathfinderMob> type, Level world) {

@@ -73,7 +73,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.14.009 -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.14.009+ -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -109,16 +109,18 @@ No functional effect at this time. It will unlock all of the "Pets" capabilities
 This mod can best be described as in a "beta" state. Existing functionality is mostly stable, with tweaks and adjustments being made based on testing and feedback.
 
 ### Roadmap (Roughly Prioritized)
+#### In Progress
+Pets - Ability: animal herding
+
+#### Future
 Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
 Building: Pet Shop (enables pet functions, pet-related colony roles.) [Non-functional hut exists]
 Achievements
-Pets - Building: Pet Houses
+Pets - Building: Assign Building and Role
 Pets - Building Module: Set Owner
 Pets - Building Module: Set Ability
 Pets - Owner AI: Feed pet.
-Pets - Building: Animal Trainer. Requires Marketplace 3 - unlocks research for Pet Houses.
 Pets - Recipe: Pet Food (made by animal trainer)
-Pets - Ability: animal herding (confident)
 Pets - Ability: happiness factor (reasonably confident)
 Pets - Ability: burnout mitigator (confident)
 Pets - Ability: sickness decreased (uncertain)
@@ -130,6 +132,7 @@ Recycling: Cancel button for the processor
 Recycling: Add "Sort" module.
 Recycling: Incinerator mode.
 Recycling: Repair mode (identify damaged items and if the material they were created with is available in the recycling center OR multiple of the same type of item exist, repair the damage)
+Recycling: Split recycled enchanted books into one book per spell.
 Building: Resort - Add last vacation (x days ago) to citizen screen
 Add Happiness for Trade Post factors (like vacation, etc.)
 Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
@@ -158,10 +161,7 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 
 ## Known Issues
 ### Fix Implemented - In Testing
-Building: Station - Research to increase number of trades supported per station level. [Test]
-Station: Stats string corrections (connected track) [Test]
 Vacationers will sometimes complain about needing stuff even when not on vacation. [Test]
-Station: Configuring imports should mark all stations as dirty (trigger export availability) [Test]
 Station: After trade arrives, request pick-up by courier. [Test]
 
 ### Pending Resolution
