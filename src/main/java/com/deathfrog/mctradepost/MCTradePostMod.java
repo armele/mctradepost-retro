@@ -5,8 +5,12 @@ import java.io.IOException;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.entity.pets.PetData;
+import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModBlocksInitializer;
@@ -30,6 +34,7 @@ import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
@@ -58,13 +63,17 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.WolfRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
@@ -99,6 +108,9 @@ import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEvent.LivingJumpEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
@@ -212,22 +224,25 @@ public class MCTradePostMod
     /*
     * ENTITIES 
     */
-    public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE =
-            ENTITIES.register("coin_entity", () ->
-                EntityType.Builder.<CoinEntity>of(CoinEntity::new, MobCategory.MISC)
-                    .sized(0.25f, 0.25f)    // Size of the entity (like an ItemEntity)
-                    .clientTrackingRange(8) // Reasonable for item-like entities
-                    .updateInterval(10)     // Sync rate
-                    .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "coin_entity").toString())
-            );
+    public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE = ENTITIES.register("coin_entity",
+        () -> EntityType.Builder.<CoinEntity>of(CoinEntity::new, MobCategory.MISC)
+            .sized(0.20f, 0.20f)    // Size of the entity (like an ItemEntity)
+            .clientTrackingRange(8) // Reasonable for item-like entities
+            .updateInterval(10)     // Sync rate
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "coin_entity").toString()));
 
     public static final DeferredHolder<EntityType<?>, EntityType<GhostCartEntity>> GHOST_CART = ENTITIES.register("ghost_cart",
-                () -> EntityType.Builder.<GhostCartEntity>of(
-                    GhostCartEntity::new, MobCategory.MISC)
-                    .sized(0.98f, 0.7f)          // same hitbox as normal cart
-                    .clientTrackingRange(128)
-                    .updateInterval(1)            // send pos every tick
-                    .build("mctradepost:ghost_cart"));
+        () -> EntityType.Builder.<GhostCartEntity>of(
+            GhostCartEntity::new, MobCategory.MISC)
+            .sized(0.98f, 0.7f)          // same hitbox as normal cart
+            .clientTrackingRange(128)
+            .updateInterval(1)            // send pos every tick
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "ghost_cart").toString()));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
+        () -> EntityType.Builder.of(PetWolf::new, MobCategory.CREATURE)
+            .sized(0.6F, 0.85F)
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_wolf").toString()));
 
     /*
     * BLOCKS
@@ -594,7 +609,7 @@ public class MCTradePostMod
         CREATIVE_MODE_TABS.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
-        // Note that this is necessary if and only if we want *this* class (ExampleMod) to respond directly to events.
+        // Note that this is necessary if and only if we want *this* class to respond directly to events.
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
         // NeoForge.EVENT_BUS.register(RitualReloadListener.class);
@@ -602,6 +617,10 @@ public class MCTradePostMod
 
         // Add a listener for the common setup event.
         modEventBus.addListener(this::onCommonSetup);
+
+        // Add a listener for entities joining the world.
+        NeoForge.EVENT_BUS.addListener(MCTradePostMod::onEntityJoinWorld);
+
 
         // Add a listener for the completion of the load.
         modEventBus.addListener(this::onLoadComplete);
@@ -712,6 +731,7 @@ public class MCTradePostMod
 
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
+            PetMessage.TYPE.register(registrar);
         }
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)
@@ -742,11 +762,32 @@ public class MCTradePostMod
     @SubscribeEvent
     public void onServerStarted(ServerStartedEvent event)
     {   
-        // Derive the value of all items
+        // Placeholder hook for future functionality.
         LOGGER.info("Server has started.");
-        // ItemValueRegistry.generateValues();
-        // ItemValueRegistry.logValues();
+        MinecraftServer server = event.getServer();
     }
+
+
+    /**
+     * Handles the event when an entity joins the world. This method checks if the
+     * entity is an instance of ITradePostPet and, if so, registers the pet in the
+     * global pet registry. This ensures that all trade post pets are tracked for
+     * functionality related to the MCTradePost mod.
+     *
+     * @param event The event that occurs when an entity joins the world. Contains
+     *              information about the entity and the level it joins.
+     */
+    public static void onEntityJoinWorld(EntityJoinLevelEvent event) {
+        // MCTradePostMod.LOGGER.info("Entity joining world: {}", event.getEntity());
+
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+
+        if (event.getEntity() instanceof ITradePostPet pet) {
+            // MCTradePostMod.LOGGER.info("Registering pet: {}", pet);
+            PetRegistryUtil.register(pet);
+        }
+    }
+
 
     /**
      * Events that can safely take place at world loading.
@@ -882,6 +923,7 @@ public class MCTradePostMod
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
         }
 
         /**
@@ -958,6 +1000,19 @@ public class MCTradePostMod
             {
                 LOGGER.info("Placeholder: Registering entities");
             }
+        }
+
+        /**
+         * Handles the entity attribute creation event for custom entities.
+         * This method is responsible for assigning attribute modifiers to entities
+         * when they are created. Specifically, it assigns attributes to the PET_WOLF
+         * entity type by building the default attribute map for a Wolf entity.
+         *
+         * @param event The event that triggers the creation of entity attributes.
+         */
+        @SubscribeEvent
+        public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
+            event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
         }
 
         /**

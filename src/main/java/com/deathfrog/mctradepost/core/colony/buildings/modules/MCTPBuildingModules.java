@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStatio
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetAssignmentModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
@@ -117,6 +118,11 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("exports",
         () -> new BuildingStationExportModule(),
         () -> BuildingStationExportModuleView::new);
+
+   public static final BuildingEntry.ModuleProducer<PetAssignmentModule,PetAssignmentModuleView> PET_ASSIGNMENT              =
+      new BuildingEntry.ModuleProducer<>("pet_assignment",
+        () -> new PetAssignmentModule(),
+        () -> PetAssignmentModuleView::new);
 
     /**
      * Leisure

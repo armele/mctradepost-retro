@@ -6,12 +6,16 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.entity.pets.goals.EscapeHoleWithLadderGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
+import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.BegGoal;
@@ -19,63 +23,78 @@ import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.goal.LeapAtTargetGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.SitWhenOrderedToGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Wolf;
-import net.minecraft.world.entity.monster.AbstractSkeleton;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+
 
 public class PetWolf extends Wolf implements ITradePostPet
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public int logCooldown = 0;
 
-    protected BaseTradePostPet colonyPet = null;
+    protected PetData colonyPet = null;
+    
+    // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
+    public static final int STUCK_STEPS = 10;   
+
+    protected BlockPos targetPosition = BlockPos.ZERO;
+    protected int stuckTicks = 0;
 
     public PetWolf(EntityType<? extends Wolf> entityType, Level level)
     {
         super(entityType, level);
-        colonyPet = new BaseTradePostPet(this);
+        colonyPet = new PetData(this);
+    }
+
+    public PetData getColonyPet() 
+    { 
+        return colonyPet; 
     }
 
 
     @Override
-    public int getColonyId()
-    {
-        if (colonyPet == null) return -1;
-
-        return colonyPet.getColonyId();
-    }
-
-    @Override
-    public IBuilding getBuilding()
+    public IBuilding getTrainerBuilding()
     {
         if (colonyPet == null) return null;
 
-        return colonyPet.getBuilding();
+        return colonyPet.getTrainerBuilding();
     }
 
     @Override
-    public void setColonyId(int colonyId)
+    public void setTrainerBuilding(IBuilding building)
     {
-        colonyPet.setColonyId(colonyId);
+        colonyPet.setTrainerBuilding(building);
     }
 
     @Override
-    public void setBuilding(IBuilding building)
+    public IBuilding getWorkBuilding()
     {
-        colonyPet.setBuilding(building);
+        if (colonyPet == null) return null;
+
+        return colonyPet.getWorkBuilding();
+    }
+
+    @Override
+    public void setWorkBuilding(IBuilding building)
+    {
+        colonyPet.setWorkBuilding(building);
+    }
+
+    @Override
+    public String getAnimalType()
+    {
+        return colonyPet.getAnimalType();
     }
 
     /**
@@ -95,41 +114,54 @@ public class PetWolf extends Wolf implements ITradePostPet
     protected void registerGoals()
     {
         this.goalSelector.addGoal(1, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
+        this.goalSelector.addGoal(2, new EscapeHoleWithLadderGoal(this));
         this.goalSelector.addGoal(3, new HerdGoal(this));
-        this.goalSelector.addGoal(4, new LeapAtTargetGoal(this, 0.4F));
-        this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0, true));
-        this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
-        this.goalSelector.addGoal(7, new BreedGoal(this, 1.0));
-        this.goalSelector.addGoal(8, new WaterAvoidingRandomStrollGoal(this, 1.0));
-        this.goalSelector.addGoal(9, new BegGoal(this, 8.0F));
-        this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 8.0F));
-        this.goalSelector.addGoal(10, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
+        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0));
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
+        this.goalSelector.addGoal(7, new BegGoal(this, 8.0F));
+        this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+
         this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
-        this.targetSelector.addGoal(3, (new HurtByTargetGoal(this, new Class[0])).setAlertOthers(new Class[0]));
-        this.targetSelector.addGoal(7, new NearestAttackableTargetGoal(this, AbstractSkeleton.class, false));
-        this.targetSelector.addGoal(8, new ResetUniversalAngerTargetGoal(this, true));
+        this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
+        this.targetSelector.addGoal(4, new ResetUniversalAngerTargetGoal(this, true));
     }
 
     @Override
     public void addAdditionalSaveData(@Nonnull CompoundTag compound)
     {
         super.addAdditionalSaveData(compound);
-        colonyPet.toNBT(compound);
+        
+        if (colonyPet != null)
+        {
+            colonyPet.toNBT(compound);
+        }
+
     }
 
+    /**
+     * Deserializes the NBT data for this pet from the given CompoundTag.
+     * Restores the colony ID and, if available, the position and dimension of the associated building.
+     * If the building is found in the world, sets the trainer building for this pet.
+     *
+     * @param compound the CompoundTag containing the serialized state of the BaseTradePostPet.
+     */
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {
         super.readAdditionalSaveData(compound);
+        colonyPet = new PetData(this, compound);
 
-        if (colonyPet == null)
+        boolean registered = PetRegistryUtil.isRegistered(this);
+        if (!registered && this.isAlive())
         {
-            colonyPet = new BaseTradePostPet(this);
+            PetRegistryUtil.register(this);
         }
 
-        colonyPet.fromNBT(compound);
+        // These are called to ensure that the custom goals have the necessary colony information available to them.  
+        // At construction, they may not.
         this.goalSelector.removeAllGoals(goal -> true);
         this.targetSelector.removeAllGoals(goal -> true);
         this.registerGoals();
@@ -139,7 +171,74 @@ public class PetWolf extends Wolf implements ITradePostPet
     public void tick()
     {
         super.tick();
+
         logActiveGoals();
+    }
+
+    /**
+     * Removes the PetWolf from the game. This method unregisters the wolf from the PetRegistry
+     * and clears the reference to its associated BaseTradePostPet. This is typically called
+     * when the wolf is removed from the world for any reason, such as death or despawning.
+     *
+     * @param reason the reason for the removal of the PetWolf
+     */
+    @Override
+    public void remove(@Nonnull RemovalReason reason)
+    {
+        PetRegistryUtil.unregister(this);
+        colonyPet = null;
+        super.remove(reason);
+    }
+
+    /**
+     * Creates a path navigation for this wolf. By default, this uses a ground path navigation.
+     * @param level the level in which the navigation is being created
+     * @return a path navigation for this wolf
+     */
+    @Override
+    protected PathNavigation createNavigation(@Nonnull Level level) {
+        return new GroundPathNavigation(this, level);
+    }
+
+    /**
+     * Determines if this wolf can climb the block at its current position.
+     * By default, this returns true if the block is climable (i.e. a ladder or vine).
+     * @return true if the wolf can climb the block at its current position, false otherwise
+     */
+    @Override
+    public boolean onClimbable() {
+        // TODO: Lock climbing behind research.
+        return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
+    }
+
+    public PetData getPetData()
+    {
+        return this.colonyPet;
+    }
+
+    public BlockPos getTargetPosition()
+    {
+        return this.targetPosition;
+    }
+
+    public void setTargetPosition(BlockPos targetPosition)
+    {
+        this.targetPosition = targetPosition;
+    }
+
+    public void incrementStuckTicks()
+    {
+        this.stuckTicks++;
+    }
+
+    public int getStuckTicks()
+    {
+        return this.stuckTicks;
+    }
+
+    public void clearStuckTicks()
+    {
+        this.stuckTicks = 0;
     }
 
     /**

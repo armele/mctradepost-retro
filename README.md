@@ -29,12 +29,20 @@ This building facilitates inter-colony trade. Your station master will check to 
 
 Train stations also increase the number of visitors to your colony, which means more shopping at the marketplace!
 
+#### Pet Shop
+The Pet Shop is where the Animal Trainer raises and trains pets for the colony. These pets can take on useful tasks.
+
+Currently the only pet is a Pet Wolf, and the only task these pets perform is herding animals. You can assign the pet to a herding building and they will collect the appropriate animals in the area and herd them towards the assigned work building.
+
+Future releases will increase the number and variety of pets and pet tasks.
+
 ### Jobs
 * The Shopkeeper works in the Marketplace, keeping the shelves stocked with souvenirs and ordering up new supply as needed.
 * Guest Services staffs the resort, finding out what the vacationers need to relax, and bringing it to them.
 * The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
 * The Recycling Engineer handles all recycling requests at the Recycling Center.
 * The Station Master handles track validation and managing imports and exports.
+* The Animal Trainer trains pets.
 
 ### Research
 This mod introduces the "Economics" line of research. Explore it to unlock Trade Post custom buildings and their capabilities.
@@ -73,7 +81,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.14.009+ -> MineColonies 1.1.1025 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.15.006+ -> MineColonies 1.1.1037 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
@@ -103,23 +111,22 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 A station building must include one or more rail blocks tagged with "station_start". These are used to determine whether or not a station is connected to other colonies for the purposes of trade. Once connected, you can configure what goods you want to import, or choose to satisfy other colonies' needs by exporting goods.
 
 ### Pet Shop
-No functional effect at this time. It will unlock all of the "Pets" capabilities in the roadmap below.
+There are no tag requirements for the pet shop.
 
 ## Current Status
 This mod can best be described as in a "beta" state. Existing functionality is mostly stable, with tweaks and adjustments being made based on testing and feedback.
 
 ### Roadmap (Roughly Prioritized)
 #### In Progress
-Pets - Ability: animal herding
+Building: Pet Shop (enables pet functions, pet-related colony roles.) [Testing]
+Pets - Ability: animal herding [Testing]
 
 #### Future
 Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
-Building: Pet Shop (enables pet functions, pet-related colony roles.) [Non-functional hut exists]
-Achievements
-Pets - Building: Assign Building and Role
-Pets - Building Module: Set Owner
-Pets - Building Module: Set Ability
-Pets - Owner AI: Feed pet.
+
+Pets - Variety
+Pets - Building: Assign Role
+Pets - Animal Trainer AI: Feed (heal) pet.
 Pets - Recipe: Pet Food (made by animal trainer)
 Pets - Ability: happiness factor (reasonably confident)
 Pets - Ability: burnout mitigator (confident)
@@ -127,7 +134,7 @@ Pets - Ability: sickness decreased (uncertain)
 Pets - Ability: scarecrow effect - bonus to harvest yields (uncertain)
 Pets - Ability: pick up items in the world (confident)
 Pets - Ability: Locate certain ore types or crop types (confident)
-Job - Ritualist (can learn and perform rituals)
+Achievements
 Recycling: Cancel button for the processor
 Recycling: Add "Sort" module.
 Recycling: Incinerator mode.

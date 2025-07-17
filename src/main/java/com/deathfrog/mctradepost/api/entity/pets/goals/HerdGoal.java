@@ -9,13 +9,15 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.StatsUtil;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.phys.Vec3;
 
 public class HerdGoal extends Goal
@@ -24,10 +26,14 @@ public class HerdGoal extends Goal
 
     private final PetWolf wolf;
     private BlockPos herdTarget;
-    private Sheep targetSheep;
+    private BlockPos targetLastOn = BlockPos.ZERO;
+    private BlockPos wolfLastOn = BlockPos.ZERO;
+    private int targetStuckSteps = 0;
+    private Animal currentTargetAnimal = null;
 
     private static final int SEARCH_RADIUS = 100;
     private static final int HERDING_DISTANCE = 5;
+    
 
     public HerdGoal(PetWolf wolf)
     {
@@ -39,33 +45,48 @@ public class HerdGoal extends Goal
     // TODO: Generalize what can be herded.
 
     /**
-     * Searches for sheep that need herding and sets the targetSheep accordingly.
+     * Searches for an animal that needs herding and sets the target accordingly.
      * 
-     * @return true if a sheep is found, false otherwise
+     * @return true if an animal is found, false otherwise
      */
-    public boolean findSheepThatNeedHerding()
+    public boolean findAnimalsThatNeedHerding()
     {
+        IBuilding targetBuilding = wolf.getWorkBuilding();
+        if (targetBuilding != null)
+        {
+            this.herdTarget = targetBuilding.getPosition();
+        }
+        else
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target building set when evaluating whether there are animals that need herding."));
+            return false;
+        }
+
+        /*
         List<Sheep> sheepNearby = wolf.level()
             .getEntitiesOfClass(Sheep.class,
                 wolf.getBoundingBox().inflate(SEARCH_RADIUS),
                 sheep -> !sheep.isBaby() && sheep.isAlive());
+        */
+        List<? extends Animal> targetsNearby = wolf.getPetData().searchForCompatibleAnimals(wolf.getBoundingBox().inflate(SEARCH_RADIUS));
 
-        if (!sheepNearby.isEmpty())
+        if (!targetsNearby.isEmpty())
         {
-            for (Sheep sheep : sheepNearby) 
+            for (Animal animalTarget : targetsNearby) 
             {
-                double targetDistance = BlockPosUtil.getDistance(sheep.getOnPos(), herdTarget);
+                double targetDistance = BlockPosUtil.getDistance(animalTarget.getOnPos(), herdTarget);
 
                 if (targetDistance > HERDING_DISTANCE)
                 {
-                    targetSheep = sheep;
+                    currentTargetAnimal = animalTarget;
+                    wolf.setTargetPosition(currentTargetAnimal.getOnPos());
                 }
 
             }
             
-            if (targetSheep != null)
+            if (currentTargetAnimal != null)
             {
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("There's a sheep nearby: {}", targetSheep.getOnPos()));
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("There's a {} nearby: {}", currentTargetAnimal.getName(),currentTargetAnimal.getOnPos()));
 
                 return true;
             }
@@ -80,7 +101,7 @@ public class HerdGoal extends Goal
      * Determines if the herding goal can be used.
      * 
      * This goal can be used if the wolf is not leashed, not a passenger, and is alive.
-     * Additionally, there must be a target to herd to (i.e. a building) and there must be sheep nearby that need herding.
+     * Additionally, there must be a target to herd to (i.e. a building) and there must be animals nearby that need herding.
      * 
      * @return true if the herding goal can be used, false otherwise
      */
@@ -93,7 +114,7 @@ public class HerdGoal extends Goal
             return false;
         }
 
-        IBuilding targetBuilding = wolf.getBuilding();
+        IBuilding targetBuilding = wolf.getTrainerBuilding();
         if (targetBuilding != null)
         {
             this.herdTarget = targetBuilding.getPosition();
@@ -105,98 +126,156 @@ public class HerdGoal extends Goal
             return false;
         }
 
-        if (findSheepThatNeedHerding())
+        if (findAnimalsThatNeedHerding())
         {
             return true;
         }
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No sheep nearby."));
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No animals nearby."));
         return false;
     }
 
     /**
-     * The herding goal is a continuous goal, so it can continue to run as long as there is a sheep to herd.
-     * If the current target sheep is no longer available, it will search for a replacement.
+     * The herding goal is a continuous goal, so it can continue to run as long as there are animals to herd.
+     * If the current target animal is no longer available, it will search for a replacement.
      * @return false always
      */
     @Override
     public boolean canContinueToUse()
     {
-        boolean keepherding = targetSheep != null && targetSheep.isAlive();
+        boolean keepherding = currentTargetAnimal != null && currentTargetAnimal.isAlive();
 
         if (!keepherding)
         {
-            keepherding = findSheepThatNeedHerding();
+            keepherding = findAnimalsThatNeedHerding();
         }
 
         return false;
     }
 
     /**
-     * Stops the herding goal by clearing the current target sheep.
+     * Stops the herding goal by clearing the current target.
      */
     @Override
     public void stop()
     {
-        targetSheep = null;
+        currentTargetAnimal = null;
     }
 
     /**
-     * Executes a single tick of the herding goal. If there is no target sheep, logs the absence
-     * and returns. If a target sheep is present, it determines the distance to the sheep. If
-     * the wolf is far from the sheep, it navigates towards it. If close, it checks the distance
-     * of the sheep from the herd target. If the sheep is too far from the target, it nudges the
-     * sheep towards the target position. Once the sheep is close enough to the target position,
-     * it clears the target sheep, indicating the herding process for that sheep is complete.
+     * Executes a single tick of the herding goal, moving the target towards the herding destination.
      */
     @Override
     public void tick()
     {
-        if (targetSheep == null) 
+        if (currentTargetAnimal == null) 
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target sheep on tick()."));
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target on tick()."));
+            targetLastOn = BlockPos.ZERO;
+            targetStuckSteps = 0;
             return;
         }
         else
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Target sheep: {}", targetSheep.getOnPos()));
+            wolf.setTargetPosition(currentTargetAnimal.getOnPos());
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Target {} at {}", currentTargetAnimal.getName(), currentTargetAnimal.getOnPos()));
         }
 
-        double distance = wolf.distanceTo(targetSheep);
+        double distance = wolf.distanceTo(currentTargetAnimal);
 
         if (distance > 2)
         {
-            // Move toward the sheep
-            wolf.getNavigation().moveTo(targetSheep, 1.0);
+            // TODO: Research to increase speed
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Moving towards target. Distance: {}", distance));
+            wolf.getNavigation().moveTo(currentTargetAnimal, 1.0);
+
+            targetStuckSteps = 0;
         }
         else
         {
-            double targetDistance = BlockPosUtil.getDistance(targetSheep.getOnPos(), herdTarget);
+            double targetDistance = BlockPosUtil.getDistance(currentTargetAnimal.getOnPos(), herdTarget);
 
             if (targetDistance > HERDING_DISTANCE)
             {
 
-                if (targetDistance < HERDING_DISTANCE * 2)
+                if ((targetDistance < HERDING_DISTANCE * 2 ) || targetStuckSteps > PetWolf.STUCK_STEPS)
                 {
-                    targetSheep.getNavigation().moveTo(herdTarget.getX() + 0.5, herdTarget.getY(), herdTarget.getZ() + 0.5, 1.0);
+                    currentTargetAnimal.getNavigation().moveTo(herdTarget.getX() + 0.5, herdTarget.getY(), herdTarget.getZ() + 0.5, 1.0);
+                }
+                else
+                {
+                    // Nudge herded animal toward the target
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging target towards herding destination: {}. Distance to target: {}. Stuck steps: {}", herdTarget, targetDistance, targetStuckSteps));
+
+                    Vec3 animalPos = currentTargetAnimal.position();
+                    Vec3 targetVec = new Vec3(herdTarget.getX() + 0.5, animalPos.y, herdTarget.getZ() + 0.5);
+                    Vec3 direction = targetVec.subtract(animalPos).normalize().scale(0.2);
+
+                    currentTargetAnimal.setDeltaMovement(direction);
+                    currentTargetAnimal.hurtMarked = true;  // Force position sync to client
                 }
 
-                // Nudge sheep toward the target
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging sheep towards target position: {}", herdTarget));
+                if (currentTargetAnimal.getOnPos().equals(targetLastOn))
+                {
+                    targetStuckSteps++;
+                }
+                else
+                {
+                    targetStuckSteps = 0;
+                }
 
-                Vec3 sheepPos = targetSheep.position();
-                Vec3 targetVec = new Vec3(herdTarget.getX() + 0.5, sheepPos.y, herdTarget.getZ() + 0.5);
-                Vec3 direction = targetVec.subtract(sheepPos).normalize().scale(0.2);
+                // Boost the animal up if stuck repeatedly
+                if (targetStuckSteps > PetWolf.STUCK_STEPS) {
+                    Vec3 movement = currentTargetAnimal.getDeltaMovement();
+                    currentTargetAnimal.setDeltaMovement(movement.x, 0.5, movement.z);
+                    currentTargetAnimal.hurtMarked = true;
+                }
 
-                targetSheep.setDeltaMovement(direction);
-                targetSheep.hurtMarked = true;  // Force position sync to client
             }
             else
             {
-                targetSheep = null;
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Sheep is close enough to target position: {}", herdTarget));
+                StatsUtil.trackStatByName(wolf.getTrainerBuilding(), BuildingPetshop.ANIMALS_HERDED, currentTargetAnimal.getName(), 1);
+
+                currentTargetAnimal = null;
+                targetLastOn = BlockPos.ZERO;
+                targetStuckSteps = 0;
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
+
             }
 
         }
+
+        if (wolfLastOn.equals(wolf.getOnPos()))
+        {
+            wolf.incrementStuckTicks();;
+        }
+        else
+        {
+            wolf.clearStuckTicks();
+        }
+
+        if (wolf.getStuckTicks() > PetWolf.STUCK_STEPS)
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging wolf towards target position: {}. Stuck steps: {}", currentTargetAnimal.getOnPos(), wolf.getStuckTicks()));
+
+            double dx = (wolf.getRandom().nextDouble() - 0.5) * 0.5;
+            double dz = (wolf.getRandom().nextDouble() - 0.5) * 0.5;
+            Vec3 current = wolf.getDeltaMovement();
+            wolf.setDeltaMovement(current.add(dx, 0.3, dz));
+            wolf.hurtMarked = true;
+            wolf.getNavigation().stop();
+            wolf.getNavigation().moveTo(currentTargetAnimal, 1.0);
+        }
+
+        if (currentTargetAnimal != null)
+        {
+            targetLastOn = currentTargetAnimal.getOnPos();
+        }
+        else
+        {
+            targetLastOn = BlockPos.ZERO;
+        }
+
+        wolfLastOn = wolf.getOnPos();
     }
 }

@@ -1,0 +1,22 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+            <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.petstore.assignment)"/>
+            <list id="petlist" size="170 180" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.petstore.empty)" emptycolor="black">
+                <box size="100% 50" linewidth="1">
+                    <entityicon id="entity" size="35 45" pos="1 1" visible="false" />
+                    <text id="pettype" size="130 12" pos="38 1" color="black"/>
+                    <dropdown id="buildings"
+                        size="130 17"
+                        pos="38 15"
+                        maxContentHeight="75"
+                        dropDownSize="140 75"
+                        source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png"
+                        color="black">
+                        <button id="button" size="130 17" pos="0 0" source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png" color="black"
+                                label="$(com.minecolonies.coremod.gui.petstore.workbuilding)"/>
+                    </dropdown>
+                </box>
+            </list>
+</window>
