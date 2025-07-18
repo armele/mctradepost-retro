@@ -7,12 +7,17 @@ import java.util.List;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.entity.pets.IHerdingPet;
+import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.StatsUtil;
+import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
+import com.minecolonies.core.entity.pathfinding.pathresults.PathResult;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -20,24 +25,24 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.phys.Vec3;
 
-public class HerdGoal extends Goal
+public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    private final PetWolf wolf;
+    private final P pet;
     private BlockPos herdTarget;
     private BlockPos targetLastOn = BlockPos.ZERO;
-    private BlockPos wolfLastOn = BlockPos.ZERO;
+    private BlockPos petLastOn = BlockPos.ZERO;
     private int targetStuckSteps = 0;
     private Animal currentTargetAnimal = null;
-
+    private boolean walkCommandSent = false;
     private static final int SEARCH_RADIUS = 100;
-    private static final int HERDING_DISTANCE = 5;
-    
+    private static final int HERDING_DISTANCE = 8;
+    private PathResult<?> navigationResult = null;
 
-    public HerdGoal(PetWolf wolf)
+    public HerdGoal(P herdingPet)
     {
-        this.wolf = wolf;
+        this.pet = herdingPet;
 
         this.setFlags(EnumSet.of(Goal.Flag.MOVE));
     }
@@ -51,10 +56,10 @@ public class HerdGoal extends Goal
      */
     public boolean findAnimalsThatNeedHerding()
     {
-        IBuilding targetBuilding = wolf.getWorkBuilding();
+        IBuilding targetBuilding = pet.getWorkBuilding();
         if (targetBuilding != null)
         {
-            this.herdTarget = targetBuilding.getPosition();
+            this.herdTarget = BuildingUtil.findHerdingDestination(targetBuilding);
         }
         else
         {
@@ -68,7 +73,7 @@ public class HerdGoal extends Goal
                 wolf.getBoundingBox().inflate(SEARCH_RADIUS),
                 sheep -> !sheep.isBaby() && sheep.isAlive());
         */
-        List<? extends Animal> targetsNearby = wolf.getPetData().searchForCompatibleAnimals(wolf.getBoundingBox().inflate(SEARCH_RADIUS));
+        List<? extends Animal> targetsNearby = pet.getPetData().searchForCompatibleAnimals(pet.getBoundingBox().inflate(SEARCH_RADIUS));
 
         if (!targetsNearby.isEmpty())
         {
@@ -79,7 +84,7 @@ public class HerdGoal extends Goal
                 if (targetDistance > HERDING_DISTANCE)
                 {
                     currentTargetAnimal = animalTarget;
-                    wolf.setTargetPosition(currentTargetAnimal.getOnPos());
+                    pet.setTargetPosition(currentTargetAnimal.getOnPos());
                 }
 
             }
@@ -108,13 +113,13 @@ public class HerdGoal extends Goal
     @Override
     public boolean canUse()
     {
-        if (wolf.isLeashed() || wolf.isPassenger() || !wolf.isAlive())
+        if (pet.isLeashed() || pet.isPassenger() || !pet.isAlive())
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Cannot use herding goal. Is leashed? {} Is passenger? {} Is alive? {}", wolf.isLeashed(), wolf.isPassenger(), wolf.isAlive()));
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Cannot use herding goal. Is leashed? {} Is passenger? {} Is alive? {}", pet.isLeashed(), pet.isPassenger(), pet.isAlive()));
             return false;
         }
 
-        IBuilding targetBuilding = wolf.getTrainerBuilding();
+        IBuilding targetBuilding = pet.getTrainerBuilding();
         if (targetBuilding != null)
         {
             this.herdTarget = targetBuilding.getPosition();
@@ -131,7 +136,7 @@ public class HerdGoal extends Goal
             return true;
         }
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No animals nearby."));
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No straying animals within range of pet at {}", pet.getOnPos()));
         return false;
     }
 
@@ -150,7 +155,23 @@ public class HerdGoal extends Goal
             keepherding = findAnimalsThatNeedHerding();
         }
 
-        return false;
+        return keepherding;
+    }
+
+    /**
+     * Starts the herding goal by finding an animal to herd.
+     */
+    @Override
+    public void start()
+    {
+
+        if (currentTargetAnimal != null)
+        {
+            // TODO: Research to increase speed
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Starting towards target."));
+            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
+            walkCommandSent = true;
+        }   
     }
 
     /**
@@ -171,28 +192,37 @@ public class HerdGoal extends Goal
         if (currentTargetAnimal == null) 
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target on tick()."));
-            targetLastOn = BlockPos.ZERO;
-            targetStuckSteps = 0;
+            reset();
             return;
         }
         else
         {
-            wolf.setTargetPosition(currentTargetAnimal.getOnPos());
+            pet.setTargetPosition(currentTargetAnimal.getOnPos());
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Target {} at {}", currentTargetAnimal.getName(), currentTargetAnimal.getOnPos()));
+
+            if (navigationResult != null && navigationResult.failedToReachDestination()) 
+            {
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Failed to reach {} at {}", currentTargetAnimal, currentTargetAnimal.getOnPos()));
+
+                reset();
+                return;
+            }
+
         }
+ 
+        double distance = pet.distanceTo(currentTargetAnimal);
 
-        double distance = wolf.distanceTo(currentTargetAnimal);
-
-        if (distance > 2)
+        if (distance > 2 && !walkCommandSent)
         {
             // TODO: Research to increase speed
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Moving towards target. Distance: {}", distance));
-            wolf.getNavigation().moveTo(currentTargetAnimal, 1.0);
-
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
+            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
+            walkCommandSent = true;
             targetStuckSteps = 0;
         }
-        else
+        else if (distance < 2)
         {
+            walkCommandSent = false;
             double targetDistance = BlockPosUtil.getDistance(currentTargetAnimal.getOnPos(), herdTarget);
 
             if (targetDistance > HERDING_DISTANCE)
@@ -234,37 +264,34 @@ public class HerdGoal extends Goal
             }
             else
             {
-                StatsUtil.trackStatByName(wolf.getTrainerBuilding(), BuildingPetshop.ANIMALS_HERDED, currentTargetAnimal.getName(), 1);
-
-                currentTargetAnimal = null;
-                targetLastOn = BlockPos.ZERO;
-                targetStuckSteps = 0;
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
-
+                StatsUtil.trackStatByName(pet.getTrainerBuilding(), BuildingPetshop.ANIMALS_HERDED, currentTargetAnimal.getName(), 1);
+                reset();
             }
 
         }
 
-        if (wolfLastOn.equals(wolf.getOnPos()))
+        if (petLastOn.equals(pet.getOnPos()))
         {
-            wolf.incrementStuckTicks();;
+            pet.incrementStuckTicks();
         }
         else
         {
-            wolf.clearStuckTicks();
+            pet.clearStuckTicks();
         }
 
-        if (wolf.getStuckTicks() > PetWolf.STUCK_STEPS)
+        if (pet.getStuckTicks() > PetWolf.STUCK_STEPS)
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging wolf towards target position: {}. Stuck steps: {}", currentTargetAnimal.getOnPos(), wolf.getStuckTicks()));
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", currentTargetAnimal.getOnPos(), pet.getStuckTicks()));
 
-            double dx = (wolf.getRandom().nextDouble() - 0.5) * 0.5;
-            double dz = (wolf.getRandom().nextDouble() - 0.5) * 0.5;
-            Vec3 current = wolf.getDeltaMovement();
-            wolf.setDeltaMovement(current.add(dx, 0.3, dz));
-            wolf.hurtMarked = true;
-            wolf.getNavigation().stop();
-            wolf.getNavigation().moveTo(currentTargetAnimal, 1.0);
+            double dx = (pet.getRandom().nextDouble() - 0.5) * 0.5;
+            double dz = (pet.getRandom().nextDouble() - 0.5) * 0.5;
+            Vec3 current = pet.getDeltaMovement();
+            pet.setDeltaMovement(current.add(dx, 0.3, dz));
+            pet.hurtMarked = true;
+            pet.getNavigation().stop();
+            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
+            walkCommandSent = true;
         }
 
         if (currentTargetAnimal != null)
@@ -276,6 +303,18 @@ public class HerdGoal extends Goal
             targetLastOn = BlockPos.ZERO;
         }
 
-        wolfLastOn = wolf.getOnPos();
+        petLastOn = pet.getOnPos();
+    }
+
+    /**
+     * Resets the state of the herding goal, clearing the current target animal and resetting internal counters.
+     */
+    protected void reset()
+    {
+        currentTargetAnimal = null;
+        navigationResult = null;
+        walkCommandSent = false;
+        targetLastOn = BlockPos.ZERO;
+        targetStuckSteps = 0;
     }
 }

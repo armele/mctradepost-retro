@@ -58,6 +58,7 @@ This mod introduces the "Economics" line of research. Explore it to unlock Trade
 * Block implementations of the building huts.
 * A few new building materials (mixed stone, thatch, plaster, rough stone, weathered rough stone, rough brick, endethyst, endmarine, marine lapis)
 * A few new Architect's Cutter recipes in the Timberframe style.
+* Trough - herding pets will herd animals towards a Trough if it is placed in a herding building and the pet is assigned to work at that building.
 
 ### Configuration
 This mod supports the Neoforge configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
@@ -172,6 +173,7 @@ Vacationers will sometimes complain about needing stuff even when not on vacatio
 Station: After trade arrives, request pick-up by courier. [Test]
 
 ### Pending Resolution
+Pet building assignment selection list can be slow to refresh from the view.
 Ivy Block types not previewable in Domum.
 
 ### Low Priority Issues

@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
-import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -23,6 +22,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
+import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
@@ -110,7 +110,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.living.LivingEvent.LivingJumpEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
@@ -427,6 +426,9 @@ public class MCTradePostMod
     public static final DeferredBlock<SlabBlock> MARINE_BASALT_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new SlabBlock(MARINE_BASALT.get().properties()));
 
+    public static final DeferredBlock<BlockTrough> TROUGH =
+        BLOCKS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockTrough(THATCH.get().properties().lightLevel(state -> 4)));
+
     /*
     * ITEMS (Block)
     */
@@ -576,6 +578,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> MARINE_BASALT_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new BlockItem(MARINE_BASALT_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> TROUGH_ITEM =
+        ITEMS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockItem(TROUGH.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -903,7 +908,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_BASALT.get());
                     event.accept(MCTradePostMod.MARINE_BASALT_STAIRS.get());
                     event.accept(MCTradePostMod.MARINE_BASALT_WALL.get());
-                    event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());		
+                    event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());	
+                    event.accept(MCTradePostMod.TROUGH.get());		
                 }
             });
 

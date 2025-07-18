@@ -9,5 +9,5 @@ public interface ITradePostPet
     public void setWorkBuilding(IBuilding building);
     public IBuilding getWorkBuilding();
     public String getAnimalType();
-    public PetData getColonyPet();
+    public PetData getPetData();
 }

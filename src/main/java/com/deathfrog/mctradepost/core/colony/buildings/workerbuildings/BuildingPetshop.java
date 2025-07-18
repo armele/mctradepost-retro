@@ -7,7 +7,6 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetAssignmentModule;
 import com.minecolonies.api.colony.IColony;
@@ -18,7 +17,6 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.world.entity.animal.TropicalFish.Base;
 
 public class BuildingPetshop extends AbstractBuilding
 {
@@ -85,7 +83,7 @@ public class BuildingPetshop extends AbstractBuilding
         for (final ITradePostPet pet : getPets())
         {
             CompoundTag petTag = new CompoundTag();
-            PetData petBase = (PetData) pet.getColonyPet();
+            PetData petBase = (PetData) pet.getPetData();
             petBase.toNBT(petTag);
             buf.writeNbt(petTag);
         }

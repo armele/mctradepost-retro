@@ -138,6 +138,10 @@
     "item.mctradepost.ivy_brick": "Ivy Brick",
     "block.mctradepost.ivy_brick": "Ivy Brick",
 
+    "item.mctradepost.trough": "Trough",
+    "block.mctradepost.trough": "Trough",
+
+
     "block.mctradepost.distressed": "Distressed Frame",
     "mctradepost.timber.frame.type.distressed": "Distressed Frame",
     "block.mctradepost.glazed": "Glazed Frame",

@@ -63,6 +63,7 @@ public final class ModBlocksInitializer
     public final static String MARINE_BASALT_STAIRS_NAME = "marine_basalt_stairs";
     public final static String MARINE_BASALT_WALL_NAME = "marine_basalt_wall";
     public final static String MARINE_BASALT_SLAB_NAME = "marine_basalt_slab";
+    public final static String TROUGH_NAME = "trough";
     
     private ModBlocksInitializer()
     {

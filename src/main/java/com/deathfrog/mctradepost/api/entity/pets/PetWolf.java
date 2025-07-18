@@ -11,6 +11,8 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
+import com.minecolonies.core.entity.pathfinding.navigation.PathingStuckHandler;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -31,19 +33,18 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
-import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 
 
-public class PetWolf extends Wolf implements ITradePostPet
+public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public int logCooldown = 0;
 
-    protected PetData colonyPet = null;
+    protected PetData petData = null;
     
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
@@ -54,47 +55,41 @@ public class PetWolf extends Wolf implements ITradePostPet
     public PetWolf(EntityType<? extends Wolf> entityType, Level level)
     {
         super(entityType, level);
-        colonyPet = new PetData(this);
+        petData = new PetData(this);
     }
-
-    public PetData getColonyPet() 
-    { 
-        return colonyPet; 
-    }
-
 
     @Override
     public IBuilding getTrainerBuilding()
     {
-        if (colonyPet == null) return null;
+        if (petData == null) return null;
 
-        return colonyPet.getTrainerBuilding();
+        return petData.getTrainerBuilding();
     }
 
     @Override
     public void setTrainerBuilding(IBuilding building)
     {
-        colonyPet.setTrainerBuilding(building);
+        petData.setTrainerBuilding(building);
     }
 
     @Override
     public IBuilding getWorkBuilding()
     {
-        if (colonyPet == null) return null;
+        if (petData == null) return null;
 
-        return colonyPet.getWorkBuilding();
+        return petData.getWorkBuilding();
     }
 
     @Override
     public void setWorkBuilding(IBuilding building)
     {
-        colonyPet.setWorkBuilding(building);
+        petData.setWorkBuilding(building);
     }
 
     @Override
     public String getAnimalType()
     {
-        return colonyPet.getAnimalType();
+        return petData.getAnimalType();
     }
 
     /**
@@ -114,8 +109,8 @@ public class PetWolf extends Wolf implements ITradePostPet
     protected void registerGoals()
     {
         this.goalSelector.addGoal(1, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new EscapeHoleWithLadderGoal(this));
-        this.goalSelector.addGoal(3, new HerdGoal(this));
+        // this.goalSelector.addGoal(2, new EscapeHoleWithLadderGoal(this));
+        this.goalSelector.addGoal(3, new HerdGoal<>(this));
         this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
         this.goalSelector.addGoal(5, new BreedGoal(this, 1.0));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
@@ -134,9 +129,9 @@ public class PetWolf extends Wolf implements ITradePostPet
     {
         super.addAdditionalSaveData(compound);
         
-        if (colonyPet != null)
+        if (petData != null)
         {
-            colonyPet.toNBT(compound);
+            petData.toNBT(compound);
         }
 
     }
@@ -152,7 +147,7 @@ public class PetWolf extends Wolf implements ITradePostPet
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {
         super.readAdditionalSaveData(compound);
-        colonyPet = new PetData(this, compound);
+        petData = new PetData(this, compound);
 
         boolean registered = PetRegistryUtil.isRegistered(this);
         if (!registered && this.isAlive())
@@ -186,18 +181,25 @@ public class PetWolf extends Wolf implements ITradePostPet
     public void remove(@Nonnull RemovalReason reason)
     {
         PetRegistryUtil.unregister(this);
-        colonyPet = null;
+        petData = null;
         super.remove(reason);
     }
 
     /**
-     * Creates a path navigation for this wolf. By default, this uses a ground path navigation.
+     * Creates a path navigation for this wolf. By default, this uses a minecolonies navigation.
      * @param level the level in which the navigation is being created
-     * @return a path navigation for this wolf
+     * @return a path navigation for this pet
      */
-    @Override
+    @Override   
     protected PathNavigation createNavigation(@Nonnull Level level) {
-        return new GroundPathNavigation(this, level);
+        MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
+        pathNavigation.getPathingOptions().setEnterDoors(true);
+        pathNavigation.getPathingOptions().setCanOpenDoors(true);
+        pathNavigation.getPathingOptions().withDropCost(1D);
+        pathNavigation.getPathingOptions().withJumpCost(1D);
+        pathNavigation.getPathingOptions().setPassDanger(true);
+
+        return pathNavigation;
     }
 
     /**
@@ -213,7 +215,7 @@ public class PetWolf extends Wolf implements ITradePostPet
 
     public PetData getPetData()
     {
-        return this.colonyPet;
+        return this.petData;
     }
 
     public BlockPos getTargetPosition()

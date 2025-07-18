@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mctradepost:block/trough",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mctradepost:block/trough",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mctradepost:block/trough",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "mctradepost:block/trough",
+      "y": 0
+    }
+  }
+}

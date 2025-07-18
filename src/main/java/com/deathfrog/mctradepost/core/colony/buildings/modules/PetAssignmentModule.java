@@ -54,14 +54,14 @@ public class PetAssignmentModule extends AbstractBuildingModule implements IPers
     public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         Set<IBuilding> herdingBuildings = gatherHerdingBuildings();
-        MCTradePostMod.LOGGER.info("Sending {} herding buildings", herdingBuildings.size());
+        // MCTradePostMod.LOGGER.info("Sending {} herding buildings", herdingBuildings.size());
 
         buf.writeInt(herdingBuildings.size());
 
         for (IBuilding herdBuilding : herdingBuildings)
         {   
             CompoundTag tag = BuildingUtil.uniqueBuildingNBT(herdBuilding);
-            MCTradePostMod.LOGGER.info("Sending herding building: {}", tag);
+            // MCTradePostMod.LOGGER.info("Sending herding building: {}", tag);
             
             buf.writeNbt(tag);
         }
@@ -84,7 +84,7 @@ public class PetAssignmentModule extends AbstractBuildingModule implements IPers
         {
             for (final AnimalHerdingModule module : building.getModulesByType(AnimalHerdingModule.class))
             {
-                MCTradePostMod.LOGGER.info("Found herding building: {}", building);
+                // MCTradePostMod.LOGGER.info("Found herding building: {}", building);
                 herdingBuildings.add(building);
                 module.markDirty();
                 
