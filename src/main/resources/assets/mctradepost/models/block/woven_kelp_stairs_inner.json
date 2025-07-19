@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/inner_stairs",
+  "textures": {
+    "bottom": "mctradepost:block/woven_kelp",
+    "top": "mctradepost:block/woven_kelp",
+    "side": "mctradepost:block/woven_kelp"
+  }
+}

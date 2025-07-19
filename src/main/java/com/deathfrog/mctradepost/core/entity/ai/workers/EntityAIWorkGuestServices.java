@@ -64,6 +64,11 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
      */
     private static final double BASE_XP_GAIN = 2;
 
+    /**
+     * Saturation gained from relaxing at the resort.
+     */
+    private static final double RELAXATION_SATURATION = 2.0;
+
     public static final String GUEST_FULL_INVENTORY = "com.mctradepost.resort.guest.full_inventory";
 
     /**
@@ -208,6 +213,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             }
 
             guest.setCurrentlyAtResort(true);
+            citizen.getCitizenData().increaseSaturation(RELAXATION_SATURATION);
         }
 
         // There are no guests on the guest list, even after evaluating the people in the building.

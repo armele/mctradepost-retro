@@ -429,6 +429,16 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockTrough> TROUGH =
         BLOCKS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockTrough(THATCH.get().properties().lightLevel(state -> 4)));
 
+    public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> WOVEN_KELP_STAIRS = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME,
+        () -> new StairBlock(WOVEN_KELP.get().defaultBlockState(), WOVEN_KELP.get().properties()));
+    public static final DeferredBlock<WallBlock> WOVEN_KELP_WALL =
+        BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_WALL_NAME, () -> new WallBlock(WOVEN_KELP.get().properties()));
+    public static final DeferredBlock<SlabBlock> WOVEN_KELP_SLAB =
+        BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new SlabBlock(WOVEN_KELP.get().properties()));
+
+
     /*
     * ITEMS (Block)
     */
@@ -581,6 +591,18 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> TROUGH_ITEM =
         ITEMS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockItem(TROUGH.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WOVEN_KELP_ITEM =
+        ITEMS.register(ModBlocksInitializer.WOVEN_KELP_NAME, () -> new BlockItem(WOVEN_KELP.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WOVEN_KELP_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME, () -> new BlockItem(WOVEN_KELP_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WOVEN_KELP_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.WOVEN_KELP_WALL_NAME, () -> new BlockItem(WOVEN_KELP_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> WOVEN_KELP_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new BlockItem(WOVEN_KELP_SLAB.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
@@ -814,6 +836,37 @@ public class MCTradePostMod
         }
     }
 
+    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD)
+    public class ModServerEventHandler
+    {
+        /**
+         * Handles the entity attribute creation event for custom entities.
+         * This method is responsible for assigning attribute modifiers to entities
+         * when they are created. Specifically, it assigns attributes to the PET_WOLF
+         * entity type by building the default attribute map for a Wolf entity.
+         *
+         * @param event The event that triggers the creation of entity attributes.
+         */
+        @SubscribeEvent
+        public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
+            event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
+        }
+
+        /**
+         * Registers entities for the mod.
+         * This method is invoked when the RegisterEvent is fired for the ENTITY_TYPE registry key.
+         * @param event The register event containing the registry to register the entities with.
+         */
+        @SubscribeEvent
+        public static void registerEntities(RegisterEvent event)
+        {
+            if (event.getRegistryKey().equals(Registries.ENTITY_TYPE))
+            {
+                MCTradePostMod.LOGGER.info("Placeholder: Registering entities");
+            }
+        }
+    }
+
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents
@@ -909,7 +962,11 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_BASALT_STAIRS.get());
                     event.accept(MCTradePostMod.MARINE_BASALT_WALL.get());
                     event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());	
-                    event.accept(MCTradePostMod.TROUGH.get());		
+                    event.accept(MCTradePostMod.TROUGH.get());
+                    event.accept(MCTradePostMod.WOVEN_KELP.get());
+                    event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
+                    event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());
+                    event.accept(MCTradePostMod.WOVEN_KELP_SLAB.get());
                 }
             });
 
@@ -992,33 +1049,6 @@ public class MCTradePostMod
             {
                 LOGGER.info("Placeholder: Registering blocks");
             }
-        }
-
-        /**
-         * Registers entities for the mod.
-         * This method is invoked when the RegisterEvent is fired for the ENTITY_TYPE registry key.
-         * @param event The register event containing the registry to register the entities with.
-         */
-        @SubscribeEvent
-        public static void registerEntities(RegisterEvent event)
-        {
-            if (event.getRegistryKey().equals(Registries.ENTITY_TYPE))
-            {
-                LOGGER.info("Placeholder: Registering entities");
-            }
-        }
-
-        /**
-         * Handles the entity attribute creation event for custom entities.
-         * This method is responsible for assigning attribute modifiers to entities
-         * when they are created. Specifically, it assigns attributes to the PET_WOLF
-         * entity type by building the default attribute map for a Wolf entity.
-         *
-         * @param event The event that triggers the creation of entity attributes.
-         */
-        @SubscribeEvent
-        public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
-            event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
         }
 
         /**

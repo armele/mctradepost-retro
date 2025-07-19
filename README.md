@@ -112,7 +112,7 @@ Finally, some number of "grinder" blocks, which simply designates the equipment 
 A station building must include one or more rail blocks tagged with "station_start". These are used to determine whether or not a station is connected to other colonies for the purposes of trade. Once connected, you can configure what goods you want to import, or choose to satisfy other colonies' needs by exporting goods.
 
 ### Pet Shop
-There are no tag requirements for the pet shop.
+There are no tag or structural requirements for the pet shop.
 
 ## Current Status
 This mod can best be described as in a "beta" state. Existing functionality is mostly stable, with tweaks and adjustments being made based on testing and feedback.
@@ -178,4 +178,3 @@ Ivy Block types not previewable in Domum.
 
 ### Low Priority Issues
 Tracing is global (rather than by colony)
-Fix custom shopkeeper & recycler sounds

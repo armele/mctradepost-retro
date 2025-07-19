@@ -141,6 +141,14 @@
     "item.mctradepost.trough": "Trough",
     "block.mctradepost.trough": "Trough",
 
+    "item.mctradepost.woven_kelp": "Woven Kelp Brick",
+    "item.mctradepost.woven_kelp_stairs": "Woven Kelp Brick Stairs",
+    "item.mctradepost.woven_kelp_wall": "Woven Kelp Brick Wall",
+    "item.mctradepost.woven_kelp_slab": "Woven Kelp Brick Slab",
+    "block.mctradepost.woven_kelp": "Woven Kelp Brick",
+    "block.mctradepost.woven_kelp_stairs": "Woven Kelp Brick Stairs",
+    "block.mctradepost.woven_kelp_wall": "Woven Kelp Brick Wall",
+    "block.mctradepost.woven_kelp_slab": "Woven Kelp Brick Slab",
 
     "block.mctradepost.distressed": "Distressed Frame",
     "mctradepost.timber.frame.type.distressed": "Distressed Frame",

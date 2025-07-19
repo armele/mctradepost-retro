@@ -290,13 +290,13 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             pet.setDeltaMovement(current.add(dx, 0.3, dz));
             pet.hurtMarked = true;
             pet.getNavigation().stop();
-            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
-            walkCommandSent = true;
         }
 
         if (currentTargetAnimal != null)
         {
             targetLastOn = currentTargetAnimal.getOnPos();
+            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
+            walkCommandSent = true;
         }
         else
         {
