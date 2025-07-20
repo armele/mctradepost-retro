@@ -56,7 +56,7 @@ This mod introduces the "Economics" line of research. Explore it to unlock Trade
 
 ### Custom Blocks
 * Block implementations of the building huts.
-* A few new building materials (mixed stone, thatch, plaster, rough stone, weathered rough stone, rough brick, endethyst, endmarine, marine lapis)
+* A few new building materials (mixed stone, thatch, plaster, rough stone, weathered rough stone, rough brick, endethyst, endmarine, marine lapis, woven kelp)
 * A few new Architect's Cutter recipes in the Timberframe style.
 * Trough - herding pets will herd animals towards a Trough if it is placed in a herding building and the pet is assigned to work at that building.
 
@@ -125,16 +125,19 @@ Pets - Ability: animal herding [Testing]
 #### Future
 Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
 
+Pet - Module: Add pet function and position to tooltip.
 Pets - Variety
 Pets - Building: Assign Role
 Pets - Animal Trainer AI: Feed (heal) pet.
 Pets - Recipe: Pet Food (made by animal trainer)
-Pets - Ability: happiness factor (reasonably confident)
-Pets - Ability: burnout mitigator (confident)
-Pets - Ability: sickness decreased (uncertain)
+Pets - Ability: Find mushrooms
+Pets - Ability: happiness factor
+Pets - Ability: burnout mitigator
+Pets - Ability: sickness decreased
 Pets - Ability: scarecrow effect - bonus to harvest yields (uncertain)
-Pets - Ability: pick up items in the world (confident)
-Pets - Ability: Locate certain ore types or crop types (confident)
+Pets - Ability: pick up items in the world
+Pets - Ability: Locate certain ore types or crop types
+Pets - Ability: Move items from point A to point B.
 Achievements
 Recycling: Cancel button for the processor
 Recycling: Add "Sort" module.
@@ -171,9 +174,10 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 ### Fix Implemented - In Testing
 Vacationers will sometimes complain about needing stuff even when not on vacation. [Test]
 Station: After trade arrives, request pick-up by courier. [Test]
+Pet building assignment selection list can be slow to refresh from the view. [Test]
 
 ### Pending Resolution
-Pet building assignment selection list can be slow to refresh from the view.
+If a herding target is stuck (frozen in place - such as trapped in amber as can happen in ATM 10) the pet does not handle this gracefully. It never gives up trying to move the immovable object.
 Ivy Block types not previewable in Domum.
 
 ### Low Priority Issues

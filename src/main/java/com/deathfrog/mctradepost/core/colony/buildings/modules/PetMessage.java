@@ -28,7 +28,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
     public enum PetAction
     {
-        ASSIGN, FREE
+        ASSIGN, FREE, QUERY
     }
 
     private PetAction petAction = PetAction.ASSIGN;
@@ -90,6 +90,13 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
             case FREE:
                 // TODO
+                break;
+
+            case QUERY:
+                PetAssignmentModule petModule = ((BuildingPetshop) trainerBuilding).getModule(MCTPBuildingModules.PET_ASSIGNMENT);
+                petModule.gatherHerdingBuildings();
+                ((BuildingPetshop) trainerBuilding).markPetsDirty();
+                colony.getPackageManager().addCloseSubscriber(player);
                 break;
 
         }

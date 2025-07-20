@@ -298,6 +298,7 @@
     "com.mctradepost.research.effects.tradespeed.description": "Exports travel x%s faster to their destination.",
     
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
+    "mctradepost.station.trades_updated": "New trades available in connected stations!",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",

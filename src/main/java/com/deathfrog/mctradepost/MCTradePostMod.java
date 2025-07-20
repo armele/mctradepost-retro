@@ -275,7 +275,7 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockSideSlabInterleaved> SIDE_SLAB_INTERLEAVED = BLOCKS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleaved());
     public static final DeferredBlock<BlockGlazed> GLAZED = BLOCKS.register(BlockGlazed.GLAZED_ID, () -> new BlockGlazed());
 
-    public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(MIXED_STONE.get().properties()));
+    public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(Blocks.HAY_BLOCK.properties()));
 
     public static final DeferredBlock<StairBlock> THATCH_STAIRS =
         BLOCKS.register(ModBlocksInitializer.THATCH_STAIRS_NAME,
@@ -811,7 +811,12 @@ public class MCTradePostMod
 
         if (event.getEntity() instanceof ITradePostPet pet) {
             // MCTradePostMod.LOGGER.info("Registering pet: {}", pet);
-            PetRegistryUtil.register(pet);
+            try {
+                PetRegistryUtil.register(pet);
+            } catch (IllegalArgumentException e) {
+                MCTradePostMod.LOGGER.error("Error registering pet: {}. Discarding.", pet, e);
+                event.getEntity().discard();
+            }
         }
     }
 

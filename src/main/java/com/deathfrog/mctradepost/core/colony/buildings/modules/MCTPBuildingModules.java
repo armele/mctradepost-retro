@@ -89,7 +89,6 @@ public class MCTPBuildingModules
         () -> new SettingsModule().with(BuildingMarketplace.MIN, new IntSetting(16)).with(BuildingMarketplace.AUTOMINT, new BoolSetting(true)),
         () -> SettingsModuleView::new);
 
-    // TODO: [Enhancement] Customize the sellable item list to display the sell value.
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new MarketplaceItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
         () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,

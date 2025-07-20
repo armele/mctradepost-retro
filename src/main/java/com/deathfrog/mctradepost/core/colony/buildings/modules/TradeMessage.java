@@ -9,6 +9,7 @@ import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import com.mojang.logging.LogUtils;
@@ -38,6 +39,8 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
     {
         IMPORT, EXPORT, QUERY
     }
+
+    public static final String TRADES_UPDATED = "mctradepost.station.trades_updated";
 
     private TradeAction tradeAction;
     private TradeType tradeType;
@@ -180,6 +183,8 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                     remoteStation.markTradesDirty();
                     IColony colony = remoteStation.getColony();
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));
+
+                    MessageUtils.format(TRADES_UPDATED).sendTo(colony).forAllPlayers();
 
                     colony.getPackageManager().addCloseSubscriber(player);
                 }

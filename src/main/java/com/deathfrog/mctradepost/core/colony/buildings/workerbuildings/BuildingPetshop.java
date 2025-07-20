@@ -17,6 +17,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.animal.Animal;
 
 public class BuildingPetshop extends AbstractBuilding
 {
@@ -107,14 +108,36 @@ public class BuildingPetshop extends AbstractBuilding
     }
 
 
-    // TODO: Persist pet list.
+    /**
+     * Called on every colony tick to perform periodic maintenance tasks for the pet shop.
+     * Iterates over the list of pets associated with this building and unregisters any pets
+     * that are dead or have been removed from the world.
+     *
+     * @param colony the colony that this building is a part of
+     */
+    @Override
+    public void onColonyTick(@NotNull final IColony colony)
+    {
+        super.onColonyTick(colony);
+
+        for (ITradePostPet pet : getPets())
+        {
+            if (pet instanceof Animal animal)
+            {
+                if (animal.isDeadOrDying() || animal.isRemoved())
+                {
+                    PetRegistryUtil.unregister(pet);
+                }
+            }
+        }
+    }
 
     // Armadillo
-    // Axolotl
-    // Bat
+    // Axolotl (aquatic)
+    // Bat (flying)
     // Camel
     // Cat
-    // Dolphin
+    // Dolphin (aquatic)
     // Donkey
     // Fox
     // Frog
@@ -124,7 +147,7 @@ public class BuildingPetshop extends AbstractBuilding
     // Mule
     // Ocelot
     // Panda
-    // Parrot
+    // Parrot (flying)
     // Polar Bear
     // Turtle
     // Wolf

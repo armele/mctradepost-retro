@@ -150,11 +150,19 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         petData = new PetData(this, compound);
 
         boolean registered = PetRegistryUtil.isRegistered(this);
-        if (!registered && this.isAlive())
+        if (!registered && this.isAlive() && this.getTrainerBuilding() != null)
         {
             PetRegistryUtil.register(this);
         }
-
+        else
+        {
+            if (!this.isAlive() || this.getTrainerBuilding() == null)
+            {
+                PetRegistryUtil.unregister(this);
+                this.discard();
+            }
+        }
+        
         // These are called to ensure that the custom goals have the necessary colony information available to them.  
         // At construction, they may not.
         this.goalSelector.removeAllGoals(goal -> true);

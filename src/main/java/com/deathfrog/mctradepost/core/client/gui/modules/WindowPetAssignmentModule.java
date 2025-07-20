@@ -8,6 +8,8 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage.PetAction;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
+import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.EntityIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
@@ -73,13 +75,18 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
     public void onOpened()
     {
         super.onOpened();
-        updateTradeList();
+        
+        // Send a message to the server forcing relevent building views to update.
+        PetMessage petMessage = new PetMessage(buildingView, PetAction.QUERY, -1);
+        petMessage.sendToServer();
+
+        updatePetAssignmentList();
     }
 
     /**
      * Updates the resource list in the GUI with the info we need.
      */
-    private void updateTradeList()
+    private void updatePetAssignmentList()
     {
         petList.enable();
         petList.show();
@@ -115,9 +122,20 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                 @SuppressWarnings("null")
                 Entity selectedEntity = Minecraft.getInstance().level.getEntity(pets.get(index).getEntityId());
                 
-                entityIcon.setEntity(selectedEntity);
-                entityIcon.show();
-                
+                if (selectedEntity != null)
+                {
+                    entityIcon.setEntity(selectedEntity);
+                    final AbstractTextBuilder.TooltipBuilder hoverPaneBuilder = PaneBuilders.tooltipBuilder().hoverPane(entityIcon);
+                    hoverPaneBuilder.append(selectedEntity.getCustomName());
+                    hoverPaneBuilder.appendNL(Component.literal(selectedEntity.getOnPos().toShortString()));
+                    hoverPaneBuilder.build();
+                    entityIcon.show();
+                }
+                else
+                {
+                    entityIcon.hide();
+                }
+                    
                 DropDownList buildings = findPaneOfTypeByID(BUILDING_SELECTION_ID, DropDownList.class);
 
                 buildings.setHandler(dropDownList -> onDropDownListChanged(dropDownList, pets.get(index).getEntityId()));
@@ -152,7 +170,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                     }
                 });
 
-                BlockPos buildingId = pets.get(index).getWorkBuilding() != null ? pets.get(index).getWorkBuilding().getID() : BlockPos.ZERO;
+                BlockPos buildingId = pets.get(index).getWorkBuildingID();
 
                 IBuildingView currentWorkAssignment = moduleView.getColony().getBuilding(buildingId);
                 buildings.setSelectedIndex(buildingIndex(currentWorkAssignment));

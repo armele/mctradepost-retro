@@ -44,6 +44,32 @@ public class BuildingUtil {
     }
 
     /**
+     * Retrieves the building associated with the given dimension and position.
+     *
+     * @param dimensionKey the key of the dimension where the building is located.
+     * @param buildingId the position identifier of the building within the dimension.
+     * @return the building located at the specified dimension and position, or null if no building or colony is found.
+     */
+    public static IBuilding buildingFromDimPos(ResourceKey<Level> dimensionKey, BlockPos buildingId)
+    {
+        if (buildingId == null || BlockPos.ZERO.equals(buildingId))
+        {
+            return null;
+        }
+
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(dimensionKey, buildingId);
+
+        if (colony == null)
+        {
+            MCTradePostMod.LOGGER.warn("No colony identifiable from dimension {} and position {}. {}", dimensionKey, buildingId, new Exception());
+            return null;
+        } 
+
+        IBuilding building = colony.getBuildingManager().getBuilding(buildingId);
+        return building;
+    }
+    
+    /**
      * Retrieves the building from the given NBT data.
      * 
      * @param tag the CompoundTag containing the data for the building.
@@ -51,28 +77,42 @@ public class BuildingUtil {
      */
     public static IBuilding buildingFromNBT(@Nonnull CompoundTag tag) 
     { 
+        IBuilding building = null;
         String dimension = tag.getString(TAG_DIMENSION);
         ResourceLocation level = ResourceLocation.parse(dimension);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
 
         BlockPos buildingId = BlockPosUtil.read(tag, TAG_BUILDING_ID);
-        BlockPos buildingPos = BlockPosUtil.read(tag, TAG_POSITION);
 
-        IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(levelKey, buildingId);
-
-        if (colony == null)
+        if (buildingId != null && !BlockPos.ZERO.equals(buildingId))
         {
-            MCTradePostMod.LOGGER.warn("No colony identifiable from dimension {} and position {}.", dimension, buildingId);
-            return null;
-        } 
-
-        IBuilding building = colony.getBuildingManager().getBuilding(buildingId);
+            building = buildingFromDimPos(levelKey, buildingId);
+        }
 
         return building;
     }   
 
     /**
-     * Retrieves the building from the given NBT data.
+     * Retrieves the building view associated with the given dimension and position.
+     * 
+     * @param dimensionKey the key of the dimension where the building is located.
+     * @param buildingId the position identifier of the building within the dimension.
+     * @return the building view located at the specified dimension and position, or null if no building view or colony is found.
+     */
+    public static IBuildingView buildingViewFromDimPos(ResourceKey<Level> dimensionKey, BlockPos buildingId)
+    {
+        IBuildingView buildingView = IColonyManager.getInstance().getBuildingView(dimensionKey, buildingId);
+
+        if (buildingView == null)
+        {
+            MCTradePostMod.LOGGER.warn("No building view identifiable from ID {} with position {}.", buildingId, buildingId);
+        }
+        
+        return buildingView;
+    }
+
+    /**
+     * Retrieves the building view from the given NBT data.
      * 
      * @param tag the CompoundTag containing the data for the building.
      * @return the building, or null if none found from the given data.
@@ -83,27 +123,11 @@ public class BuildingUtil {
         ResourceLocation level = ResourceLocation.parse(dimension);
         ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
 
-        int colonyId = tag.getInt(TAG_COLONY_ID);
-
-        BlockPos buildingposition = BlockPosUtil.read(tag, TAG_POSITION);
         BlockPos buildingId = BlockPosUtil.read(tag, TAG_BUILDING_ID);
 
-        IColonyView colony = IColonyManager.getInstance().getColonyView(colonyId, levelKey);
+        IBuildingView buildingView = buildingViewFromDimPos(levelKey, buildingId);
 
-        if (colony == null)
-        {
-            MCTradePostMod.LOGGER.warn("No colony identifiable from colony Id {}, dimension {}.", colonyId, dimension);
-            return null;
-        } 
-
-        IBuildingView building = colony.getBuilding(buildingId);
-
-        if (building == null)
-        {
-            MCTradePostMod.LOGGER.warn("No building view identifiable from ID {} with position {}.", buildingId, buildingposition);
-        }
-
-        return building;
+        return buildingView;
     } 
 
     /**

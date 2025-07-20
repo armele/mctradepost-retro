@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.minecolonies.api.colony.IColony;
@@ -46,7 +48,7 @@ public class PetRegistryUtil
      * Removes a pet from the global pet registry. If the pet is not in the registry, does nothing.
      * @param pet the pet to remove from the registry.
      */
-    public static final void unregister(ITradePostPet pet)
+    public static final void unregister(@Nonnull ITradePostPet pet)
     {
         List<ITradePostPet> pets = globalPetRegistry.get(pet.getTrainerBuilding());
 
@@ -67,9 +69,15 @@ public class PetRegistryUtil
      * @return true if the pet was successfully registered, false if it was already
      *         registered.
      */
-    public static final boolean register(ITradePostPet pet)
+    public static final boolean register(@Nonnull ITradePostPet pet) throws IllegalArgumentException
     {
         boolean newRegistration = false;
+
+        if (pet.getTrainerBuilding() == null)
+        {
+            throw new IllegalArgumentException("Pet must have a trainer building.");
+        }
+
         List<ITradePostPet> pets = globalPetRegistry.get(pet.getTrainerBuilding());
 
         if (pets == null) 
