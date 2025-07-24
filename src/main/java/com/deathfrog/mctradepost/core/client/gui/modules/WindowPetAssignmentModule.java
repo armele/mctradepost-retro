@@ -126,7 +126,14 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                 {
                     entityIcon.setEntity(selectedEntity);
                     final AbstractTextBuilder.TooltipBuilder hoverPaneBuilder = PaneBuilders.tooltipBuilder().hoverPane(entityIcon);
-                    hoverPaneBuilder.append(selectedEntity.getCustomName());
+                    if (selectedEntity.getCustomName() != null && !selectedEntity.getCustomName().toString().isEmpty()) 
+                    {
+                        hoverPaneBuilder.append(selectedEntity.getCustomName());
+                    }
+                    else
+                    {
+                        hoverPaneBuilder.append(selectedEntity.getName());
+                    }
                     hoverPaneBuilder.appendNL(Component.literal(selectedEntity.getOnPos().toShortString()));
                     hoverPaneBuilder.build();
                     entityIcon.show();

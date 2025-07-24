@@ -46,9 +46,9 @@ import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.eventhooks.citizenEvents.VisitorSpawnedEvent;
-import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
+import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -366,7 +366,7 @@ public class BuildingStation extends AbstractBuilding
     public IVisitorData spawnVisitor()
     {
         final int recruitLevel = this.getColony().getWorld().random.nextInt(10 * this.getBuildingLevel()) + 15;
-        final RecruitmentItemsListener.RecruitCost cost = RecruitmentItemsListener.getRandomRecruitCost(this.getColony().getWorld().getRandom(), recruitLevel);
+        final RecruitmentItemsListener.RecruitCost cost = RecruitmentItemsListener.getRandomRecruitCost(recruitLevel);
         if (cost == null)
         {
             return null;
@@ -376,7 +376,7 @@ public class BuildingStation extends AbstractBuilding
         newCitizen.setBedPos(this.getPosition());
         newCitizen.setHomeBuilding(this);
         newCitizen.getCitizenSkillHandler().init(recruitLevel);
-        newCitizen.setRecruitCosts(cost.toItemStack(recruitLevel));
+        newCitizen.setRecruitCosts(cost.boots());
 
         BlockPos spawnPos = BlockPosUtil.findSpawnPosAround(this.getColony().getWorld(), this.getPosition());
         if (spawnPos == null)
@@ -404,22 +404,22 @@ public class BuildingStation extends AbstractBuilding
     private ItemStack getHats(final int recruitLevel)
     {
         ItemStack hat = ItemStack.EMPTY;
-        if (recruitLevel > TavernBuildingModule.LEATHER_SKILL_LEVEL)
+        if (recruitLevel > 1)
         {
             // Leather
             hat = new ItemStack(Items.LEATHER_HELMET);
         }
-        if (recruitLevel > TavernBuildingModule.GOLD_SKILL_LEVEL)
+        if (recruitLevel > 2)
         {
             // Gold
             hat = new ItemStack(Items.GOLDEN_HELMET);
         }
-        if (recruitLevel > TavernBuildingModule.IRON_SKILL_LEVEL)
+        if (recruitLevel > 3)
         {
             // Iron
             hat = new ItemStack(Items.IRON_HELMET);
         }
-        if (recruitLevel > TavernBuildingModule.DIAMOND_SKILL_LEVEL)
+        if (recruitLevel > 4)
         {
             // Diamond
             hat = new ItemStack(Items.DIAMOND_HELMET);

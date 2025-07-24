@@ -129,8 +129,8 @@ dependencies {
 
     //compileOnly name: 'minecolonies-1.1.978-1.21.1-snapshot'  // use the actual filename without .jar
     //localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.978-1.21.1-snapshot.jar')
-    compileOnly name: 'minecolonies-1.1.1037-1.21.1-snapshot'
-    localRuntime files ('../Minecolonies/build/libs/minecolonies-1.1.1037-1.21.1-snapshot.jar')
+    compileOnly name: 'minecolonies-1.1.1047-1.21.1-snapshot'
+    localRuntime files ('../Minecolonies/build/libs/minecolonies-1.1.1047-1.21.1-snapshot.jar')
     
     compileOnly name: 'multipiston-1.2.57-1.21.1'
     localRuntime files ('../Minecolonies/build/libs/multipiston-1.2.57-1.21.1.jar')

@@ -20,6 +20,7 @@ public class JobRecyclingEngineer extends AbstractJobCrafter<EntityAIWorkRecycli
     @Override
     public ResourceLocation getModel()
     {
+        // return ModModelTypes.RECYCLINGENGINEER_MODEL_ID;
         return super.getModel();
     }
 }

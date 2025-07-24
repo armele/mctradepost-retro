@@ -82,7 +82,7 @@ Copy that Jar file into your mods directory.
 Note that MineColonies and its dependencies must be present to work.  JEI is recommended, but not required.
 
 ### Compatibility Reference
-mctradepost-0.15.006+ -> MineColonies 1.1.1037 (Minecraft 1.21.1)  with the NeoForge loader.
+mctradepost-0.16.007+ -> MineColonies 1.1.1047 (Minecraft 1.21.1)  with the NeoForge loader.
 There are no plans to support earlier versions of Minecraft or other Mod Loaders.
 Later version of Minecraft support should follow closely behind the Minecolonies support of those versions.
 
