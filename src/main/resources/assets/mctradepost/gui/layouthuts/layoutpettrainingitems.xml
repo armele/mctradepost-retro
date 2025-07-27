@@ -1,0 +1,16 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+            <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.petstore.trainingitems)"/>
+            <text id="howto" size="130 11" pos="30 28" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.petstore.trainingtips)"/>
+            <list id="petlist" size="170 180" pos="13 45" emptytext="$(com.minecolonies.coremod.gui.petstore.empty)" emptycolor="black">
+                <box size="100% 50" linewidth="1">
+                    <entityicon id="entity" size="45 40" pos="1 1" visible="false" />
+                    <text id="pettype" size="60 12" pos="48 5" color="black"/>
+                    <text id="buildinglevel" size="120 12" pos="48 25" color="black"/>
+                    <itemicon id="trainingitem" size="16 16" pos="130 5"/>
+                </box>
+            </list>
+</window>

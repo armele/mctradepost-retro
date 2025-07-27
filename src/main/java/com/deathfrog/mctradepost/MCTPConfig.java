@@ -53,6 +53,9 @@ public class MCTPConfig
     public static final ConfigValue<Integer>  baseTradeSpeed;
     public static final ConfigValue<Integer>  importsPerLevel;
 
+    // Animal Trainier Settings
+    public static final ConfigValue<Integer>  petsPerLevel;
+
     static {
         BUILDER.push("marketplace");
 
@@ -148,6 +151,14 @@ public class MCTPConfig
             .comment("Number of imports allowed per Station level.")
             .define("importsPerLevel", 5);
             
+        BUILDER.pop();
+
+        // Animal Trainer settings
+        BUILDER.push("petshop");
+        petsPerLevel = BUILDER
+            .comment("Number of pets per building level.")
+            .define("petsPerLevel", 2);
+        
         BUILDER.pop();
 
         SPEC = BUILDER.build(); // Last

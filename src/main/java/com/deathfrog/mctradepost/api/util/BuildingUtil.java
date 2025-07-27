@@ -3,24 +3,17 @@ package com.deathfrog.mctradepost.api.util;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.blocks.BlockTrough;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
-import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.BlockPosUtil;
-import net.minecraft.util.Tuple;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 
 public class BuildingUtil {
     public static final String TAG_DIMENSION = "dimension";
@@ -105,7 +98,7 @@ public class BuildingUtil {
 
         if (buildingView == null)
         {
-            MCTradePostMod.LOGGER.warn("No building view identifiable from ID {} with position {}.", buildingId, buildingId);
+            // MCTradePostMod.LOGGER.warn("No building view identifiable from ID {} with position {}.", buildingId, buildingId);
         }
         
         return buildingView;
@@ -129,42 +122,4 @@ public class BuildingUtil {
 
         return buildingView;
     } 
-
-    /**
-     * Finds the destination for herding within a building, searching for a block of type BlockTrough. Iterates through the bounding
-     * box defined by the building's corners to locate the trough.
-     *
-     * @param building the building within which the search is conducted
-     * @return the BlockPos of the BlockTrough if found; otherwise, the building's current position
-     */
-    public static BlockPos findHerdingDestination(IBuilding building)
-    {
-        Level level = building.getColony().getWorld();
-        Tuple<BlockPos, BlockPos> corners = building.getCorners();
-
-        BlockPos min = BlockPos.containing(Math.min(corners.getA().getX(), corners.getB().getX()),
-            Math.min(corners.getA().getY(), corners.getB().getY()),
-            Math.min(corners.getA().getZ(), corners.getB().getZ()));
-
-        BlockPos max = BlockPos.containing(Math.max(corners.getA().getX(), corners.getB().getX()),
-            Math.max(corners.getA().getY(), corners.getB().getY()),
-            Math.max(corners.getA().getZ(), corners.getB().getZ()));
-
-        for (int x = min.getX(); x <= max.getX(); x++)
-        {
-            for (int y = min.getY(); y <= max.getY(); y++)
-            {
-                for (int z = min.getZ(); z <= max.getZ(); z++)
-                {
-                    BlockPos pos = new BlockPos(x, y, z);
-                    if (level.getBlockState(pos).getBlock() instanceof BlockTrough)
-                    {
-                        return pos;
-                    }
-                }
-            }
-        }
-
-        return building.getPosition(); // No trough found
-    }
 }

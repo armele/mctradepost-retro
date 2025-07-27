@@ -6,13 +6,13 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.entity.pets.goals.EscapeHoleWithLadderGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToPositionGoal;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
-import com.minecolonies.core.entity.pathfinding.navigation.PathingStuckHandler;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -23,7 +23,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.BegGoal;
 import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
@@ -37,6 +36,8 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 
 public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
@@ -45,9 +46,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public int logCooldown = 0;
 
     protected PetData petData = null;
-    
-    // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
-    public static final int STUCK_STEPS = 10;   
+    protected boolean goalsInitialized = false;
 
     protected BlockPos targetPosition = BlockPos.ZERO;
     protected int stuckTicks = 0;
@@ -73,27 +72,15 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     }
 
     @Override
-    public IBuilding getWorkBuilding()
+    public String getAnimalType()
     {
         if (petData == null) return null;
 
-        return petData.getWorkBuilding();
-    }
-
-    @Override
-    public void setWorkBuilding(IBuilding building)
-    {
-        petData.setWorkBuilding(building);
-    }
-
-    @Override
-    public String getAnimalType()
-    {
         return petData.getAnimalType();
     }
 
     /**
-     * A pet wolf will never want to attack another entity.
+     * A pet will never want to attack another entity.
      * 
      * @param target the target to check
      * @param owner  the owner of the wolf
@@ -108,11 +95,39 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     protected void registerGoals()
     {
+
+        if (this.petData == null)
+        {
+            LOGGER.warn("Skipping goal registration: petData is null");
+            return;
+        }
+
         this.goalSelector.addGoal(1, new FloatGoal(this));
-        // this.goalSelector.addGoal(2, new EscapeHoleWithLadderGoal(this));
         this.goalSelector.addGoal(3, new HerdGoal<>(this));
-        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
-        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0));
+        this.goalSelector.addGoal(4, new ScavengeForResourceGoal<>(
+            this,
+            16,                      // search radius
+            8.0,                     // light level (optional to ignore)
+            0.3f,                    // 30% success rate
+            pos -> {
+                var stateBelow = this.level().getBlockState(pos.below());
+                return this.level().getMaxLocalRawBrightness(pos) < 8 &&
+                    (stateBelow.is(BlockTags.DIRT) || stateBelow.is(BlockTags.MUSHROOM_GROW_BLOCK)) &&
+                    this.level().isEmptyBlock(pos);
+            },
+            pos -> {
+                var mushroom = this.getRandom().nextBoolean() ?
+                    Blocks.RED_MUSHROOM.defaultBlockState() :
+                    Blocks.BROWN_MUSHROOM.defaultBlockState();
+                this.level().setBlock(pos, mushroom, 3);
+            }
+        ));
+
+        if (this.petData != null && this.petData.getWorkLocation() != null)
+        {
+            this.goalSelector.addGoal(5, new WalkToPositionGoal(this, petData.getWorkLocation(), 1.2, 6.0));
+        }
+            
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(7, new BegGoal(this, 8.0F));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
@@ -133,6 +148,10 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         {
             petData.toNBT(compound);
         }
+        else
+        {
+            LOGGER.warn("Failed to serialize pet data: petData is null");
+        }
 
     }
 
@@ -145,9 +164,28 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
      */
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
-    {
-        super.readAdditionalSaveData(compound);
+    {   
         petData = new PetData(this, compound);
+
+        // Reset and safely re-register goals
+        this.goalSelector.removeAllGoals(g -> true);
+        this.targetSelector.removeAllGoals(g -> true);
+        if (petData != null) {
+            registerGoals(); // only register once we have all colony context
+        }
+        else 
+        {
+            LOGGER.warn("Failed to deserialize pet data from {}: petData is null", compound);
+        }
+
+        try
+        {
+            super.readAdditionalSaveData(compound);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+        }
 
         boolean registered = PetRegistryUtil.isRegistered(this);
         if (!registered && this.isAlive() && this.getTrainerBuilding() != null)
@@ -162,28 +200,39 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
                 this.discard();
             }
         }
-        
-        // These are called to ensure that the custom goals have the necessary colony information available to them.  
-        // At construction, they may not.
-        this.goalSelector.removeAllGoals(goal -> true);
-        this.targetSelector.removeAllGoals(goal -> true);
-        this.registerGoals();
+    }
+
+    /**
+     * Resets the state of this pet's AI goals and targets, by clearing all existing goals and targets and re-registering them.
+     * A change of work location may necessitate a change of goals.
+     * The goals and targets are only registered once the pet has a valid colony context, which is not available until the pet is loaded into a world.
+     */
+    protected void resetGoals() 
+    {
+        this.goalSelector.removeAllGoals(g -> true);
+        this.targetSelector.removeAllGoals(g -> true);
+        registerGoals();
+        goalsInitialized = true;
     }
 
     @Override
     public void tick()
     {
         super.tick();
+        
+        if (!goalsInitialized && petData != null) {
+            resetGoals();
+        }
 
         logActiveGoals();
     }
 
     /**
-     * Removes the PetWolf from the game. This method unregisters the wolf from the PetRegistry
+     * Removes the Pet from the game. This method unregisters the wolf from the PetRegistry
      * and clears the reference to its associated BaseTradePostPet. This is typically called
      * when the wolf is removed from the world for any reason, such as death or despawning.
      *
-     * @param reason the reason for the removal of the PetWolf
+     * @param reason the reason for the removal of the pet
      */
     @Override
     public void remove(@Nonnull RemovalReason reason)
@@ -276,5 +325,38 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Active Target Goal: " + goal.getClass().getSimpleName()));
             }
         }
+    }
+
+    @Override
+    public ItemStackHandler getInventory()
+    {
+        if (petData == null) {
+            return null;
+        }
+
+        return petData.getInventory();
+    }
+
+    @Override
+    public void setWorkLocation(BlockPos location)
+    {
+        if (petData == null) {
+            petData = new PetData(this);
+            return;
+        }
+
+        resetGoals();
+
+        petData.setWorkLocation(location);
+    }
+
+    @Override
+    public BlockPos getWorkLocation()
+    {
+        if (petData == null) {
+            return null;
+        }
+
+        return petData.getWorkLocation();
     }
 }

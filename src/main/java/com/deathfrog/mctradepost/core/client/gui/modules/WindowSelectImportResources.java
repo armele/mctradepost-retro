@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import static com.minecolonies.api.util.constant.WindowConstants.BUTTON_SELECT;

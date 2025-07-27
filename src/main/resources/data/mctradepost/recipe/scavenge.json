@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "O": { "tag": "minecraft:logs" },
+    "M": { "item": "minecraft:mycelium" },
+    "S": { "item": "minecraft:stick" }
+  },
+  "pattern": [
+    "SOS",
+    "OMO",
+    "SOS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:scavenge"
+  }
+}

@@ -9,11 +9,10 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.IHerdingPet;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
-import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
-import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.entity.pets.PetData;
+import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
-import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
@@ -28,6 +27,7 @@ import net.minecraft.world.phys.Vec3;
 public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+    private boolean goalLogToggle = false;
 
     private final P pet;
     private BlockPos herdTarget;
@@ -47,8 +47,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         this.setFlags(EnumSet.of(Goal.Flag.MOVE));
     }
 
-    // TODO: Generalize what can be herded.
-
     /**
      * Searches for an animal that needs herding and sets the target accordingly.
      * 
@@ -56,24 +54,8 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
      */
     public boolean findAnimalsThatNeedHerding()
     {
-        IBuilding targetBuilding = pet.getWorkBuilding();
-        if (targetBuilding != null)
-        {
-            this.herdTarget = BuildingUtil.findHerdingDestination(targetBuilding);
-        }
-        else
-        {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target building set when evaluating whether there are animals that need herding."));
-            return false;
-        }
-
-        /*
-        List<Sheep> sheepNearby = wolf.level()
-            .getEntitiesOfClass(Sheep.class,
-                wolf.getBoundingBox().inflate(SEARCH_RADIUS),
-                sheep -> !sheep.isBaby() && sheep.isAlive());
-        */
-        List<? extends Animal> targetsNearby = pet.getPetData().searchForCompatibleAnimals(pet.getBoundingBox().inflate(SEARCH_RADIUS));
+        this.herdTarget = pet.getWorkLocation();
+        List<? extends Animal> targetsNearby = pet.getPetData().searchForCompatibleAnimals(pet.level(), pet.getBoundingBox().inflate(SEARCH_RADIUS));
 
         if (!targetsNearby.isEmpty())
         {
@@ -102,6 +84,15 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         return false;
     }
 
+    protected void logCanUse(boolean resultingState, Runnable loggingStatement)
+    {
+        if (goalLogToggle != resultingState)
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, loggingStatement);
+            goalLogToggle = resultingState;
+        }
+    }
+
     /**
      * Determines if the herding goal can be used.
      * 
@@ -115,28 +106,32 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     {
         if (pet.isLeashed() || pet.isPassenger() || !pet.isAlive())
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Cannot use herding goal. Is leashed? {} Is passenger? {} Is alive? {}", pet.isLeashed(), pet.isPassenger(), pet.isAlive()));
+            logCanUse(false, () -> LOGGER.info("Cannot use herding goal. Is leashed? {} Is passenger? {} Is alive? {}", pet.isLeashed(), pet.isPassenger(), pet.isAlive()));
             return false;
         }
 
-        IBuilding workBuilding = pet.getWorkBuilding();
-        if (workBuilding != null)
-        {
-            this.herdTarget = workBuilding.getPosition();
-        }
+        this.herdTarget = pet.getWorkLocation();
 
-        if (BlockPos.ZERO.equals(herdTarget))
+        if (herdTarget == null || BlockPos.ZERO.equals(herdTarget))
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target to herd to."));
+            logCanUse(false, () -> LOGGER.info("No target to herd to."));
+            return false;
+        }
+        
+        if (pet.getPetData() == null || pet.level() == null)
+        {
+            logCanUse(false, () -> LOGGER.info("No pet data found or pet level not yet set."));
             return false;
         }
 
-        if (findAnimalsThatNeedHerding())
+        if (PetRoles.HERDING.equals(pet.getPetData().roleFromWorkLocation(pet.level())) && findAnimalsThatNeedHerding())
         {
+            logCanUse(true, () -> LOGGER.info("Found straying animals within range of pet at {}", pet.getOnPos()));
             return true;
         }
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No straying animals within range of pet at {}", pet.getOnPos()));
+        logCanUse(false, () -> LOGGER.info("No straying animals within range of pet at {}", pet.getOnPos()));
+        
         return false;
     }
 
@@ -227,7 +222,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             if (targetDistance > HERDING_DISTANCE)
             {
 
-                if ((targetDistance < HERDING_DISTANCE * 2 ) || targetStuckSteps > PetWolf.STUCK_STEPS)
+                if ((targetDistance < HERDING_DISTANCE * 2 ) || targetStuckSteps > PetData.STUCK_STEPS)
                 {
                     currentTargetAnimal.getNavigation().moveTo(herdTarget.getX() + 0.5, herdTarget.getY(), herdTarget.getZ() + 0.5, 1.0);
                 }
@@ -254,7 +249,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
                 }
 
                 // Boost the animal up if stuck repeatedly
-                if (targetStuckSteps > PetWolf.STUCK_STEPS) {
+                if (targetStuckSteps > PetData.STUCK_STEPS) {
                     Vec3 movement = currentTargetAnimal.getDeltaMovement();
                     currentTargetAnimal.setDeltaMovement(movement.x, 0.5, movement.z);
                     currentTargetAnimal.hurtMarked = true;
@@ -279,7 +274,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             pet.clearStuckTicks();
         }
 
-        if (pet.getStuckTicks() > PetWolf.STUCK_STEPS)
+        if (pet.getStuckTicks() > PetData.STUCK_STEPS)
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", currentTargetAnimal.getOnPos(), pet.getStuckTicks()));
 

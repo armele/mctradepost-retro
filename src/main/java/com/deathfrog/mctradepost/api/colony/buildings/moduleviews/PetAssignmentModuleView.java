@@ -1,12 +1,16 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowPetAssignmentModule;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.util.BlockPosUtil;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -18,7 +22,15 @@ import java.util.*;
 
 public class PetAssignmentModuleView extends AbstractBuildingModuleView
 {
-    private final List<IBuildingView> herdingBuildings = new ArrayList<>();
+    
+    public class PetWorkingLocationData
+    {
+        public BlockPos workLocation;
+        public PetRoles role;
+        public String name;
+    }
+
+    private final Map<BlockPos, PetWorkingLocationData> petWorkLocations = new HashMap<>();
     private boolean dirty = true;
 
     /**
@@ -29,7 +41,7 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
     @Override
     public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        herdingBuildings.clear();
+        petWorkLocations.clear();
 
         final int size = buf.readInt();
 
@@ -45,20 +57,24 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
             {
                 continue;
             }
-            IBuildingView herdBuildingView = BuildingUtil.buildingViewFromNBT(compound);
-            if (herdBuildingView != null)
+            PetWorkingLocationData data = new PetWorkingLocationData();
+            data.workLocation = BlockPosUtil.read(compound, "WorkLocation");
+            data.role = PetRoles.values()[compound.getInt("Role")];
+            data.name = compound.getString("LocationName");
+
+            if (data.workLocation != null && !BlockPos.ZERO.equals(data.workLocation))
             {   
-                // MCTradePostMod.LOGGER.info("View got herding building: {}", herdBuildingView);
-                herdingBuildings.add(herdBuildingView);
+                petWorkLocations.put(data.workLocation, data);
             }
             else
             {
-                // MCTradePostMod.LOGGER.warn("View did not get herding building from NBT: {}", compound);
+                MCTradePostMod.LOGGER.warn("View did not get work location from NBT: {}", compound);
             }
         }
 
         dirty = false;
     }
+
 
     public boolean isDirty()
     {
@@ -104,9 +120,13 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
      * 
      * @return An immutable list of IBuildingView representing the herding buildings.
      */
-    public ImmutableList<IBuildingView> getHerdingBuildings()
+    public ImmutableList<PetWorkingLocationData> getPetWorkLocations()
     {
+        return ImmutableList.copyOf(petWorkLocations.values());
+    }
 
-        return ImmutableList.copyOf(herdingBuildings);
+    public Map<BlockPos, PetWorkingLocationData> getPetWorkLocationsMap()
+    {
+        return petWorkLocations;
     }
 }

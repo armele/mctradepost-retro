@@ -63,11 +63,14 @@ public final class ModBlocksInitializer
     public final static String MARINE_BASALT_STAIRS_NAME = "marine_basalt_stairs";
     public final static String MARINE_BASALT_WALL_NAME = "marine_basalt_wall";
     public final static String MARINE_BASALT_SLAB_NAME = "marine_basalt_slab";
-    public final static String TROUGH_NAME = "trough";
 	public final static String WOVEN_KELP_NAME = "woven_kelp";
     public final static String WOVEN_KELP_STAIRS_NAME = "woven_kelp_stairs";
     public final static String WOVEN_KELP_WALL_NAME = "woven_kelp_wall";
     public final static String WOVEN_KELP_SLAB_NAME = "woven_kelp_slab";
+
+    // Pet Working Blocks
+    public final static String TROUGH_NAME = "trough";
+    public final static String SCAVENGE_NAME = "scavenge";
 
     private ModBlocksInitializer()
     {

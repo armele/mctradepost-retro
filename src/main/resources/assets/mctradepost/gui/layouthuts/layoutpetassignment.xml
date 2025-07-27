@@ -6,10 +6,11 @@
             <list id="petlist" size="170 180" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.petstore.empty)" emptycolor="black">
                 <box size="100% 50" linewidth="1">
                     <entityicon id="entity" size="35 45" pos="1 1" visible="false" />
-                    <text id="pettype" size="130 12" pos="38 1" color="black"/>
+                    <text id="entityoor" label="$(com.minecolonies.coremod.gui.petstore.outofrange)" size="35 45" pos="1 1" color="black" wrap="true" />
+                    <text id="pettype" size="130 12" pos="35 1" color="black"/>
                     <dropdown id="buildings"
-                        size="130 17"
-                        pos="38 15"
+                        size="125 17"
+                        pos="35 15"
                         maxContentHeight="75"
                         dropDownSize="140 75"
                         source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png"

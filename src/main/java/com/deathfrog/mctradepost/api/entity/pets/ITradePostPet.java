@@ -2,12 +2,32 @@ package com.deathfrog.mctradepost.api.entity.pets;
 
 import com.minecolonies.api.colony.buildings.IBuilding;
 
+import net.minecraft.core.BlockPos;
+import net.neoforged.neoforge.items.ItemStackHandler;
+
 public interface ITradePostPet
 {
     public void setTrainerBuilding(IBuilding building);
     public IBuilding getTrainerBuilding();
-    public void setWorkBuilding(IBuilding building);
-    public IBuilding getWorkBuilding();
+    public void setWorkLocation(BlockPos location);
+    public BlockPos getWorkLocation();
     public String getAnimalType();
     public PetData getPetData();
+    public ItemStackHandler getInventory();
+
+    default String petInfo()
+    {
+        return String.format(
+            "%s[animalType=%s, role=%s, trainerBuilding=%s, workLocation=%s, petLocation=%s, inventorySize=%d]",
+            this.getClass().getSimpleName(),
+            getAnimalType() != null ? getAnimalType() : "null",
+            getPetData() != null && getWorkLocation() != null && getPetData().getAnimal() != null 
+                ? getPetData().roleFromWorkLocation(getPetData().getAnimal().level()) 
+                : "Unassigned",
+            getTrainerBuilding() != null ? getTrainerBuilding().getClass().getSimpleName() : "null",
+            getWorkLocation() != null && !BlockPos.ZERO.equals(getWorkLocation()) ? getWorkLocation().toShortString() : "No work location set",
+            getPetData() != null ? getPetData().getAnimal().getOnPos().toShortString() : "No Pet Data available.",
+            getInventory() != null ? getInventory().getSlots() : 0
+        );
+    }
 }

@@ -1,8 +1,6 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import java.util.List;
-import java.util.Set;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
@@ -16,7 +14,6 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
-import io.netty.util.Recycler;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 

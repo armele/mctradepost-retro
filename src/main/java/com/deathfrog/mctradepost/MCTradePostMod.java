@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
@@ -16,6 +17,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.ModBlocksInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
+import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
@@ -23,6 +25,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
@@ -58,22 +61,27 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.FoxRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
@@ -88,9 +96,11 @@ import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
@@ -99,6 +109,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
@@ -111,6 +122,7 @@ import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -242,6 +254,11 @@ public class MCTradePostMod
         () -> EntityType.Builder.of(PetWolf::new, MobCategory.CREATURE)
             .sized(0.6F, 0.85F)
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_wolf").toString()));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<PetFox>> PET_FOX = ENTITIES.register("pet_fox",
+        () -> EntityType.Builder.of(PetFox::new, MobCategory.CREATURE)
+            .sized(0.6F, 0.85F)
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_fox").toString()));
 
     /*
     * BLOCKS
@@ -429,6 +446,9 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockTrough> TROUGH =
         BLOCKS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockTrough(THATCH.get().properties().lightLevel(state -> 4)));
 
+    public static final DeferredBlock<BlockScavenge> SCAVENGE =
+        BLOCKS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockScavenge(THATCH.get().properties().lightLevel(state -> 4)));
+
     public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
     public static final DeferredBlock<StairBlock> WOVEN_KELP_STAIRS = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME,
@@ -592,6 +612,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> TROUGH_ITEM =
         ITEMS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockItem(TROUGH.get(), new Item.Properties()));
 
+    public static final DeferredItem<Item> SCAVENGE_ITEM =
+        ITEMS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockItem(SCAVENGE.get(), new Item.Properties()));    
+    
     public static final DeferredItem<Item> WOVEN_KELP_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_NAME, () -> new BlockItem(WOVEN_KELP.get(), new Item.Properties()));
 
@@ -773,27 +796,8 @@ public class MCTradePostMod
                     RitualPacket.sendPacketsToPlayer(player);
                 }
             }
-        }
-
-        
+        }   
     }
-
-    // You can use SubscribeEvent and let the Event Bus discover methods to call
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event)
-    {   
-        // Do something when the server starts
-        LOGGER.info("Server starting");
-    }
-
-    @SubscribeEvent
-    public void onServerStarted(ServerStartedEvent event)
-    {   
-        // Placeholder hook for future functionality.
-        LOGGER.info("Server has started.");
-        MinecraftServer server = event.getServer();
-    }
-
 
     /**
      * Handles the event when an entity joins the world. This method checks if the
@@ -832,15 +836,6 @@ public class MCTradePostMod
     }
 
 
-    @EventBusSubscriber(modid = MCTradePostMod.MODID)
-    public class ServerEventHandler {
-
-        @SubscribeEvent
-        public static void onServerStarting(ServerStartingEvent event) {
-            MCTradePostMod.LOGGER.info("Server starting.");
-        }
-    }
-
     @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD)
     public class ModServerEventHandler
     {
@@ -848,13 +843,14 @@ public class MCTradePostMod
          * Handles the entity attribute creation event for custom entities.
          * This method is responsible for assigning attribute modifiers to entities
          * when they are created. Specifically, it assigns attributes to the PET_WOLF
-         * entity type by building the default attribute map for a Wolf entity.
+         * entity type by building the default attribute map for pet entities.
          *
          * @param event The event that triggers the creation of entity attributes.
          */
         @SubscribeEvent
         public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
             event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
+            event.put(MCTradePostMod.PET_FOX.get(), Fox.createAttributes().build());
         }
 
         /**
@@ -870,6 +866,73 @@ public class MCTradePostMod
                 MCTradePostMod.LOGGER.info("Placeholder: Registering entities");
             }
         }
+
+        @SubscribeEvent(priority = EventPriority.HIGH)
+        public static void registerCaps(final RegisterCapabilitiesEvent event)
+        {
+            // Placeholder for registering capabilities.
+        }
+    }
+
+    @EventBusSubscriber(modid = MODID)
+    public class GameplayServerEventHandler
+    {
+        /**
+         * Handles the BlockEvent.EntityPlaceEvent.
+         * This event is fired by the EntityPlaceEvent class when a block is placed by an entity.
+         * Specifically, it is fired when a player places a block.
+         * This method is responsible for registering the placed block as a work location for pets in the colony.
+         * @param event The event that is fired when an entity places a block.
+         */
+        @SubscribeEvent
+        public static void onBlockPlaced(final BlockEvent.EntityPlaceEvent event) {
+            if (!(event.getEntity() instanceof Player player)) return;
+            if (!(event.getLevel() instanceof ServerLevel level)) return;
+
+            BlockState state = event.getPlacedBlock();
+            if (!(state.getBlock() instanceof AbstractBlockPetWorkingLocation)) return;
+
+            BlockPos pos = event.getPos();
+            IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
+            if (colony != null) {
+                PetRegistryUtil.registerWorkLocation(colony, pos);
+                MCTradePostMod.LOGGER.info("Registered Work Location block at {} for colony {}", pos, colony.getID());
+            }
+        }
+
+        /**
+         * Called when a block is broken in the world.
+         * If the broken block is a Work Location block, this will unregister the BlockPos
+         * as a valid work location for a pet in the colony at that BlockPos.
+         * @param event The event containing the broken block and its BlockPos.
+         */
+        @SubscribeEvent
+        public static void onBlockBroken(final BlockEvent.BreakEvent event) {
+            if (!(event.getLevel() instanceof ServerLevel level)) return;
+
+            BlockState state = event.getState();
+            if (!(state.getBlock() instanceof AbstractBlockPetWorkingLocation)) return;
+
+            BlockPos pos = event.getPos();
+            IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
+            if (colony != null) {
+                PetRegistryUtil.unregisterWorkLocation(colony, pos);
+                MCTradePostMod.LOGGER.info("Unregistered Work Location block at {} for colony {}", pos, colony.getID());
+            }
+
+        }
+
+        @SubscribeEvent
+        public static void onServerStarting(ServerStartingEvent event) {
+            MCTradePostMod.LOGGER.info("Server starting.");
+        }
+
+        @SubscribeEvent
+        public static void onServerStarted(ServerStartedEvent event)
+        {   
+            MCTradePostMod.LOGGER.info("Server started.");
+        }
+
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
@@ -968,6 +1031,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_BASALT_WALL.get());
                     event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());	
                     event.accept(MCTradePostMod.TROUGH.get());
+                    event.accept(MCTradePostMod.SCAVENGE.get());
                     event.accept(MCTradePostMod.WOVEN_KELP.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());
@@ -992,6 +1056,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
         }
 
         /**

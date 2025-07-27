@@ -127,6 +127,7 @@ public final class ModBuildingsInitializer
             petShopBuilder.setBuildingViewProducer(() -> PetshopView::new);
             petShopBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.PETSHOP_ID));
             petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.ANIMALTRAINER_WORK);
+            petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.PET_TRAINING);
             petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.PET_ASSIGNMENT);
             petShopBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
 

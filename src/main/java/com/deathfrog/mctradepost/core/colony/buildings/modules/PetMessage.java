@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
@@ -18,6 +19,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import org.slf4j.Logger;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+
 import org.jetbrains.annotations.NotNull;
 
 public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
@@ -32,7 +35,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     }
 
     private PetAction petAction = PetAction.ASSIGN;
-    private BlockPos workBuildingId = BlockPos.ZERO;
+    private BlockPos workLocation = BlockPos.ZERO;
     private int entityId = -1;
 
     public PetMessage(final IBuildingView trainerBuilding, PetAction action, int entityId)
@@ -45,7 +48,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     protected PetMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
-        this.workBuildingId = buf.readBlockPos();
+        this.workLocation = buf.readBlockPos();
         this.entityId = buf.readInt();
         this.petAction = PetAction.values()[buf.readInt()];
     }
@@ -54,36 +57,44 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.toBytes(buf);
-        buf.writeBlockPos(this.workBuildingId);
+        buf.writeBlockPos(this.workLocation);
         buf.writeInt(this.entityId);
         buf.writeInt(this.petAction.ordinal());
     }
 
-    public void setWorkBuilding(final BlockPos workBuildingId)
+    public void setWorkLocation(final BlockPos workLocation)
     {
-        this.workBuildingId = workBuildingId;
+        this.workLocation = workLocation;
     }
 
+    /**
+     * Server-side handler for the PetMessage.
+     * This method will be called on the server when the client sends a PetMessage.
+     * The method will take the appropriate action based on the value of the petAction field.
+     * If the petAction is ASSIGN, the method will set the work location of the entity at entityId to the value of the workLocation field.
+     * If the petAction is FREE, the method will free the entity at entityId from its current work location.
+     * If the petAction is QUERY, the method will gather all valid work locations for pets in the colony and send them to the client.
+     * @param ctxIn the payload context for this message
+     * @param player the player who sent the message
+     * @param colony the colony the message is for
+     * @param trainerBuilding the trainer building that the message is for
+     */
     @Override
     protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding trainerBuilding)
     {
         Entity entity = colony.getWorld().getEntity(entityId);
-        IBuilding workBuilding = null;
-        
-        if (!BlockPos.ZERO.equals(workBuildingId)) 
-        {
-            workBuilding = colony.getBuildingManager().getBuilding(workBuildingId);
-        }
 
-        MCTradePostMod.LOGGER.info("Server exection of PetMessage. Colony: {}, Trainer Building: {}, Entity: {}, Work Building: {}, Pet Action: {}", colony, trainerBuilding, entity, workBuilding, petAction);
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, 
+            () -> MCTradePostMod.LOGGER.info("Server execution of PetMessage. Colony: {}, Trainer Building: {}, Entity: {}, Work Location: {}, Pet Action: {}", 
+            colony, trainerBuilding, entity, workLocation, petAction));
 
         switch (petAction)
         {
             case ASSIGN:
                 if (entity != null && entity instanceof ITradePostPet pet) 
                 {
-                    MCTradePostMod.LOGGER.info("Setting work building: {}", workBuilding);
-                    pet.setWorkBuilding(workBuilding);
+                    MCTradePostMod.LOGGER.info("Setting work location: {}", workLocation);
+                    pet.setWorkLocation(workLocation);
                     ((BuildingPetshop) trainerBuilding).markPetsDirty();
                 } 
                 break;
@@ -94,7 +105,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
             case QUERY:
                 PetAssignmentModule petModule = ((BuildingPetshop) trainerBuilding).getModule(MCTPBuildingModules.PET_ASSIGNMENT);
-                petModule.gatherHerdingBuildings();
+                petModule.gatherWorkLocations(colony);
                 ((BuildingPetshop) trainerBuilding).markPetsDirty();
                 colony.getPackageManager().addCloseSubscriber(player);
                 break;

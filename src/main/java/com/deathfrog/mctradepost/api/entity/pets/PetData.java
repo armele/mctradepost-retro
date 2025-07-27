@@ -5,6 +5,10 @@ import java.util.List;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
+import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.BlockPosUtil;
@@ -17,18 +21,25 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class PetData 
 {
+    // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
+    public static final int STUCK_STEPS = 10;   
+    
     protected Animal animal;
     protected int colonyId;
     protected BlockPos trainerBuildingID = BlockPos.ZERO;
-    protected BlockPos workBuildingID = BlockPos.ZERO;
+    protected BlockPos workLocation = BlockPos.ZERO;
     protected String animalType;
     protected int entityId;
     private ResourceKey<Level> dimension = null;
-    
+    private final ItemStackHandler inventory = new ItemStackHandler(9);
+
     public PetData(Animal animal)
     {
         this.animal = animal;
@@ -36,16 +47,16 @@ public class PetData
         if (animal != null) {
             if (animal instanceof PetWolf)
             {
-                    animalType = "Wolf";
+                animalType = "Wolf";
+            }
+            else if (animal instanceof PetFox)
+            {
+                animalType = "Fox";
             }
             else
             {
                 animalType = "unrecognized";
             }
-        }
-        else 
-        {
-            animalType = "unknown";
         }
 
     }
@@ -55,6 +66,12 @@ public class PetData
         this(animal);
         fromNBT(compound);
     }
+
+    public Animal getAnimal()
+    {
+        return animal;
+    }
+
 
     public String getAnimalType()
     {
@@ -73,10 +90,11 @@ public class PetData
         if (this.getTrainerBuilding() != null)
         {
             BlockPosUtil.write(compound,"trainerBuilding", trainerBuildingID);
-            BlockPosUtil.write(compound,"workBuilding", workBuildingID);
+            BlockPosUtil.write(compound,"workLocation", workLocation);
             compound.putString("dimension", dimension.location().toString());
             compound.putString("animalType", this.getAnimalType());
             compound.putInt("entityId", this.getEntityId());
+            compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
         }
 
         // MCTradePostMod.LOGGER.info("Serialized PetData to NBT: {}", compound);
@@ -98,13 +116,18 @@ public class PetData
             return;
         }
 
-        workBuildingID = BlockPosUtil.read(compound, "workBuilding");
+        workLocation = BlockPosUtil.read(compound, "workLocation");
         animalType = compound.getString("animalType");
         entityId = compound.getInt("entityId");
 
         String dimname = compound.getString("dimension");
         ResourceLocation level = ResourceLocation.parse(dimname);
         dimension = ResourceKey.create(Registries.DIMENSION, level);
+
+        if (animal != null)
+        {
+            inventory.deserializeNBT(animal.level().registryAccess(), compound.getCompound("Inventory"));
+        }
     }
 
     public BlockPos getTrainerBuildingID()
@@ -135,31 +158,46 @@ public class PetData
         this.trainerBuildingID = building.getID();
     }
 
-    public BlockPos getWorkBuildingID()
+    public BlockPos getWorkLocation()
     {
-        return workBuildingID;
-    }
-
-    public IBuilding getWorkBuilding()
-    {
-        return BuildingUtil.buildingFromDimPos(dimension, workBuildingID);
+        return workLocation;
     }
 
     public IBuildingView getWorkBuildingView()
     {
-        return BuildingUtil.buildingViewFromDimPos(dimension, workBuildingID);
+        return BuildingUtil.buildingViewFromDimPos(dimension, workLocation);
     }
 
-    public void setWorkBuilding(IBuilding building)
+    public void setWorkLocation(BlockPos workLocation)
     {
-        if (building == null)
+        if (workLocation == null)
         {
-            workBuildingID = BlockPos.ZERO;
+            this.workLocation = BlockPos.ZERO;
             return;
         }
-        this.workBuildingID = building.getID();
+        this.workLocation = workLocation;
     }
 
+
+    /**
+     * Retrieves the closest building to the pet's work location within the given level.
+     *
+     * @param level the level in which to search for the closest building.
+     * @return the building instance that is closest to the pet's current work location.
+     */
+    public IBuilding getBuildingContainingWorkLocation(Level level)
+    {
+        IColony colony = IColonyManager.getInstance().getClosestColony(level, this.getWorkLocation());
+        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        {
+            if (BlockPosUtil.isInArea(building.getCorners().getA(), building.getCorners().getB(), workLocation)) 
+            {
+                return building;
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Retrieves a list of compatible animals within the given bounding box.
@@ -168,14 +206,15 @@ public class PetData
      * @return a list of animals that are compatible with one or more of the AnimalHerdingModules associated with this pet's work
      *         building.
      */
-    public List<? extends Animal> searchForCompatibleAnimals(AABB boundingBox)
+    public List<? extends Animal> searchForCompatibleAnimals(Level level, AABB boundingBox)
     {
         final List<Animal> animals = new ArrayList<>();
 
-        IBuilding work = this.getWorkBuilding();
-        for (final AnimalHerdingModule module : work.getModulesByType(AnimalHerdingModule.class))
+        IBuilding workBuilding = this.getBuildingContainingWorkLocation(level);
+
+        for (final AnimalHerdingModule module : workBuilding.getModulesByType(AnimalHerdingModule.class))
         {
-            animals.addAll(work.getColony()
+            animals.addAll(workBuilding.getColony()
                 .getWorld()
                 .getEntitiesOfClass(Animal.class, boundingBox, animal -> module.isCompatible(animal) && !animal.isFullyFrozen()));
         }
@@ -194,26 +233,52 @@ public class PetData
 
         return animal.getId();
     }
+    
+    /**
+     * Retrieves the inventory associated with this pet. The inventory
+     * stores the items the pet is carrying, and is used to transfer items
+     * between the pet and the player, or the pet and another entity.
+     *
+     * @return the inventory of the pet.
+     */
+    public ItemStackHandler getInventory() {
+        return inventory;
+    }
 
-/**
- * TODO: If animals and roles become loosely coupled (as desired), refactor this.
- * Determines the role of the pet based on its type.
- *
- * @return a string representing the role of the pet.
- */
+    /**
+     * Retrieves the role associated with the given block position in the given level.
+     *
+     * @param level the level that the block position is in
+     * @param pos   the block position to retrieve the role for
+     * @return the PetRoles value associated with the block at the given position, or null if the block is not a valid work location
+     */
+    public static PetRoles roleFromPosition(Level level, BlockPos pos) 
+    {
+        BlockState state = level.getBlockState(pos);
+        Block block = state.getBlock();
 
-    public String getRole() {
-        String role = "Unassigned";
-
-        switch (animalType) {
-            case "Wolf":
-                role = "Herding";
-                break;
-            default:
-                role = "Unknown";
+        if (block instanceof BlockTrough)
+        {
+            return PetRoles.HERDING;
         }
 
-        return role;
+        if (block instanceof BlockScavenge)
+        {
+            return PetRoles.SCAVENGING;
+        }
+
+        return null;
     }
-    
+
+    /**
+     * Retrieves the role associated with the pet's current work location.
+     * For example, if the pet is assigned to a trough, it is a herder.
+     *
+     * @param level the level in which the pet's work location is.
+     * @return the role associated with the pet's work location, or null if the location is not a valid role.
+     */
+    public PetRoles roleFromWorkLocation(Level level) 
+    {
+        return roleFromPosition(level, this.workLocation);
+    }
 }

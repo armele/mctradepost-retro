@@ -1,16 +1,21 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
-import java.util.List;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetAssignmentModule;
+import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -21,7 +26,8 @@ import net.minecraft.world.entity.animal.Animal;
 
 public class BuildingPetshop extends AbstractBuilding
 {
-
+    public static final Logger LOGGER = LogUtils.getLogger();
+    
     public static final String ANIMALS_HERDED = "animals_herded";
 
     public BuildingPetshop(@NotNull IColony colony, BlockPos pos)
@@ -40,9 +46,9 @@ public class BuildingPetshop extends AbstractBuilding
      * 
      * @return a list of ITradePostPet objects associated with this building, or null if none are found.
      */
-    public List<ITradePostPet> getPets() 
+    public ImmutableList<ITradePostPet> getPets() 
     { 
-        List<ITradePostPet> pets = PetRegistryUtil.getPetsInBuilding(this);
+        ImmutableList<ITradePostPet> pets = PetRegistryUtil.getPetsInBuilding(this);
         return pets;
     }
 
@@ -55,6 +61,7 @@ public class BuildingPetshop extends AbstractBuilding
     public CompoundTag serializeNBT(final HolderLookup.Provider provider)
     {
         CompoundTag compound = super.serializeNBT(provider);
+        PetRegistryUtil.savePetWorkLocations(this.getColony(), compound);
         return compound;
     }
 
@@ -67,6 +74,7 @@ public class BuildingPetshop extends AbstractBuilding
     public void deserializeNBT(Provider provider, CompoundTag compound)
     {
         super.deserializeNBT(provider, compound);
+        PetRegistryUtil.loadPetWorkLocations(this.getColony(), compound);
     }
 
     /**
@@ -126,6 +134,8 @@ public class BuildingPetshop extends AbstractBuilding
             {
                 if (animal.isDeadOrDying() || animal.isRemoved())
                 {
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Stale pet: {} associated with building {}", pet, pet.getTrainerBuilding()));
+
                     PetRegistryUtil.unregister(pet);
                 }
             }

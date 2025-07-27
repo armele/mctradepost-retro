@@ -80,8 +80,8 @@ priority = "normal"
 [[dependencies.mctradepost]]
     modId="minecolonies"
     mandatory=true
-    versionRange="[0.0.001,)"
-    ordering="BEFORE"
+    versionRange="[1.1.1047,)"
+    ordering="AFTER"
     side="BOTH"
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
