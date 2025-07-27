@@ -38,7 +38,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
      * The resource string.
      */
     private static final String RESOURCE_STRING = ":gui/layouthuts/layoutpetassignment.xml";
-
+    private static final String LABEL_HOWTO = "howto";
     private static final String LABEL_TYPE = "pettype";
     private static final String LABEL_OOR = "entityoor";
     private static final String BUILDING_SELECTION_ID = "buildings";
@@ -82,6 +82,11 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
         // Send a message to the server forcing relevent building views to update.
         PetMessage petMessage = new PetMessage(buildingView, PetAction.QUERY, -1);
         petMessage.sendToServer();
+
+        final Text howto = findPaneOfTypeByID(LABEL_HOWTO, Text.class);
+        final AbstractTextBuilder.TooltipBuilder howtoTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(howto);
+        howtoTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.worklocations.hover"));
+        howtoTipBuilder.build();
 
         updatePetAssignmentList();
     }

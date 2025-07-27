@@ -323,9 +323,11 @@
     "com.minecolonies.coremod.gui.townhall.stats.exports_shipped": "Exported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Track Validations: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.pets_trained": "Pets Trained: %d",
     "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.animals_herded": "Animals Herded: %d %s",
-    
+    "com.minecolonies.coremod.gui.townhall.stats.items_scavenged": "Scavenged: %d %s",
+
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_list_configured": "The recycling center is idle. To recycle something from the warehouse, just pick it from the list at the recycling center.",
@@ -338,6 +340,8 @@
     "com.minecolonies.coremod.gui.petstore.trainingitems" : "Training Items",
     "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Pets",
     "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer in order to determine what kind of pet they will train.",
+    "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
+    "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range",
     "entity.mctradepost.pet_wolf": "Pet Wolf",
     "entity.mctradepost.pet_fox": "Pet Fox"

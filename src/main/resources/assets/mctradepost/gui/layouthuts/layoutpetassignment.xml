@@ -3,6 +3,8 @@
      <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
             <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
                    label="$(com.minecolonies.coremod.gui.petstore.assignment)"/>
+            <text id="howto" size="130 11" pos="30 28" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.petstore.worklocations)"/>
             <list id="petlist" size="170 180" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.petstore.empty)" emptycolor="black">
                 <box size="100% 50" linewidth="1">
                     <entityicon id="entity" size="35 45" pos="1 1" visible="false" />

@@ -5,14 +5,14 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 
-public class WalkToPositionGoal extends Goal
+public class WalkToWorkPositionGoal extends Goal
 {
     private final PathfinderMob mob;
     private final BlockPos targetPos;
     private final double speedModifier;
     private final double stopDistanceSq; // squared distance to stop
 
-    public WalkToPositionGoal(PathfinderMob mob, BlockPos targetPos, double speed, double stopDistance)
+    public WalkToWorkPositionGoal(PathfinderMob mob, BlockPos targetPos, double speed, double stopDistance)
     {
         this.mob = mob;
         this.targetPos = targetPos;
@@ -24,6 +24,9 @@ public class WalkToPositionGoal extends Goal
     public boolean canUse()
     {
         if (BlockPos.ZERO.equals(targetPos)) return false;
+
+        long timeOfDay = mob.level().getDayTime() % 24000;
+        if (timeOfDay >= 12000) return false; // only run during day
 
         return !isWithinDistance();
     }

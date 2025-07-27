@@ -7,21 +7,28 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToPositionGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
+import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.BegGoal;
-import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -35,6 +42,8 @@ import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -103,6 +112,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
 
         this.goalSelector.addGoal(1, new FloatGoal(this));
+        this.goalSelector.addGoal(2, new UnloadInventoryToWorkLocationGoal<>(this, 0.8f));
         this.goalSelector.addGoal(3, new HerdGoal<>(this));
         this.goalSelector.addGoal(4, new ScavengeForResourceGoal<>(
             this,
@@ -116,22 +126,33 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
                     this.level().isEmptyBlock(pos);
             },
             pos -> {
-                var mushroom = this.getRandom().nextBoolean() ?
-                    Blocks.RED_MUSHROOM.defaultBlockState() :
-                    Blocks.BROWN_MUSHROOM.defaultBlockState();
-                this.level().setBlock(pos, mushroom, 3);
-            }
+                // Pick a mushroom
+                var mushroomBlock = this.getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
+                var mushroomItem = mushroomBlock.asItem();
+                
+                // Track the stat with item name
+                StatsUtil.trackStatByName(this.getTrainerBuilding(), ScavengeForResourceGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
+
+                // Place the mushroom
+                this.level().setBlock(pos, mushroomBlock.defaultBlockState(), 3);
+            },
+            1000
         ));
 
         if (this.petData != null && this.petData.getWorkLocation() != null)
         {
-            this.goalSelector.addGoal(5, new WalkToPositionGoal(this, petData.getWorkLocation(), 1.2, 6.0));
+            this.goalSelector.addGoal(5, new WalkToWorkPositionGoal(this, petData.getWorkLocation(), 1.2, 20.0));
         }
             
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(7, new BegGoal(this, 8.0F));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+
+        if (this.petData != null && this.petData.getTrainerBuilding() != null)
+        {
+            this.goalSelector.addGoal(10, new ReturnToTrainerAtNightGoal<>(this, petData.getTrainerBuilding().getPosition()));
+        }
 
         this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
@@ -239,6 +260,9 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     {
         PetRegistryUtil.unregister(this);
         petData = null;
+        this.setOwnerUUID(null);
+        this.setTame(false, false);
+        this.setLeashedTo(null, false);
         super.remove(reason);
     }
 
@@ -358,5 +382,33 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
 
         return petData.getWorkLocation();
+    }
+
+    /**
+     * Handles interaction with this entity.
+     * 
+     * @param player the player that is interacting
+     * @param hand   the hand that is interacting
+     * @return the result of the interaction
+     */
+    @Override
+    public InteractionResult mobInteract(@Nonnull Player player, @Nonnull InteractionHand hand) {
+        if (!level().isClientSide && hand == InteractionHand.MAIN_HAND) {
+            ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(this.getInventory());
+
+            player.openMenu(new SimpleMenuProvider(
+                (windowId, playerInventory, p) -> new ChestMenu(
+                    MenuType.GENERIC_9x1, // 1-row menu
+                    windowId,
+                    playerInventory,
+                    inventoryWrapper,
+                    1 // number of rows
+                ),
+                this.getDisplayName()
+            ));
+            return InteractionResult.CONSUME;
+        }
+
+        return super.mobInteract(player, hand);
     }
 }

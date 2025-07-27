@@ -7,19 +7,25 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToPositionGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
+import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -30,6 +36,8 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -112,14 +120,14 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
             return;
         }
 
-        // TODO: Add inventory emptying goal when sufficiently full.
         this.goalSelector.addGoal(1, new FloatGoal(this));
+        this.goalSelector.addGoal(2, new UnloadInventoryToWorkLocationGoal<>(this, 0.8f));
         this.goalSelector.addGoal(3, new HerdGoal<>(this));
         this.goalSelector.addGoal(4, new ScavengeForResourceGoal<>(
             this,
-            16,                      // search radius
-            8.0,                     // light level (optional to ignore)
-            0.3f,                    // 30% success rate
+            16,                         // search radius
+            8.0,                            // light level (optional to ignore)
+            0.3f,                       // 30% success rate
             pos -> {
                 var stateBelow = this.level().getBlockState(pos.below());
                 return this.level().getMaxLocalRawBrightness(pos) < 8 &&
@@ -127,21 +135,33 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
                     this.level().isEmptyBlock(pos);
             },
             pos -> {
-                var mushroom = this.getRandom().nextBoolean() ?
-                    Blocks.RED_MUSHROOM.defaultBlockState() :
-                    Blocks.BROWN_MUSHROOM.defaultBlockState();
-                this.level().setBlock(pos, mushroom, 3);
-            }
+                // Pick a mushroom
+                var mushroomBlock = this.getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
+                var mushroomItem = mushroomBlock.asItem();
+                
+                // Track the stat with item name
+                StatsUtil.trackStatByName(this.getTrainerBuilding(), ScavengeForResourceGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
+
+                // Place the mushroom
+                this.level().setBlock(pos, mushroomBlock.defaultBlockState(), 3);
+            },
+            1000
         ));
 
         if (this.petData != null && this.petData.getWorkLocation() != null)
         {
-            this.goalSelector.addGoal(5, new WalkToPositionGoal(this, petData.getWorkLocation(), 1.2, 6.0));
+            this.goalSelector.addGoal(5, new WalkToWorkPositionGoal(this, petData.getWorkLocation(), 1.2, 20.0));
         }
 
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+
+        if (this.petData != null && this.petData.getTrainerBuilding() != null)
+        {
+            this.goalSelector.addGoal(10, new ReturnToTrainerAtNightGoal<>(this, petData.getTrainerBuilding().getPosition()));
+        }
+
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
     }
 
@@ -178,7 +198,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         
         try
         {
-            super.readAdditionalSaveData(compound);
+            // super.readAdditionalSaveData(compound);
         }
         catch (Exception e)
         {
@@ -219,10 +239,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         super.tick();
 
         if (!goalsInitialized && petData != null) {
-            this.goalSelector.removeAllGoals(g -> true);
-            this.targetSelector.removeAllGoals(g -> true);
-            registerGoals();
-            goalsInitialized = true;
+            resetGoals();
         }
 
         logActiveGoals();
@@ -240,11 +257,12 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     {
         PetRegistryUtil.unregister(this);
         petData = null;
+        this.setLeashedTo(null, false);
         super.remove(reason);
     }
 
     /**
-     * Creates a path navigation for this wolf. By default, this uses a minecolonies navigation.
+     * Creates a path navigation for this pet. By default, this uses a minecolonies navigation.
      * @param level the level in which the navigation is being created
      * @return a path navigation for this pet
      */
@@ -336,5 +354,35 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         }
         return petData.getInventory();
     }
-    
+
+    /**
+     * Handles interaction with this fox entity. If the interaction is initiated with the main hand and
+     * the game is not on the client-side, it opens a chest menu displaying the fox's inventory.
+     *
+     * @param player the player that is interacting with the fox
+     * @param hand   the hand used for the interaction
+     * @return the result of the interaction, which is InteractionResult.CONSUME if the menu is opened,
+     *         otherwise the result of the superclass's mobInteract method
+     */
+    @Override
+    public InteractionResult mobInteract(@Nonnull Player player, @Nonnull InteractionHand hand) {
+        if (!level().isClientSide && hand == InteractionHand.MAIN_HAND) {
+            ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(this.getInventory());
+
+            player.openMenu(new SimpleMenuProvider(
+                (windowId, playerInventory, p) -> new ChestMenu(
+                    MenuType.GENERIC_9x1, // 1-row menu
+                    windowId,
+                    playerInventory,
+                    inventoryWrapper,
+                    1 // number of rows
+                ),
+                this.getDisplayName()
+            ));
+            return InteractionResult.CONSUME;
+        }
+
+        return super.mobInteract(player, hand);
+    }
+
 }

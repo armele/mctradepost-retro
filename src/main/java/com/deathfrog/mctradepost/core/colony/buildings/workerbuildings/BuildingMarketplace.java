@@ -457,7 +457,7 @@ public class BuildingMarketplace extends AbstractBuilding
         for (Integer visitorID : visitorIDs) {
             IVisitorData visitor = (IVisitorData) colony.getVisitorManager().getVisitor(visitorID);
 
-            if (visitor != null && !advertisingList.contains(visitor)) {
+            if (visitor != null && !visitor.getEntity().isEmpty() && !advertisingList.contains(visitor)) {
                 MCTradePostMod.LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName());
                 
                 VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();

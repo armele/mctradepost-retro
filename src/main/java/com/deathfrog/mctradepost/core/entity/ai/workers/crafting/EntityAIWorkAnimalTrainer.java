@@ -20,6 +20,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +32,7 @@ import net.minecraft.world.level.Level;
 public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnimalTrainer, BuildingPetshop>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+    public static final String PETS_TRAINED = "pets_trained";
 
     public enum AnimalTrainerStates implements IAIState
     {
@@ -131,6 +133,10 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                     helper.doRegistration(building);
                     break;
                 }
+
+                StatsUtil.trackStat(building, PETS_TRAINED, 1);
+                worker.getCitizenExperienceHandler().addExperience(2.0);
+
             }
             catch (ReflectiveOperationException e)
             {
