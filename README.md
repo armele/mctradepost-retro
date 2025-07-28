@@ -32,8 +32,9 @@ Train stations also increase the number of visitors to your colony, which means 
 #### Pet Shop
 The Pet Shop is where the Animal Trainer raises and trains pets for the colony. These pets can take on useful tasks.
 
-Currently the only pet is a Pet Wolf, and the only task these pets perform is herding animals. You can assign the pet to a herding building and they will collect the appropriate animals in the area and herd them towards the assigned work building.
-
+Currently the only pets are a Pet Wolf and Pet Fox, and the only task these pets perform is herding animals (using the Trough pet working block) or scaveging for mushrooms (using the Mushroom Scavenge Base working block). You can assign the pet to a working location in the Pet Assignment tab of the Pet Shop.
+Herding pets will collect the appropriate animals in the area and herd them towards the assigned work building.
+Scavenging pets will forage for mushrooms and deposit them in their work block.
 Future releases will increase the number and variety of pets and pet tasks.
 
 ### Jobs
@@ -42,7 +43,7 @@ Future releases will increase the number and variety of pets and pet tasks.
 * The Bartender also works at the resort, mixing up delicious treats that help the vacationers relax.
 * The Recycling Engineer handles all recycling requests at the Recycling Center.
 * The Station Master handles track validation and managing imports and exports.
-* The Animal Trainer trains pets.
+* The Animal Trainer trains pets. Check the Animal Training tab of the hut to see what items and building levels are required for different types of pets.
 
 ### Research
 This mod introduces the "Economics" line of research. Explore it to unlock Trade Post custom buildings and their capabilities.
@@ -51,14 +52,18 @@ This mod introduces the "Economics" line of research. Explore it to unlock Trade
 * Building huts associated with the buildings described above.
 * Souvenir - intended primarly to be sold at the marketplace, but may have decorative value.
 * Advanced Clipboard - Just like the regular clipboard but with a button that filters the outstanding needs down to only those expected to be fulfilled by a player.  
-* Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut. The hut must be upgraded, first! Trade Coins will (eventually) be used as the basis for triggering most Trade Post mod features.  Coins can be used at a Wishing Well to trigger certain effects.
+* Trade Coin - These coins can be minted from the marketplace by sneak-right-clicking your advanced clipboard on the Marketplace hut, or pressing the (‡) button in the Economic tab of the Marketplace hut. The hut must be upgraded, first! Trade Coins are used as the basis for triggering most Trade Post mod features.  Coins can also be used at a Wishing Well to trigger certain effects.
 * A variety of items that support Guest Servcies and Bartender's ability to serve at the resort.
 
 ### Custom Blocks
 * Block implementations of the building huts.
 * A few new building materials (mixed stone, thatch, plaster, rough stone, weathered rough stone, rough brick, endethyst, endmarine, marine lapis, woven kelp)
 * A few new Architect's Cutter recipes in the Timberframe style.
+
+#### Pet Working Blocks
+You can rename these blocks in an Anvil to give them more recognizable names when assigning animals to jobs in the Pet Shop (using the Pet Assignment tab).
 * Trough - herding pets will herd animals towards a Trough if it is placed in a herding building and the pet is assigned to work at that building.
+* Mushroom Scavenging Base - Pets assigned to this working location will forage for mushrooms.  Put it in a place where mushrooms can grow.
 
 ### Configuration
 This mod supports the Neoforge configuration hooks, and can be configured in-game. These configurations are reasonably well described there.
@@ -121,20 +126,18 @@ This mod can best be described as in a "beta" state. Existing functionality is m
 #### In Progress
 Building: Pet Shop (enables pet functions, pet-related colony roles.) [Testing]
 Pets - Ability: animal herding [Testing]
+Pets - Ability: mushroom foraging [Testing]
 
 #### Future
 Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
 
-Pet - Module: Add pet function and position to tooltip.
 Pets - Variety
-Pets - Building: Assign Role
 Pets - Animal Trainer AI: Feed (heal) pet.
 Pets - Recipe: Pet Food (made by animal trainer)
-Pets - Ability: Find mushrooms
 Pets - Ability: happiness factor
 Pets - Ability: burnout mitigator
 Pets - Ability: sickness decreased
-Pets - Ability: scarecrow effect - bonus to harvest yields (uncertain)
+Pets - Ability: scarecrow effect - bonus to harvest yields (not needed in vanilla)
 Pets - Ability: pick up items in the world
 Pets - Ability: Locate certain ore types or crop types
 Pets - Ability: Move items from point A to point B.
@@ -153,7 +156,6 @@ Item: In-Game Instructions
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
-Jobs: Farmer Mushroom growing ability
 
 ### Intersecting Roadmap
 **Minecolonies discord or other source has indicated these may be in the future of the base mod. As those features emerge, these may be deprecated or altered to better fit with the base mod.**
@@ -162,7 +164,6 @@ Intra-colony trade
 
 #### Random ideas that may never be implemented:
 Advanced Guard Towers (prevent mob spawning within an area of effect).
-Recycler Building Capability: Trash Disposal 
 Advanced Stash: allows configurability for courier summoning
 
 ## Additional Resources
@@ -175,9 +176,9 @@ Minecolonies: [MineColonies Home](https://minecolonies.com/)
 Vacationers will sometimes complain about needing stuff even when not on vacation. [Test]
 Station: After trade arrives, request pick-up by courier. [Test]
 Pet building assignment selection list can be slow to refresh from the view. [Test]
+If a herding target is stuck (frozen in place - such as trapped in amber as can happen in ATM 10) the pet does not handle this gracefully. It never gives up trying to move the immovable object. [Test]
 
 ### Pending Resolution
-If a herding target is stuck (frozen in place - such as trapped in amber as can happen in ATM 10) the pet does not handle this gracefully. It never gives up trying to move the immovable object.
 Ivy Block types not previewable in Domum.
 
 ### Low Priority Issues

@@ -13,7 +13,7 @@
             <itemicon id="costStack" size="16 16" pos="120 2"/>
             <button id="takeTrade" pos="148 2" size="14 15"
                         source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
-                        disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disable"/>
+                        disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png"/>
             <box id="progressBar" size="100% 11" pos="0 19" visible="true"/>
             <text id="exportSpecificHelp" size="100% 11" pos="0 19" textalign="MIDDLE" color="black" visible="true"/>
         </box>

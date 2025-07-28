@@ -615,14 +615,14 @@ public class BuildingStation extends AbstractBuilding
 
         ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
-        if (exportWorker != null)
+        if (exportWorker != null && !exportWorker.getEntity().isEmpty())
         {
             exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
         
         ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
-        if (remoteWorker != null)
+        if (remoteWorker != null && !remoteWorker.getEntity().isEmpty())
         {
             remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
