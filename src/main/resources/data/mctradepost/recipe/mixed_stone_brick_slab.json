@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "blocks",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:mixed_stone_brick"
+    }
+  },
+  "result": {
+    "id": "mctradepost:mixed_stone_brick_slab",
+    "count": 6
+  }
+}

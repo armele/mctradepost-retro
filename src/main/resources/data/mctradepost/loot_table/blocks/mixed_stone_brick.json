@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:match_tool",
+          "predicate": {
+            "predicate_type": "minecraft:match_tool",
+            "tag": "minecraft:mineable/pickaxe"
+          }
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "mctradepost:mixed_stone_brick"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "mctradepost:blocks/mixed_stone_brick"
+}

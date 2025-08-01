@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "blocks",
+  "ingredients": [
+    {
+      "item": "mctradepost:mixed_stone"
+    },
+    {
+      "item": "mctradepost:mixed_stone"
+    },
+    {
+      "item": "mctradepost:mixed_stone"
+    },
+    {
+      "item": "mctradepost:mixed_stone"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "mctradepost:mixed_stone_brick"
+  }
+}
