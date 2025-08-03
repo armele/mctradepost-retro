@@ -1,8 +1,9 @@
 {
-    "name": "Capitalism",
-    "subtitle": "Someone explain the economy to me like I'm 5...",
+    "name": "Buyers",
+    "subtitle": "No need to camp outside the store...",
     "branch": "economic",
-    "researchLevel": 1,
+    "parentResearch": "mctradepost:economic/criers",
+    "researchLevel": 4,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,
@@ -12,25 +13,20 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "tavern",
-            "level": 1
-        },
-        {
-            "type": "minecolonies:building",
             "building": "marketplace",
-            "level": 1
+            "level": 4
         }
     ],
     "costs": [
         {
-            "count": 5,
-            "item": "minecraft:gold_ingot"        
+            "count": 15,
+            "item": "mctradepost:mctp_coin"        
         }
     ],
     "effects": [
         {
             "id": "mctradepost:effects/advertising",
-            "level": 1
+            "level": 4
         }
     ],
     "icon": "mctradepost:blockhutmarketplace"

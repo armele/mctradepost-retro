@@ -40,6 +40,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -480,6 +481,8 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     public int shoppingChance() {
         int shoppingChance = MCTPConfig.shoppingChance.get();
+        double researchModifier = getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.ADVERTISING);  
+        shoppingChance = (int) (shoppingChance * 1 + researchModifier);
         return this.getBuildingLevel() * shoppingChance;
     }
 }

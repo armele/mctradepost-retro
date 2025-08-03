@@ -1,8 +1,9 @@
 {
-    "name": "Capitalism",
-    "subtitle": "Someone explain the economy to me like I'm 5...",
+    "name": "More Buyers",
+    "subtitle": "Everyone gets a souvenir!",
     "branch": "economic",
-    "researchLevel": 1,
+    "parentResearch": "mctradepost:economic/buyers",
+    "researchLevel": 5,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,
@@ -12,25 +13,20 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "tavern",
-            "level": 1
-        },
-        {
-            "type": "minecolonies:building",
             "building": "marketplace",
-            "level": 1
+            "level": 5
         }
     ],
     "costs": [
         {
-            "count": 5,
-            "item": "minecraft:gold_ingot"        
+            "count": 20,
+            "item": "mctradepost:mctp_coin"        
         }
     ],
     "effects": [
         {
             "id": "mctradepost:effects/advertising",
-            "level": 1
+            "level": 5
         }
     ],
     "icon": "mctradepost:blockhutmarketplace"
