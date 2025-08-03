@@ -59,7 +59,13 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
             }
             PetWorkingLocationData data = new PetWorkingLocationData();
             data.workLocation = BlockPosUtil.read(compound, "WorkLocation");
-            data.role = PetRoles.values()[compound.getInt("Role")];
+            int petRole = compound.getInt("Role");
+
+            if (petRole < 0 || petRole >= PetRoles.values().length)
+            {
+                petRole = 0;
+            }
+            data.role = PetRoles.values()[petRole];
             data.name = compound.getString("LocationName");
 
             if (data.workLocation != null && !BlockPos.ZERO.equals(data.workLocation))

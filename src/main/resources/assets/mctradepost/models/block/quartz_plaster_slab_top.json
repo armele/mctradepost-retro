@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab_top",
+  "textures": {
+    "bottom": "mctradepost:block/quartz_plaster",
+    "top":    "mctradepost:block/quartz_plaster",
+    "side":   "mctradepost:block/quartz_plaster"
+  }
+}

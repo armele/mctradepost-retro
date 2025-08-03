@@ -75,7 +75,18 @@ public class PetAssignmentModule extends AbstractBuildingModule implements IPers
             BlockEntity be = level.getBlockEntity(workPos);
             Block block = state.getBlock();
 
-            tag.putInt("Role", PetData.roleFromPosition(level, workPos).ordinal());
+            if (workPos != null && !BlockPos.ZERO.equals(workPos)) 
+            {
+                PetRoles role = PetData.roleFromPosition(level, workPos);
+                if (role != null)
+                {
+                    tag.putInt("Role", role.ordinal());
+                }
+                else
+                {
+                    tag.putInt("Role", -1);
+                }
+            }
 
             if (be instanceof PetWorkingBlockEntity pwb)
             {

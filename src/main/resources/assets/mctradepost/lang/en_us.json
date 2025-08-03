@@ -88,7 +88,15 @@
     "block.mctradepost.plaster_stairs": "Plaster Stairs",
     "block.mctradepost.plaster_wall": "Plaster Wall",
     "block.mctradepost.plaster_slab": "Plaster Slab",
-
+    "item.mctradepost.quartz_plaster": "Quartz Plaster",
+    "item.mctradepost.quartz_plaster_stairs": "Quartz Plaster Stairs",
+    "item.mctradepost.quartz_plaster_wall": "Quartz Plaster Wall",
+    "item.mctradepost.quartz_plaster_slab": "Quartz Plaster Slab",
+    "block.mctradepost.quartz_plaster": "Quartz Plaster",
+    "block.mctradepost.quartz_plaster_stairs": "Quartz Plaster Stairs",
+    "block.mctradepost.quartz_plaster_wall": "Quartz Plaster Wall",
+    "block.mctradepost.quartz_plaster_slab": "Quartz Plaster Slab",
+    
     "item.mctradepost.rough_brick": "Rough Brick",
     "item.mctradepost.rough_brick_stairs": "Rough Brick Stairs",
     "item.mctradepost.rough_brick_wall": "Rough Brick Wall",

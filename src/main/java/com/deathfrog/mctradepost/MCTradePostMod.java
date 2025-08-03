@@ -328,6 +328,15 @@ public class MCTradePostMod
     public static final DeferredBlock<WallBlock> PLASTER_WALL = BLOCKS.register(ModBlocksInitializer.PLASTER_WALL_NAME, () -> new WallBlock(PLASTER.get().properties()));
     public static final DeferredBlock<SlabBlock> PLASTER_SLAB = BLOCKS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new SlabBlock(PLASTER.get().properties()));
 
+    public static final DeferredBlock<Block> QUARTZ_PLASTER = BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_NAME,
+        () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    public static final DeferredBlock<StairBlock> QUARTZ_PLASTER_STAIRS = BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_STAIRS_NAME,
+        () -> new StairBlock(QUARTZ_PLASTER.get().defaultBlockState(), QUARTZ_PLASTER.get().properties()));
+    public static final DeferredBlock<WallBlock> QUARTZ_PLASTER_WALL =
+        BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_WALL_NAME, () -> new WallBlock(QUARTZ_PLASTER.get().properties()));
+    public static final DeferredBlock<SlabBlock> QUARTZ_PLASTER_SLAB =
+        BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_SLAB_NAME, () -> new SlabBlock(QUARTZ_PLASTER.get().properties()));
+
     public static final DeferredBlock<Block> ROUGH_STONE = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
     public static final DeferredBlock<StairBlock> ROUGH_STONE_STAIRS = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_STAIRS_NAME,
@@ -507,6 +516,18 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> PLASTER_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new BlockItem(PLASTER_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> QUARTZ_PLASTER_ITEM =
+        ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_NAME, () -> new BlockItem(QUARTZ_PLASTER.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> QUARTZ_PLASTER_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_STAIRS_NAME, () -> new BlockItem(QUARTZ_PLASTER_STAIRS.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> QUARTZ_PLASTER_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_WALL_NAME, () -> new BlockItem(QUARTZ_PLASTER_WALL.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> QUARTZ_PLASTER_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_SLAB_NAME, () -> new BlockItem(QUARTZ_PLASTER_SLAB.get(), new Item.Properties()));
 
     public static final DeferredItem<Item> ROUGH_STONE_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_NAME, () -> new BlockItem(ROUGH_STONE.get(), new Item.Properties()));
@@ -1015,6 +1036,10 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.PLASTER_STAIRS.get());
                     event.accept(MCTradePostMod.PLASTER_WALL.get());
                     event.accept(MCTradePostMod.PLASTER_SLAB.get());
+                    event.accept(MCTradePostMod.QUARTZ_PLASTER.get());
+                    event.accept(MCTradePostMod.QUARTZ_PLASTER_STAIRS.get());
+                    event.accept(MCTradePostMod.QUARTZ_PLASTER_WALL.get());
+                    event.accept(MCTradePostMod.QUARTZ_PLASTER_SLAB.get());	
                     event.accept(MCTradePostMod.ROUGH_STONE.get());
                     event.accept(MCTradePostMod.ROUGH_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.ROUGH_STONE_WALL.get());

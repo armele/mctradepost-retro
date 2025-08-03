@@ -1,5 +1,9 @@
 # MC Trade Post  
 
+## Updates
+
+With the 0.18.001 release the Trade Post blueprint folder structure has been made... less dumb. This does mean Economic buildings built prior to that version will need to be picked up and re-placed before they can be further upgraded.
+
 ## Description
 
 This add-on extends the MineColonies mod.  It, and it's dependencies, are required for MC Trade Post to function. MineColonies base functionality is not altered. The team supporting MineColonies has created a great mod that has provided hours of fun, and inspired these small additions.

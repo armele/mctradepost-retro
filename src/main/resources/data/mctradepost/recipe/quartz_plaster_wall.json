@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "blocks",
+    "key": {
+      "S": { "item": "mctradepost:quartz_plaster" }
+    },
+    "pattern": [
+      "   ",
+      "SSS",
+      "SSS"
+    ],
+    "result": {
+      "count": 6,
+      "id": "mctradepost:quartz_plaster_wall"
+    }
+}
+  

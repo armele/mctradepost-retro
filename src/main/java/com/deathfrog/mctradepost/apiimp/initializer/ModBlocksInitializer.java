@@ -22,6 +22,10 @@ public final class ModBlocksInitializer
     public final static String PLASTER_STAIRS_NAME = "plaster_stairs";
     public final static String PLASTER_WALL_NAME = "plaster_wall";
     public final static String PLASTER_SLAB_NAME = "plaster_slab";
+    public final static String QUARTZ_PLASTER_NAME = "quartz_plaster";
+    public final static String QUARTZ_PLASTER_STAIRS_NAME = "quartz_plaster_stairs";
+    public final static String QUARTZ_PLASTER_WALL_NAME = "quartz_plaster_wall";
+    public final static String QUARTZ_PLASTER_SLAB_NAME = "quartz_plaster_slab";
     public final static String ROUGH_BRICK_NAME = "rough_brick";
     public final static String ROUGH_BRICK_STAIRS_NAME = "rough_brick_stairs";
     public final static String ROUGH_BRICK_WALL_NAME = "rough_brick_wall";
