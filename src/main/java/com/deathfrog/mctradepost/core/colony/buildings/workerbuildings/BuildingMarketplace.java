@@ -479,10 +479,10 @@ public class BuildingMarketplace extends AbstractBuilding
      * 
      * @return the chance of a visitor shopping at this marketplace
      */
-    public int shoppingChance() {
-        int shoppingChance = MCTPConfig.shoppingChance.get();
+    public double shoppingChance() {
+        double shoppingChance = MCTPConfig.shoppingChance.get() / 100.0;
         double researchModifier = getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.ADVERTISING);  
-        shoppingChance = (int) (shoppingChance * 1 + researchModifier);
+        shoppingChance = (shoppingChance * 1 + researchModifier);
         return this.getBuildingLevel() * shoppingChance;
     }
 }

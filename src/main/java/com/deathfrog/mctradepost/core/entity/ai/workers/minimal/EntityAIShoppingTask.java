@@ -45,8 +45,8 @@ public class EntityAIShoppingTask
     private static final int MAX_LINGER_TIME = 200;
     private static final int SHOPPING_COOLDOWN = MCTPConfig.shoppingCooldown.get();
 
-    // Initialize them to a random point in the cooldown, to promote better distribution of when shopping happens
-    private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN); 
+    // Initialize them to a random point in the low end of the cooldown, to promote better distribution of when shopping happens
+    private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN / 4); 
 
     public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace)
     {
@@ -101,7 +101,7 @@ public class EntityAIShoppingTask
             return false;
         }
 
-        if (marketplace.shoppingChance() > ThreadLocalRandom.current().nextDouble() * ONE_HUNDRED)
+        if (marketplace.shoppingChance() >= ThreadLocalRandom.current().nextDouble())
         {
             LOGGER.trace("Visitor {} is taking a shopping trip!", visitor.getEntity().get().getName());
             return true;

@@ -1,0 +1,33 @@
+{
+  "parent": "mctradepost:mctradepost/mix_and_match",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:mixed_stone"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.make_a_wish.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.make_a_wish.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "rewards": {
+    "experience": 100
+  },
+  "criteria": {
+    "crafted_mixed_stone": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "item": {
+          "count": 1,
+          "items": ["mctradepost:mixed_stone"]
+        }
+      }
+    }
+  }
+}

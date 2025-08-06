@@ -359,10 +359,18 @@
     "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer in order to determine what kind of pet they will train.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
     "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging",
-    "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range",
+    "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
     "entity.mctradepost.pet_wolf": "Pet Wolf",
-    "entity.mctradepost.pet_fox": "Pet Fox"
+    "entity.mctradepost.pet_fox": "Pet Fox",
 
+    "advancement.mctradepost.root.title": "Trade Post for MineColonies",
+    "advancement.mctradepost.root.description": "An AddOn for MineColonies!",
+    "advancement.mctradepost.mix_and_match.title": "Got Stone?",
+    "advancement.mctradepost.mix_and_match.description": "You’ve found all the basics. Try crafting some Mixed Stone!",
+    "advancement.mctradepost.make_a_wish.title": "Make a Wish",
+    "advancement.mctradepost.make_a_wish.description": "Surround a 2x2 pool of water with Mixed Stone and make a wish using Trade Coins (available from the Marketplace).",
+    "advancement.mctradepost.build.marketplace.description": "Build a Marketplace to mint Trade Coins.",
+    "advancement.mctradepost.build.marketplace.title": "Marketplace"
 
 }
   

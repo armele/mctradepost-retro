@@ -1,0 +1,26 @@
+{
+  "criteria": {
+    "always": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "display": {
+    "background": "minecraft:textures/block/light_gray_wool.png",
+    "description": {
+      "translate": "advancement.mctradepost.root.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:mctp_coin"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.root.title"
+    }
+  },
+  "requirements": [
+    [
+      "always"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

@@ -1,0 +1,68 @@
+{
+  "parent": "mctradepost:mctradepost/root",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:mixed_stone"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.mix_and_match.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.mix_and_match.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_cobblestone": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": ["minecraft:cobblestone"]
+          }
+        ]
+      }
+    },
+    "has_granite": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": ["minecraft:granite"]
+          }
+        ]
+      }
+    },
+    "has_andesite": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": ["minecraft:andesite"]
+          }
+        ]
+      }
+    },
+    "has_diorite": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": ["minecraft:diorite"]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    ["has_cobblestone"],
+    ["has_granite"],
+    ["has_andesite"],
+    ["has_diorite"]
+  ],
+  "sends_telemetry_event": true
+}

@@ -69,15 +69,15 @@ public class MCTPConfig
 
         shoppingCooldown = BUILDER
             .comment("How long before visitors will consider shopping again?")
-            .define("shoppingCooldown", 600);
+            .define("shoppingCooldown", 400);
 
         registerSoundChance = BUILDER
             .comment("How likely is a sold item to make a cash register sound?")
-            .define("registerSoundChance", .05);
+            .define("registerSoundChance", .50);
 
         shoppingChance = BUILDER
             .comment("What chance, per building level, do visitors have of deciding to shop?")
-            .define("shoppingChance", 3);
+            .define("shoppingChance", 5);
 
         BUILDER.pop();
 

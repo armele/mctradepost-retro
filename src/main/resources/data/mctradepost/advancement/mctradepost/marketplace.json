@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/root",
+  "criteria": {
+    "marketplace": {
+      "conditions": {
+        "hut_name": "marketplace",
+        "level": 1
+      },
+      "trigger": "minecolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.build.marketplace.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:blockhutmarketplace"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.build.marketplace.title"
+    }
+  },
+  "requirements": [
+    [
+      "marketplace"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
