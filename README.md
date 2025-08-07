@@ -131,6 +131,7 @@ This mod can best be described as in a "beta" state. Existing functionality is m
 Building: Pet Shop (enables pet functions, pet-related colony roles.) [Testing]
 Pets - Ability: animal herding [Testing]
 Pets - Ability: mushroom foraging [Testing]
+Advancements [In Progress] - In-game guidance will be largely provided through these (if not covered by the building hut blocks or workers themselves)
 
 #### Future
 Style: Trade Shop (Introducing classic MineColonies buildings in the Trade Post style. This will be a slow roll-out as inspiration strikes.)
@@ -145,7 +146,6 @@ Pets - Ability: scarecrow effect - bonus to harvest yields (not needed in vanill
 Pets - Ability: pick up items in the world
 Pets - Ability: Locate certain ore types or crop types
 Pets - Ability: Move items from point A to point B.
-Achievements
 Recycling: Cancel button for the processor
 Recycling: Add "Sort" module.
 Recycling: Incinerator mode.
@@ -156,7 +156,6 @@ Add Happiness for Trade Post factors (like vacation, etc.)
 Building: Marketplace - Refactor pricing logic to an "analyze me" strategy, rather than pre-calculating all item values (expensive, slow) 
 Building: Station - Link multiple trades at similiar positions on the track into one connected train. (Aesthetic)
 Building Effect: Happiness based on colony wealth per citizen  
-Item: In-Game Instructions
 Wishing Well Rituals: Summon Trader
 Research: Unlock Trader Recipes
 Jobs: Orchards
