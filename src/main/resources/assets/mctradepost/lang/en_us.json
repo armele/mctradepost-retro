@@ -344,6 +344,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.animals_herded": "Animals Herded: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.items_scavenged": "Scavenged: %d %s",
+    "com.minecolonies.coremod.gui.townhall.stats.items_sold": "Sold: %d %s",
 
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",

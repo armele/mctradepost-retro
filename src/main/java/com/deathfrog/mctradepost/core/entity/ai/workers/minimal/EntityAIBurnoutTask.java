@@ -60,7 +60,7 @@ public class EntityAIBurnoutTask
     /**
      * Worker status icon
      */
-    private final static VisibleCitizenStatus VACATION =
+    public final static VisibleCitizenStatus VACATION_STATUS =
         new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/vacation/default.png"),
             "com.mctradepost.gui.visiblestatus.needvacation");
 
@@ -302,7 +302,7 @@ public class EntityAIBurnoutTask
 
             if (resort.makeReservation(vacationTracker))
             {
-                citizen.getCitizenData().setVisibleStatus(VACATION);
+                citizen.getCitizenData().setVisibleStatus(VACATION_STATUS);
                 adSaturationLevel = 0;
                 return VacationAIState.SEARCH_RESORT;
             }
@@ -718,7 +718,7 @@ public class EntityAIBurnoutTask
         }
 
         cure();
-        return CitizenAIState.IDLE;
+        return AIWorkerState.START_WORKING;
     }
 
     /**
@@ -886,6 +886,12 @@ public class EntityAIBurnoutTask
         vacationTracker = null;
         seatLocation = null;
         dayLastResisted = -1;
+
+        if (citizen.getCitizenData().getStatus() == VACATION_STATUS)
+        {
+            citizen.getCitizenData().setVisibleStatus(null);
+        }
+        
         citizen.releaseUsingItem();
         citizen.stopUsingItem();
         citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);

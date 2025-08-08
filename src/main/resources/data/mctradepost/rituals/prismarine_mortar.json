@@ -1,6 +1,6 @@
 {
   "companion_item": "minecraft:prismarine_shard",
-  "companion_item_count": 16,
+  "companion_item_count": 64,
   "effect_type": "transform",
   "target" : "mctradepost:prismarine_mortar",
   "radius": -1,

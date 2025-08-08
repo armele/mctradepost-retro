@@ -1,0 +1,15 @@
+{
+    "replace": false,
+    "values": [
+        "mctradepost:mixed_stone",
+        "mctradepost:rough_stone",
+        "minecraft:gravel",
+        "minecraft:sand",
+        "minecraft:clay_ball",
+        "minecraft:brick",
+        "mctradepost:plaster",
+        "mctradepost:quartz_mortar",
+        "mctradepost:end_mortar",
+        "mctradepost:prismarine_mortar"
+  ]
+}

@@ -3,10 +3,12 @@ package com.deathfrog.mctradepost.core.client.render.souvenir;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.world.item.BlockItem;
+import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -14,49 +16,47 @@ import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-
-
-
-public class SouvenirISTER extends BlockEntityWithoutLevelRenderer {
-
-    public SouvenirISTER() {
+public class SouvenirISTER extends BlockEntityWithoutLevelRenderer
+{
+    public SouvenirISTER()
+    {
         super(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
-        MCTradePostMod.LOGGER.info("Cosntructing SouvenirISTER.");        
+        MCTradePostMod.LOGGER.info("Cosntructing SouvenirISTER.");
     }
 
     /**
-     * Renders an ItemStack as a souvenir in a glass block "snow globe".
-     * If the item is a block, it is centered and scaled up to fill the globe.
-     * If the item is not a block, it is scaled down and centered to appear inside the globe.
-     * The original item or block is rendered inside the glass using the appropriate transform context.
-     * @param stack The ItemStack to render as a souvenir.
+     * Renders an ItemStack as a souvenir in a glass block "snow globe". If the item is a block, it is centered and scaled up to fill
+     * the globe. If the item is not a block, it is scaled down and centered to appear inside the globe. The original item or block is
+     * rendered inside the glass using the appropriate transform context.
+     * 
+     * @param stack   The ItemStack to render as a souvenir.
      * @param context The context in which the item is being rendered.
-     * @param pose The current transformation matrix.
+     * @param pose    The current transformation matrix.
      * @param buffers The render target.
-     * @param light The light level.
+     * @param light   The light level.
      * @param overlay The overlay to render.
      */
     @SuppressWarnings("null")
     @Override
-    public void renderByItem(
-        @Nonnull final ItemStack stack, 
-        @Nonnull final ItemDisplayContext context, 
-        @Nonnull final PoseStack pose, 
-        @Nonnull final MultiBufferSource buffers, 
-        final int light, 
-        final int overlay) 
+    public void renderByItem(@Nonnull final ItemStack stack,
+        @Nonnull final ItemDisplayContext context,
+        @Nonnull final PoseStack pose,
+        @Nonnull final MultiBufferSource buffers,
+        final int light,
+        final int overlay)
     {
-
         Item original = SouvenirItem.getOriginal(stack);
-        if (original == null) 
+        if (original == null)
         {
             return;
         }
 
         ItemStack originalStack = new ItemStack(original);
-        boolean isBlock = original instanceof BlockItem;
+        // boolean isBlock = original instanceof BlockItem;
 
         Minecraft mc = Minecraft.getInstance();
+        var level = mc.level != null ? mc.level : (mc.player != null ? mc.player.level() : null);
+        ItemRenderer itemRenderer = mc.getItemRenderer();
 
         // First, render a glass block as base "snow globe"
         ItemStack glass = new ItemStack(Blocks.GLASS);
@@ -67,17 +67,33 @@ public class SouvenirISTER extends BlockEntityWithoutLevelRenderer {
         pose.popPose();
 
         // Then, render the original item or block inside the glass
-        ItemDisplayContext appliedTransform = ItemDisplayContext.GROUND; // isBlock ? ItemDisplayContext.FIXED : ItemDisplayContext.GROUND;
+        ItemDisplayContext appliedTransform = ItemDisplayContext.GROUND; // isBlock ? ItemDisplayContext.FIXED :
+                                                                         // ItemDisplayContext.GROUND;
 
         pose.pushPose();
         pose.translate(0.5, 0.5, 0.7);
         pose.scale(0.7f, 0.7f, 0.7f);
         pose.mulPose(Axis.XP.rotationDegrees(90));
         float rotation = (mc.level.getGameTime() % 360) * 1.0f;
-        pose.mulPose(Axis.YP.rotationDegrees(rotation)); 
+        pose.mulPose(Axis.YP.rotationDegrees(rotation));
 
-        mc.getItemRenderer().renderStatic(originalStack, appliedTransform, light, overlay, pose, buffers, mc.level, 0);
-        
+        try
+        {
+            BakedModel model = itemRenderer.getModel(originalStack, level, null, 0);
+            if (model == null)
+            {
+                MCTradePostMod.LOGGER.warn("No model found for item {}", original.getDescriptionId());
+                originalStack = new ItemStack(Items.BARRIER);
+            }
+
+            // Use renderStatic for all items — internally delegates to custom logic if needed
+            itemRenderer.renderStatic(originalStack, appliedTransform, light, overlay, pose, buffers, level, 0);
+        }
+        catch (Exception e)
+        {
+            MCTradePostMod.LOGGER.warn("Failed to render souvenir item: {}", original.getDescriptionId(), e);
+        }
+
         pose.popPose();
     }
 }

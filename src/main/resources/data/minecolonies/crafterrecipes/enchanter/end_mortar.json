@@ -3,7 +3,7 @@
   "crafter": "enchanter_custom",
   "inputs": [
     {
-      "count": 16,
+      "count": 64,
       "id": "minecraft:end_stone"
     },
     {
@@ -12,7 +12,7 @@
   ],
   "intermediate": "minecraft:air",
   "result": {
-    "count": 16,
+    "count": 64,
     "id": "mctradepost:end_mortar"
   },
   "show-tooltip": true

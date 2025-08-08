@@ -1,6 +1,6 @@
 {
   "companion_item": "minecraft:quartz",
-  "companion_item_count": 16,
+  "companion_item_count": 64,
   "effect_type": "transform",
   "target" : "mctradepost:quartz_mortar",
   "radius": -1,

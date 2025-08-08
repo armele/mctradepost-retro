@@ -1,6 +1,6 @@
 {
   "companion_item": "minecraft:end_stone",
-  "companion_item_count": 16,
+  "companion_item_count": 64,
   "effect_type": "transform",
   "target" : "mctradepost:end_mortar",
   "radius": -1,
