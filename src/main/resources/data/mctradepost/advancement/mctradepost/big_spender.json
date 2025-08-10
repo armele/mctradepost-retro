@@ -1,0 +1,33 @@
+{
+  "parent": "mctradepost:mctradepost/marketplace",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:mctp_coin"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.big_spender.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.big_spender.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "rewards": {
+    "experience": 100
+  },
+  "criteria": {
+    "crafted_mixed_stone": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "item": {
+          "count": 1,
+          "items": ["mctradepost:mctp_coin"]
+        }
+      }
+    }
+  }
+}

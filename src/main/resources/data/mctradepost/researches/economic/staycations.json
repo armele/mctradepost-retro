@@ -13,7 +13,7 @@
         {
             "type": "minecolonies:building",
             "building": "marketplace",
-            "level": 1
+            "level": 2
         }
     ],
     "costs": [

@@ -6,11 +6,12 @@
       "I": { "item": "minecraft:iron_ingot" },
       "L": { "item": "minecraft:leather" },
       "S": { "item": "minecraft:stick" },
+      "F": { "item": "minecraft:flint_and_steel" },
       "R": { "item": "minecraft:lightning_rod" }
     },
     "pattern": [
       "WSW",
-      "LSL",
+      "LFL",
       "IRI"
     ],
     "result": {

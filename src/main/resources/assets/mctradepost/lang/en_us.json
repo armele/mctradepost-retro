@@ -371,7 +371,11 @@
     "advancement.mctradepost.make_a_wish.title": "Make a Wish",
     "advancement.mctradepost.make_a_wish.description": "Surround a 2x2 pool of water with Mixed Stone and make a wish using Trade Coins (available from the Marketplace).",
     "advancement.mctradepost.build.marketplace.description": "Build a Marketplace to mint Trade Coins.",
-    "advancement.mctradepost.build.marketplace.title": "Marketplace"
+    "advancement.mctradepost.build.marketplace.title": "Marketplace",
+    "advancement.mctradepost.big_spender.title": "Big Spender",
+    "advancement.mctradepost.big_spender.description": "Successfully withdrew a coin from the Marketplace.",
+
+    "item.apotheosis.gem": "Apotheosis Gem"
 
 }
   

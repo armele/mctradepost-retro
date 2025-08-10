@@ -20,8 +20,12 @@ Consult the "Economics" research line in the University for some tips on where t
 #### Marketplace
 Gives you a place for a Shopkeeper to work. They can make just about anything (configured in the hut block) into a cute souvenir to sell to the visitors in the colony, generating Trade Coins (‡).
 
+This is the first building in the Trade Post series and can be built right after your Tavern.
+
 #### Resort
 A resort attracts your citizens who are feeling overworked. Guest Services will tend to vacationing citizens, who can relax and repair their adverse stat, and generate some Trade Coins (‡) for the colony while taking a break from work.
+
+Consider a resort as your colony progresses on to Level 2 buildings, and has reasonable agricultural support.
 
 #### Recycling Center
 The recycling center can help you break down your old building materials and other equipment into their raw components so they can be reused. Up to two recycling processes per building level can be in progress at once, and a skilled Recycling Engineer can speed up the process. Success of recycling depends on a variety of factors, including the building level, the level of damage something has taken (if damageable) and the primary skill of the recycling engineer handling the work.

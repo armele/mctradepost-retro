@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:beef",
+    "#minecraft:meat",
+    "#c:foods/raw_meat",
+    { "id": "livingthings:giraffe", "required": false },
+    { "id": "livingthings:lion", "required": false }
+  ],
+  "remove": [
+    "minecraft:rotten_flesh",
+    { "id": "occultism:demonic_meat", "required": false }
+  ]
+}

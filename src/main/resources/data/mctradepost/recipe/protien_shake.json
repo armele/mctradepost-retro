@@ -3,16 +3,16 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:beef"
+      "tag": "mctradepost:meat"
     },
     {
-      "item": "minecraft:porkchop"
+      "tag": "mctradepost:meat"
     },
     {
-      "item": "minecraft:mutton"
+      "tag": "mctradepost:meat"
     },
     {
-      "item": "minecraft:blaze_powder"
+      "item": "minecraft:egg"
     },
     {
       "item": "mctradepost:immersion_blender"
