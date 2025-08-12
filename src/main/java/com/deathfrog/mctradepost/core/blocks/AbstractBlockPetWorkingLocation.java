@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.blocks;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -7,14 +9,20 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -31,6 +39,8 @@ import net.minecraft.world.entity.player.Player;
 public class AbstractBlockPetWorkingLocation extends Block implements EntityBlock
 {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final String TOOLTIP_BASE = "item.mctradepost.petworkinglocation.";
+    public static final String TOOLTIP_EXPANDED_BASE = "item.mctradepost.petworkinglocation.expanded.";
 
     public AbstractBlockPetWorkingLocation(Properties properties)
     {
@@ -148,5 +158,37 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         }
 
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    /**
+     * Appends information to the item's tooltip.
+     * <p>
+     * This shows a short line of text, and if Shift is held, provides additional information.
+     * </p>
+     * @param stack the item stack to generate the tooltip for
+     * @param context the tooltip context
+     * @param tooltip the list of components to append to
+     * @param flag the tooltip flag
+     */
+    @Override
+    public void appendHoverText(@Nonnull ItemStack stack,
+                                @Nonnull Item.TooltipContext context,
+                                @Nonnull List<Component> tooltip,
+                                @Nonnull TooltipFlag flag) 
+    {
+        String suffix = this.getClass().getSimpleName().toLowerCase();
+
+        // Always show a short line
+        tooltip.add(Component.translatable(TOOLTIP_BASE + suffix)
+                .withStyle(ChatFormatting.GRAY));
+
+        // Optional: show more when Shift is held
+        if (Screen.hasShiftDown()) {
+            tooltip.add(Component.translatable(TOOLTIP_EXPANDED_BASE + suffix)
+                    .withStyle(ChatFormatting.DARK_GRAY));
+        } else {
+            tooltip.add(Component.literal("<shift> for more info")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
     }
 }

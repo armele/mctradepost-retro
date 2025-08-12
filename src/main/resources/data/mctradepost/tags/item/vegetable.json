@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#minecolonies:vegetable",
+    {"id": "c:vegetables", "required": false},
+    {"id": "c:foods/vegetable", "required": false}
+  ],
+  "remove": [
+  ]
+}

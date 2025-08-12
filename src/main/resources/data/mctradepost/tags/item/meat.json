@@ -3,7 +3,7 @@
   "values": [
     "minecraft:beef",
     "#minecraft:meat",
-    "#c:foods/raw_meat",
+    { "id": "c:foods/raw_meat", "required": false},
     { "id": "livingthings:giraffe", "required": false },
     { "id": "livingthings:lion", "required": false }
   ],

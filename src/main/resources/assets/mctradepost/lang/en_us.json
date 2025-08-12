@@ -159,6 +159,11 @@
     "item.mctradepost.scavenge": "Mushroom Scavenging Base",
     "block.mctradepost.scavenge": "Mushroom Scavenging Base",
 
+    "item.mctradepost.petworkinglocation.blocktrough": "Pet working location: Corral",
+    "item.mctradepost.petworkinglocation.blockscavenge": "Pet working location: Scavenge",
+    "item.mctradepost.petworkinglocation.expanded.blocktrough": "Place within a husbandry building to have your pet help keep animals corralled.",
+    "item.mctradepost.petworkinglocation.expanded.blockscavenge": "Place in a dim area to have your pet scavenge for mushrooms.",
+
     "item.mctradepost.woven_kelp": "Woven Kelp Brick",
     "item.mctradepost.woven_kelp_stairs": "Woven Kelp Brick Stairs",
     "item.mctradepost.woven_kelp_wall": "Woven Kelp Brick Wall",

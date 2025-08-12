@@ -3,7 +3,7 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "minecraft:apple"
+      "tag": "mctradepost:fruit"
     },
     {
       "item": "minecraft:sweet_berries"

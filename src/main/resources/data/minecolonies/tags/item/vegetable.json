@@ -1,0 +1,15 @@
+{
+  "replace": false,
+  "values": [
+    "minecolonies:bell_pepper",
+    "minecolonies:cabbage",
+    "minecolonies:chickpea",
+    "minecolonies:eggplant",
+    "minecolonies:soybean",
+    "minecolonies:tomato",
+    "minecolonies:butternut_squash",
+    "minecolonies:corn",
+    "minecolonies:nether_pepper",
+    "minecolonies:peas"
+  ]
+}

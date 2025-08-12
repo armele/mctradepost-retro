@@ -12,7 +12,7 @@
       "item": "minecraft:beetroot_seeds"
     },
     {
-      "item": "minecolonies:peas"
+      "tag": "mctradepost:vegetable"
     },
     {
       "item": "mctradepost:immersion_blender"
