@@ -36,7 +36,7 @@ Add any custom buildng modules that are needed:
 - Define new modules in MCTPBuildingModules
 - These may extend or reuse existing modules, or may require the development of new ones.
 
-Define five building levels using Structurize, named the same as the NewBuildingClass.schematicName()
+Define five building levels using Structurize. See the building guidance provided at: https://minecolonies.com/wiki/tutorials/schematics/
 - Place the structurize files in src\main\resources\blueprints\mctradepost\Trade Post Default\economic\
 
 ## Job for Building

@@ -6,10 +6,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,23 +18,16 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.google.common.collect.ImmutableList;
-import com.jcraft.jorbis.Block;
 import com.ldtteam.structurize.api.BlockPosUtil;
 import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.colony.Colony;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 
 public class PetRegistryUtil 
 {
@@ -179,7 +170,7 @@ public class PetRegistryUtil
 
     /**
      * Registers a BlockPos as a work location for a pet in the given colony.
-     * This is used to determine if a pet can be assigned to a building.
+     * This is used to determine if a pet can be assigned to work at a given location.
      * @param colony the colony to register the work location for.
      * @param pos the BlockPos to register as a work location.
      */
