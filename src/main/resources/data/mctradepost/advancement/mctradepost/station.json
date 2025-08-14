@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/marketplace",
+  "criteria": {
+    "building": {
+      "conditions": {
+        "hut_name": "station",
+        "level": 1
+      },
+      "trigger": "minecolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.build.station.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:blockhutstation"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.build.station.title"
+    }
+  },
+  "requirements": [
+    [
+      "building"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

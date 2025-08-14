@@ -228,7 +228,7 @@
     "com.deathfrog.mctradepost.gui.workerhuts.station.exports": "Export Order",
     "com.minecolonies.coremod.gui.station.exports.empty" : "No connected colonies are currently importing goods.",
     "com.deathfrog.mctradepost.gui.workerhuts.station.funding" : "Trade Funding",
-    "com.minecolonies.coremod.gui.station.connection.empty" : "No other colonies have a Station built yet.",
+    "com.minecolonies.coremod.gui.station.connection.empty" : "Cannot find connected stations.",
 
     "com.mctradepost.building.petshop": "Pet Shop",
     "com.minecolonies.building.petshop": "Pet Shop",
@@ -377,6 +377,14 @@
     "advancement.mctradepost.make_a_wish.description": "Surround a 2x2 pool of water with Mixed Stone and make a wish using Trade Coins (available from the Marketplace).",
     "advancement.mctradepost.build.marketplace.description": "Build a Marketplace to mint Trade Coins.",
     "advancement.mctradepost.build.marketplace.title": "Marketplace",
+    "advancement.mctradepost.build.petshop.description": "Build a Pet Shop for helpful animals.",
+    "advancement.mctradepost.build.petshop.title": "Pet Shop",
+    "advancement.mctradepost.build.recycling.description": "Build a Recycling Center to recover materials from unused items.",
+    "advancement.mctradepost.build.recycling.title": "Recycling Center",
+    "advancement.mctradepost.build.resort.description": "Build a Resort to give your citizens some time off, improve their low stats, and generate some Trade Coins.",
+    "advancement.mctradepost.build.resort.title": "Resort",
+    "advancement.mctradepost.build.station.description": "Build a Train Station to unlock inter-colony trade!",
+    "advancement.mctradepost.build.station.title": "Station",
     "advancement.mctradepost.big_spender.title": "Big Spender",
     "advancement.mctradepost.big_spender.description": "Successfully withdrew a coin from the Marketplace.",
 

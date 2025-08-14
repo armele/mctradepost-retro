@@ -5,7 +5,7 @@
     }
   },
   "display": {
-    "background": "minecraft:textures/block/light_gray_wool.png",
+    "background": "mctradepost:textures/block/plaster.png",
     "description": {
       "translate": "advancement.mctradepost.root.description"
     },
