@@ -2,9 +2,13 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone",
+    "mctradepost:mixed_stone_brick",
     "mctradepost:plaster",
+    "mctracepost:quartz_plaster",
     "mctradepost:rough_brick",
     "mctradepost:rough_stone",
+    "mctradepost:weathered_rough_stone",
+    "mctradepost:marine_basalt",
     "mctradepost:endethyst",
     "mctradepost:endethyst_brick",
     "mctradepost:endmarine",
