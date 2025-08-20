@@ -275,8 +275,11 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (pet.getStuckTicks() > PetData.STUCK_STEPS)
         {
-            final BlockPos targetAnimalPos = currentTargetAnimal.getOnPos();
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetAnimalPos, pet.getStuckTicks()));
+            if (currentTargetAnimal != null)
+            {
+                final BlockPos targetAnimalPos = currentTargetAnimal.getOnPos();
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetAnimalPos, pet.getStuckTicks()));
+            }
 
             double dx = (pet.getRandom().nextDouble() - 0.5) * 0.5;
             double dz = (pet.getRandom().nextDouble() - 0.5) * 0.5;

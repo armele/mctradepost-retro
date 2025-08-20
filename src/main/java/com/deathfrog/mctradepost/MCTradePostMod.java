@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -67,6 +68,7 @@ import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.entity.AxolotlRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.FoxRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
@@ -81,6 +83,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -252,13 +255,18 @@ public class MCTradePostMod
 
     public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
         () -> EntityType.Builder.of(PetWolf::new, MobCategory.CREATURE)
-            .sized(0.6F, 0.85F)
+            .sized(EntityType.WOLF.getDimensions().width(), EntityType.WOLF.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_wolf").toString()));
 
     public static final DeferredHolder<EntityType<?>, EntityType<PetFox>> PET_FOX = ENTITIES.register("pet_fox",
         () -> EntityType.Builder.of(PetFox::new, MobCategory.CREATURE)
-            .sized(0.6F, 0.85F)
+            .sized(EntityType.FOX.getDimensions().width(), EntityType.FOX.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_fox").toString()));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<PetAxolotl>> PET_AXOLOTL = ENTITIES.register("pet_axolotl",
+        () -> EntityType.Builder.of(PetAxolotl::new, MobCategory.CREATURE)
+            .sized(EntityType.AXOLOTL.getDimensions().width(), EntityType.AXOLOTL.getDimensions().height())
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_axolotl").toString()));
 
     /*
     * BLOCKS
@@ -894,6 +902,7 @@ public class MCTradePostMod
         public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
             event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
             event.put(MCTradePostMod.PET_FOX.get(), Fox.createAttributes().build());
+            event.put(MCTradePostMod.PET_AXOLOTL.get(), Axolotl.createAttributes().build());
         }
 
         /**
@@ -1108,6 +1117,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);
         }
 
         /**

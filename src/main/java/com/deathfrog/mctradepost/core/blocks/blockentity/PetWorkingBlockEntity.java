@@ -6,12 +6,15 @@ import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import net.minecraft.util.Tuple;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
@@ -114,6 +117,58 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             IColony colony = IColonyManager.getInstance().getClosestColony(this.getLevel(), this.getBlockPos());
             if (colony != null) {
                 PetRegistryUtil.registerWorkLocation(colony, this.getBlockPos());
+            }
+
+            adjustName();
+        }
+    }
+
+    public void adjustName()
+    {
+        if (!this.hasCustomName())
+        {
+            // Try to derive the name from the MineColonies building at this position
+            final BlockPos pos = getBlockPos();
+            final ServerLevel sLevel = (ServerLevel) level;
+
+            IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(sLevel, pos);
+
+            if (colony != null)
+            {
+                IBuilding selectedBuilding = null;
+
+                for (IBuilding candidate : colony.getBuildingManager().getBuildings().values())
+                {
+                    Tuple<BlockPos, BlockPos> corners = candidate.getCorners();
+                    
+                    BlockPos min = new BlockPos(Math.min(corners.getA().getX(), corners.getB().getX()),
+                        Math.min(corners.getA().getY(), corners.getB().getY()),
+                        Math.min(corners.getA().getZ(), corners.getB().getZ()));
+                    
+                    BlockPos max = new BlockPos(Math.max(corners.getA().getX(), corners.getB().getX()),
+                        Math.max(corners.getA().getY(), corners.getB().getY()),
+                        Math.max(corners.getA().getZ(), corners.getB().getZ()));
+
+                    if (pos.getX() >= min.getX() && 
+                        pos.getX() <= max.getX() &&
+                        pos.getY() >= min.getY() &&
+                        pos.getY() <= max.getY() &&
+                        pos.getZ() >= min.getZ() &&
+                        pos.getZ() <= max.getZ())
+                    {
+                        selectedBuilding = candidate;
+                        break;
+                    }
+                }
+
+                if (selectedBuilding != null)
+                {
+                    // Use building display name + suffix (customize as you like)
+                    Component name = Component.literal("Herd: " +selectedBuilding.getBuildingDisplayName());
+                    this.setCustomName(name);
+                    this.setChanged();
+                    level.sendBlockUpdated(pos, getBlockState(), getBlockState(), 3);
+                }
             }
         }
     }

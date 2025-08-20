@@ -87,6 +87,8 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("I have {} pets.", building.getPets().size()));
         }
 
+        // TODO: Feeding Pets
+
         return super.decide();
     }
 
@@ -108,7 +110,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             ItemStack trainingStack = type.getTrainingItem();
 
             int count = MCTPInventoryUtils.combinedInventoryCount(building, new ItemStorage(trainingStack));
-            if (count < trainingStack.getCount() || building.getBuildingLevel() < type.getLevelRequirement())
+            if (count < trainingStack.getCount())
             {
                 continue;
             }

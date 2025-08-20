@@ -6,7 +6,10 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
+import com.deathfrog.mctradepost.api.entity.pets.PetFox;
+import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
@@ -17,7 +20,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public class PetshopView extends AbstractBuildingView 
 {
-    protected List<PetData> pets = new ArrayList<>();
+    protected List<PetData<?>> pets = new ArrayList<>();
 
     public PetshopView(IColonyView c, @NotNull BlockPos l)
     {
@@ -39,8 +42,17 @@ public class PetshopView extends AbstractBuildingView
         {
             final CompoundTag compound = buf.readNbt();
             if (compound != null)
-            {
-                PetData pet = new PetData(null, compound);
+            {   
+                String animalType = compound.getString(PetData.TAG_ANIMAL_TYPE);
+
+                PetData<?> pet = switch (animalType) 
+                {
+                    case PetData.PET_TYPE_WOLF     -> new PetData<PetWolf>(null, compound);
+                    case PetData.PET_TYPE_FOX      -> new PetData<PetFox>(null, compound);
+                    case PetData.PET_TYPE_AXOLOTL  -> new PetData<PetAxolotl>(null, compound);
+                    default -> throw new IllegalArgumentException("Unknown pet type: " + animalType);
+                };
+
                 pets.add(pet);
             }
         }

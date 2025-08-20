@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -14,6 +15,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 
 public class ExportData
 {
@@ -80,10 +82,19 @@ public class ExportData
     {
         if (path == null || path.isEmpty()) return null;
 
+        ServerLevel level = (ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld();
+        
+        ChunkUtil.ensureChunkLoaded(level, path.getFirst());
+
         GhostCartEntity cart =
-            GhostCartEntity.spawn((ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld(), ImmutableList.copyOf(path));
+            GhostCartEntity.spawn(level, ImmutableList.copyOf(path));
+
+        if (cart == null) return null;
+
         cart.setTradeItem(this.getTradeItem().getItemStack());
         this.setCart(cart);
+
+        ChunkUtil.releaseChunkTicket(level, path.getFirst(), 1);
 
         return cart;
     }

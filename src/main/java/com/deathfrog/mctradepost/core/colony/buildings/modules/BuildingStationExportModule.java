@@ -24,7 +24,6 @@ import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
 
-import io.netty.util.internal.ThreadLocalRandom;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -36,6 +35,8 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 public class BuildingStationExportModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule, IAltersRequiredItems
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    public static final int BASE_TICK_MOVEMENT = 10;
 
     /**
      * The import tag name.
@@ -231,32 +232,29 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             int shipDistance = exportData.getShipDistance();
             if (shipDistance >= 0)
             { 
-                int tradeSpeedBonus = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADESPEED);  
-                shipDistance = shipDistance + (building.getBuildingLevel() * MCTPConfig.baseTradeSpeed.get());
+                // Check for completion before the next move.
+                if (exportData.getShipDistance() >= exportData.getTrackDistance())
+                {
+                    ((BuildingStation) building).completeExport(exportData);
+                    continue;
+                }
+
+                markDirty();
+
+                double tradeSpeedBonus = building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.TRADESPEED);  
+                int nextDistance = (building.getBuildingLevel() * MCTPConfig.baseTradeSpeed.get()) + BASE_TICK_MOVEMENT;
 
                 if (tradeSpeedBonus > 0)
                 {
-                    shipDistance = shipDistance * tradeSpeedBonus;
+                    nextDistance = (int)(nextDistance * tradeSpeedBonus);
                 }
+
+                shipDistance = shipDistance + nextDistance;
 
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
-                // randomly mark dirty 20% of the time
-                if (ThreadLocalRandom.current().nextInt(5) == 0)
-                {
-                    markDirty();
-                }
-
-                if (exportData.getShipDistance() >= exportData.getTrackDistance())
-                {
-                    ((BuildingStation) building).completeExport(exportData);
-                }
-                else
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
-                }
-                markDirty();
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
             }
             else
             {

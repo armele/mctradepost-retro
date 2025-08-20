@@ -19,6 +19,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
@@ -36,6 +37,7 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
@@ -161,7 +163,7 @@ public class BuildingStation extends AbstractBuilding
      */
     public void addStation(StationData sdata) 
     {
-        if (sdata == null) 
+        if (sdata == null || sdata.getBuildingPosition() == null || sdata.getBuildingPosition().equals(BlockPos.ZERO)) 
         {
             LOGGER.warn("Attempted to add null station to building.");
             return;
@@ -598,20 +600,46 @@ public class BuildingStation extends AbstractBuilding
         StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
         StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
 
-        // Adds to the remote building inventory or drops on the ground if inventory is full.
         BuildingStation remoteStation = exportData.getDestinationStationData().getStation();
  
         MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", remoteStation.getBuildingDisplayName(), remoteStation.getPosition()));
+        // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
+        if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
+        {
+            boolean calledForPickup = false;
+            int pickupAmount = exportData.getQuantity();
+            while (pickupAmount > 0)
+            {
+                int thisPickup = 0;
+                if (pickupAmount > exportData.getTradeItem().getItemStack().getMaxStackSize())
+                {
+                    thisPickup = exportData.getTradeItem().getItemStack().getMaxStackSize();
+                }
+                else
+                {
+                    thisPickup = pickupAmount;
+                }
+                pickupAmount -= thisPickup;
+                IToken<?> token = BuildingUtil.bringThisToTheWarehouse(remoteStation, new ItemStack(exportData.getTradeItem().getItemStack().getItem(), thisPickup));
 
-        remoteStation.createPickupRequest(remoteStation.getPickUpPriority());
+                if (token != null)
+                {
+                    calledForPickup = true;
+                }
+            }
 
-        // Adds to the local building inventory or drops on the ground if inventory is full.
-        if (!InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
+            if (calledForPickup)
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", remoteStation.getBuildingDisplayName(), remoteStation.getPosition()));
+            }
+
+        }
+        else
         {
             MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
         }
+    
 
         ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
@@ -627,6 +655,8 @@ public class BuildingStation extends AbstractBuilding
             remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
 
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Resetting export."));
+        
         exportData.setShipDistance(-1);
         GhostCartEntity cart = exportData.getCart();
         if (cart != null) 

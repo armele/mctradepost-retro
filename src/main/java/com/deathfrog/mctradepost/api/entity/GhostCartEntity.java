@@ -157,6 +157,9 @@ public class GhostCartEntity extends AbstractMinecart
                 Vec3 dir = Vec3.atCenterOf(b).subtract(Vec3.atCenterOf(a)).normalize();
                 setYRot((float)(Math.atan2(dir.z, dir.x) * 180 / Math.PI) - 90);
 
+                /* ➜ move the ticket window every tick the cart moves */
+                keepChunkLoaded();
+
                 long gameTime = level().getGameTime();
                 if ((gameTime % PARTICLE_PERIOD) == 0) spawnTrailParticle();
                 if ((gameTime % SOUND_PERIOD)    == 0) playRollingSound();

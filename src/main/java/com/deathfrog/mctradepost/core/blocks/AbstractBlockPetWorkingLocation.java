@@ -14,6 +14,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -103,12 +104,20 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
      */
     @Override
     public void setPlacedBy(@Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState state,
-                            @Nullable LivingEntity placer, @Nonnull ItemStack stack) 
+                            @Nullable LivingEntity placer, @Nonnull ItemStack stack)
     {
         super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.isClientSide) return;
+
+        // Only set a custom name if the placing stack actually has one (e.g. renamed in an anvil)
+        Component custom = stack.get(DataComponents.CUSTOM_NAME); // 1.21.1 way
+        if (custom == null) return;
+
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof PetWorkingBlockEntity petBE) {
-            petBE.setCustomName(stack.getDisplayName());
+            petBE.setCustomName(custom);
+            petBE.setChanged();
+            level.sendBlockUpdated(pos, state, state, 3);
         }
     }
 

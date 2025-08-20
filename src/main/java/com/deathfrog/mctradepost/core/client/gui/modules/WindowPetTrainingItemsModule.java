@@ -33,7 +33,6 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow
 
     private static final String LABEL_PETLIST = "petlist";
     private static final String LABEL_TYPE = "pettype";
-    private static final String LABEL_BUILDING_LEVEL = "buildinglevel";
     private static final String LABEL_TRAINING_ITEM = "trainingitem";
     private static final String LABEL_HOWTO = "howto";
 
@@ -133,9 +132,6 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow
                     trainingStackDisplay.setVisible(true);
                     trainingStackDisplay.setItem(PetTypes.values()[index].getTrainingItem());
                 }
-
-                final Text buildingLevel = rowPane.findPaneOfTypeByID(LABEL_BUILDING_LEVEL, Text.class);
-                buildingLevel.setText(Component.literal("Req. Building Level: " + PetTypes.values()[index].getLevelRequirement()));
             }
 
         });

@@ -6,16 +6,10 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
-import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
 
@@ -39,7 +33,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 
@@ -48,7 +41,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     public static final Logger LOGGER = LogUtils.getLogger();
     public int logCooldown = 0;
 
-    protected PetData petData = null;
+    protected PetData<PetFox> petData = null;
     protected boolean goalsInitialized = false;
 
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
@@ -60,7 +53,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     public PetFox(EntityType<? extends Fox> entityType, Level level)
     {
         super(entityType, level);
-        petData = new PetData(this);
+        petData = new PetData<PetFox>(this);
     }
 
     @Override
@@ -83,7 +76,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     public void setWorkLocation(BlockPos location)
     {
         if (petData == null) {
-            petData = new PetData(this);
+            petData = new PetData<>(this);
             return;
         }
 
@@ -113,56 +106,20 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     @Override
     protected void registerGoals()
     {
-
-        if (this.petData == null)
-        {
-            LOGGER.warn("Skipping goal registration: petData is null");
-            return;
-        }
-
-        this.goalSelector.addGoal(1, new FloatGoal(this));
-        this.goalSelector.addGoal(2, new UnloadInventoryToWorkLocationGoal<>(this, 0.8f));
-        this.goalSelector.addGoal(3, new HerdGoal<>(this));
-        this.goalSelector.addGoal(4, new ScavengeForResourceGoal<>(
-            this,
-            16,                         // search radius
-            8.0,                            // light level (optional to ignore)
-            0.3f,                       // 30% success rate
-            pos -> {
-                var stateBelow = this.level().getBlockState(pos.below());
-                return this.level().getMaxLocalRawBrightness(pos) < 8 &&
-                    (stateBelow.is(BlockTags.DIRT) || stateBelow.is(BlockTags.MUSHROOM_GROW_BLOCK)) &&
-                    this.level().isEmptyBlock(pos);
-            },
-            pos -> {
-                // Pick a mushroom
-                var mushroomBlock = this.getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
-                var mushroomItem = mushroomBlock.asItem();
-                
-                // Track the stat with item name
-                StatsUtil.trackStatByName(this.getTrainerBuilding(), ScavengeForResourceGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
-
-                // Place the mushroom
-                this.level().setBlock(pos, mushroomBlock.defaultBlockState(), 3);
-            },
-            1000
-        ));
-
-        if (this.petData != null && this.petData.getWorkLocation() != null)
-        {
-            this.goalSelector.addGoal(5, new WalkToWorkPositionGoal(this, petData.getWorkLocation(), 1.2, 20.0));
-        }
-
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
 
-        if (this.petData != null && this.petData.getTrainerBuilding() != null)
-        {
-            this.goalSelector.addGoal(10, new ReturnToTrainerAtNightGoal<>(this, petData.getTrainerBuilding().getPosition()));
-        }
 
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
+
+        if (this.petData == null)
+        {
+            LOGGER.warn("Skipping pet goal registration: petData is null");
+            return;
+        }
+        petData.assignPetGoals();
+
     }
 
     @Override
@@ -187,7 +144,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {
-        petData = new PetData(this, compound);
+        petData = new PetData<PetFox>(this, compound);
 
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);
@@ -225,7 +182,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
      * A change of work location may necessitate a change of goals.
      * The goals and targets are only registered once the pet has a valid colony context, which is not available until the pet is loaded into a world.
      */
-    protected void resetGoals() 
+    public void resetGoals() 
     {
         this.goalSelector.removeAllGoals(g -> true);
         this.targetSelector.removeAllGoals(g -> true);
@@ -279,7 +236,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     }
 
     /**
-     * Determines if this wolf can climb the block at its current position.
+     * Determines if this pet can climb the block at its current position.
      * By default, this returns true if the block is climable (i.e. a ladder or vine).
      * @return true if the wolf can climb the block at its current position, false otherwise
      */
@@ -289,7 +246,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
     }
 
-    public PetData getPetData()
+    public PetData<PetFox> getPetData()
     {
         return this.petData;
     }
@@ -356,10 +313,10 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     }
 
     /**
-     * Handles interaction with this fox entity. If the interaction is initiated with the main hand and
-     * the game is not on the client-side, it opens a chest menu displaying the fox's inventory.
+     * Handles interaction with this pet entity. If the interaction is initiated with the main hand and
+     * the game is not on the client-side, it opens a chest menu displaying the pet's inventory.
      *
-     * @param player the player that is interacting with the fox
+     * @param player the player that is interacting with the pet
      * @param hand   the hand used for the interaction
      * @return the result of the interaction, which is InteractionResult.CONSUME if the menu is opened,
      *         otherwise the result of the superclass's mobInteract method

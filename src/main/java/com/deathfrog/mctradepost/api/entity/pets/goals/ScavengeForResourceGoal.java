@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -63,7 +64,7 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
         if (!pet.isAlive() || pet.isPassenger() || pet.isLeashed()) return false;
         if (pet.getPetData() == null || pet.level() == null) return false;
 
-        if (!PetRoles.SCAVENGING.equals(pet.getPetData().roleFromWorkLocation(pet.level()))) return false;
+        if (!PetRoles.SCAVENGE_LAND.equals(pet.getPetData().roleFromWorkLocation(pet.level()))) return false;
 
         long gameTime = pet.level().getGameTime();
         if (gameTime - lastScavengeTime < cooldownTicks) return false;
@@ -101,40 +102,7 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
                     new AABB(targetPos).inflate(1.0),
                     item -> !item.hasPickUpDelay() && item.isAlive());
 
-                var inventory = pet.getInventory();
-                for (ItemEntity item : items)
-                {
-                    ItemStack stack = item.getItem();
-
-                    // First try to merge with existing stacks
-                    for (int i = 0; i < inventory.getSlots(); i++)
-                    {
-                        ItemStack existing = inventory.getStackInSlot(i);
-                        if (ItemStack.isSameItemSameComponents(existing, stack) && ItemStack.isSameItemSameComponents(existing, stack))
-                        {
-                            stack = inventory.insertItem(i, stack, false);
-                            if (stack.isEmpty())
-                            {
-                                break;
-                            }
-                        }
-                    }
-
-                    // Then try to insert into the first empty slot
-                    if (!stack.isEmpty())
-                    {
-                        stack = inventory.insertItem(firstEmptySlot(inventory), stack, false);
-                    }
-
-                    if (stack.isEmpty())
-                    {
-                        item.discard();
-                    }
-                    else
-                    {
-                        item.setItem(stack);
-                    }
-                }
+                PetUtil.insertItems(pet, items);
             }
 
             // Scavenge chance
@@ -184,16 +152,7 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
                             itemEntity.setPickUpDelay(0);
                             serverLevel.addFreshEntity(itemEntity);
 
-                            // Try to insert directly into pet inventory
-                            ItemStack remaining = pet.getInventory().insertItem(firstEmptySlot(pet.getInventory()), dropped, false);
-                            if (remaining.isEmpty())
-                            {
-                                itemEntity.discard();
-                            }
-                            else
-                            {
-                                itemEntity.setItem(remaining);
-                            }
+                            PetUtil.insertItem(pet, itemEntity);
                         }
                     }
                 }
@@ -228,17 +187,5 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
             }
         }
         return null;
-    }
-
-    private int firstEmptySlot(ItemStackHandler inventory)
-    {
-        for (int i = 0; i < inventory.getSlots(); i++)
-        {
-            if (inventory.getStackInSlot(i).isEmpty())
-            {
-                return i;
-            }
-        }
-        return -1;
     }
 }

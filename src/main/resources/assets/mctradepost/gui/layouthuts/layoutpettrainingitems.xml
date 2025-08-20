@@ -9,7 +9,6 @@
                 <box size="100% 50" linewidth="1">
                     <entityicon id="entity" size="45 40" pos="1 1" visible="false" />
                     <text id="pettype" size="60 12" pos="48 5" color="black"/>
-                    <text id="buildinglevel" size="120 12" pos="48 25" color="black"/>
                     <itemicon id="trainingitem" size="16 16" pos="130 5"/>
                 </box>
             </list>

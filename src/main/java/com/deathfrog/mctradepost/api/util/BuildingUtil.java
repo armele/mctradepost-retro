@@ -1,18 +1,37 @@
 package com.deathfrog.mctradepost.api.util;
 
+import java.util.ArrayList;
+
 import javax.annotation.Nonnull;
 
+import org.checkerframework.checker.units.qual.s;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.data.IDataStoreManager;
+import com.minecolonies.api.colony.requestsystem.data.IRequestSystemBuildingDataStore;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
+import com.minecolonies.api.colony.requestsystem.requester.IRequester;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.constant.TypeConstants;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public class BuildingUtil {
@@ -20,6 +39,8 @@ public class BuildingUtil {
     public static final String TAG_POSITION = "position";
     public static final String TAG_BUILDING_ID = "building_id";
     public static final String TAG_COLONY_ID = "colony_id";
+
+    public static final int PICKUP_PRIORITY = 14;
 
     public static CompoundTag uniqueBuildingNBT(@Nonnull IBuilding building)
     { 
@@ -122,4 +143,41 @@ public class BuildingUtil {
 
         return buildingView;
     } 
+
+    /**
+     * Requests that the given ItemStack be delivered from the given sending building to the nearest warehouse in the same colony.
+     * 
+     * @param sendingBuilding the building from which the item is being sent.
+     * @param stackToTake the ItemStack to be delivered.
+     * @return the request token for the delivery request, or null if the colony does not have a warehouse.
+     */
+    public static <R extends IRequestable> IToken<?> bringThisToTheWarehouse(@Nonnull IBuilding sendingBuilding, @Nonnull final ItemStack stackToTake)
+    {
+        final IColony colony = sendingBuilding.getColony();
+
+        if (!colony.hasWarehouse())
+        {
+            return null;
+        }
+
+        IBuilding warehouse = colony.getBuildingManager().getClosestWarehouseInColony(sendingBuilding.getPosition());
+
+        // If the warehouse exists but hasn't been built yet, you might still get a null here.
+        if (warehouse == null)
+        {
+            return null;
+        }
+
+        IRequester requestingWarehouse = StandardFactoryController.getInstance().getNewInstance(TypeToken.of(BuildingBasedRequester.class), warehouse);
+        final Delivery delivery = new Delivery(sendingBuilding.getLocation(), warehouse.getLocation(), stackToTake, PICKUP_PRIORITY);
+
+        final IToken<?> requestToken = colony.getRequestManager().createRequest(requestingWarehouse, delivery);
+
+        colony.getRequestManager().assignRequest(requestToken);
+
+        sendingBuilding.markDirty();
+        warehouse.markDirty();
+
+        return requestToken;
+    }
 }

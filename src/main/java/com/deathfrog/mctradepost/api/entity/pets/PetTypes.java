@@ -9,22 +9,20 @@ import net.minecraft.world.item.Items;
 
 public enum PetTypes
 {
-    // TODO: Introduce building level requirements.
-    WOLF(new ItemStack(Items.BONE, 16), 1, PetWolf.class, MCTradePostMod.PET_WOLF.get()),
-    FOX(new ItemStack(Items.SWEET_BERRIES, 16), 2, PetFox.class, MCTradePostMod.PET_FOX.get());
+    WOLF(new ItemStack(Items.BONE, 16), PetWolf.class, MCTradePostMod.PET_WOLF.get()),
+    FOX(new ItemStack(Items.SWEET_BERRIES, 16), PetFox.class, MCTradePostMod.PET_FOX.get()),
+    AXOLOTL(new ItemStack(Items.KELP, 16), PetAxolotl.class, MCTradePostMod.PET_AXOLOTL.get());
 
 
     private final ItemStack trainingItem;
     private final Class<? extends Animal> petClass;
     private final EntityType<? extends Animal> entityType;
-    private final int levelRequirement;
 
-    PetTypes(ItemStack trainingItem, int levelRequirement, Class<? extends Animal> petClass, EntityType<? extends Animal> entityType)
+    PetTypes(ItemStack trainingItem, Class<? extends Animal> petClass, EntityType<? extends Animal> entityType)
     {
         this.trainingItem = trainingItem;
         this.petClass = petClass;
         this.entityType = entityType;
-        this.levelRequirement = levelRequirement;
     }
 
     /**
@@ -52,14 +50,5 @@ public enum PetTypes
      */
     public EntityType<? extends Animal> getEntityType() {
         return entityType;
-    }
-
-    /**
-     * The building level requirement for a pet of this type to be trained.
-     * 
-     * @return the level requirement
-     */
-    public int getLevelRequirement() {
-        return levelRequirement;
     }
 }

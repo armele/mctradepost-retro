@@ -1,6 +1,9 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
-public enum PetRoles {
+public enum PetRoles 
+{
+    NONE,
     HERDING,
-    SCAVENGING
+    SCAVENGE_LAND,
+    SCAVENGE_WATER
 }

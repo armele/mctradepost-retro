@@ -149,7 +149,6 @@ public class BuildingPetshop extends AbstractBuilding
     // Cat
     // Dolphin (aquatic)
     // Donkey
-    // Fox
     // Frog
     // Goat
     // Horse
@@ -160,7 +159,6 @@ public class BuildingPetshop extends AbstractBuilding
     // Parrot (flying)
     // Polar Bear
     // Turtle
-    // Wolf
 
     
 }

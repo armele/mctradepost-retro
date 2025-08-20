@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.RequestUtil;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
@@ -11,6 +12,7 @@ import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
@@ -28,7 +30,6 @@ import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.StatsUtil;
-import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.colony.buildings.modules.SettingsModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
@@ -188,7 +189,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
         }
 
-        return value * stack.getCount();
+        return value;
     }
 
     private double skillMultiplier()
@@ -232,15 +233,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         final List<ItemStorage> list =
-            building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
+            building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
         List<ItemStorage> sortedList = new ArrayList<>(list);
 
         // Optimize for the most valueable sellable items first.
         sortedList.sort((a, b) -> 
         {
-            double valueA = computeItemValue(a.getItemStack());
-            double valueB = computeItemValue(b.getItemStack());
-            return Double.compare(valueB, valueA); // descending order
+            int valueA = computeItemValue(a.getItemStack());
+            int valueB = computeItemValue(b.getItemStack());
+
+            return Integer.compare(valueB, valueA); // descending order
         });
 
         if (sortedList.isEmpty())
@@ -249,15 +251,33 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             return getState();
         }
 
-        if (InventoryUtils.hasItemInProvider(building, stack -> sortedList.contains(new ItemStorage(stack))))
+        for (ItemStorage candidate : sortedList)
         {
-            InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
-                InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> sortedList.contains(new ItemStorage(stack))),
-                worker.getInventoryCitizen());
+            ItemStack targetStack = candidate.getItemStack();
+
+            if (InventoryUtils.hasItemInProvider(building, stack -> ItemStack.isSameItemSameComponents(stack, targetStack)))
+            {
+                InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
+                    InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
+                        stack -> ItemStack.isSameItemSameComponents(stack, targetStack)),
+                    worker.getInventoryCitizen());
+
+                // only transfer the highest value match
+                break; 
+            }
         }
 
-        final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-            stack -> sortedList.contains(new ItemStorage(stack)));
+        int slot = -1;
+        for (ItemStorage candidate : sortedList)
+        {
+            ItemStack targetStack = candidate.getItemStack();
+            slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
+                stack -> ItemStack.isSameItemSameComponents(stack, targetStack));
+            if (slot >= 0)
+            {
+                break;
+            }
+        }
             
         if (slot >= 0)
         {
@@ -392,6 +412,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 return DECIDE;
             }
 
+            StatsUtil.trackStat(building, WindowEconModule.COINS_MINTED, stack.getCount());
             coinsToMint = 0;
 
             if (!InventoryUtils.addItemStackToProvider(building, stack))
@@ -401,12 +422,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     BuildingEconModule econ = building.getModule(MCTPBuildingModules.ECON_MODULE);
                     econ.deposit(coinsToMint * MCTPConfig.tradeCoinValue.get());
 
+                    stack.setCount(0);
                     MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(building.getColony()).forAllPlayers();
 
                     return DECIDE;
                 }
             }
-            building.createPickupRequest(building.getPickUpPriority());
+            
+            BuildingUtil.bringThisToTheWarehouse(building, stack);
         }
 
         return DECIDE;
@@ -421,11 +444,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     {
         int coinsNeeded = 0;
 
-        for (IBuilding building : building.getColony().getBuildingManager().getBuildings().values())
+        for (IBuilding somebuilding : building.getColony().getBuildingManager().getBuildings().values())
         {
-            ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(building, false);
+            ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(somebuilding, false);
 
-            // LOGGER.info("Building {} has open requests: {}", building.getBuildingDisplayName(), openRequests.size());
+            // LOGGER.info("Building {} has open requests: {}", somebuilding.getBuildingDisplayName(), openRequests.size());
 
             for (IRequest<?> request : openRequests)
             {
@@ -447,7 +470,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
         }
 
-        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount((IBuilding)building, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount(this.building, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
 
         if (coinsNeeded > 0 && coinsOnHand >= coinsNeeded)
         {
@@ -587,7 +610,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             if (!item.isEmpty())
             {
                 final List<ItemStorage> list =
-                    building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
+                    building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
 
                 if (item.getItem() instanceof SouvenirItem)
                 {
@@ -644,7 +667,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
             final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
+                stack -> building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
                     .isItemInList(new ItemStorage(stack)));
 
 

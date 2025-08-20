@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.entity.pets;
 import com.minecolonies.api.colony.buildings.IBuilding;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.animal.Animal;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public interface ITradePostPet
@@ -12,8 +13,10 @@ public interface ITradePostPet
     public void setWorkLocation(BlockPos location);
     public BlockPos getWorkLocation();
     public String getAnimalType();
-    public PetData getPetData();
+    public <P extends Animal & ITradePostPet & IHerdingPet> PetData<P> getPetData();
     public ItemStackHandler getInventory();
+
+    public void resetGoals();
 
     default String petInfo()
     {

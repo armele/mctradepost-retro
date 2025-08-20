@@ -144,8 +144,12 @@ public class WishingWellHandler {
 
                 switch (result) 
                 {
-                    case COMPLETED:
                     case FAILED:
+                        ejectItems(level, coinItems, center);
+                        ejectItems(level, sameTypeCompanions, center);
+                        break;
+
+                    case COMPLETED:
                         MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
                         coinItems.stream().forEach(e -> e.discard());
                         sameTypeCompanions.forEach(Entity::discard); // remove every companion
@@ -156,7 +160,7 @@ public class WishingWellHandler {
                         // An unrecognized companion item has been used, or something else caused the ritual to fail.
                         // Discard the companion item, but leave the ritual active for a valid companion item to be added.
                         MCTradePostMod.LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionType);
-                        sameTypeCompanions.forEach(Entity::discard); // remove every companion
+                        ejectItems(level, sameTypeCompanions, center);
                         break;
 
                     case NEEDS_INGREDIENTS:
@@ -624,6 +628,42 @@ public class WishingWellHandler {
         }
 
         return RitualResult.UNRECOGNIZED;
+    }
+
+    /**
+     * Ejects all items in the provided list to a random location 2-4 blocks away from the well,
+     * with a slight upward velocity. Each item is removed from the well and replaced with a new
+     * copy at the target location.
+     * 
+     * @param level the ServerLevel in which the items are ejected
+     * @param items the list of items to eject
+     * @param wellPos the position of the well
+     */
+    private static void ejectItems(ServerLevel level, List<ItemEntity> items, BlockPos wellPos)
+    {
+        for (ItemEntity entity : items)
+        {
+            ItemStack stack = entity.getItem().copy(); // preserve stack
+            entity.discard(); // remove from well
+
+            // Random offset from well (2–4 blocks away, random direction)
+            double angle = level.random.nextDouble() * 2 * Math.PI;
+            double distance = 2.0 + level.random.nextDouble() * 2.0; // between 2 and 4 blocks
+            double xOffset = Math.cos(angle) * distance;
+            double zOffset = Math.sin(angle) * distance;
+
+            BlockPos target = wellPos.offset((int) xOffset, 1, (int)zOffset);
+
+            // Spawn the new item with a little upward velocity
+            ItemEntity ejected = new ItemEntity(level,
+                    target.getX() + 0.5,
+                    target.getY(),
+                    target.getZ() + 0.5,
+                    stack);
+
+            ejected.setDeltaMovement(0.05 * -xOffset, 0.2, 0.05 * -zOffset); // toss gently away from the well
+            level.addFreshEntity(ejected);
+        }
     }
 
     public enum RitualResult 

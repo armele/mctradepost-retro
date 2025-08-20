@@ -317,6 +317,7 @@ public class EntityAIBurnoutTask
         }
         else
         {
+            citizen.getCitizenData().setVisibleStatus(VACATION_STATUS);
             TraceUtils.dynamicTrace(TRACE_BURNOUT,
                 () -> LOGGER.info("Continuing the vacation for {} (state {}).", citizen.getName(), citizen.getCitizenAI().getState()));
         }

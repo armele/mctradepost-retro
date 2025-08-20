@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:clay",
+    "minecraft:sand",
+    "minecraft:gravel",
+    "minecraft:kelp",
+    "minecraft:prismarine",
+    "minecraft:dark_prismarine",
+    "minecraft:ice",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice"
+  ]
+}

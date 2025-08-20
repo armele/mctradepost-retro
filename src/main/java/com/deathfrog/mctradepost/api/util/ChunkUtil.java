@@ -46,4 +46,18 @@ public class ChunkUtil {
     public static boolean ensureChunkLoaded(ServerLevel level, BlockPos pos) {
         return ensureChunkLoaded(level, new ChunkPos(pos));
     }
+
+
+    /**
+     * Release the chunk ticket for the given BlockPos and radius. This method
+     * should be called after pathfinding has completed to release the ticket
+     * and free up resources.
+     * @param level the level to release the ticket in
+     * @param pos the BlockPos of the chunk to release
+     * @param radius the radius of the ticket to release
+     */
+    public static void releaseChunkTicket(ServerLevel level, BlockPos pos, int radius) {
+        ChunkPos cp = new ChunkPos(pos);
+        level.getChunkSource().removeRegionTicket(SEARCH_TICKET, cp, radius, cp);
+    }
 }
