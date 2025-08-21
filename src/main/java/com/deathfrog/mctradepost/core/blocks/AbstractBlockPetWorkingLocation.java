@@ -61,7 +61,8 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         return new AbstractBlockPetWorkingLocation[] 
         {
             MCTradePostMod.TROUGH.get(),
-            MCTradePostMod.SCAVENGE.get()
+            MCTradePostMod.SCAVENGE.get(),
+            MCTradePostMod.DREDGER.get()
         };
     }
         
@@ -121,6 +122,17 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         }
     }
 
+    /**
+     * Handles the block being right-clicked with an item. This is used to open the block's inventory GUI.
+     * @param stack the item stack used to interact with the block
+     * @param state the block state of the block being interacted with
+     * @param level the level the block is being interacted with in
+     * @param pos the position of the block being interacted with
+     * @param player the player interacting with the block
+     * @param hand the hand used to interact with the block
+     * @param hit the result of the block ray trace
+     * @return the result of the interaction
+     */
     @Override
     public ItemInteractionResult useItemOn(
         @Nonnull ItemStack stack,
@@ -134,6 +146,15 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         return handleInteraction(level, pos, player);
     }
 
+    /**
+     * Handles the block being right-clicked without an item. This is used to open the block's inventory GUI.
+     * @param state the block state of the block being interacted with
+     * @param level the level the block is being interacted with in
+     * @param pos the position of the block being interacted with
+     * @param player the player interacting with the block
+     * @param hit the result of the block ray trace
+     * @return the result of the interaction
+     */
     @Override
     public InteractionResult useWithoutItem(
         @Nonnull BlockState state,
@@ -152,6 +173,22 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
             default -> InteractionResult.PASS;
         };
     }
+
+    
+    /**
+     * Handles the block being right-clicked by a player. This is used to open the block's inventory GUI.
+     * If the block is on the client-side, it returns {@link ItemInteractionResult#SUCCESS} to prevent
+     * client-side interaction result propagation to the server.
+     * If the block is on the server-side and the block is an instance of {@link MenuProvider}, it opens
+     * the menu provided by the block and returns {@link ItemInteractionResult#CONSUME} to consume the
+     * interaction result.
+     * Otherwise, it returns {@link ItemInteractionResult#PASS_TO_DEFAULT_BLOCK_INTERACTION} to allow
+     * the default block interaction (e.g. placing a block) to occur.
+     * @param level the level the block is being interacted with in
+     * @param pos the position of the block being interacted with
+     * @param player the player interacting with the block
+     * @return the result of the interaction
+     */
     private ItemInteractionResult handleInteraction(Level level, BlockPos pos, Player player)
     {
         if (level.isClientSide)

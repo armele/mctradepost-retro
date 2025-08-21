@@ -9,6 +9,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
+import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetAssignmentModule;
@@ -128,6 +129,8 @@ public class BuildingPetshop extends AbstractBuilding
     {
         super.onColonyTick(colony);
 
+        PetRegistryUtil.validateWorkLocations(colony);
+
         for (ITradePostPet pet : getPets())
         {
             if (pet instanceof Animal animal)
@@ -143,7 +146,6 @@ public class BuildingPetshop extends AbstractBuilding
     }
 
     // Armadillo
-    // Axolotl (aquatic)
     // Bat (flying)
     // Camel
     // Cat

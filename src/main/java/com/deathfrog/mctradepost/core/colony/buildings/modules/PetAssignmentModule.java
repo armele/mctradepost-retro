@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
 import com.ldtteam.structurize.api.BlockPosUtil;
 import com.minecolonies.api.colony.IColony;

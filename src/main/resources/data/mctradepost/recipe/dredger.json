@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "C": { "item": "minecraft:chain" },
+      "O": { "item": "mctradepost:woven_kelp" },
+      "T": { "item": "mctradepost:thatch" },
+      "S": { "item": "minecraft:stick" }
+    },
+    "pattern": [
+      "SCS",
+      "OTO",
+      "SOS"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:dredger"
+    }
+}
+  

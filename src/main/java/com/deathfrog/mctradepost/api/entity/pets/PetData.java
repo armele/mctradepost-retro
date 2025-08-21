@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.OpenGateOrDoorGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeWaterResourceGoal;
@@ -16,6 +17,7 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLoca
 import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.minecolonies.api.colony.IColony;
@@ -34,7 +36,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.OpenDoorGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -251,7 +252,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             return;
         }
         animal.goalSelector.addGoal(1, new FloatGoal(animal));
-        animal.goalSelector.addGoal(2, new OpenDoorGoal(animal, true));
+        animal.goalSelector.addGoal(2, new OpenGateOrDoorGoal(animal, true, 10));
         animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.8f));
         animal.getNavigation().getNodeEvaluator().setCanOpenDoors(true);
 
@@ -335,7 +336,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 this.getAnimal().goalSelector.addGoal(6, new ScavengeWaterResourceGoal<>(
                     this.getAnimal(), 
                     16,
-                    0.3f,
+                    0.05f, // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     200            // cooldown (10 seconds)
                 ));
@@ -435,7 +436,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             return PetRoles.SCAVENGE_LAND;
         }
 
-        // TODO: Implement water scavenging block base.
+        if (block instanceof BlockDredger)
+        {
+            return PetRoles.SCAVENGE_WATER;
+        }
 
         return PetRoles.NONE;
     }

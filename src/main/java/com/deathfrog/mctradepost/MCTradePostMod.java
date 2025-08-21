@@ -20,6 +20,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
 import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
+import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
@@ -488,6 +489,10 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockScavenge> SCAVENGE =
         BLOCKS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockScavenge(THATCH.get().properties().lightLevel(state -> 4)));
 
+    public static final DeferredBlock<BlockDredger> DREDGER =
+        BLOCKS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockDredger(THATCH.get().properties().lightLevel(state -> 4)));
+
+
     public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
     public static final DeferredBlock<StairBlock> WOVEN_KELP_STAIRS = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME,
@@ -666,6 +671,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> SCAVENGE_ITEM =
         ITEMS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockItem(SCAVENGE.get(), new Item.Properties()));    
     
+    public static final DeferredItem<Item> DREDGER_ITEM =
+        ITEMS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockItem(DREDGER.get(), new Item.Properties()));   
+
     public static final DeferredItem<Item> WOVEN_KELP_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_NAME, () -> new BlockItem(WOVEN_KELP.get(), new Item.Properties()));
 
@@ -1092,6 +1100,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());	
                     event.accept(MCTradePostMod.TROUGH.get());
                     event.accept(MCTradePostMod.SCAVENGE.get());
+                    event.accept(MCTradePostMod.DREDGER.get());
                     event.accept(MCTradePostMod.WOVEN_KELP.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());

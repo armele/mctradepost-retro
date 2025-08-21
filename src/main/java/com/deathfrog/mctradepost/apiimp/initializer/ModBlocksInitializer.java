@@ -79,6 +79,7 @@ public final class ModBlocksInitializer
     // Pet Working Blocks
     public final static String TROUGH_NAME = "trough";
     public final static String SCAVENGE_NAME = "scavenge";
+    public final static String DREDGER_NAME = "dredger";
 
     private ModBlocksInitializer()
     {

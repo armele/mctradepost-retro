@@ -171,6 +171,15 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
         }
     }
 
+    /**
+     * Finds a suitable location for the pet to scavenge for resources within
+     * the given search radius. A suitable location is one that is not too
+     * bright (i.e. has a light level less than or equal to maxLight) and
+     * satisfies the given location predicate.
+     *
+     * @return a suitable location for scavenging resources, or null if no
+     *         suitable location is found.
+     */
     private BlockPos findSuitableLocation()
     {
         final Level level = pet.level();

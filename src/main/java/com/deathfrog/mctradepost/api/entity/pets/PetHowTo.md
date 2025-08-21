@@ -21,4 +21,10 @@ Goal:
 (TODO)
 
 Working Location:
-(TODO)
+Follow the instructions in ItemHowTo.md with these additions:
+- Add 3 additional en_us.json lines for the pet working locations per the following examples:
+-- "block.mctradepost.trough.shortname" : Used in the assignment window
+-- "item.mctradepost.petworkinglocation.blocktrough" : Used in the short JEI explanation
+-- "item.mctradepost.petworkinglocation.expanded.blocktrough" : Used in the long JEI explanation
+- In PetData.roleFromPosition add the new working location as a determinant for the associated role.
+- In AbstractBlockPetWorkingLocation.java add the new working location to getPetWorkBlocks()

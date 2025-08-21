@@ -2,11 +2,16 @@ package com.deathfrog.mctradepost.core.blocks.blockentity;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.util.Tuple;
 
 import net.minecraft.core.BlockPos;
@@ -19,11 +24,13 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     private Component customName;
 
@@ -98,7 +105,21 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     @Override
     public Component getDefaultName()
     {
-        return this.hasCustomName() ? this.getCustomName() : Component.literal(this.getBlockPos().toShortString());
+        if (this.hasCustomName())
+        {
+            LOGGER.info("Custom name: " + this.getCustomName());
+            return this.getCustomName();
+        }
+
+        Block block = this.getBlockState().getBlock();
+        String key = block.getDescriptionId();
+
+        Component translated = Component.translatable(key + ".shortname");
+        // LOGGER.info("Default name key {} translates to {}. ", key, translated);
+
+        Component name = Component.literal(translated.getString() + " @ " + this.getBlockPos().toShortString());
+
+        return name;
     }
 
     /**

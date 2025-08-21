@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mctradepost:block/dredger",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mctradepost:block/dredger",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mctradepost:block/dredger",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "mctradepost:block/dredger",
+      "y": 0
+    }
+  }
+}
