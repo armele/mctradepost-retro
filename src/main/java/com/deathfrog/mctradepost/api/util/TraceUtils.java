@@ -20,6 +20,7 @@ public class TraceUtils {
     public static final String TRACE_STATION =          "station";
     public static final String TRACE_GUESTSERVICES =    "guestservices";
     public static final String TRACE_ANIMALTRAINER =    "animaltrainer";
+    public static final String TRACE_PETGOALS =         "petgoals";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();
@@ -34,9 +35,18 @@ public class TraceUtils {
      * @param traceKey the key to check in the TRACE_MAP
      * @param loggingStatement the code to execute if trace is turned on
      */
-    public static void dynamicTrace(String traceKey, Runnable loggingStatement) {
-        if (TRACE_MAP.containsKey(traceKey) && TRACE_MAP.get(traceKey)) {
-            loggingStatement.run();
+    public static void dynamicTrace(String traceKey, Runnable loggingStatement) 
+    {
+        if (Boolean.TRUE.equals(TRACE_MAP.get(traceKey))) 
+        {
+            try 
+            {
+                loggingStatement.run();
+            } 
+            catch (Exception e) 
+            {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -69,6 +79,7 @@ public class TraceUtils {
         keys.add(TRACE_STATION);
         keys.add(TRACE_GUESTSERVICES);
         keys.add(TRACE_ANIMALTRAINER);
+        keys.add(TRACE_PETGOALS);
 
         return keys;
     }

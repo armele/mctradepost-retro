@@ -17,6 +17,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.core.tileentities.TileEntityRack;
@@ -40,6 +41,14 @@ import net.minecraft.world.entity.player.Player;
 
 public class MCTPInventoryUtils
 {
+    /**
+     * Finds a random slot in the given IItemHandler which matches the given predicate and returns it.
+     * If no slot is found, returns -1.
+     *
+     * @param itemHandler the IItemHandler to search in
+     * @param itemStackSelectionPredicate the predicate to test each slot with
+     * @return a random matching slot, or -1 if no slot matches
+     */
     public static int findRandomSlotInItemHandlerWith(@NotNull IItemHandler itemHandler,
         @NotNull Predicate<ItemStack> itemStackSelectionPredicate)
     {
@@ -295,5 +304,36 @@ public class MCTPInventoryUtils
                     finalDepositItem);
             }
         }
+    }
+
+    /**
+     * Calculates the percentage of occupied (non-empty) slots in an IItemHandlerCapProvider.
+     * 
+     * @param provider the IItemHandlerCapProvider to check (non-null)
+     * @return percentage of occupied slots, 0..100
+     */
+    public static int filledSlotsPercentage(IItemHandlerCapProvider provider)
+    {
+        if (provider == null) return 0;
+
+        IItemHandler handler = provider.getItemHandlerCap();
+        if (handler == null) return 0;
+
+        final int total = handler.getSlots();
+        if (total <= 0) return 0;
+
+        int filled = 0;
+        for (int i = 0; i < total; i++)
+        {
+            ItemStack stack = handler.getStackInSlot(i);
+            if (!stack.isEmpty())
+            {
+                filled++;
+            }
+        }
+
+        // Use double to avoid integer truncation, then round and clamp to [0, 100]
+        int percent = (int) Math.round(100.0 * filled / total);
+        return Math.max(0, Math.min(100, percent));
     }
 }

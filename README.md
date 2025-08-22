@@ -3,9 +3,6 @@ Refer to the CurseForge project page for details: [Trade Post on CurseForge](htt
 
 ## Tentative Roadmap (Roughly Prioritized)
 ### In Progress
-Building: Pet Shop (enables pet functions, pet-related colony roles.) [Testing]
-Axolotl Creation: [Test]
-Pet Herding: [Test]
 Pet Scavenging: [Test]
 
 ### Future
@@ -19,3 +16,4 @@ Pets - Ability: scarecrow effect - bonus to harvest yields (not needed in vanill
 Pets - Ability: pick up items in the world
 Pets - Ability: Locate certain ore types or crop types
 Pets - Ability: Move items from point A to point B.
+Marketplace - Change sellable item approach to "Analyze and Add"

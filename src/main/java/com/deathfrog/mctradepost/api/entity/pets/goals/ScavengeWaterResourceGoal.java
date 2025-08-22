@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -34,6 +35,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -47,6 +49,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     // check every 8 ticks (~0.4s)
     private static final int CANUSE_PERIOD = 8;
     
+    // how long we’ll allow a pre-empted run to resume (ticks)
+    private static final int RESUME_GRACE_TICKS = 100; // ~5s
+
     // Number of tries to search for items at a given target position before moving on.
     private static final int MAX_SEARCH_TRIES = 10;
 
@@ -56,9 +61,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     private static final TagKey<Block> WATER_SCAVENGE_BLOCK_TAG =
         TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, WATER_SCAVENGE_TAG));
 
-    private static final TagKey<Block> ICY =
-        TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "icy"));
-
 
     private final P pet;
     private final int searchRadius;
@@ -66,7 +68,11 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     private final IBuilding trainerBuilding;
     private final int cooldownTicks;
 
+    private long resumeUntilTick = 0L;   // <= this tick we can resume a paused run
     private BlockPos targetPos;
+    private BlockPos lastPetPos;
+    private int stuckCount = 0;
+    private BlockPos navigationPos;
      // remembers target used at start()
     private BlockPos lastStartTarget = null;
     private boolean hasArrived = false;
@@ -97,29 +103,42 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     {
         if (!pet.isAlive() || pet.isPassenger() || pet.isLeashed())
         {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is dead, leashed, or a passenger"));
             return false;
         }
 
         if (pet.getPetData() == null || pet.level() == null)
         {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet data or level is null"));
             return false;
         }
 
         if (!PetRoles.SCAVENGE_WATER.equals(pet.getPetData().roleFromWorkLocation(pet.level())))
         {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is not a water scavenger"));
             return false;
         }
 
-        if (this.targetPos != null && this.searchTries > 0) 
+        // Resume only if we’re within the grace period
+        if (this.targetPos != null && this.navigationPos != null && this.searchTries > 0)
         {
-            // don’t touch cooldown or gates; just resume
-            return true;
+            long now = pet.level().getGameTime();
+            if (now <= this.resumeUntilTick)
+            {
+                // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resuming scavenge at {}", this.targetPos));
+                return true;
+            }
+            else
+            {
+                reset();
+            }
         }
 
         long gameTime = pet.level().getGameTime();
 
         if (gameTime - lastScavengeTime < cooldownTicks)
         {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: cooldown"));
             return false;
         }
 
@@ -151,14 +170,16 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         {
             final boolean thisPeriodicGate = periodicGate;
             final boolean thisProbablisticGate = probablisticGate;
-            // TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Performance gates not met during ScavengeWaterResourceGoal.canUse: periodicGate {}, probablisticGate  {} ", thisPeriodicGate, thisProbablisticGate));
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Performance gates not met during ScavengeWaterResourceGoal.canUse: periodicGate {}, probablisticGate  {} ", thisPeriodicGate, thisProbablisticGate));
             return false;
         }
 
         targetPos = findWaterScavengeLocation();
+        if (targetPos == null) return false;
 
+        navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {}", targetPos));
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {}", targetPos));
 
         return targetPos != null;
     }
@@ -169,22 +190,99 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void start()
     {
-        // New target vs resume?
         boolean targetChanged = (lastStartTarget == null || !lastStartTarget.equals(this.targetPos));
-
         if (targetChanged)
         {
-            // Only reset on *new* target
             this.hasArrived = false;
             this.searchTries = MAX_SEARCH_TRIES;
             this.lastStartTarget = this.targetPos == null ? null : this.targetPos.immutable();
+            this.lastPetPos = null;
+            this.stuckCount = 0;
+        }
+        if (this.targetPos == null) return;
+
+        // Recompute nav anchor (water surface / ice edge); fallback to targetPos
+        this.navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
+        BlockPos anchor = (this.navigationPos != null) ? this.navigationPos : this.targetPos;
+
+        // Build candidate stand points around the anchor
+        List<BlockPos> candidates = buildNavCandidates(anchor);
+
+        boolean moved = false;
+
+        // 1) Try exact & tolerant paths to each candidate
+        outer:
+        for (BlockPos c : candidates)
+        {
+            for (int tol = 0; tol <= 2; tol++)
+            { // tolerance 0..2
+                Path path = pet.getNavigation().createPath(c, tol);
+                if (path != null && pet.getNavigation().moveTo(path, 1.0))
+                {
+                    moved = true;
+                    break outer;
+                }
+            }
         }
 
-        if (this.targetPos != null)
+        // 2) Last resort: blind move toward the anchor center (helps on slick ice)
+        if (!moved)
         {
-            double targetY = this.targetPos.getY() + 1.0; // safer approach to water-floor
-            pet.getNavigation().moveTo(this.targetPos.getX() + 0.5, targetY, this.targetPos.getZ() + 0.5, 1.0);
+            moved = pet.getNavigation().moveTo(anchor.getX() + 0.5, anchor.getY() + 1.0, anchor.getZ() + 0.5, 1.0);
         }
+
+        if (!moved)
+        {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Could not path to {}, backing off (tries left: {})", anchor, searchTries - 1));
+            // Don’t wipe target completely; let tick() try again next cycle
+            if (--searchTries <= 0) 
+            {
+                reset();
+            }
+        }
+    }
+
+    /**
+     * Prefer the anchor, then a small ring around it (N/E/S/W + diagonals). If the anchor is ice and the block above is walkable,
+     * include that surface too.
+     */
+    private List<BlockPos> buildNavCandidates(BlockPos anchor)
+    {
+        var lvl = pet.level();
+        var list = new java.util.ArrayList<BlockPos>(10);
+
+        // Anchor itself first
+        list.add(anchor);
+
+        // If anchor is ice/water with a solid/flat surface just above, try standing there
+        BlockPos stand = anchor.above();
+        var above = lvl.getBlockState(stand);
+        var below = lvl.getBlockState(anchor);
+        boolean surfaceWalkable = above.isAir() || above.getCollisionShape(lvl, stand).isEmpty();
+        // treat “flat” if below has any collision (helps on ice slabs/packed ice)
+        boolean belowHasCollision = !below.getCollisionShape(lvl, anchor).isEmpty();
+        if (surfaceWalkable && belowHasCollision)
+        {
+            list.add(stand);
+        }
+
+        // 8-neighborhood around anchor at same Y and +1Y
+        for (int dy = 0; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    BlockPos p = anchor.offset(dx, dy, dz);
+                    if (lvl.isInWorldBounds(p) && lvl.isLoaded(p))
+                    {
+                        list.add(p);
+                    }
+                }
+            }
+        }
+        return list;
     }
 
 
@@ -196,12 +294,20 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public boolean canContinueToUse()
     {
-        if (targetPos == null) return false;
+        if (targetPos == null)
+        {
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No Target position found during ScavengeWaterResourceGoal.canContinueToUse"));
+
+            return false;
+        }
+
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, 
+        //    () -> LOGGER.info("Continuation of ScavengeWaterResourceGoal.canContinueToUse at {}: navigation done: {}, hasArrived: {}, searchTries: {}"
+        //    , targetPos, pet.getNavigation().isDone(), hasArrived, searchTries));
 
         if (!hasArrived)
         {
-            // still walking → only continue while path is active
-            return !pet.getNavigation().isDone();
+            return !pet.getNavigation().isDone() || searchTries > 0;
         }
         else
         {
@@ -217,8 +323,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void tick()
     {
-        if (targetPos == null) 
+        if (targetPos == null || navigationPos == null) 
         {
+            reset();
             return;
         }
 
@@ -226,9 +333,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         if (!hasArrived && pet.getNavigation().isDone())
         {
             // try again (nudge Y up a bit so land navigators don’t stop short on water floors)
-            pet.getNavigation().moveTo(targetPos.getX() + 0.5, targetPos.getY() + 1.0, targetPos.getZ() + 0.5, 1.0);
+            pet.getNavigation().moveTo(navigationPos.getX() + 0.5, navigationPos.getY() + 1.0, navigationPos.getZ() + 0.5, 1.0);
 
-            // also guard against loops: burn a try each time we hit "done but not arrived"
+            // also guard against loops: burn a try occasionally when we hit "done but not arrived"
             if (searchTries > 0)
             {
                 long t = pet.level().getGameTime();
@@ -240,18 +347,27 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             }
             return;
         }
+
+        if (navigationPos != null && hasArrived && !pet.blockPosition().closerToCenterThan(Vec3.atCenterOf(navigationPos), 2.25))
+        {
+            // We slid by or got pushed too far.  Let's nudge back in range.
+            pet.getNavigation().moveTo(navigationPos.getX() + 0.5, navigationPos.getY() + 1.0, navigationPos.getZ() + 0.5, .3);
+        }
+
     
-        if (targetPos != null && pet.blockPosition().closerToCenterThan(Vec3.atCenterOf(targetPos), 2.25))
+        if ((navigationPos != null && pet.blockPosition().closerToCenterThan(Vec3.atCenterOf(navigationPos), 2.25)) || hasArrived)
         {
             hasArrived = true;
 
             float roll = pet.getRandom().nextFloat();
             pet.swing(InteractionHand.MAIN_HAND);
 
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
 
             if (roll < chanceToFind)
             {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Successful harvest attempt."));
+
                 searchTries = 0;
                 harvest(targetPos);
             }
@@ -273,6 +389,26 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             {
                 reset();
             }
+        }
+
+        if (!hasArrived && !pet.getNavigation().isDone() && lastPetPos != null && lastPetPos.equals(pet.blockPosition()))
+        {
+            stuckCount++;
+        }
+        else
+        {
+            stuckCount = 0;
+        }
+
+        if (stuckCount > 4)
+        {
+            // 40 ticks of no motion burns a search try.
+            searchTries--;
+        }
+
+        if (pet.level().getGameTime() % 10 == 0)
+        {
+            lastPetPos = pet.blockPosition(); 
         }
     }
 
@@ -301,10 +437,10 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         ResourceLocation lootTableLocation = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, lootPath);
         ResourceKey<LootTable> lootTableKey = ResourceKey.create(Registries.LOOT_TABLE, lootTableLocation);
 
-        // ✅ Access the loot table from MinecraftServer correctly
+        // Access the loot table from MinecraftServer correctly
         LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(lootTableKey);
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Loot table Key: {} is {}", lootTableKey, lootTable));
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Loot table Key: {} is {}", lootTableKey, lootTable));
 
         if (lootTable == null || lootTable == LootTable.EMPTY) return;
 
@@ -341,13 +477,37 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     }
 
     /**
-     * Stops the goal and resets state variables. Resets the target position, hasArrived flag, and updates the last scavenge time based
-     * on the current game time.
+     * Called when the goal is stopped, either because the target has been reached or because the goal was cancelled.
+     * If the target has been reached, this method will fully reset the goal. If the target has not been reached and
+     * there are still tries left, this method will pause the goal, allowing it to resume on the next tick.
+     * <p>
+     * Pausing instead of resetting allows a higher-priority goal to take over cleanly and then resume this goal
+     * when that higher-priority goal is complete.
      */
     @Override
     public void stop()
     {
+        // If we were pre-empted while still en route and still have tries, PAUSE
+        if (this.targetPos != null && !this.hasArrived && this.searchTries > 0)
+        {
+            if (pet.level() != null)
+            {
+                this.resumeUntilTick = pet.level().getGameTime() + RESUME_GRACE_TICKS;
+            }
+            
+            // Don’t touch targetPos/navigationPos/searchTries here.
+            // Stop current nav so higher-priority goal can take over cleanly
+            if (!pet.getNavigation().isDone())
+            {
+                pet.getNavigation().stop();
+            } 
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pausing water scavenge goal"));
+            return;
+        }
 
+        // Otherwise this is a terminal stop (arrived/failed): full reset'
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Stopping water scavenge goal"));
+        reset();
     }
 
 
@@ -358,6 +518,8 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     public void reset()
     {
         targetPos = null;
+        lastPetPos = null;
+        navigationPos = null;
         lastStartTarget = null;
         hasArrived = false;
         if (pet.level() != null)
@@ -365,7 +527,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             lastScavengeTime = pet.level().getGameTime();
         }
         searchTries = MAX_SEARCH_TRIES;
+        pet.getNavigation().stop();
         nextGateTime = 0L;
+        stuckCount = 0;
     }
 
     /**
@@ -382,7 +546,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (level == null || origin == null)
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("findWaterScavengeLocation: level or origin is null"));
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("findWaterScavengeLocation: level or origin is null"));
             return null;
         }
 
@@ -398,15 +562,15 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             BlockState threeAbove = level.getBlockState(candidate.above().above().above());
 
             // 1) Solid non-water (true floor): not water, not ice, not air
-            boolean floorIsSolidNonWater = !state.getFluidState().is(FluidTags.WATER) && !state.is(ICY) && !state.isAir();
+            boolean floorIsSolidNonWater = !state.getFluidState().is(FluidTags.WATER) && !state.is(PathingUtil.ICY) && !state.isAir();
 
             // 2) Single ice plate case: a single ice block with open/air above
-            boolean icePlateau = state.is(ICY) && isOpenOrIce(above);
+            boolean icePlateau = state.is(PathingUtil.ICY) && PathingUtil.isOpenOrIce(above);
 
             // 3) Shallow columns of water/ice 1–2 deep above a solid floor
-            boolean depth1 = isWaterOrIce(above) && isOpenOrIce(twoAbove);
+            boolean depth1 = PathingUtil.isWaterOrIce(above) && PathingUtil.isOpenOrIce(twoAbove);
 
-            boolean depth2 = isWaterOrIce(above) && isWaterOrIce(twoAbove) && isOpenOrIce(threeAbove);
+            boolean depth2 = PathingUtil.isWaterOrIce(above) && PathingUtil.isWaterOrIce(twoAbove) && PathingUtil.isOpenOrIce(threeAbove);
 
             // Final accept:
             // - Either a solid non-water floor with a 1–2 deep column above,
@@ -434,7 +598,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
             final int thisTry = tries;
             final boolean thisTryScavengeMaterials = hasScavengeMaterials;
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("findWaterScavengeLocation - try {}, candidate: {}, shallowWater: {}, hasScavengeMaterials: {}", thisTry, candidate, shallowWater, thisTryScavengeMaterials));
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("findWaterScavengeLocation - try {}, candidate: {}, shallowWater: {}, hasScavengeMaterials: {}", thisTry, candidate, shallowWater, thisTryScavengeMaterials));
 
             if (shallowWater && hasScavengeMaterials) {
                 return candidate;
@@ -442,14 +606,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
 
         return null;
-    }
-
-    private static boolean isOpenOrIce(BlockState s) {
-        return s.isAir() || s.is(ICY);
-    }
-
-    private static boolean isWaterOrIce(BlockState s) {
-        return s.getFluidState().is(net.minecraft.tags.FluidTags.WATER) || s.is(ICY);
     }
 
 }

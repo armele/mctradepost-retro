@@ -2,12 +2,10 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
-import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowPetAssignmentModule;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.BlockPosUtil;
 
 import net.minecraft.core.BlockPos;

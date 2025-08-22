@@ -1,7 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
 import com.minecolonies.api.colony.buildings.IBuilding;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.animal.Animal;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -9,11 +8,17 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 public interface ITradePostPet
 {
     public void setTrainerBuilding(IBuilding building);
+
     public IBuilding getTrainerBuilding();
+
     public void setWorkLocation(BlockPos location);
+
     public BlockPos getWorkLocation();
+
     public String getAnimalType();
+
     public <P extends Animal & ITradePostPet & IHerdingPet> PetData<P> getPetData();
+
     public ItemStackHandler getInventory();
 
     public void resetGoals();
@@ -21,16 +26,21 @@ public interface ITradePostPet
     default String petInfo()
     {
         return String.format(
-            "%s[animalType=%s, role=%s, trainerBuilding=%s, workLocation=%s, petLocation=%s, inventorySize=%d]",
+            "%s[animalType=%s, role=%s, trainerBuilding=%s, workLocation=%s, petLocation=%s, availableGoals=%s, activeGoal=%s, inventorySize=%d]",
             this.getClass().getSimpleName(),
             getAnimalType() != null ? getAnimalType() : "null",
-            getPetData() != null && getWorkLocation() != null && getPetData().getAnimal() != null 
-                ? getPetData().roleFromWorkLocation(getPetData().getAnimal().level()) 
-                : "Unassigned",
+            getPetData() != null && getWorkLocation() != null && getPetData().getAnimal() != null ?
+                getPetData().roleFromWorkLocation(getPetData().getAnimal().level()) :
+                "Unassigned",
             getTrainerBuilding() != null ? getTrainerBuilding().getClass().getSimpleName() : "null",
-            getWorkLocation() != null && !BlockPos.ZERO.equals(getWorkLocation()) ? getWorkLocation().toShortString() : "No work location set",
+            getWorkLocation() != null && !BlockPos.ZERO.equals(getWorkLocation()) ? getWorkLocation().toShortString() :
+                "No work location set",
             getPetData() != null ? getPetData().getAnimal().getOnPos().toShortString() : "No Pet Data available.",
-            getInventory() != null ? getInventory().getSlots() : 0
-        );
+            getPetData() != null && getPetData().getAvailableGoals() != null && !getPetData().getAvailableGoals().isEmpty() ?
+                getPetData().getAvailableGoals().stream().map(w -> w.getPriority() + ":" + w.getGoal().getClass().getSimpleName()).toList() :
+                "No Available Goals",
+            getPetData() != null && getPetData().getActiveGoal() != null ? getPetData().getActiveGoal().getClass().getSimpleName() :
+                "No Active Goal",
+            getInventory() != null ? getInventory().getSlots() : 0);
     }
 }

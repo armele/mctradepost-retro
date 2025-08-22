@@ -23,6 +23,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -151,6 +152,13 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                         hoverPaneBuilder.append(selectedEntity.getName());
                     }
                     hoverPaneBuilder.appendNL(Component.literal(selectedEntity.getOnPos().toShortString()));
+
+                    if (selectedEntity instanceof LivingEntity living) {
+                        hoverPaneBuilder.appendNL(
+                            Component.literal("HP: " +(int)living.getHealth() + " / " + (int)living.getMaxHealth())
+                        );
+                    }
+
                     hoverPaneBuilder.build();
                     entityIcon.show();
                     entityOor.hide();

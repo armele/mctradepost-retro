@@ -20,6 +20,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
@@ -76,20 +77,52 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         return this.customName != null;
     }
 
+    /**
+     * Saves additional data to the given CompoundTag, including the custom name of the TE and its inventory.
+     * If the TE has a custom name, it is stored in the tag under the key "CustomName".
+     * If the TE has a loot table, it is saved in the tag under the key "LootTable"; otherwise, the inventory is
+     * saved in the tag under the key "Items".
+     * @param tag the CompoundTag to save the data to.
+     * @param registries the HolderLookup.Provider containing the registries of items and blocks.
+     */
     @Override
     protected void saveAdditional(@Nonnull CompoundTag tag, @Nonnull HolderLookup.Provider registries)
     {
         super.saveAdditional(tag, registries);
+
+        // Save inventory unless a loot table is in use
+        if (!this.trySaveLootTable(tag))
+        {
+            ContainerHelper.saveAllItems(tag, this.items, registries);
+        }
+
         if (this.hasCustomName())
         {
             tag.putString("CustomName", Component.Serializer.toJson(this.customName, registries));
         }
     }
 
+    /**
+     * Loads additional data from the given CompoundTag, including the custom name of the TE and its inventory.
+     * If the TE has a loot table, it is loaded in the tag under the key "LootTable"; otherwise, the inventory is
+     * loaded in the tag under the key "Items". The custom name is loaded from the tag under the key "CustomName".
+     * @param tag the CompoundTag to load the data from.
+     * @param registries the HolderLookup.Provider containing the registries of items and blocks.
+     */
     @Override
     public void loadAdditional(@Nonnull CompoundTag tag, @Nonnull HolderLookup.Provider registries)
     {
         super.loadAdditional(tag, registries);
+
+        // Ensure list has the correct size before loading
+        this.items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
+
+        // Load inventory unless a loot table is in use
+        if (!this.tryLoadLootTable(tag))
+        {
+            ContainerHelper.loadAllItems(tag, this.items, registries);
+        }
+
         if (tag.contains("CustomName"))
         {
             this.customName = Component.Serializer.fromJson(tag.getString("CustomName"), registries);
@@ -144,6 +177,13 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         }
     }
 
+    /**
+     * Attempts to derive the name of this block entity from the MineColonies building at its position.
+     * If the block entity does not have a custom name, it checks all buildings in the colony at its position
+     * and uses the first one it finds. If a building is found, it sets the name of this block entity to a
+     * string of the form "Herd: <building display name>" and marks the block entity as changed.
+     * If no building is found, the name of this block entity is not changed.
+     */
     public void adjustName()
     {
         if (!this.hasCustomName())
@@ -184,8 +224,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
 
                 if (selectedBuilding != null)
                 {
-                    // Use building display name + suffix (customize as you like)
-                    Component name = Component.literal("Herd: " +selectedBuilding.getBuildingDisplayName());
+                    Component name = Component.literal("Herd: " + Component.translatable(selectedBuilding.getBuildingDisplayName()).getString());
                     this.setCustomName(name);
                     this.setChanged();
                     level.sendBlockUpdated(pos, getBlockState(), getBlockState(), 3);

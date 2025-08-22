@@ -170,7 +170,7 @@
     "item.mctradepost.petworkinglocation.blockscavenge": "Pet working location: Scavenge",
     "item.mctradepost.petworkinglocation.expanded.blockscavenge": "Place in a dim area to have your pet scavenge for mushrooms.",
     "item.mctradepost.petworkinglocation.blockdredger": "Pet working location: Dredger",
-    "item.mctradepost.petworkinglocation.expanded.blockdredger": "Place near shallow water to have your pet search for dredged items.",
+    "item.mctradepost.petworkinglocation.expanded.blockdredger": "Place in or near shallow water (1 or 2 depth) to have your pet search for dredged items.",
 
     "item.mctradepost.woven_kelp": "Woven Kelp Brick",
     "item.mctradepost.woven_kelp_stairs": "Woven Kelp Brick Stairs",
@@ -364,6 +364,8 @@
     "com.minecolonies.coremod.gui.townhall.stats.animals_herded": "Animals Herded: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.items_scavenged": "Scavenged: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.items_sold": "Sold: %d %s",
+    "com.minecolonies.coremod.gui.townhall.stats.pets_fed": "Pets Fed: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.workstations_emptied": "Workstations Emptied: %d",
 
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",

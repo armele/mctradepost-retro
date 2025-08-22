@@ -15,10 +15,12 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.BegGoal;
@@ -32,10 +34,12 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -95,21 +99,18 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     protected void registerGoals()
     {
-        this.goalSelector.addGoal(20, new WaterAvoidingRandomStrollGoal(this, 1.0));
-        this.goalSelector.addGoal(21, new BegGoal(this, 8.0F));
-        this.goalSelector.addGoal(22, new LookAtPlayerGoal(this, Player.class, 8.0F));
-        this.goalSelector.addGoal(23, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(16, new WaterAvoidingRandomStrollGoal(this, 1.0));
+        this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
+        this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
 
-        this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
-        this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
-        this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
+
+        this.targetSelector.addGoal(23, new HurtByTargetGoal(this).setAlertOthers());
 
         if (this.petData == null)
         {
             LOGGER.warn("Skipping pet goal registration: petData is null");
             return;
         }
-        
         petData.assignPetGoals();
 
     }
@@ -200,7 +201,10 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
             resetGoals();
         }
 
-        logActiveGoals();
+        if (petData != null)
+        {
+            petData.logActiveGoals();
+        }
     }
 
     /**
@@ -233,7 +237,8 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         pathNavigation.getPathingOptions().setCanOpenDoors(true);
         pathNavigation.getPathingOptions().withDropCost(1D);
         pathNavigation.getPathingOptions().withJumpCost(1D);
-        pathNavigation.getPathingOptions().setPassDanger(true);
+        pathNavigation.getPathingOptions().setPassDanger(false);
+        pathNavigation.getPathingOptions().setCanSwim(true);
 
         return pathNavigation;
     }
@@ -277,33 +282,6 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public void clearStuckTicks()
     {
         this.stuckTicks = 0;
-    }
-
-    /**
-     * Logs the active goals of this pet every 100 ticks. Used for debugging.
-     */
-    public void logActiveGoals() 
-    {
-        if (logCooldown > 0) 
-        {
-            logCooldown--;
-            return;
-        }
-
-        logCooldown = 100;
-
-        for (WrappedGoal wrapped : this.goalSelector.getAvailableGoals()) {
-            Goal goal = wrapped.getGoal();
-            if (wrapped.isRunning()) {
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Active Goal: " + goal.getClass().getSimpleName()));
-            }
-        }
-        for (WrappedGoal wrapped : this.targetSelector.getAvailableGoals()) {
-            Goal goal = wrapped.getGoal();
-            if (wrapped.isRunning()) {
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Active Target Goal: " + goal.getClass().getSimpleName()));
-            }
-        }
     }
 
     @Override
@@ -365,5 +343,31 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
 
         return super.mobInteract(player, hand);
+    }
+
+    /**
+     * Drops the pet's entire inventory on death. This is not a conventional override of
+     * {@link Animal#dropCustomDeathLoot(ServerLevel, DamageSource, boolean)}, as the superclass does not
+     * provide a way to drop the entire inventory. This is a workaround to drop the pet's inventory
+     * when it dies.
+     */
+    @Override
+    protected void dropCustomDeathLoot(@Nonnull ServerLevel level, @Nonnull DamageSource source, boolean recentlyHit)
+    {
+        super.dropCustomDeathLoot(level, source, recentlyHit);
+
+        // Drop the pet’s inventory
+        ItemStackHandler inv = this.getInventory(); // however you expose it
+        if (inv == null) return;
+
+        for (int i = 0; i < inv.getSlots(); i++)
+        {
+            ItemStack stack = inv.getStackInSlot(i);
+            if (!stack.isEmpty())
+            {
+                net.minecraft.world.Containers.dropItemStack(level, getX(), getY(), getZ(), stack.copy());
+                inv.setStackInSlot(i, ItemStack.EMPTY); // prevent dupes
+            }
+        }
     }
 }

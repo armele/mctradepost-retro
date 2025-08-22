@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
+import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
@@ -44,14 +45,8 @@ public class PetshopView extends AbstractBuildingView
             if (compound != null)
             {   
                 String animalType = compound.getString(PetData.TAG_ANIMAL_TYPE);
-
-                PetData<?> pet = switch (animalType) 
-                {
-                    case PetData.PET_TYPE_WOLF     -> new PetData<PetWolf>(null, compound);
-                    case PetData.PET_TYPE_FOX      -> new PetData<PetFox>(null, compound);
-                    case PetData.PET_TYPE_AXOLOTL  -> new PetData<PetAxolotl>(null, compound);
-                    default -> throw new IllegalArgumentException("Unknown pet type: " + animalType);
-                };
+                PetTypes petType = PetTypes.fromPetString(animalType);
+                PetData<?> pet = PetTypes.createPetDataForType(petType, compound);
 
                 pets.add(pet);
             }

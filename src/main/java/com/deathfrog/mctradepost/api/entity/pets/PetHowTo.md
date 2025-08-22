@@ -2,7 +2,7 @@ Adding Pets:
 Register the entity type in MCTradePostMod.java (constructor)
 Add the entity type to MCTradePostMode.onEntityAttributeCreation
 Register the entity renderer in MCTradePostMod.onRegisterRenderers
-Add the new pet type to the PetTypes enumeration, and assign it a creation item.
+Add the new pet type to the PetTypes enumeration, assign it a creation item and add it to the createPetDataForType method.
 Add the string for the pet in en_us.json (entity.mctradepost.<yournewpet>)
 Create a new pet class file at com.deathfrog.mctradepost.api.entity.pets extending the Animal the pet emulates, and implementing ITradePostPet and IHerdingPet
 Implement the methods required by those interfaces, modeling after an existing pet.
@@ -14,6 +14,7 @@ Implement the methods required by those interfaces, modeling after an existing p
 - createNavigation: use MineColoniesAdavncedPathNavigation
 - onClimbable: to let it use ladders
 - getInventory and mobInteract: to allow it to have an inventory
+- dropCustomDeathLoot: to allow it to drop inventory on death.
 Based on the base animal being subclassed, evaluate what environmental adjustments might be required. (Example: making Axolotl immune to freezing damage.)
 
 Adding Pet Goals:

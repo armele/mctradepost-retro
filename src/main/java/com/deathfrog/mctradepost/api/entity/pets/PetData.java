@@ -4,10 +4,12 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.entity.pets.goals.EatFromInventoryHealGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.OpenGateOrDoorGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
@@ -36,6 +38,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -45,47 +49,36 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+
 public class  PetData<P extends Animal & ITradePostPet & IHerdingPet> 
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+    public static final int LOG_COOLDOWN_INTERVAL = 200;
+    public static final int JOB_GOAL_PRIORITY = 7;
+
+    public int logCooldown = 0;
 
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
     public static final String TAG_ANIMAL_TYPE = "animalType";
-    public static final String PET_TYPE_WOLF = "Wolf";
-    public static final String PET_TYPE_FOX = "Fox";
-    public static final String PET_TYPE_AXOLOTL = "Axolotl";
 
     protected P animal;
     protected int colonyId;
     protected BlockPos trainerBuildingID = BlockPos.ZERO;
     protected BlockPos workLocation = BlockPos.ZERO;
-    protected String animalType;
     protected int entityId;
     private ResourceKey<Level> dimension = null;
     private final ItemStackHandler inventory = new ItemStackHandler(9);
+    public PetTypes petType = null;
 
     public PetData(P animal)
     {
         this.animal = animal;
 
         if (animal != null) {
-            if (animal instanceof PetWolf)
-            {
-                animalType = PET_TYPE_WOLF;
-            }
-            else if (animal instanceof PetFox)
-            {
-                animalType = PET_TYPE_FOX;
-            }
-            else if (animal instanceof PetAxolotl)
-            {
-                animalType = PET_TYPE_AXOLOTL;
-            }
-            else
-            {
-                animalType = "unrecognized";
-            }
+            this.petType = PetTypes.fromPetClass(animal.getClass());
+            this.entityId = animal.getId();
         }
 
     }
@@ -102,9 +95,14 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     }
 
 
+    /**
+     * Gets the name of the animal type associated with this pet.
+     *
+     * @return the name of the animal type associated with this pet.
+     */
     public String getAnimalType()
     {
-        return animalType;
+        return petType.getTypeName();
     }
 
     /**
@@ -146,7 +144,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
 
         workLocation = BlockPosUtil.read(compound, "workLocation");
-        animalType = compound.getString("animalType");
+        petType = PetTypes.fromPetString(compound.getString("animalType"));
         entityId = compound.getInt("entityId");
 
         String dimname = compound.getString("dimension");
@@ -252,15 +250,17 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             return;
         }
         animal.goalSelector.addGoal(1, new FloatGoal(animal));
-        animal.goalSelector.addGoal(2, new OpenGateOrDoorGoal(animal, true, 10));
-        animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.8f));
+        animal.goalSelector.addGoal(2, new OpenGateOrDoorGoal(animal, true, 20));
+        animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.4f));
         animal.getNavigation().getNodeEvaluator().setCanOpenDoors(true);
 
         BlockPos workPos = getWorkLocation();
         if (workPos != null && !workPos.equals(BlockPos.ZERO))
         {
-            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal(this.getAnimal(), getWorkLocation(), 1.2, 20.0));
+            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), getWorkLocation(), 1.2, 4.0));
         }
+
+        animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300, 40));
 
         if (getTrainerBuilding() != null)
         {
@@ -302,11 +302,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         switch (role)
         {
             case HERDING:
-                this.getAnimal().goalSelector.addGoal(3, new HerdGoal<P>(this.getAnimal()));
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HerdGoal<P>(this.getAnimal()));
                 break;
 
             case SCAVENGE_LAND:
-                this.getAnimal().goalSelector.addGoal(4, new ScavengeForResourceGoal<>(
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeForResourceGoal<>(
                     this.getAnimal(),
                     16,                      // search radius
                     8.0,                     // light level (optional to ignore)
@@ -333,10 +333,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 break;
 
             case SCAVENGE_WATER:
-                this.getAnimal().goalSelector.addGoal(6, new ScavengeWaterResourceGoal<>(
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeWaterResourceGoal<>(
                     this.getAnimal(), 
-                    16,
-                    0.05f, // Chance per try; there are 10 tries per cooldown cycle.
+                    12,
+                    0.08f, // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     200            // cooldown (10 seconds)
                 ));
@@ -456,5 +456,75 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (this.workLocation == null || this.workLocation.equals(BlockPos.ZERO)) return PetRoles.NONE;
 
         return roleFromPosition(level, this.workLocation);
+    }
+
+    /**
+     * Returns the active goal of this pet, if any. This is the goal that the pet is currently executing. If the pet does not have an
+     * active goal, this returns null.
+     *
+     * @return the active goal of this pet, or null
+     */
+    public Goal getActiveGoal()
+    {
+        if (getAnimal() == null) return null;
+
+        for (WrappedGoal wrapped : getAnimal().goalSelector.getAvailableGoals())
+        {
+            Goal goal = wrapped.getGoal();
+            if (wrapped.isRunning())
+            {
+                return goal;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Retrieves the set of goals that are available to the pet. A goal is
+     * "available" if it is registered with the pet's goal selector and is
+     * not currently running.
+     *
+     * @return the set of available goals, or null if the pet is null.
+     */
+    public Set<WrappedGoal> getAvailableGoals()
+    {
+        if (getAnimal() == null) return null;
+        
+        return getAnimal().goalSelector.getAvailableGoals();
+    }
+
+    /**
+     * Logs the active goals of this pet every 100 ticks. Used for debugging.
+     */
+    public void logActiveGoals()
+    {
+        if (getAnimal() == null) return;
+
+        if (logCooldown > 0)
+        {
+            logCooldown--;
+            return;
+        }
+
+        logCooldown = LOG_COOLDOWN_INTERVAL;
+
+        for (WrappedGoal wrapped : getAnimal().goalSelector.getAvailableGoals())
+        {
+            Goal goal = wrapped.getGoal();
+            if (wrapped.isRunning())
+            {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal: " + goal.getClass().getSimpleName()));
+            }
+        }
+
+        for (WrappedGoal wrapped : getAnimal().targetSelector.getAvailableGoals())
+        {
+            Goal goal = wrapped.getGoal();
+            if (wrapped.isRunning())
+            {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS,
+                    () -> LOGGER.info("Active Target Goal: " + goal.getClass().getSimpleName()));
+            }
+        }
     }
 }

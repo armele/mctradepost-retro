@@ -20,14 +20,24 @@ import com.minecolonies.core.entity.pathfinding.pathresults.PathResult;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     private boolean goalLogToggle = false;
+
+    private static final int PICKUP_RADIUS = 2;
+    private static final int PICKUP_COOLDOWN_TICKS = 10;
+    private int lastPickupTick = -PICKUP_COOLDOWN_TICKS;
 
     private final P pet;
     private BlockPos herdTarget;
@@ -182,6 +192,11 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     @Override
     public void tick()
     {
+        if (!pet.level().isClientSide)
+        {
+            tryPickupNearbyDrops(pet.level());
+        }
+
         if (currentTargetAnimal == null) 
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target on tick()."));
@@ -313,5 +328,50 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         walkCommandSent = false;
         targetLastOn = BlockPos.ZERO;
         targetStuckSteps = 0;
+    }
+
+    /**
+     * Attempts to pick up any nearby item entities within a certain radius of the
+     * pet. If the pet can fit the item in its inventory, it will be inserted and the
+     * item entity will be removed. If the item is only partially inserted, the remainder
+     * will be left in the item entity. The pet will play a pickup sound in either case.
+     * <p>
+     * The method is rate-limited to prevent the pet from spamming pickup sounds if there
+     * are a large number of items in a small area.
+     * <p>
+     * @param level the level in which the pet is searching for items
+     */
+    private void tryPickupNearbyDrops(final Level level)
+    {
+        if (pet.tickCount - lastPickupTick < PICKUP_COOLDOWN_TICKS) return;
+        lastPickupTick = pet.tickCount;
+
+        final AABB box = pet.getBoundingBox().inflate(PICKUP_RADIUS);
+
+        final List<ItemEntity> nearbyDrops =
+            level.getEntitiesOfClass(ItemEntity.class, box, ie -> ie.isAlive() && !ie.hasPickUpDelay());
+
+        for (ItemEntity drop : nearbyDrops)
+        {
+            ItemStack stack = drop.getItem();
+            if (stack.isEmpty()) continue;
+
+            ItemStack remainder = ItemHandlerHelper.insertItem(pet.getInventory(), stack, false);
+
+            if (remainder.isEmpty())
+            {
+                drop.discard();
+                pet.playSound(SoundEvents.ITEM_PICKUP,
+                    0.2F,
+                    1.0F + (pet.getRandom().nextFloat() - pet.getRandom().nextFloat()) * 0.7F);
+            }
+            else if (remainder.getCount() != stack.getCount())
+            {
+                drop.setItem(remainder);
+                pet.playSound(SoundEvents.ITEM_PICKUP,
+                    0.2F,
+                    1.0F + (pet.getRandom().nextFloat() - pet.getRandom().nextFloat()) * 0.7F);
+            }
+        }
     }
 }
