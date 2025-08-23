@@ -140,7 +140,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     {
         if (this.hasCustomName())
         {
-            LOGGER.info("Custom name: " + this.getCustomName());
+            // LOGGER.info("Custom name: " + this.getCustomName());
             return this.getCustomName();
         }
 

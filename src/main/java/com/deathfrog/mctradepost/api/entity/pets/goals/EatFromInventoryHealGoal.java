@@ -16,7 +16,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
 import java.util.Objects;
@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
-    
+    public static final int LOG_THROTTLE = 200;
     private final P pet;
     private final int cooldownTicks;          // Minimum ticks between eats, to prevent spamming
     private final int windupTicks;            // Small delay to simulate "eating" (anim/sound timing)
@@ -40,6 +40,9 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
     private int eatAtTick = -1;
     private int cachedSlot = -1;
     private ItemStorage foodFilter = null;
+
+    private int logThrottleCounter = 0;
+    
 
     /**
      * @param pet           the pet entity
@@ -81,7 +84,13 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
 
         cachedSlot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(pet.getInventory(), stack -> Objects.equals(new ItemStorage(stack), foodFilter));
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Want to heal - food slot: {}.", cachedSlot));
+        if (logThrottleCounter <= 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Want to heal - food slot: {}.", cachedSlot));
+            logThrottleCounter = LOG_THROTTLE;
+        }
+
+        logThrottleCounter--;
 
         return cachedSlot >= 0;
     }
@@ -90,7 +99,7 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
     public boolean canContinueToUse()
     {
         // One-shot behavior with a brief windup
-        return eatAtTick >= 0 && pet.isAlive() && !pet.level().isClientSide();
+        return eatAtTick >= 0 && pet.isAlive() && !pet.level().isClientSide() && (pet.getHealth() < pet.getMaxHealth());
     }
 
     @Override
@@ -103,6 +112,11 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
         pet.getLookControl().setLookAt(pet.getX(), pet.getEyeY() - 0.6, pet.getZ(), 10.0F, pet.getMaxHeadXRot());
     }
 
+    /**
+     * Called once per tick while this goal is active.
+     *
+     * On the tick where we were scheduled to eat, we consume the food and heal the pet.  If the pet is not injured or the food is gone, we end the goal.
+     */
     @Override
     public void tick()
     {
@@ -150,7 +164,7 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
      */
     private void consumeOneAndHeal(LivingEntity entity, int slot, ItemStorage foodToEat)
     {
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Healing pet - food slot: {} ({}).", slot, foodToEat));
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Healing pet - food slot: {} ({}).", slot, foodToEat));
 
         IItemHandler inv = pet.getInventory();
         if (inv == null) return;

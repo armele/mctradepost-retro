@@ -1,7 +1,5 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
-
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -10,7 +8,6 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
@@ -24,7 +21,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
@@ -240,15 +236,21 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     }
 
     /**
-     * Removes the Pet from the game. This method unregisters the wolf from the PetRegistry
+     * Removes the Pet from the game. This method unregisters the pet from the PetRegistry
      * and clears the reference to its associated BaseTradePostPet. This is typically called
-     * when the wolf is removed from the world for any reason, such as death or despawning.
+     * when the pet is removed from the world for any reason, such as death or despawning.
      *
      * @param reason the reason for the removal of the pet
      */
     @Override
     public void remove(@Nonnull RemovalReason reason)
     {
+
+        if (petData != null)
+        {
+            petData.onRemoval(reason);
+        }
+
         PetRegistryUtil.unregister(this);
         petData = null;
         this.setLeashedTo(null, false);
@@ -269,6 +271,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         pathNavigation.getPathingOptions().withJumpCost(1D);
         pathNavigation.getPathingOptions().setPassDanger(false);
         pathNavigation.getPathingOptions().setCanSwim(true);
+        pathNavigation.setCanFloat(true);
         
         return pathNavigation;
     }

@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -37,6 +39,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
@@ -56,6 +59,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int LOG_COOLDOWN_INTERVAL = 200;
     public static final int JOB_GOAL_PRIORITY = 7;
+
+    public static final String STATS_PETS_DIED = "pets_died";
+    public static final String STATS_PETS_RETIRED = "pets_retired";
+    public static final String STATS_PETS_RANAWAY = "pets_ranaway";
 
     public int logCooldown = 0;
 
@@ -195,6 +202,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         return BuildingUtil.buildingViewFromDimPos(dimension, workLocation);
     }
 
+    /**
+     * Sets the work location for the pet to the given BlockPos.
+     * If the new work location is different from the current work location, calls {@link #workLocationChanged()} to notify the pet and reset its goals.
+     * If the work location is null, sets the work location to BlockPos.ZERO.
+     * @param workLocation the new work location for the pet.
+     */
     public void setWorkLocation(BlockPos workLocation)
     {
         if (workLocation == null)
@@ -211,6 +224,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
     }
 
+    /**
+     * Called when the pet's work location is changed to notify the pet and reset its goals.
+     * If the pet is alive, reset its goals to account for the new work location.
+     */
     public void workLocationChanged()
     {
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Work location changed to: {}" + this.workLocation));
@@ -257,7 +274,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         BlockPos workPos = getWorkLocation();
         if (workPos != null && !workPos.equals(BlockPos.ZERO))
         {
-            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), getWorkLocation(), 1.2, 4.0));
+            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), getWorkLocation(), 1.2, 2));
         }
 
         animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300, 40));
@@ -335,8 +352,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             case SCAVENGE_WATER:
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeWaterResourceGoal<>(
                     this.getAnimal(), 
-                    12,
-                    0.08f, // Chance per try; there are 10 tries per cooldown cycle.
+                    8,
+                    0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     200            // cooldown (10 seconds)
                 ));
@@ -525,6 +542,28 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 TraceUtils.dynamicTrace(TRACE_PETGOALS,
                     () -> LOGGER.info("Active Target Goal: " + goal.getClass().getSimpleName()));
             }
+        }
+    }
+
+    /**
+     * Called when the pet is removed from the game for any reason.
+     * Tracks a statistic based on the reason for removal.
+     *
+     * @param reason the reason the pet was removed
+     */
+    public void onRemoval(@Nonnull RemovalReason reason)
+    {
+        if (reason == RemovalReason.KILLED)
+        {
+            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_DIED, this.getAnimalType(), 1);
+        }
+        else if (reason == RemovalReason.DISCARDED)
+        {
+            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RETIRED, this.getAnimalType(), 1);
+        }
+        else
+        {
+            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RANAWAY, this.getAnimalType(), 1);
         }
     }
 }

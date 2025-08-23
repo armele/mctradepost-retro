@@ -41,6 +41,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     private boolean hasArrived;
     private BlockPos workPos;
     private boolean unloaded = false;
+    private int noApproachTicks = 0;
+    private double bestDistSq = Double.MAX_VALUE;
 
     private final Random rng = new Random();
 
@@ -61,6 +63,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     @Override
     public boolean canUse()
     {
+        if (pet.getNavigation().isInProgress()) return false; // don’t steal MOVE slot
+
         if (cooldownTicks > 0)
         {
             cooldownTicks--;
@@ -172,6 +176,27 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
                 tryFallbackUnloadOrAbort();
             }
             return;
+        }
+
+        if (workPos != null)
+        {
+            double dNow = pet.position().distanceToSqr(Vec3.atCenterOf(workPos));
+            // track best distance seen this run (initialize to +INF in start())
+            if (dNow + 1e-6 < bestDistSq)
+            {
+                bestDistSq = dNow;
+                noApproachTicks = 0;
+            }
+            else
+            {
+                noApproachTicks++;
+            }
+            if (noApproachTicks > 40)
+            {   
+                // ~2s not getting closer
+                if (!replanToWorkPos()) tryFallbackUnloadOrAbort();
+                return;
+            }
         }
 
         // Stuck detection: no progress for a while -> replan or fallback
@@ -387,6 +412,12 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         if (changed)
         {
             be.setChanged();
+        }
+        else
+        {
+            cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
+            stop();
+            return;
         }
 
         // Mark success and terminate

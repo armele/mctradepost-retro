@@ -1,14 +1,11 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
-
 import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
@@ -23,16 +20,10 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.goal.BegGoal;
-import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.OwnerHurtTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
@@ -217,6 +208,12 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     public void remove(@Nonnull RemovalReason reason)
     {
+
+        if (petData != null)
+        {
+            petData.onRemoval(reason);
+        }
+        
         PetRegistryUtil.unregister(this);
         petData = null;
         this.setOwnerUUID(null);
@@ -239,7 +236,8 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         pathNavigation.getPathingOptions().withJumpCost(1D);
         pathNavigation.getPathingOptions().setPassDanger(false);
         pathNavigation.getPathingOptions().setCanSwim(true);
-
+        pathNavigation.setCanFloat(true);
+        
         return pathNavigation;
     }
 

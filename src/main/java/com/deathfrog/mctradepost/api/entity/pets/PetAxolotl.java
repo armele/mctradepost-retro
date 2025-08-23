@@ -1,13 +1,11 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToWaterGoal;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
@@ -20,11 +18,8 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
@@ -262,6 +257,11 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     @Override
     public void remove(@Nonnull RemovalReason reason)
     {
+        if (petData != null)
+        {
+            petData.onRemoval(reason);
+        }
+
         PetRegistryUtil.unregister(this);
         petData = null;
         this.setLeashedTo(null, false);
@@ -287,6 +287,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         pathNavigation.getPathingOptions().setWalkUnderWater(true);
         pathNavigation.getPathingOptions().swimCost = 1D;
         pathNavigation.getPathingOptions().swimCostEnter = 1D;
+        pathNavigation.setCanFloat(true);
         return pathNavigation;
     }
 

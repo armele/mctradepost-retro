@@ -229,7 +229,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
                 if (inStock >= PETFOOD_SIZE)
                 {
-                    needsCurrently = new Tuple<>(stack -> Objects.equals(new ItemStorage(stack), food), PETFOOD_SIZE);
+                    needsCurrently = new Tuple<>(stack -> Objects.equals(stack.getItem(), food.getItem()), PETFOOD_SIZE);
                 }
                 else
                 {
@@ -266,6 +266,17 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         return DECIDE;
     }
+
+    /**
+     * After picking up the required food, the next AI state to transition to is AnimalTrainerStates.FEED_PET.
+     * This state is responsible for feeding the injured pet.
+     */
+    @Override
+    public IAIState getStateAfterPickUp()
+    {
+        return AnimalTrainerStates.FEED_PET;
+    }
+
 
     /**
      * Provide the pet with food at its working location if it is injured. 

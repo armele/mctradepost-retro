@@ -52,6 +52,7 @@ public class OpenGateOrDoorGoal extends Goal
     private int closeCountdown = 0;
     private boolean openedThisRun = false;
     private int openDelayTicks = 0;
+    private int approachSign = +1; // +1 means we intend to move in +facing, -1 means in -facing
 
     // Lightweight stuck watchdog (near threshold)
     private int stuckTicks = 0;
@@ -305,14 +306,6 @@ public class OpenGateOrDoorGoal extends Goal
         return false;
     }
 
-    private void setTarget(BlockPos pos, BlockState state)
-    {
-        this.targetPos = pos.immutable();
-        Direction facing = getFacing(state);
-        // Aim TWO blocks beyond the doorway to avoid path "done" in the threshold
-        this.passThroughPos = targetPos.relative(facing, 2).immutable();
-    }
-
     private Direction getFacing(BlockState state)
     {
         if (isGate && state.getBlock() instanceof FenceGateBlock)
@@ -374,14 +367,7 @@ public class OpenGateOrDoorGoal extends Goal
         }
     }
 
-    /** Is the door “ahead” of the mob along the door’s facing? (prevents re-trigger after passing) */
-    private boolean isAheadOfDoorPlane(BlockPos door, Direction facing)
-    {
-        Vec3 doorCenter = Vec3.atCenterOf(door);
-        Vec3 toMob = mob.position().subtract(doorCenter);
-        double along = toMob.x * facing.getStepX() + toMob.z * facing.getStepZ();
-        return along < FAR_PAST_PLANE_THRESHOLD;
-    }
+
 
     /** How far the mob is along the door facing normal (positive = in front/past). */
     private double planeAlongAmount(BlockPos door, Direction facing)
@@ -391,14 +377,66 @@ public class OpenGateOrDoorGoal extends Goal
         return toMob.x * facing.getStepX() + toMob.z * facing.getStepZ();
     }
 
-    /** True once the mob is beyond the plane by a threshold. */
+    /**
+     * Sets the target door/gate and computes the approach direction, along with the pass-through position.
+     * @param pos the BlockPos of the door/gate
+     * @param state the BlockState of the door/gate
+     */
+    private void setTarget(BlockPos pos, BlockState state)
+    {
+        this.targetPos = pos.immutable();
+        Direction facing = getFacing(state);
+
+        // Are we on the "negative" (behind) or "positive" (in front) side of the door plane?
+        double along = planeAlongAmount(targetPos, facing);
+        // If we're behind (along < 0), we want to move in +facing; if we're in front (along >= 0), move in -facing.
+        this.approachSign = (along < 0) ? +1 : -1;
+
+        // Aim TWO blocks through the doorway, in the correct direction for our approach.
+        this.passThroughPos = targetPos.relative(facing, 2 * approachSign).immutable();
+    }
+
+    /**
+     * Checks if the mob is past the door plane by the specified threshold.
+     * <p>
+     * This is used to determine if the mob has cleared the doorway and can close the door/gate.
+     * <p>
+     * The threshold is given in terms of blocks, and is the minimum distance the mob must be past the
+     * door plane in the approach direction. If the mob has gone beyond this threshold, the method
+     * returns true; otherwise, it returns false.
+     * @param threshold the minimum distance past the door plane the mob must be
+     * @return true if the mob has cleared the door plane, false otherwise
+     */
     private boolean hasClearedDoorPlane(double threshold)
     {
         if (targetPos == null) return false;
         BlockState state = mob.level().getBlockState(targetPos);
         Direction facing = getFacing(state);
-        return planeAlongAmount(targetPos, facing) > threshold;
+        double along = planeAlongAmount(targetPos, facing);
+        // Consider cleared when we've gone threshold distance past the plane in our intended direction.
+        return (along * approachSign) > threshold;
     }
+
+    /**
+     * Checks if the mob is already ahead of the door plane by a fair margin.
+     * <p>
+     * We consider the mob to be "ahead" if it has gone at least {@link #FAR_PAST_PLANE_THRESHOLD} blocks past the
+     * door plane in the approach direction. If the mob is already ahead, we can skip the thrust
+     * phase and just close the door/gate directly.
+     * <p>
+     * Using approachSign makes the check symmetric so we don't need to special-case the sign of along.
+     * @param door the BlockPos of the door/gate
+     * @param facing the direction the door/gate is facing
+     * @return true if the mob is ahead of the door plane, false otherwise
+     */
+    private boolean isAheadOfDoorPlane(BlockPos door, Direction facing)
+    {
+        // Use approachSign so the “already far past?” check is symmetric.
+        double along = planeAlongAmount(door, facing);
+        return (along * ((along < 0) ? +1 : -1)) < FAR_PAST_PLANE_THRESHOLD;
+        // (Or simply return true here and rely on FAR_PAST check below if you prefer.)
+    }
+
 
     /** Consider “inside doorway” as within the 1x2 block column occupied by the door/gate (with a tiny inflation). */
     private boolean isInsideDoorwayAABB()

@@ -179,7 +179,13 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
 
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {}", targetPos));
+        // If our target position is already at the top, use it as the navigation position.
+        if (navigationPos == null) 
+        {
+            navigationPos = targetPos;
+        }
+
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
 
         return targetPos != null;
     }
@@ -205,31 +211,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         this.navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
         BlockPos anchor = (this.navigationPos != null) ? this.navigationPos : this.targetPos;
 
-        // Build candidate stand points around the anchor
-        List<BlockPos> candidates = buildNavCandidates(anchor);
-
-        boolean moved = false;
-
-        // 1) Try exact & tolerant paths to each candidate
-        outer:
-        for (BlockPos c : candidates)
-        {
-            for (int tol = 0; tol <= 2; tol++)
-            { // tolerance 0..2
-                Path path = pet.getNavigation().createPath(c, tol);
-                if (path != null && pet.getNavigation().moveTo(path, 1.0))
-                {
-                    moved = true;
-                    break outer;
-                }
-            }
-        }
-
-        // 2) Last resort: blind move toward the anchor center (helps on slick ice)
-        if (!moved)
-        {
-            moved = pet.getNavigation().moveTo(anchor.getX() + 0.5, anchor.getY() + 1.0, anchor.getZ() + 0.5, 1.0);
-        }
+        boolean moved = PathingUtil.flexiblePathing(pet, anchor, 1.0);
 
         if (!moved)
         {
@@ -242,48 +224,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
     }
 
-    /**
-     * Prefer the anchor, then a small ring around it (N/E/S/W + diagonals). If the anchor is ice and the block above is walkable,
-     * include that surface too.
-     */
-    private List<BlockPos> buildNavCandidates(BlockPos anchor)
-    {
-        var lvl = pet.level();
-        var list = new java.util.ArrayList<BlockPos>(10);
-
-        // Anchor itself first
-        list.add(anchor);
-
-        // If anchor is ice/water with a solid/flat surface just above, try standing there
-        BlockPos stand = anchor.above();
-        var above = lvl.getBlockState(stand);
-        var below = lvl.getBlockState(anchor);
-        boolean surfaceWalkable = above.isAir() || above.getCollisionShape(lvl, stand).isEmpty();
-        // treat “flat” if below has any collision (helps on ice slabs/packed ice)
-        boolean belowHasCollision = !below.getCollisionShape(lvl, anchor).isEmpty();
-        if (surfaceWalkable && belowHasCollision)
-        {
-            list.add(stand);
-        }
-
-        // 8-neighborhood around anchor at same Y and +1Y
-        for (int dy = 0; dy <= 1; dy++)
-        {
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dz = -1; dz <= 1; dz++)
-                {
-                    if (dx == 0 && dz == 0 && dy == 0) continue;
-                    BlockPos p = anchor.offset(dx, dy, dz);
-                    if (lvl.isInWorldBounds(p) && lvl.isLoaded(p))
-                    {
-                        list.add(p);
-                    }
-                }
-            }
-        }
-        return list;
-    }
 
 
     /**
@@ -315,6 +255,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             return searchTries > 0;
         }
     }
+
     /**
      * Executes the tick logic for this goal. This function is called once per tick for the AI to perform its actions. It checks if the
      * pet has arrived at the target scavenge location. If it has, it checks for items in the area and attempts to pick them up. If a
@@ -362,7 +303,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             float roll = pet.getRandom().nextFloat();
             pet.swing(InteractionHand.MAIN_HAND);
 
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
 
             if (roll < chanceToFind)
             {
@@ -553,7 +494,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         for (int tries = 0; tries < 20; tries++)
         {
             BlockPos candidate = origin.offset(pet.getRandom().nextInt(searchRadius * 2) - searchRadius,
-                pet.getRandom().nextInt(2) - 1,
+                pet.getRandom().nextInt(3) - 2,
                 pet.getRandom().nextInt(searchRadius * 2) - searchRadius);
 
             BlockState state = level.getBlockState(candidate);

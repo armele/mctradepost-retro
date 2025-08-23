@@ -352,6 +352,8 @@
     "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",
     "com.mctradepost.resort.great_vacation": "I am having a great vacation rejuvenating my %s! %s would make it complete.",
     "com.mctradepost.resort.burnout": "All Work and No Play",
+
+
     "com.minecolonies.coremod.gui.townhall.stats.current_balance": "‡ Impact: %d",
     "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",
     "com.minecolonies.coremod.gui.townhall.stats.treats.served": "Served: %d %s",
@@ -366,6 +368,9 @@
     "com.minecolonies.coremod.gui.townhall.stats.items_sold": "Sold: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.pets_fed": "Pets Fed: %d",
     "com.minecolonies.coremod.gui.townhall.stats.workstations_emptied": "Workstations Emptied: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.pets_died": "Pets Died: %d %s",
+    "com.minecolonies.coremod.gui.townhall.stats.pets_retired": "Pets Retired: %d %s",    
+    "com.minecolonies.coremod.gui.townhall.stats.pets_ranaway": "Pets Ran Away: %d %s",    
 
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",
