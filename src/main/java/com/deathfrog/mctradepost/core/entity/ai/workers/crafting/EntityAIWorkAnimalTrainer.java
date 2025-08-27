@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.train_pet.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetHelper;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
@@ -42,7 +43,10 @@ import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.EntityType;
@@ -169,7 +173,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return AnimalTrainerStates.EMPTY_WORKSITES;
         }
 
-        if (building.getPets().size() < MCTPConfig.petsPerLevel.get())
+        if (building.getPets().size() < (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
             return AnimalTrainerStates.RAISE_PET;
@@ -219,7 +223,14 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         for (ITradePostPet pet : hungryPets)
         {
+
+            if (pet.getPetData() == null)
+            {
+                continue;
+            }
+                    
             currentTargetPet = pet;
+
             ItemStorage food = new ItemStorage(PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass()), PETFOOD_SIZE);
 
             int onHand = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), stack -> Objects.equals(new ItemStorage(stack), food));
@@ -341,16 +352,22 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return DECIDE;
         }
 
-        ITradePostPet pet = petsWithFullishWorksites.get(0);
-
-        if (!walkToSafePos(pet.getWorkLocation()))
+        for (ITradePostPet pet : petsWithFullishWorksites)
         {
-            setDelay(2);
-            return getState();
-        }
+            if (pet.getWorkLocation() == null || BlockPos.ZERO.equals(pet.getWorkLocation()))
+            {
+                continue;
+            }
 
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unloading work station at {}.", pet.getWorkLocation()));
-        unloadWorkLocation(pet);
+            if (!walkToSafePos(pet.getWorkLocation()))
+            {
+                setDelay(2);
+                return getState();
+            }
+
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unloading work station at {}.", pet.getWorkLocation()));
+            unloadWorkLocation(pet);
+        }
 
         return DUMPING;
         
@@ -435,12 +452,15 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                     @SuppressWarnings("rawtypes")
                     PetHelper helper = new PetHelper(pet);
                     helper.doRegistration(building);
-                    break;
                 }
+                
+                AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
+                        player -> MCTPAdvancementTriggers.PET_TRAINED.get().trigger(player));
 
                 StatsUtil.trackStat(building, PETS_TRAINED, 1);
                 worker.getCitizenExperienceHandler().addExperience(2.0);
-
+                
+                break;
             }
             catch (ReflectiveOperationException e)
             {

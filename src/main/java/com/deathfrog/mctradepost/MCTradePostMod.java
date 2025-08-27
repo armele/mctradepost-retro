@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.advancements.train_pet.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
@@ -63,6 +64,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.minecolonies.api.advancements.AdvancementTriggers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.core.items.ItemFood;
@@ -730,6 +732,9 @@ public class MCTradePostMod
         
         // Register the Deferred Register to the mod event bus so tabs get registered
         CREATIVE_MODE_TABS.register(modEventBus);
+
+        // Register custom advancements
+        MCTPAdvancementTriggers.DEFERRED_REGISTER.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class to respond directly to events.

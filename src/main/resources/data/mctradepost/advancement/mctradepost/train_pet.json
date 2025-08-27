@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/petshop",
+  "criteria": {
+    "critlist": {
+      "conditions": {
+        "hut_name": "petshop",
+        "level": 1
+      },
+      "trigger": "mctradepost:pet_trained"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.build.pet_trained.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:lead"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.build.pet_trained.title"
+    }
+  },
+  "requirements": [
+    [
+      "critlist"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

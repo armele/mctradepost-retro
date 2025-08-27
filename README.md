@@ -7,12 +7,11 @@ Pet Scavenging: [Test]
 Pets - Animal Trainer AI: Feed (heal) pet. [Test]
 
 ### Future
-Economy - Scaled Coin Progression (copper, gold, diamond)
-Resort - Burnout Cooldown
 Resort - Tab for vacationer information.
 Resort - Record stat improvements.
-Advancement - Trained a Pet
-Advancement - Build a Recycling Center
+Advancement - Complete a Vacation
+Advancement - Recycle an Item
+Advancement - Connect a Colony
 Pets - Variety
 Pets - Ability: happiness factor
 Pets - Ability: burnout mitigator
