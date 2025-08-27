@@ -12,6 +12,7 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
@@ -194,7 +195,12 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
         if (petData != null)
         {
+            petData.aiWatchdogTick();
             petData.logActiveGoals();
+        }
+        else
+        {
+            LOGGER.warn("Failed to tick pet {}: petData is null", this);
         }
     }
 
@@ -255,6 +261,25 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public PetData<PetWolf> getPetData()
     {
         return this.petData;
+    }
+
+    /**
+     * Gets the dimension of this pet's current level. If the pet is not currently in a level (i.e. it is not in the world), this
+     * will return null.
+     *
+     * @return the dimension of the pet's level, or null
+     */
+    @Override
+    public ResourceKey<Level> getDimension()
+    {
+        Level level = this.level();
+
+        if (level != null)
+        {
+            return level.dimension();
+        }
+        
+        return null;
     }
 
     public BlockPos getTargetPosition()

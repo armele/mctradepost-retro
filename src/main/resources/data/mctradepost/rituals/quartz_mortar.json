@@ -4,5 +4,6 @@
   "effect_type": "transform",
   "target" : "mctradepost:quartz_mortar",
   "radius": -1,
-  "coin_cost": 1
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
 }

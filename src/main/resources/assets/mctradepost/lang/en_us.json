@@ -343,6 +343,8 @@
     "mctradepost.station.trades_updated": "New trades available in connected stations!",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
+    "item.mctradepost.mctp_coin_gold": "Gold Trade Coin (‡)",
+    "item.mctradepost.mctp_coin_diamond": "Diamond Trade Coin (‡)",
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
     "mctradepost.marketplace.invalid": "This marketplace cannot mint coins.",
     "mctradepost.marketplace.minted": "Trade Coin (‡) Minted!",

@@ -10,7 +10,8 @@ public record RitualDefinition (
     String effect,
     String target,
     int radius,
-    int requiredCoins
+    int requiredCoins,
+    String coinType
 ) {
 
     public static final Codec<RitualDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -19,7 +20,8 @@ public record RitualDefinition (
         Codec.STRING.fieldOf("effect_type").forGetter(RitualDefinition::effect),
         Codec.STRING.fieldOf("target").forGetter(RitualDefinition::target),
         Codec.INT.fieldOf("radius").forGetter(RitualDefinition::radius),
-        Codec.INT.fieldOf("coin_cost").forGetter(RitualDefinition::requiredCoins)
+        Codec.INT.fieldOf("coin_cost").forGetter(RitualDefinition::requiredCoins),
+        Codec.STRING.fieldOf("coin_type").forGetter(RitualDefinition::coinType)
     ).apply(instance, RitualDefinition::new));
 }
 

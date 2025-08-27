@@ -68,10 +68,15 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.AxolotlRenderer;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.FoxRenderer;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -80,6 +85,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.animal.Fox;
@@ -235,6 +241,12 @@ public class MCTradePostMod
     
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
+
+    public static final DeferredItem<CoinItem> MCTP_COIN_GOLD = ITEMS.register("mctp_coin_gold", 
+        () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));
+
+    public static final DeferredItem<CoinItem> MCTP_COIN_DIAMOND = ITEMS.register("mctp_coin_diamond", 
+        () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
 
     /*
     * ENTITIES 
@@ -697,7 +709,9 @@ public class MCTradePostMod
             .withTabsBefore(CreativeModeTabs.COMBAT)
             .icon(() -> MCTP_COIN_ITEM.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
-                output.accept(MCTP_COIN_ITEM.get()); // Add the example item to the tab. For your own tabs, this method is preferred over the event
+                output.accept(MCTP_COIN_ITEM.get());
+                output.accept(MCTP_COIN_GOLD.get());
+                output.accept(MCTP_COIN_DIAMOND.get());
             }).build());
 
 
@@ -1139,16 +1153,17 @@ public class MCTradePostMod
          */
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
-        public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        public static void onAddLayers(EntityRenderersEvent.AddLayers event) 
+        {
             LOGGER.info("Handling model initialization");
-            var modelSet = event.getEntityModels();
+            EntityModelSet modelSet = event.getEntityModels();
             
             // Build a lightweight fake context using what's available
-            var dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-            var itemRenderer = Minecraft.getInstance().getItemRenderer();
-            var blockRenderer = Minecraft.getInstance().getBlockRenderer();
-            var resourceManager = Minecraft.getInstance().getResourceManager();
-            var font = Minecraft.getInstance().font;
+            EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+            ItemRenderer itemRenderer = Minecraft.getInstance().getItemRenderer();
+            BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
+            ResourceManager resourceManager = Minecraft.getInstance().getResourceManager();
+            Font font = Minecraft.getInstance().font;
             ItemInHandRenderer itemInHandRenderer = Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer();
 
             var context = new EntityRendererProvider.Context(

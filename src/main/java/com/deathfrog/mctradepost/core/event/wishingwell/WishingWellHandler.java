@@ -4,6 +4,7 @@ package com.deathfrog.mctradepost.core.event.wishingwell;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -12,9 +13,11 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
 import com.minecolonies.api.colony.managers.interfaces.IRaiderManager;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
 import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -112,15 +115,38 @@ public class WishingWellHandler {
             AABB wellBox = new AABB(pos).inflate(1.5);
             List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, wellBox);
 
-            List<ItemEntity> coinItems = items.stream()
-                    .filter(e -> CoinItem.isCoin(e.getItem()))
-                    .collect(Collectors.toList());
+            final List<ItemEntity> baseCoinItems = new ArrayList<>();
+            final List<ItemEntity> goldCoinItems = new ArrayList<>();
+            final List<ItemEntity> diamondCoinItems = new ArrayList<>();
+            final List<ItemEntity> companions = new ArrayList<>();
 
-            List<ItemEntity> companions = items.stream()
-                    .filter(e -> !CoinItem.isCoin(e.getItem()))
-                    .collect(Collectors.toList());
+            for (ItemEntity ent : items)
+            {
+                ItemStack stack = ent.getItem();
+                if (ent instanceof CoinEntity)
+                {
+                    if (stack.is(MCTradePostMod.MCTP_COIN_ITEM.get()))
+                    {
+                        baseCoinItems.add(ent);
+                    }
+                    else if (stack.is(MCTradePostMod.MCTP_COIN_GOLD.get()))
+                    {
+                        goldCoinItems.add(ent);
+                    }
+                    else if (stack.is(MCTradePostMod.MCTP_COIN_DIAMOND.get()))
+                    {
+                        diamondCoinItems.add(ent);
+                    }
+                }
+                else
+                {
+                    companions.add(ent);
+                }
+            }
 
-            if (!coinItems.isEmpty() && !companions.isEmpty()) 
+            int totalCoinStacks = baseCoinItems.size() + goldCoinItems.size() + diamondCoinItems.size();
+
+            if (totalCoinStacks > 0 && !companions.isEmpty()) 
             {
                 Item companionType = companions.getFirst().getItem().getItem();
 
@@ -136,7 +162,9 @@ public class WishingWellHandler {
 
                 RitualState state = rituals.computeIfAbsent(center, k -> new RitualState());
 
-                state.coins = coinItems.stream().mapToInt(e -> e.getItem().getCount()).sum();
+                state.baseCoins = baseCoinItems;
+                state.goldCoins = goldCoinItems;
+                state.diamondCoins = diamondCoinItems;
                 state.companionCount = totalCompanionCount;
                 state.lastUsed = System.currentTimeMillis();
 
@@ -145,13 +173,14 @@ public class WishingWellHandler {
                 switch (result) 
                 {
                     case FAILED:
-                        ejectItems(level, coinItems, center);
+                        ejectItems(level, baseCoinItems, center);
+                        ejectItems(level, goldCoinItems, center);
+                        ejectItems(level, diamondCoinItems, center);
                         ejectItems(level, sameTypeCompanions, center);
                         break;
 
                     case COMPLETED:
                         MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
-                        coinItems.stream().forEach(e -> e.discard());
                         sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         rituals.remove(pos);  
                         break;
@@ -171,6 +200,13 @@ public class WishingWellHandler {
         }
     }
 
+    /**
+     * Visual effect for the wishing well when a ritual is triggered.
+     * A lightning bolt is spawned at the center of the well, and
+     * additional particles and a sound effect are played.
+     * @param level the server level
+     * @param pos the position of the well
+     */
     private static void showRitualEffect(ServerLevel level, BlockPos pos) 
     {
         // Lightning visual
@@ -572,7 +608,9 @@ public class WishingWellHandler {
      */
     private static RitualResult triggerRitual(ServerLevel level, RitualState state, BlockPos pos, Item companionItem) 
     {
-        MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} coins", pos, companionItem, state.coins);    
+        MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} base coins, {} gold coins and {} diamond coins.", 
+            pos, companionItem, state.entityCount(state.baseCoins), state.entityCount(state.goldCoins), state.entityCount(state.diamondCoins));    
+        
         Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
 
         for (RitualDefinitionHelper ritual : rituals) 
@@ -581,10 +619,15 @@ public class WishingWellHandler {
 
             if (effectCompanion.equals(companionItem)) 
             {
-                if (ritual.requiredCoins() > state.coins) 
+                ItemStorage requiredCoins = new ItemStorage(ritual.getCoinAsItem(), ritual.requiredCoins());
+
+                if (!state.meetsRequirements(requiredCoins))
                 {
                     return RitualResult.NEEDS_INGREDIENTS;
                 }
+
+                RitualResult result = RitualResult.UNRECOGNIZED;
+
                 /* 
                  * To add a new ritual *type*, it needs an entry here (with associated handler function) 
                  * and in RitualDefintionHelper.describe() to set up the JEI with the description
@@ -594,36 +637,42 @@ public class WishingWellHandler {
                     case RitualManager.RITUAL_EFFECT_SLAY:
                         if (processRitualSlay(level, pos, ritual)) 
                         {
-                            return RitualResult.COMPLETED;
+                            result = RitualResult.COMPLETED;
                         } else {
-                            return RitualResult.FAILED;
+                            result = RitualResult.FAILED;
                         }
 
 
                     case RitualManager.RITUAL_EFFECT_WEATHER:
                         if (processRitualWeather(level, pos, ritual) ) 
                         {
-                            return RitualResult.COMPLETED;
+                            result =  RitualResult.COMPLETED;
                         } else {
-                            return RitualResult.FAILED;
+                            result =  RitualResult.FAILED;
                         }
 
                     case RitualManager.RITUAL_EFFECT_SUMMON:
                         if (processRitualSummon(level, pos, ritual) ) 
                         {
-                            return RitualResult.COMPLETED;
+                            result =  RitualResult.COMPLETED;
                         } else {
-                            return RitualResult.FAILED;
+                            result =  RitualResult.FAILED;
                         }
 
                     case RitualManager.RITUAL_EFFECT_TRANSFORM:
-                        return processRitualTransform(level, pos, ritual, state);
+                        result =  processRitualTransform(level, pos, ritual, state);
 
                     default:
                         MCTradePostMod.LOGGER.warn("Unknown ritual effect: {}", ritual.effect());
                         break;
                 }
-            
+                
+                if (result == RitualResult.COMPLETED) 
+                {
+                    state.burnCoins(requiredCoins);
+                }
+
+                return result;
             }
         }
 
@@ -673,10 +722,119 @@ public class WishingWellHandler {
         FAILED,
         COMPLETED
     }
+
     static public class RitualState 
     {
-        public int coins = 0;
+        public List<ItemEntity> baseCoins = null;
+        public List<ItemEntity> goldCoins = null;
+        public List<ItemEntity> diamondCoins = null;
         public int companionCount = 0;
         public long lastUsed = 0L;
+
+        // Transient caches used only until we’ve rebuilt from world
+        public int cachedBaseCount = 0;
+        public int cachedGoldCount = 0;
+        public int cachedDiamondCount = 0;
+
+        /**
+         * Returns the total number of items in the given list of ItemEntities
+         * @param list the list of ItemEntities to count
+         * @return the total number of items
+         */
+        public int entityCount(List<ItemEntity> list)
+        {
+            int count = 0;
+            for (ItemEntity entity : list) 
+            {
+                count += entity.getItem().getCount();
+            }
+            return count;
+        }
+
+
+        /** Count with fallback to cached values if pools not yet rebuilt */
+        private int countWithFallback(List<ItemEntity> list, int cached)
+        {
+            return (list != null) ? entityCount(list) : cached;
+        }
+
+        /**
+         * Returns true if the given requirementStack can be fulfilled by the
+         * contents of the wishing well's inventory.
+         * 
+         * @param requirementStack the stack of items required by the ritual
+         * @return whether the well has enough items to fulfill the requirement
+         */
+        public boolean meetsRequirements(ItemStorage requirementStack)
+        {
+            if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_ITEM.get()))
+            {
+                return countWithFallback(baseCoins, cachedBaseCount) >= requirementStack.getItemStack().getCount();
+            }
+            else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_GOLD.get()))
+            {
+                return countWithFallback(goldCoins, cachedGoldCount) >= requirementStack.getItemStack().getCount();
+            }
+            else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_DIAMOND.get()))
+            {
+                return countWithFallback(diamondCoins, cachedDiamondCount) >= requirementStack.getItemStack().getCount();
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /**
+         * Removes the given number of coins from the wishing well's inventory.
+         * 
+         * @param requirementStack the stack of items to remove from the well
+         */
+        public void burnCoins(ItemStorage requirementStack)
+        {
+            int toBurn = requirementStack.getItemStack().getCount();
+            if (toBurn <= 0) return;
+
+            // Select the correct coin pool based on item type
+            final Item reqItem = requirementStack.getItemStack().getItem();
+            List<ItemEntity> pool = null;
+            if (reqItem == MCTradePostMod.MCTP_COIN_ITEM.get())
+            {
+                pool = this.baseCoins;
+            }
+            else if (reqItem == MCTradePostMod.MCTP_COIN_GOLD.get())
+            {
+                pool = this.goldCoins;
+            }
+            else if (reqItem == MCTradePostMod.MCTP_COIN_DIAMOND.get())
+            {
+                pool = this.diamondCoins;
+            }
+            if (pool == null || pool.isEmpty()) return;
+
+            // Consume from only the selected pool
+            for (Iterator<ItemEntity> it = pool.iterator(); it.hasNext() && toBurn > 0;)
+            {
+                ItemEntity entity = it.next();
+                ItemStack stack = entity.getItem();
+                int inStack = stack.getCount();
+
+                if (inStack > toBurn)
+                {
+                    // Burn part of the stack
+                    stack.shrink(toBurn);
+                    toBurn = 0;
+                    // entity remains with reduced count
+                }
+                else
+                {
+                    // Burn the whole stack
+                    toBurn -= inStack;
+                    entity.discard();   // remove from world
+                    it.remove();        // keep your cached list in sync
+                }
+            }
+        }
+
     }
 } 

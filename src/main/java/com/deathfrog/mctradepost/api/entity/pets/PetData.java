@@ -5,6 +5,7 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
@@ -65,16 +66,20 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public static final String STATS_PETS_RANAWAY = "pets_ranaway";
 
     public int logCooldown = 0;
+    private int stallTicks = 0;
+    protected int watchdogCooldown = 0;
+    protected static final int WATCHDOWN_COOLDOWN_INTERVAL = 20;
 
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
     public static final String TAG_ANIMAL_TYPE = "animalType";
 
+    protected UUID entityUuid;
+    protected int entityId = -1;
     protected P animal;
     protected int colonyId;
     protected BlockPos trainerBuildingID = BlockPos.ZERO;
     protected BlockPos workLocation = BlockPos.ZERO;
-    protected int entityId;
     private ResourceKey<Level> dimension = null;
     private final ItemStackHandler inventory = new ItemStackHandler(9);
     public PetTypes petType = null;
@@ -85,6 +90,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (animal != null) {
             this.petType = PetTypes.fromPetClass(animal.getClass());
+            this.entityUuid = animal.getUUID();
             this.entityId = animal.getId();
         }
 
@@ -127,10 +133,15 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             BlockPosUtil.write(compound,"workLocation", workLocation);
             compound.putString("dimension", dimension.location().toString());
             compound.putString(TAG_ANIMAL_TYPE, this.getAnimalType());
-            compound.putInt("entityId", this.getEntityId());
-            compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
+            // compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
         }
 
+        compound.putInt("entityId", this.getEntityId());
+
+        if (animal != null && animal.getUUID() != null)
+        {
+            compound.putUUID("uuid", animal.getUUID());
+        }
         // MCTradePostMod.LOGGER.info("Serialized PetData to NBT: {}", compound);
     }
 
@@ -153,6 +164,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         workLocation = BlockPosUtil.read(compound, "workLocation");
         petType = PetTypes.fromPetString(compound.getString("animalType"));
         entityId = compound.getInt("entityId");
+        UUID uuid = compound.hasUUID("uuid") ? compound.getUUID("uuid") : null;
+        this.entityUuid = uuid; // add a field if you want
 
         String dimname = compound.getString("dimension");
         ResourceLocation level = ResourceLocation.parse(dimname);
@@ -160,7 +173,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (animal != null)
         {
-            inventory.deserializeNBT(animal.level().registryAccess(), compound.getCompound("Inventory"));
+            // inventory.deserializeNBT(animal.level().registryAccess(), compound.getCompound("Inventory"));
         }
     }
 
@@ -179,6 +192,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         return BuildingUtil.buildingViewFromDimPos(dimension, trainerBuildingID);
     }
 
+    /**
+     * Sets the trainer building for this pet to the given building.
+     *
+     * @param building the IBuilding to set as the trainer building for this pet.
+     */
     public void setTrainerBuilding(IBuilding building)
     {
 
@@ -366,6 +384,68 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     }
 
     /**
+     * Periodic AI watchdog check. This is called every tick the pet AI is enabled.
+     * 
+     * <p>This function is responsible for detecting AI stalls and attempting to recover from them. 
+     * If there are no active goals, targets, or navigation, it increments a counter. 
+     * If the counter reaches 10, it enables the control flags for movement, looking, and targeting. 
+     * If the counter reaches 20, it clears the stale path to let goals start fresh. If the counter reaches 50, 
+     * it performs a single soft goal refresh. If the pet becomes active again, it resets the counter.</p>
+     * 
+     * <p>This is a "soft" AI reset, meaning it doesn't reset the entire pet state, but only the AI control flags, path, and goals. 
+     * This is less intrusive than a full reset and avoids resetting the pet's inventory, skills, and other state.</p>
+     * 
+     * <p>This function is called from PetData.resetGoals() and is intended to be called every tick the pet AI is enabled.</p>
+     */
+    public void aiWatchdogTick()
+    {
+        if (watchdogCooldown >= 0) {
+            watchdogCooldown--;
+            return;
+        }
+
+        watchdogCooldown = WATCHDOWN_COOLDOWN_INTERVAL;
+        
+        if (this.getAnimal() == null || this.getAnimal().level().isClientSide) return;
+
+        boolean anyMoveRunning = this.getAnimal().goalSelector.getAvailableGoals().stream().anyMatch(WrappedGoal::isRunning);
+        boolean anyTargetRunning = this.getAnimal().targetSelector.getAvailableGoals().stream().anyMatch(WrappedGoal::isRunning);
+        boolean navBusy = !getAnimal().getNavigation().isDone();
+        boolean active = anyMoveRunning || anyTargetRunning || navBusy;
+
+        if (!active && getAnimal().isAlive() && !getAnimal().isPassenger() && !getAnimal().isLeashed() && !getAnimal().isNoAi())
+        {
+            stallTicks++;
+            // (first second): make sure control flags aren’t stuck off
+            if (stallTicks == 10)
+            {
+                getAnimal().goalSelector.enableControlFlag(Goal.Flag.MOVE);
+                getAnimal().goalSelector.enableControlFlag(Goal.Flag.LOOK);
+                getAnimal().targetSelector.enableControlFlag(Goal.Flag.TARGET);
+            }
+            // (~2s): clear stale path to let goals start fresh
+            if (stallTicks == 20)
+            {
+                getAnimal().getNavigation().stop();
+            }
+            // (~5s): single soft goal refresh (once)
+            if (stallTicks == 50)
+            {
+                getAnimal().resetGoals();
+            }
+        }
+        else
+        {
+            stallTicks = 0; // recovered
+        }
+    }
+
+    public int getStallTicks() 
+    { 
+        return stallTicks; 
+    }
+
+    /**
      * Retrieves the closest building to the pet's work location within the given level.
      *
      * @param level the level in which to search for the closest building.
@@ -409,15 +489,25 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     }
 
     /**
-     * Retrieves the unique entity ID of this pet.
-     *
-     * @return the integer ID of the animal entity associated with this pet.
+     * Retrieves the entity ID associated with this pet data.
+     * 
+     * @return the entity ID associated with this pet data.
      */
     public int getEntityId()
     {
         if (animal == null) return entityId;
 
         return animal.getId();
+    }
+
+    /**
+     * Retrieves the UUID of the entity associated with this pet data.
+     *
+     * @return the UUID of the entity associated with this pet data.
+     */
+    public UUID getEntityUuid()
+    {
+        return entityUuid;
     }
     
     /**
@@ -515,11 +605,16 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void logActiveGoals()
     {
-        if (getAnimal() == null) return;
 
         if (logCooldown > 0)
         {
             logCooldown--;
+            return;
+        }
+
+        if (getAnimal() == null) 
+        {
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No pet data while logging active goal in PetData."));
             return;
         }
 

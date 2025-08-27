@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.ldtteam.common.network.PlayMessageType;
@@ -13,6 +14,7 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -20,6 +22,8 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.slf4j.Logger;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+
+import java.util.UUID;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -36,32 +40,46 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
     private PetAction petAction = PetAction.ASSIGN;
     private BlockPos workLocation = BlockPos.ZERO;
-    private int entityId = -1;
+    private UUID entityUuid = null;
 
-    public PetMessage(final IBuildingView trainerBuilding, PetAction action, int entityId)
+    public PetMessage(final IBuildingView trainerBuilding, PetAction action, UUID entityUuid)
     {
         super(TYPE, trainerBuilding);
         this.petAction = action;
-        this.entityId = entityId;
+        this.entityUuid = entityUuid;
     }
 
     protected PetMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
         this.workLocation = buf.readBlockPos();
-        this.entityId = buf.readInt();
         this.petAction = PetAction.values()[buf.readInt()];
+
+        if (!petAction.equals(PetAction.QUERY))
+        {
+            this.entityUuid = buf.readUUID();
+        }
+
     }
 
+    /**
+     * Serializes the current state of this message into the given RegistryFriendlyByteBuf.
+     * 
+     * @param buf The buffer to serialize the message into.
+     */
     @Override
     protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.toBytes(buf);
         buf.writeBlockPos(this.workLocation);
-        buf.writeInt(this.entityId);
         buf.writeInt(this.petAction.ordinal());
-    }
 
+        if (this.entityUuid != null)
+        {
+            buf.writeUUID(this.entityUuid); 
+        }
+    }
+    
     public void setWorkLocation(final BlockPos workLocation)
     {
         this.workLocation = workLocation;
@@ -82,7 +100,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     @Override
     protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding trainerBuilding)
     {
-        Entity entity = colony.getWorld().getEntity(entityId);
+        Entity entity = (Entity) PetRegistryUtil.resolve((ServerLevel) colony.getWorld(), entityUuid);
 
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, 
             () -> MCTradePostMod.LOGGER.info("Server execution of PetMessage. Colony: {}, Trainer Building: {}, Entity: {}, Work Location: {}, Pet Action: {}", 

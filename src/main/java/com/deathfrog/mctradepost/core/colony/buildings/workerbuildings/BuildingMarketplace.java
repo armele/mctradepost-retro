@@ -19,6 +19,7 @@ import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.visitor.VisitorCitizen;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -35,12 +36,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -54,6 +57,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_BURNOUT;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
 /**
@@ -61,6 +66,8 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+    
     protected WellLocations ritualData = new WellLocations();
 
     protected final static int ADVERTISING_COOLDOWN_MAX = 3; // In colony ticks (500 regular ticks)
@@ -459,7 +466,7 @@ public class BuildingMarketplace extends AbstractBuilding
             IVisitorData visitor = (IVisitorData) colony.getVisitorManager().getVisitor(visitorID);
 
             if (visitor != null && !visitor.getEntity().isEmpty() && !advertisingList.contains(visitor)) {
-                MCTradePostMod.LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName());
+                TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName()));
                 
                 VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();
 

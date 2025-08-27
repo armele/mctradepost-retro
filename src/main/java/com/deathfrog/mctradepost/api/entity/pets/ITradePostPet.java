@@ -1,12 +1,19 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
+import java.util.UUID;
+
 import com.minecolonies.api.colony.buildings.IBuilding;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public interface ITradePostPet
 {
+    public UUID getUUID();
+    ResourceKey<Level> getDimension();
+
     public void setTrainerBuilding(IBuilding building);
 
     public IBuilding getTrainerBuilding();
@@ -26,7 +33,7 @@ public interface ITradePostPet
     default String petInfo()
     {
         return String.format(
-            "%s[animalType=%s, role=%s, trainerBuilding=%s, workLocation=%s, petLocation=%s, availableGoals=%s, activeGoal=%s, inventorySize=%d]",
+            "%s[animalType=%s, role=%s, trainerBuilding=%s, workLocation=%s, petLocation=%s, availableGoals=%s, activeGoal=%s, stallTicks=%d, inventorySize=%d]",
             this.getClass().getSimpleName(),
             getAnimalType() != null ? getAnimalType() : "null",
             getPetData() != null && getWorkLocation() != null && getPetData().getAnimal() != null ?
@@ -41,6 +48,7 @@ public interface ITradePostPet
                 "No Available Goals",
             getPetData() != null && getPetData().getActiveGoal() != null ? getPetData().getActiveGoal().getClass().getSimpleName() :
                 "No Active Goal",
+            getPetData() != null ? getPetData().getStallTicks() : -1,
             getInventory() != null ? getInventory().getSlots() : 0);
     }
 }

@@ -4,5 +4,6 @@
   "effect_type": "slay",
   "target" : "minecraft:skeleton",
   "radius": 100,
-  "coin_cost": 1
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
 }

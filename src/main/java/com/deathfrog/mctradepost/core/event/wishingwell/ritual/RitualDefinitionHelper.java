@@ -4,6 +4,8 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.StringUtils;
+import com.deathfrog.mctradepost.item.CoinItem;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -52,6 +54,39 @@ public class RitualDefinitionHelper
         
         return item;
 
+    }
+
+    /**
+     * Retrieves the coin item for the ritual as an Item object.
+     * If the coin specified in the ritual definition is invalid or not found,
+     * logs a warning and returns null.
+     * If the coin type matches the internal coin item ID, returns the internal coin.
+     * Otherwise, looks up the coin in the item registry using the provided ID.
+     * If the coin is not found, logs a warning and returns null.
+     * 
+     * @return The Item corresponding to the ritual coin, or null if the coin is invalid or unknown.
+     */
+    public Item getCoinAsItem() 
+    {
+        Item coinItem = null;
+        ResourceLocation itemLocation = ResourceLocation.tryParse(this.ritualDefinition.coinType());
+
+        if (itemLocation == null) 
+        {
+            coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+        }
+        else 
+        {
+            coinItem = BuiltInRegistries.ITEM.get(itemLocation);
+        }
+        
+        if (!(coinItem instanceof CoinItem))
+        {
+            MCTradePostMod.LOGGER.warn("Unknown coin item {} identified in ritual with companion item: {}", this.ritualDefinition.coinType(), this.ritualDefinition.companionItem());
+            return null;
+        }
+
+        return coinItem;
     }
 
     /**

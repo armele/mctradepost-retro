@@ -125,11 +125,6 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     @Override
     public IAIState decide()
     {
-        if (building.getPets().size() < MCTPConfig.petsPerLevel.get())
-        {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
-            return AnimalTrainerStates.RAISE_PET;
-        }
 
         hungryPets.clear();
         petsWithFullishWorksites.clear();
@@ -172,6 +167,12 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         if (petsWithFullishWorksites.size() > 0)
         {
             return AnimalTrainerStates.EMPTY_WORKSITES;
+        }
+
+        if (building.getPets().size() < MCTPConfig.petsPerLevel.get())
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
+            return AnimalTrainerStates.RAISE_PET;
         }
 
         return super.decide();
@@ -284,8 +285,9 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
      */
     public IAIState feedPet()
     {
-        if (currentTargetPet == null)
+        if (currentTargetPet == null || currentTargetPet.getWorkLocation() == null)
         {
+            currentTargetPet = null;
             return DECIDE;
         }
 

@@ -4,5 +4,6 @@
   "effect_type": "summon",
   "target" : "minecolonies:raider",
   "radius": -1,
-  "coin_cost": 5
+  "coin_cost": 5,
+  "coin_type": "mctradepost:mctp_coin"
 }

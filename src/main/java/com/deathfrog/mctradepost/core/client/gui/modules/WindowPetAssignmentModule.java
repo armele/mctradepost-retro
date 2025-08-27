@@ -28,6 +28,7 @@ import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
@@ -81,7 +82,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
         super.onOpened();
         
         // Send a message to the server forcing relevent building views to update.
-        PetMessage petMessage = new PetMessage(buildingView, PetAction.QUERY, -1);
+        PetMessage petMessage = new PetMessage(buildingView, PetAction.QUERY, null);
         petMessage.sendToServer();
 
         final Text howto = findPaneOfTypeByID(LABEL_HOWTO, Text.class);
@@ -171,7 +172,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                     
                 DropDownList buildings = rowPane.findPaneOfTypeByID(BUILDING_SELECTION_ID, DropDownList.class);
 
-                buildings.setHandler(dropDownList -> onDropDownListChanged(dropDownList, index, pets.get(index).getEntityId()));
+                buildings.setHandler(dropDownList -> onDropDownListChanged(dropDownList, index, pets.get(index).getEntityUuid()));
                 buildings.setDataProvider(new DropDownList.DataProvider()
                 {
                     @Override
@@ -233,7 +234,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
              * @param dropDownList the changed dropdown list.
              * @param selectedEntity the entity ID of the pet that the selected building is for.
              */
-            private void onDropDownListChanged(final DropDownList dropDownList, int rowIndex, int selectedEntity)
+            private void onDropDownListChanged(final DropDownList dropDownList, int rowIndex, UUID selectedEntity)
             {
                 // We need to prevent the dropdown list from being updated while the module view is dirty
                 // Our server signal needs to reach the server and be processed then show up back in the view before we respond to more inputs

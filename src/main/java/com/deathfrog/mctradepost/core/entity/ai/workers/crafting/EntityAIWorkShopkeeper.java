@@ -232,7 +232,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             return getState();
         }
 
-        final List<ItemStorage> list =
+        final ImmutableList<ItemStorage> list =
             building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
         List<ItemStorage> sortedList = new ArrayList<>(list);
 
@@ -255,11 +255,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         {
             ItemStack targetStack = candidate.getItemStack();
 
-            if (InventoryUtils.hasItemInProvider(building, stack -> ItemStack.isSameItemSameComponents(stack, targetStack)))
+            if (InventoryUtils.hasItemInProvider(building, stack -> ItemStack.isSameItem(stack, targetStack)))
             {
                 InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
                     InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
-                        stack -> ItemStack.isSameItemSameComponents(stack, targetStack)),
+                        stack -> ItemStack.isSameItem(stack, targetStack)),
                     worker.getInventoryCitizen());
 
                 // only transfer the highest value match
@@ -272,7 +272,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         {
             ItemStack targetStack = candidate.getItemStack();
             slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> ItemStack.isSameItemSameComponents(stack, targetStack));
+                stack -> ItemStack.isSameItem(stack, targetStack));
             if (slot >= 0)
             {
                 break;
@@ -609,9 +609,6 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             ItemStack item = frame.getItem();
             if (!item.isEmpty())
             {
-                final List<ItemStorage> list =
-                    building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
-
                 if (item.getItem() instanceof SouvenirItem)
                 {
                     TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,

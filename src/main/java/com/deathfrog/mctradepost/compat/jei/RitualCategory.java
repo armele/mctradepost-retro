@@ -97,7 +97,7 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper> {
     @Override
     public void setRecipe(@Nonnull IRecipeLayoutBuilder builder, @Nonnull RitualDefinitionHelper recipe, @Nonnull IFocusGroup focuses) {
         ItemStack companion = new ItemStack(BuiltInRegistries.ITEM.get(recipe.companionItem()), recipe.companionItemCount());
-        ItemStack coin = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), recipe.requiredCoins());
+        ItemStack coin = new ItemStack(recipe.getCoinAsItem(), recipe.requiredCoins());
 
         ItemStack result = null;
         

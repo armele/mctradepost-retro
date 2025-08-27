@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "C": { "item": "mctradepost:mctp_coin_gold" },
+      "D": { "item": "minecraft:diamond" }
+    },
+    "pattern": [
+      "CCC",
+      "CDC",
+      "CCC"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:mctp_coin_diamond"
+    }
+}
+  

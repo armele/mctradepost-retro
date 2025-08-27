@@ -385,7 +385,7 @@ public class EntityAIBurnoutTask
         // This probably means they are unemployed - no need for a vacation!
         if (skillToHeal == null)
         {
-            LOGGER.info("No skill to heal: {}", citizen);
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No skill to heal: {}", citizen));
             reset();
             return false;
         }
@@ -886,7 +886,7 @@ public class EntityAIBurnoutTask
         }
         vacationTracker = null;
         seatLocation = null;
-        dayLastResisted = -1;
+        dayLastResisted = citizenData.getColony().getDay();  // They just had a vacation; immune for the rest of the day.
 
         if (citizen.getCitizenData().getStatus() == VACATION_STATUS)
         {

@@ -9,7 +9,6 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
-import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetAssignmentModule;
@@ -140,6 +139,11 @@ public class BuildingPetshop extends AbstractBuilding
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Stale pet: {} associated with building {}", pet, pet.getTrainerBuilding()));
 
                     PetRegistryUtil.unregister(pet);
+                }
+
+                if (animal.isNoAi()) 
+                {
+                    animal.setNoAi(false);
                 }
             }
         }

@@ -4,5 +4,6 @@
   "effect_type": "weather",
   "target" : "storm",
   "radius": -1,
-  "coin_cost": 1
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
 }

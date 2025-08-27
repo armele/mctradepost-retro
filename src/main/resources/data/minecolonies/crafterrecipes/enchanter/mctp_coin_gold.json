@@ -3,17 +3,18 @@
   "crafter": "enchanter_custom",
   "inputs": [
     {
-      "count": 64,
-      "id": "minecraft:prismarine_shard"
+      "count": 8,
+      "id": "mctradepost:mctp_coin"
     },
     {
-      "id": "mctradepost:mctp_coin_gold"
+      "count": 1,
+      "id": "minecraft:gold_ingot"
     }
   ],
   "intermediate": "minecraft:air",
   "result": {
-    "count": 64,
-    "id": "mctradepost:prismarine_mortar"
+    "count": 1,
+    "id": "mctradepost:mctp_coin_gold"
   },
   "show-tooltip": true
 }

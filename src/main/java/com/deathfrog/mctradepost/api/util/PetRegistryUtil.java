@@ -7,10 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
@@ -24,30 +27,59 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+
 
 public class PetRegistryUtil
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    protected static final ConcurrentHashMap<IBuilding, Queue<ITradePostPet>> globalPetRegistry = new ConcurrentHashMap<>();
+    protected static final ConcurrentHashMap<IBuilding, Queue<PetHandle>> globalPetRegistry = new ConcurrentHashMap<>();
     private static final Map<IColony, Set<BlockPos>> petWorkLocations = new WeakHashMap<>();
 
     /**
-     * Determines if a pet is registered in the global pet registry.
-     * 
-     * @param pet the pet to check.
-     * @return true if the pet is registered, false otherwise.
+     * Resolve a pet in the global registry to its actual entity object on the given server.
+     *
+     * @param level the level to resolve the pet on
+     * @param uuid  the uuid of the pet to resolve
+     * @return the entity object of the pet, or null if the pet does not exist on the given level
      */
-    public static final boolean isRegistered(ITradePostPet pet)
+    public static @Nullable ITradePostPet resolve(ServerLevel level, UUID uuid)
     {
-        if (pet == null || pet.getTrainerBuilding() == null)
-        {
-            return false;
-        }
+        Entity e = level.getEntity(uuid);
+        return (e instanceof ITradePostPet p) ? p : null;
+    }
 
-        ImmutableList<ITradePostPet> pets = ImmutableList.copyOf(getPetsInBuilding(pet.getTrainerBuilding()));
-        return pets != null && pets.contains(pet);
+    /**
+     * Resolve a pet in the global registry to its actual entity object on the given server.
+     * @param server the server to resolve the pet on
+     * @param h the handle of the pet to resolve
+     * @return the resolved pet entity, or null if the pet is not registered or the server has no level with the given dimension
+     */
+    public static @Nullable ITradePostPet resolve(MinecraftServer server, PetHandle h)
+    {
+        ServerLevel lvl = server.getLevel(h.dimension());
+        if (lvl == null) return null;
+        return resolve(lvl, h.uuid());
+    }
+
+    /**
+     * Checks if the given ITradePostPet is currently registered in the global pet registry. This method
+     * is thread-safe and can be called from any thread.
+     *
+     * @param pet the pet to check
+     * @return true if the pet is registered, false otherwise
+     */
+    public static boolean isRegistered(ITradePostPet pet)
+    {
+        IBuilding b = pet.getTrainerBuilding();
+        if (pet == null || b == null) return false;
+        return safePetsForBuilding(b).stream().anyMatch(h -> h.uuid().equals(pet.getUUID()));
     }
 
     /**
@@ -69,18 +101,19 @@ public class PetRegistryUtil
     }
 
     /**
-     * Removes a pet from the global pet registry. If the pet is not in the registry, does nothing.
-     * 
-     * @param pet the pet to remove from the registry.
+     * Unregisters the given pet from the global pet registry, and removes it from the associated building's list of pets.
+     * If the pet is not registered, this method has no effect.
+     *
+     * @param pet the pet to unregister.
      */
-    public static final void unregister(@Nonnull ITradePostPet pet)
+    public static void unregister(@Nonnull ITradePostPet pet)
     {
-        Queue<ITradePostPet> pets = safePetsForBuilding(pet.getTrainerBuilding());
-
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
-            () -> LOGGER.info("Unregistering pet: {} to building {}", pet, pet.getTrainerBuilding()));
-
-        pets.remove(pet);
+        IBuilding b = pet.getTrainerBuilding();
+        if (b == null) return;
+        Queue<PetHandle> q = safePetsForBuilding(b);
+        UUID id = pet.getUUID();
+        q.removeIf(h -> h.uuid().equals(id));
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unregister pet {} from {}", id, b));
     }
 
     /**
@@ -90,9 +123,9 @@ public class PetRegistryUtil
      * @param building the building to retrieve or initialize the queue of pets for.
      * @return the queue of ITradePostPet entities associated with the given building.
      */
-    protected static Queue<ITradePostPet> safePetsForBuilding(IBuilding building)
+    protected static Queue<PetHandle> safePetsForBuilding(IBuilding building)
     {
-        Queue<ITradePostPet> pets = globalPetRegistry.get(building);
+        Queue<PetHandle> pets = globalPetRegistry.get(building);
 
         if (pets == null)
         {
@@ -104,32 +137,30 @@ public class PetRegistryUtil
     }
 
     /**
-     * Registers a pet in the global pet registry. If the pet is already registered, does nothing and returns false. If the pet is not
-     * registered, adds it to the registry and returns true.
-     * 
-     * @param pet the pet to register in the registry.
-     * @return true if the pet was successfully registered, false if it was already registered.
+     * Registers the given ITradePostPet with the global pet registry under its associated BuildingPetshop. If the pet is already
+     * registered, this method has no effect and returns false.
+     *
+     * @param pet the pet to be registered.
+     * @return true if the pet was registered successfully, false otherwise.
      */
-    public static final boolean register(@Nonnull ITradePostPet pet) throws IllegalArgumentException
+    public static boolean register(@Nonnull ITradePostPet pet)
     {
-        boolean newRegistration = false;
+        IBuilding b = pet.getTrainerBuilding();
+        if (b == null) throw new IllegalArgumentException("Pet must have a trainer building.");
 
-        if (pet.getTrainerBuilding() == null)
+        Queue<PetHandle> q = safePetsForBuilding(b);
+
+        PetHandle handle = new PetHandle(pet.getUUID(), pet.getDimension());
+
+        // Avoid duplicates by UUID
+        boolean exists = q.stream().anyMatch(h -> h.uuid().equals(handle.uuid()));
+        if (!exists)
         {
-            throw new IllegalArgumentException("Pet must have a trainer building.");
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Register pet {} in {}", handle, b));
+            q.add(handle);
+            return true;
         }
-
-        Queue<ITradePostPet> pets = safePetsForBuilding(pet.getTrainerBuilding());
-
-        if (!pets.contains(pet))
-        {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
-                () -> LOGGER.info("Registering pet: {} to building {}", pet, pet.getTrainerBuilding()));
-            pets.add(pet);
-            newRegistration = true;
-        }
-
-        return newRegistration;
+        return false;
     }
 
     /**
@@ -139,36 +170,43 @@ public class PetRegistryUtil
      * @param colony the colony to retrieve the list of pets from.
      * @return the list of all ITradePostPet entities in the colony.
      */
-    public static final ImmutableList<ITradePostPet> getPetsInColony(IColony colony)
+    public static final ImmutableList<PetHandle> getPetsInColony(IColony colony)
     {
-        List<ITradePostPet> pets = new ArrayList<>();
+        List<PetHandle> pets = new ArrayList<>();
         for (IBuilding building : colony.getBuildingManager().getBuildings().values())
         {
-            Queue<ITradePostPet> buildingPets = globalPetRegistry.get(building);
+            Queue<PetHandle> buildingPets = globalPetRegistry.get(building);
             if (buildingPets != null)
             {
                 pets.addAll(buildingPets);
             }
         }
 
-        ImmutableList<ITradePostPet> returnPets = ImmutableList.copyOf(pets);
+        ImmutableList<PetHandle> returnPets = ImmutableList.copyOf(pets);
         return returnPets;
     }
 
     /**
-     * Retrieves the list of pets associated with the given building from the global pet registry. If the building does not have any
-     * associated pets, returns an empty list.
+     * Retrieves the list of pets associated with the given building from the global pet registry and resolves them to ITradePostPet objects.
+     * The returned list only includes pets that are currently alive and not removed from the world.
      *
      * @param building the building to retrieve the list of pets from.
-     * @return the list of ITradePostPet entities associated with the given building, or an empty list if none.
+     * @return a list of ITradePostPet objects associated with the given building, or null if none are found.
      */
-    public static final ImmutableList<ITradePostPet> getPetsInBuilding(IBuilding building)
+    public static ImmutableList<ITradePostPet> getPetsInBuilding(IBuilding building)
     {
-        Queue<ITradePostPet> pets = safePetsForBuilding(building);
-
-        ImmutableList<ITradePostPet> returnPets = ImmutableList.copyOf(pets);
-
-        return returnPets;
+        Queue<PetHandle> q = safePetsForBuilding(building);
+        MinecraftServer server = building.getColony().getWorld().getServer();
+        List<ITradePostPet> result = new ArrayList<>();
+        for (PetHandle h : q)
+        {
+            ITradePostPet p = resolve(server, h);
+            if (p != null && !((Entity) p).isRemoved() && ((Entity) p).isAlive())
+            {
+                result.add(p);
+            }
+        }
+        return ImmutableList.copyOf(result);
     }
 
     /**
@@ -291,5 +329,10 @@ public class PetRegistryUtil
         tag.put("petWorkLocations", posList);
 
         return tag;
+    }
+
+    public record PetHandle(UUID uuid, ResourceKey<Level> dimension)
+    {
+
     }
 }
