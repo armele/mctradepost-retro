@@ -1,24 +1,24 @@
 {
-  "parent": "mctradepost:mctradepost/petshop",
+  "parent": "mctradepost:mctradepost/recycling",
   "criteria": {
     "critlist": {
       "conditions": {
-        "hut_name": "petshop",
+        "hut_name": "station",
         "level": 1
       },
-      "trigger": "mctradepost:pet_trained"
+      "trigger": "mctradepost:recycle_item"
     }
   },
   "display": {
     "description": {
-      "translate": "advancement.mctradepost.pet_trained.description"
+      "translate": "advancement.mctradepost.recycle_item.description"
     },
     "icon": {
       "count": 1,
-      "id": "minecraft:lead"
+      "id": "minecraft:hopper"
     },
     "title": {
-      "translate": "advancement.mctradepost.pet_trained.title"
+      "translate": "advancement.mctradepost.recycle_item.title"
     }
   },
   "requirements": [

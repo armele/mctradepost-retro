@@ -1,9 +1,9 @@
 {
-  "parent": "mctradepost:mctradepost/mix_and_match",
+  "parent": "mctradepost:mctradepost/make_a_wishingwell",
   "display": {
     "icon": {
       "count": 1,
-      "id": "mctradepost:mixed_stone"
+      "id": "mctradepost:quartz_mortar"
     },
     "title": {
       "translate": "advancement.mctradepost.make_a_wish.title"
@@ -21,13 +21,7 @@
   },
   "criteria": {
     "crafted_mixed_stone": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "item": {
-          "count": 1,
-          "items": ["mctradepost:mixed_stone"]
-        }
-      }
+      "trigger": "mctradepost:make_wish"
     }
   }
 }

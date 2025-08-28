@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -37,6 +38,7 @@ import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
@@ -557,6 +559,9 @@ public class BuildingRecycling extends AbstractBuilding
             {
                 generateOutput(processor.output);
                 removeRecyclingProcess(processor);
+
+                AdvancementUtils.TriggerAdvancementPlayersForColony(this.getColony(),
+                        player -> MCTPAdvancementTriggers.RECYCLE_ITEM.get().trigger(player));
             }
         }
 

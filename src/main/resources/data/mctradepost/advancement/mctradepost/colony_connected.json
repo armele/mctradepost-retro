@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/station",
+  "criteria": {
+    "critlist": {
+      "conditions": {
+        "hut_name": "station",
+        "level": 1
+      },
+      "trigger": "mctradepost:colony_connected"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.colony_connected.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:rail"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.colony_connected.title"
+    }
+  },
+  "requirements": [
+    [
+      "critlist"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

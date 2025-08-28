@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.api.advancements.train_pet;
+package com.deathfrog.mctradepost.api.advancements;
 
 import java.util.Optional;
 
@@ -14,7 +14,7 @@ import net.minecraft.advancements.critereon.SimpleCriterionTrigger;
 import net.minecraft.advancements.critereon.SimpleCriterionTrigger.SimpleInstance;
 import net.minecraft.server.level.ServerPlayer;
 
-public class TrainPetTrigger extends SimpleCriterionTrigger<TrainPetTrigger.TrainPetTriggerInstance>
+public class MakeWishTrigger extends SimpleCriterionTrigger<MakeWishTrigger.MakeWishTriggerInstance>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -25,27 +25,26 @@ public class TrainPetTrigger extends SimpleCriterionTrigger<TrainPetTrigger.Trai
      */
     public void trigger(final ServerPlayer player)
     {
-        LOGGER.info("Triggering TrainPetTrigger");
         trigger(player, trigger -> true);
     }
 
     @Override
-    public Codec<TrainPetTriggerInstance> codec()
+    public Codec<MakeWishTriggerInstance> codec()
     {
-        return TrainPetTriggerInstance.CODEC;
+        return MakeWishTriggerInstance.CODEC;
     }
 
-    public static record TrainPetTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
+    public static record MakeWishTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
-        public static final Codec<TrainPetTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
-            .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(TrainPetTriggerInstance::player))
-            .apply(builder, TrainPetTriggerInstance::new));
+        public static final Codec<MakeWishTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
+            .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(MakeWishTriggerInstance::player))
+            .apply(builder, MakeWishTriggerInstance::new));
 
 
 
-        public static Criterion<TrainPetTriggerInstance> trainPet()
+        public static Criterion<MakeWishTriggerInstance> MakeWish()
         {
-            return MCTPAdvancementTriggers.PET_TRAINED.get().createCriterion(new TrainPetTriggerInstance(Optional.empty()));
+            return MCTPAdvancementTriggers.MAKE_WISH.get().createCriterion(new MakeWishTriggerInstance(Optional.empty()));
         }
     }
 }

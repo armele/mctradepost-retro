@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/resort",
+  "criteria": {
+    "critlist": {
+      "conditions": {
+        "hut_name": "resort",
+        "level": 1
+      },
+      "trigger": "mctradepost:complete_vacation"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.complete_vacation.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:daiquiri"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.complete_vacation.title"
+    }
+  },
+  "requirements": [
+    [
+      "critlist"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

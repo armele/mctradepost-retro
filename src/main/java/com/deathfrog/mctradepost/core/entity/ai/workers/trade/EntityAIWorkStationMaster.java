@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -28,6 +29,7 @@ import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -417,6 +419,9 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
                 currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.CONNECTED);
+
+                AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
+                        player -> MCTPAdvancementTriggers.COLONY_CONNECTED.get().trigger(player));
             }
             else
             {

@@ -5,6 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
@@ -36,6 +37,7 @@ import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.other.SittingEntity;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -742,6 +744,9 @@ public class EntityAIBurnoutTask
             }
             StatsUtil.trackStat(vacationTracker.getResort(), BuildingResort.VACATIONS_COMPLETED, 1);
 
+            AdvancementUtils.TriggerAdvancementPlayersForColony(citizenData.getColony(),
+                    player -> MCTPAdvancementTriggers.COMPLETE_VACATION.get().trigger(player));
+
             int incomeGenerated = MCTPConfig.vacationIncome.get() * MCTPConfig.tradeCoinValue.get();
             citizenData.getColony()
                 .getStatisticsManager()
@@ -752,6 +757,7 @@ public class EntityAIBurnoutTask
 
         citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         citizen.setHealth(citizen.getMaxHealth());
+        citizenData.setSaturation(ICitizenData.MAX_SATURATION);
 
         reset();
     }

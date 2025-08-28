@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_BURNOUT;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import org.jetbrains.annotations.NotNull;
@@ -11,9 +14,9 @@ import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
 import com.deathfrog.mctradepost.MCTPConfig;
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
@@ -94,7 +97,7 @@ public class BuildingResort extends AbstractBuilding {
      */
     public boolean makeReservation(Vacationer guest) {
         if (guests.size() < (getBuildingLevel() * GUESTS_PER_LEVEL)) {
-            LOGGER.trace("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill());
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("New reservation for {} to fix {}.", guest.getCivilianId(), guest.getBurntSkill()));
             guest.setState(Vacationer.VacationState.RESERVED);
             guest.setResort(this);
             this.guests.put(guest.getCivilianId(), guest);
@@ -157,7 +160,7 @@ public class BuildingResort extends AbstractBuilding {
                             burnoutTask.setVacationTracker(guest);
                         }
 
-                        LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName());
+                        TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Added EntityAIBurnoutTask to " + advertisingTarget.getName()));
                     }
                 }
 
@@ -257,7 +260,7 @@ public class BuildingResort extends AbstractBuilding {
 
         if (sitPositions.isEmpty())
         {
-            MCTradePostMod.LOGGER.warn("No relaxation stations found in this resort.");
+            LOGGER.warn("No relaxation stations found in this resort.");
             return null;
         }
 
@@ -314,7 +317,7 @@ public class BuildingResort extends AbstractBuilding {
         Vacationer guest = guests.get(civilianId);
 
         if (guest != null) {
-            MCTradePostMod.LOGGER.trace("Checking out guest {}.", civilianId);
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Checking out guest {}.", civilianId));
             guest.setBurntSkill(null);
             guest.setState(VacationState.CHECKED_OUT);
             guest.setResort(null);

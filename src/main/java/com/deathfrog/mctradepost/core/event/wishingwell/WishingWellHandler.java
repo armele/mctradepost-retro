@@ -2,6 +2,7 @@
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
@@ -16,6 +17,7 @@ import com.minecolonies.api.colony.managers.interfaces.IRaiderManager;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
 import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
+import com.minecolonies.core.util.AdvancementUtils;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -183,6 +185,10 @@ public class WishingWellHandler {
                         MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
                         sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         rituals.remove(pos);  
+
+                        AdvancementUtils.TriggerAdvancementPlayersForColony(marketplace.getColony(),
+                                player -> MCTPAdvancementTriggers.MAKE_WISH.get().trigger(player));
+
                         break;
 
                     case UNRECOGNIZED:
