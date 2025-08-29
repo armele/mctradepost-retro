@@ -147,6 +147,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             new AITarget<IAIState>(IDLE, START_WORKING, 1),
             new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
             new AITarget<IAIState>(START_WORKING, this::decideWhatToDo, 10),
+            new AITarget<IAIState>(DECIDE, this::decideWhatToDo, 10),
             new AITarget<IAIState>(ShopkeeperState.SELL_MERCHANDISE, this::sellFromDisplay, 5),
             new AITarget<IAIState>(ShopkeeperState.FILL_DISPLAYS, this::fillDisplays, 10),
             new AITarget<IAIState>(ShopkeeperState.MINT_COINS, this::mintCoins, 50));
@@ -401,7 +402,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (coinsToMint > 0 && shouldMintCoins.isPresent() && shouldMintCoins.get().getValue())
         {
             ItemStack stack = building.mintCoins(null, coinsToMint);
-
+            coinsToMint = 0;
+            
             TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
                 () -> LOGGER.info("Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", coinsToMint, stack));
             
@@ -413,7 +415,6 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
 
             StatsUtil.trackStat(building, WindowEconModule.COINS_MINTED, stack.getCount());
-            coinsToMint = 0;
 
             if (!InventoryUtils.addItemStackToProvider(building, stack))
             {
