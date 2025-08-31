@@ -192,6 +192,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 }
 
                 BuildingStation remoteStation = (BuildingStation) exportData.getDestinationStationData().getStation();
+
+                if (remoteStation == null || remoteStation.getAllAssignedCitizen().isEmpty())
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
+                    currentExport = exportData;
+                    return StationMasterStates.ELIMINATE_OLD_ORDER;
+                }
+
                 ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
 
                 int availableRemoteFunds = availableCount(remoteStation, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
@@ -266,12 +274,22 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         int amountInBuilding = 0;
         int amountInWorkerInventory = 0;
         
-        if (buildingStation !=null) 
+        if (buildingStation != null)
         {
-            amountInBuilding = InventoryUtils.getItemCountInItemHandler(buildingStation.getItemHandlerCap(), ExportData.hasExportItem(stack));
-            ICitizenData buildingWorker = buildingStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+            amountInBuilding =
+                InventoryUtils.getItemCountInItemHandler(buildingStation.getItemHandlerCap(), ExportData.hasExportItem(stack));
 
-            amountInWorkerInventory = buildingWorker != null ? InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), ExportData.hasExportItem(stack)) : 0;
+            if (buildingStation.getAllAssignedCitizen().isEmpty())
+            {
+                amountInWorkerInventory = 0;
+            }
+            else
+            {
+                ICitizenData  worker = buildingStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+                amountInWorkerInventory = InventoryUtils.getItemCountInItemHandler(worker.getInventory(), ExportData.hasExportItem(stack));  
+            }
+
+
         }
         
         return amountInBuilding + amountInWorkerInventory;

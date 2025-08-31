@@ -17,9 +17,11 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IGenericRecipe;
@@ -114,6 +116,33 @@ public class BuildingResort extends AbstractBuilding {
      */
     public boolean isFull() {
         return guests.size() >= (getBuildingLevel() * GUESTS_PER_LEVEL);
+    }
+
+
+    /**
+     * Retrieves the level of the primary skill of the guest services worker assigned to this resort.
+     * If there is no guest services worker, or the worker is not assigned to a module, or the module does not have a primary skill, this method returns 0.
+     * @return the level of the primary skill of the guest services worker, or 0 if no suitable worker is found.
+     */
+    public int getGuestServicesSkillLevel() 
+    {
+        WorkerBuildingModule module = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get());
+
+        if (module == null) 
+        {
+            return 0;    
+        }
+
+        ICitizenData worker = module.getAssignedCitizen().get(0);
+
+        if (worker == null) 
+        {
+            return 0;
+        }
+
+        int skill = worker.getCitizenSkillHandler().getLevel(module.getPrimarySkill());
+
+        return skill;
     }
 
     /**

@@ -1,0 +1,37 @@
+{
+    "name": "Five Star Resort",
+    "subtitle": "I deserve nothing less.",
+    "branch": "economic",
+    "researchLevel": 5,
+    "parentResearch": "mctradepost:economic/white_glove_vacation",
+    "sortOrder": 0,
+    "exclusiveChildResearch": false,
+    "no-reset": false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "resort",
+            "level": 5
+        }
+    ],
+    "costs": [
+        {
+            "count": 3,
+            "item": "mctradepost:mctp_coin_diamond"
+        },
+        {
+            "count": 64,
+            "item": "mctradepost:daiquiri"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/fivestarservice",
+            "level": 4
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_diamond"
+}

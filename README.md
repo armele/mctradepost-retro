@@ -3,8 +3,6 @@ Refer to the CurseForge project page for details: [Trade Post on CurseForge](htt
 
 ## Tentative Roadmap (Roughly Prioritized)
 ### In Progress
-Pet Scavenging: [Test]
-Pets - Animal Trainer AI: Feed (heal) pet. [Test]
 
 ### Future
 Resort - Tab for vacationer information.

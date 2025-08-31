@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
@@ -662,10 +663,10 @@ public class EntityAIBurnoutTask
 
         BlockPos bestResortLocation = getBestResortPosition();
 
-        if (bestResortLocation == null)
+        if (bestResortLocation == null || BlockPos.ZERO.equals(bestResortLocation))
         {
             // Perhaps the resort was destroyed before healing could occur.
-            LOGGER.warn("Vacationer {} has lost track of their resort.", citizen);
+            LOGGER.warn("Vacationer {} has lost track of their resort, or resort has closed.", citizen);
             reset();
             return CitizenAIState.IDLE;
         }
@@ -695,11 +696,7 @@ public class EntityAIBurnoutTask
             LOGGER.warn("Vacationer {} has no remedy items associated with their tracker (this should not happen).", citizen);
         }
 
-        // TODO: RESORT [Enhancement] Make research to scale healing speed?
-        IBuilding resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
-        int resortHealSpeed = resort.getBuildingLevel();
-
-        citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, VACATION_HEALING * 10, citizenData);
+        citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, calcHealSpeed(bestResortLocation), citizenData);
         int currentLevel = citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
 
         citizen.swing(InteractionHand.MAIN_HAND);
@@ -724,13 +721,35 @@ public class EntityAIBurnoutTask
         return AIWorkerState.START_WORKING;
     }
 
+
+    /**
+     * Calculate the speed at which the vacationer is healed at this resort based on the resort's level and the guest services skill level.
+     * Additionally, the "Five Star Service" research effect is applied to the speed.
+     * @param bestResortLocation the location of the resort the vacationer is staying at.
+     * @return the speed at which the vacationer is healed.
+     */
+    protected int calcHealSpeed(BlockPos bestResortLocation)
+    {
+        BuildingResort resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
+        int serviceLevel = resort.getGuestServicesSkillLevel();
+        double researchModifier = resort.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.FIVE_STAR_SERVICE);
+
+        int resortHealSpeed = (resort.getBuildingLevel() * VACATION_HEALING) + serviceLevel;
+
+        if (researchModifier > 0)
+        {
+            resortHealSpeed = (int) (resortHealSpeed * (1 + researchModifier));
+        }
+
+        return resortHealSpeed;        
+    }
+
+
     /**
      * Cure the citizen.
      */
     private void cure()
     {
-        TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacationer {} is relaxed!", citizen.getName()));
-
         if (vacationTracker != null)
         {
             for (final ItemStorage cure : vacationTracker.getRemedyItems())
@@ -742,6 +761,9 @@ public class EntityAIBurnoutTask
                     citizenData.getInventory().extractItem(slot, 1, false);
                 }
             }
+
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacation Completed for {}", citizen.getName()));
+
             StatsUtil.trackStat(vacationTracker.getResort(), BuildingResort.VACATIONS_COMPLETED, 1);
 
             AdvancementUtils.TriggerAdvancementPlayersForColony(citizenData.getColony(),

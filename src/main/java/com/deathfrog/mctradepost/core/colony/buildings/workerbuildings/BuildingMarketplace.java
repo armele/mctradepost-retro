@@ -58,7 +58,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_BURNOUT;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
 /**
@@ -466,7 +466,7 @@ public class BuildingMarketplace extends AbstractBuilding
             IVisitorData visitor = (IVisitorData) colony.getVisitorManager().getVisitor(visitorID);
 
             if (visitor != null && !visitor.getEntity().isEmpty() && !advertisingList.contains(visitor)) {
-                TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName()));
+                TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Adding visitor to advertising list: {}", visitor.getEntity().get().getName()));
                 
                 VisitorCitizen vitizen  = (VisitorCitizen) visitor.getEntity().get();
 

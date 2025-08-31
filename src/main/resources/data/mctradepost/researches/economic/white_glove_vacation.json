@@ -1,0 +1,37 @@
+{
+    "name": "White Glove Service",
+    "subtitle": "Yes, you may polish my boots.",
+    "branch": "economic",
+    "researchLevel": 4,
+    "parentResearch": "mctradepost:economic/luxury_vacation",
+    "sortOrder": 0,
+    "exclusiveChildResearch": false,
+    "no-reset": false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "resort",
+            "level": 4
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_diamond"
+        },
+        {
+            "count": 32,
+            "item": "mctradepost:daiquiri"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/fivestarservice",
+            "level": 3
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_diamond"
+}

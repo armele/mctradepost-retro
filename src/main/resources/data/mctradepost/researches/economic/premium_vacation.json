@@ -1,0 +1,37 @@
+{
+    "name": "Premium Vacation",
+    "subtitle": "I'd come back here again...",
+    "branch": "economic",
+    "researchLevel": 2,
+    "parentResearch": "mctradepost:economic/staycations",
+    "sortOrder": 0,
+    "exclusiveChildResearch": false,
+    "no-reset": false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "resort",
+            "level": 2
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_gold"
+        },
+        {
+            "count": 8,
+            "item": "mctradepost:daiquiri"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/fivestarservice",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:daiquiri"
+}

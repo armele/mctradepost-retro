@@ -1,0 +1,37 @@
+{
+    "name": "Luxury Vacation",
+    "subtitle": "Ooooh, swanky!",
+    "branch": "economic",
+    "researchLevel": 3,
+    "parentResearch": "mctradepost:economic/premium_vacation",
+    "sortOrder": 0,
+    "exclusiveChildResearch": false,
+    "no-reset": false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "resort",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 3,
+            "item": "mctradepost:mctp_coin_gold"
+        },
+        {
+            "count": 16,
+            "item": "mctradepost:daiquiri"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/fivestarservice",
+            "level": 2
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_gold"
+}

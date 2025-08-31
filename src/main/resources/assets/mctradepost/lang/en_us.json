@@ -338,6 +338,7 @@
     "com.mctradepost.research.effects.tradecapacity.description": "Increase the amount of items that can be traded per building level by %s.",
     "com.mctradepost.research.effects.tradespeed.description": "Exports travel x%s faster to their destination.",
     "com.mctradepost.research.effects.advertising.description": "Increase the chance of visitors shopping by %s.",
+    "com.mctradepost.research.effects.fivestarservice.description": "Increase the XP of vacationers by %s.",
 
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "New trades available in connected stations!",

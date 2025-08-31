@@ -640,21 +640,23 @@ public class BuildingStation extends AbstractBuilding
             MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
         }
     
-
-        ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         
-        if (exportWorker != null && !exportWorker.getEntity().isEmpty())
+        if (!getAllAssignedCitizen().isEmpty())
         {
+            ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
             exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
         }
         
-        ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-        
-        if (remoteWorker != null && !remoteWorker.getEntity().isEmpty())
+        if (!remoteStation.getAllAssignedCitizen().isEmpty())
         {
-            remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
+            ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+            
+            if (remoteWorker != null && !remoteWorker.getEntity().isEmpty())
+            {
+                remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
+            }
         }
-
+        
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Resetting export."));
         
         exportData.setShipDistance(-1);
