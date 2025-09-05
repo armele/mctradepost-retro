@@ -13,7 +13,7 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "resort",
+            "building": "mctradepost:resort",
             "level": 3
         }
     ],

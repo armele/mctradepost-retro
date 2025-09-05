@@ -15,3 +15,4 @@ Pets - Ability: scarecrow effect - bonus to harvest yields (not needed in vanill
 Pets - Ability: Locate certain ore types or crop types
 Pets - Ability: Move items from point A to point B.
 Marketplace - Change sellable item approach to "Analyze and Add"
+Recycler - Handle Silent Gear items properly

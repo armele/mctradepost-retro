@@ -12,7 +12,7 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "marketplace",
+            "building": "mctradepost:marketplace",
             "level": 3
         }
     ],

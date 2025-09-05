@@ -13,7 +13,7 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "recycling",
+            "building": "mctradepost:recycling",
             "level": 3
         }
     ],

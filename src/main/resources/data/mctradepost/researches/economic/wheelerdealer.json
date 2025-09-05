@@ -13,7 +13,7 @@
     "requirements": [
         {
             "type": "minecolonies:building",
-            "building": "station",
+            "building": "mctradepost:station",
             "level": 3
         }
     ],
