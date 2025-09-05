@@ -1,6 +1,6 @@
 {
     "type": "minecraft:crafting_shaped",
-    "category": "equipment",
+    "category": "building",
     "key": {
       "K": { "item": "minecraft:kelp" },
       "S": { "item": "minecraft:string" }
