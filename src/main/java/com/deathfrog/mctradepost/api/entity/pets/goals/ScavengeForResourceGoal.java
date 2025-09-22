@@ -19,7 +19,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.minecraft.server.level.ServerLevel;
 
 public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends Goal

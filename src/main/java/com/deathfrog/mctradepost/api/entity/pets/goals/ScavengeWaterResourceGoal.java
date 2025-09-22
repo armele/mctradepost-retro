@@ -35,7 +35,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -168,9 +167,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (!periodicGate || !probablisticGate)
         {
-            final boolean thisPeriodicGate = periodicGate;
-            final boolean thisProbablisticGate = probablisticGate;
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Performance gates not met during ScavengeWaterResourceGoal.canUse: periodicGate {}, probablisticGate  {} ", thisPeriodicGate, thisProbablisticGate));
             return false;
         }
 
@@ -536,10 +532,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
                     break;
                 }
             }
-
-            final int thisTry = tries;
-            final boolean thisTryScavengeMaterials = hasScavengeMaterials;
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("findWaterScavengeLocation - try {}, candidate: {}, shallowWater: {}, hasScavengeMaterials: {}", thisTry, candidate, shallowWater, thisTryScavengeMaterials));
 
             if (shallowWater && hasScavengeMaterials) {
                 return candidate;

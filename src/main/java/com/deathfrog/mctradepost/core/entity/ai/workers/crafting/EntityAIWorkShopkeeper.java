@@ -143,6 +143,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      *
      * @param job the job to fulfill
      */
+    @SuppressWarnings("unchecked")
     public EntityAIWorkShopkeeper(@NotNull final JobShopkeeper job)
     {
         super(job);

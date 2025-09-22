@@ -6,7 +6,6 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
-import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 

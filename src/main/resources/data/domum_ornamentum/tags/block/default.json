@@ -31,6 +31,9 @@
     "minecraft:flowering_azalea_leaves",
     "mctradepost:weathered_rough_stone",
     "mctradepost:marine_basalt",
-    "mctradepost:woven_kelp"
+    "mctradepost:woven_kelp",
+    "minecraft:ice",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice"
   ]
 }

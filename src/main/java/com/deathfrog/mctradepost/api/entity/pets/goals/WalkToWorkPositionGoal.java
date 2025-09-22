@@ -20,13 +20,11 @@ import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.mojang.logging.LogUtils;
 
-import mezz.jei.core.util.PathUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 
 public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Goal
@@ -179,7 +177,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", targetPos));
 
-                boolean moved = PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
+                PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
                 tries++;
                 retryCooldown = RETRY_COOLDOWN;
             }
@@ -216,7 +214,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             mob.getPersistentData().putLong(NBT_LAST_RUN_DAY, today);
         }
 
-        boolean moved = PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
+        PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
     }
 
     /**

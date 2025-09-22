@@ -14,6 +14,7 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 
@@ -24,6 +25,7 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
 
 public class WindowPetTrainingItemsModule extends AbstractModuleWindow
 {
+    @SuppressWarnings("unused")
     private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
     
     /**
@@ -103,10 +105,21 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
+                ClientLevel level = null;
+
+                if (Minecraft.getInstance().level == null)
+                {
+                    return;
+                }
+                else 
+                {
+                    level = Minecraft.getInstance().level;
+                }
 
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
 
-                Entity previewEntity = PetTypes.values()[index].getEntityType().create(Minecraft.getInstance().level);
+                @SuppressWarnings("null")
+                Entity previewEntity = PetTypes.values()[index].getEntityType().create(level);
                 
                 if (previewEntity != null)
                 {

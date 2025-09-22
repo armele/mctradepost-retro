@@ -77,6 +77,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     private static final int REQUEST_COUNT = 8;
 
 
+    @SuppressWarnings("unchecked")
     public EntityAIWorkGuestServices(@NotNull final JobGuestServices job)
     {
         super(job);
@@ -234,7 +235,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                 continue;
             }
 
-            final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
+            // final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
 
             if (guest.getBurntSkill() == null || guest.getState() == Vacationer.VacationState.CHECKED_OUT)
             {
@@ -260,8 +261,8 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
 
         for (final Vacationer guest : requestedGuests)
         {
-            final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getCivilianId());
-            final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
+            // final ICitizenData guestData = resort.getColony().getCitizenManager().getCivilian(guest.getCivilianId());
+            // final EntityCitizen citizen = (EntityCitizen) guestData.getEntity().get();
 
             // Check the worker inventory, and go to CURE If remedy present.
             if (hasCureInInventory(guest, worker.getInventoryCitizen()))

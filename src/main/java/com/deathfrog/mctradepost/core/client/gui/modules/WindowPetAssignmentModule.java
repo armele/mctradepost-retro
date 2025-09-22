@@ -34,6 +34,7 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
 
 public class WindowPetAssignmentModule extends AbstractModuleWindow
 {
+    @SuppressWarnings("unused")
     private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
     
     /**
@@ -113,7 +114,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
                 int elementCount = ((PetshopView) buildingView).getPets().size();
                 int i = 0;
 
-                for (PetData pet : ((PetshopView) buildingView).getPets())
+                for (PetData<?> pet : ((PetshopView) buildingView).getPets())
                 {
                     selectedBuildings.add(i, pet.getWorkLocation());
                     i++;    
@@ -131,12 +132,12 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
+                @SuppressWarnings("rawtypes")
                 ImmutableList<PetData> pets = ((PetshopView) buildingView).getPets();
 
                 rowPane.findPaneOfTypeByID(LABEL_TYPE, Text.class).setText(Component.literal(pets.get(index).getAnimalType()));
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
-
-                @SuppressWarnings("null")
+                
                 Entity selectedEntity = Minecraft.getInstance().level.getEntity(pets.get(index).getEntityId());
                 final Text entityOor = rowPane.findPaneOfTypeByID(LABEL_OOR, Text.class);
                 

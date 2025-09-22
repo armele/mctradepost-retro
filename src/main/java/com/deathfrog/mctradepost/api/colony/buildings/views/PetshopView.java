@@ -6,11 +6,8 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
-import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
-import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
-import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
@@ -59,6 +56,7 @@ public class PetshopView extends AbstractBuildingView
      * Gets the list of all pets in the building
      * @return a list of pet objects associated with the building
      */
+    @SuppressWarnings("rawtypes")
     public ImmutableList<PetData> getPets()
     {
         return ImmutableList.copyOf(pets);

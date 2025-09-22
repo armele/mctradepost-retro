@@ -38,7 +38,6 @@ public class EntityAIShoppingTask
 
     IVisitorData visitor = null;
     BuildingMarketplace marketplace = null;
-    private static final int ONE_HUNDRED = 100;
 
     private DisplayCase currentDisplay = null;
     private int lingerTimer = 0;

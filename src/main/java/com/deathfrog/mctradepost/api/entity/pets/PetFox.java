@@ -255,7 +255,12 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
 
         PetRegistryUtil.unregister(this);
         petData = null;
-        this.setLeashedTo(null, false);
+
+        if (this.isLeashed())
+        {
+            this.dropLeash(true, false);
+        }
+        
         super.remove(reason);
     }
 
@@ -289,6 +294,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
     }
 
+    @SuppressWarnings("unchecked")
     public PetData<PetFox> getPetData()
     {
         return this.petData;

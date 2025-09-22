@@ -89,6 +89,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/animaltrainer.png"),
             "com.mctradepost.gui.visiblestatus.animaltrainer");
 
+    @SuppressWarnings("unchecked")
     public EntityAIWorkAnimalTrainer(@NotNull JobAnimalTrainer job)
     {
         super(job);
@@ -310,7 +311,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         BlockEntity be = worker.level().getBlockEntity(currentTargetPet.getWorkLocation());
         
-        if (be instanceof Container container) 
+        if (be instanceof Container) 
         {
             Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), currentTargetPet.getWorkLocation(), null);
             if (!optProvider.isPresent())
@@ -447,9 +448,9 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
                     () -> LOGGER.info("Raising a pet: {}", type.getPetClass().getSimpleName()));
 
-                if (pet instanceof ITradePostPet tradePostPet)
+                if (pet instanceof ITradePostPet)
                 {
-                    @SuppressWarnings("rawtypes")
+                    @SuppressWarnings({"rawtypes", "unchecked"})
                     PetHelper helper = new PetHelper(pet);
                     helper.doRegistration(building);
                 }

@@ -122,6 +122,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         return petData.getAnimalType();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public PetData<PetAxolotl> getPetData()
     {
@@ -164,6 +165,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
      * it. If the pet data is not null, it will also register additional custom goals specific to the
      * pet type.
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     protected void registerGoals()
     {
@@ -285,7 +287,12 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
 
         PetRegistryUtil.unregister(this);
         petData = null;
-        this.setLeashedTo(null, false);
+
+        if (this.isLeashed())
+        {
+            this.dropLeash(true, false);
+        }
+        
         super.remove(reason);
     }
 

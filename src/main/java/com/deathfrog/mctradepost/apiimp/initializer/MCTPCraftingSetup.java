@@ -4,16 +4,9 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
-import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
-import com.ldtteam.domumornamentum.recipe.architectscutter.ArchitectsCutterRecipe;
-import com.minecolonies.api.crafting.registry.CraftingType;
 import com.minecolonies.api.items.ModTags;
-import com.minecolonies.core.recipes.ArchitectsCutterCraftingType;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.world.item.crafting.RecipeType;
-import net.neoforged.neoforge.registries.DeferredHolder;
 
 /* Sets up crafting information for this mod's Minecolonies crafters.
  * ModTags.initCrafterRules() and its supporting constants are

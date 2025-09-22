@@ -9,5 +9,5 @@
       "predicate": { "type": "#mctradepost:coindroppers" }
     }
   ],
-  "chance": 0.02
+  "chance": 0.04
 }

@@ -79,6 +79,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     private BlockPos currentTargetWalkingPosition = null;
     Queue<BlockPos> currentCheckingTrack = new ArrayDeque<>();
 
+    @SuppressWarnings("unchecked")
     public EntityAIWorkStationMaster(@NotNull JobStationMaster job)
     {
         super(job);

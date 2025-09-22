@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.api.util;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -295,11 +294,19 @@ public class PetRegistryUtil
         return petWorkLocations;
     }
 
+    /**
+     * Loads the set of all BlockPos that are valid work locations for a pet in the given colony from the provided CompoundTag.
+     * The CompoundTag should contain a ListTag named "petWorkLocations", which contains CompoundTags representing the BlockPos of the work locations.
+     * Each CompoundTag in the ListTag should contain a BlockPos named "WorkLocation", which is the BlockPos of the work location.
+     * 
+     * @param colony the colony to load the work locations for.
+     * @param tag the CompoundTag to load the work locations from.
+     */
     public static void loadPetWorkLocations(IColony colony, CompoundTag tag)
     {
         ListTag posList = tag.getList("petWorkLocations", Tag.TAG_COMPOUND);
 
-        Set<BlockPos> positions = new HashSet<>();
+        // Set<BlockPos> positions = new HashSet<>();
         for (Tag posTagRaw : posList)
         {
             CompoundTag posTag = (CompoundTag) posTagRaw;
@@ -316,7 +323,7 @@ public class PetRegistryUtil
      */
     public static CompoundTag savePetWorkLocations(IColony colony, CompoundTag tag)
     {
-        CompoundTag colonyTag = new CompoundTag();
+        // CompoundTag colonyTag = new CompoundTag();
 
         ListTag posList = new ListTag();
         for (BlockPos pos : getWorkLocations(colony))

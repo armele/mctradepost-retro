@@ -1,10 +1,6 @@
 package com.deathfrog.mctradepost.api.util;
 
-import java.util.ArrayList;
-
 import javax.annotation.Nonnull;
-
-import org.checkerframework.checker.units.qual.s;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.google.common.reflect.TypeToken;
@@ -13,17 +9,11 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
-import com.minecolonies.api.colony.requestsystem.data.IDataStoreManager;
-import com.minecolonies.api.colony.requestsystem.data.IRequestSystemBuildingDataStore;
-import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.util.BlockPosUtil;
-import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
 
 import net.minecraft.core.BlockPos;
@@ -168,6 +158,7 @@ public class BuildingUtil {
             return null;
         }
 
+        @SuppressWarnings("unused")
         IRequester requestingWarehouse = StandardFactoryController.getInstance().getNewInstance(TypeToken.of(BuildingBasedRequester.class), warehouse);
         final Delivery delivery = new Delivery(sendingBuilding.getLocation(), warehouse.getLocation(), stackToTake, PICKUP_PRIORITY);
 

@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.api.client.render.modeltype.MCTPSimpleModelType;
 import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
-import com.minecolonies.api.client.render.modeltype.SimpleModelType;
 import com.minecolonies.api.client.render.modeltype.registry.IModelTypeRegistry;
 import com.minecolonies.core.client.model.FemaleCrafterModel;
 import com.minecolonies.core.client.model.MaleCrafterModel;

@@ -13,7 +13,6 @@ import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.ICitizenData;
-import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.jobs.IJob;
@@ -129,7 +128,6 @@ public class EntityAIBurnoutTask
         // Implement burnout AI and integrate it into citizen states.
         this.citizen = citizen;
         this.citizenData = citizen.getCitizenData();
-        final IColony colony = citizenData.getColony();
 
         this.skillToHeal = determineSkillToHeal();
 
@@ -157,7 +155,6 @@ public class EntityAIBurnoutTask
      */
     protected Skill determineSkillToHeal()
     {
-        final IColony colony = citizenData.getColony();
         final IJob<?> job = citizen.getCitizenData().getJob();
 
         final IBuilding citizenWorkBuilding = job.getWorkBuilding();
@@ -407,7 +404,7 @@ public class EntityAIBurnoutTask
 
         adSaturationLevel += calcAdvertisingPower();
 
-        final IColony colony = citizenData.getColony();
+        // final IColony colony = citizenData.getColony();
         final double burnoutChance = Math.min(MAX_VACATION_CHANCE, Math.ceil((double) adSaturationLevel / (double) MAX_AD_SATURATION));
 
         // The higher the burnout chance the more likely the citizen will burn out.
@@ -506,7 +503,7 @@ public class EntityAIBurnoutTask
             return AIWorkerState.START_WORKING;
         }
         
-        final IColony colony = citizenData.getColony();
+        // final IColony colony = citizenData.getColony();
         BuildingResort resort = getBestResort();
 
         TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Vacationer {} is searching for a resort.", citizen));

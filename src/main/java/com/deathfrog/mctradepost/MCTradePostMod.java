@@ -891,7 +891,7 @@ public class MCTradePostMod
     public static void onEntityJoinWorld(EntityJoinLevelEvent event) {
         // MCTradePostMod.LOGGER.info("Entity joining world: {}", event.getEntity());
 
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        if (!(event.getLevel() instanceof ServerLevel)) return;
 
         if (event.getEntity() instanceof ITradePostPet pet) {
             // MCTradePostMod.LOGGER.info("Registering pet: {}", pet);
@@ -967,7 +967,7 @@ public class MCTradePostMod
          */
         @SubscribeEvent
         public static void onBlockPlaced(final BlockEvent.EntityPlaceEvent event) {
-            if (!(event.getEntity() instanceof Player player)) return;
+            if (!(event.getEntity() instanceof Player)) return;
             if (!(event.getLevel() instanceof ServerLevel level)) return;
 
             BlockState state = event.getPlacedBlock();

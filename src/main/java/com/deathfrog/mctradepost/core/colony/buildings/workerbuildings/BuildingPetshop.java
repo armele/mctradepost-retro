@@ -92,6 +92,7 @@ public class BuildingPetshop extends AbstractBuilding
         for (final ITradePostPet pet : getPets())
         {
             CompoundTag petTag = new CompoundTag();
+            @SuppressWarnings("rawtypes")
             PetData petBase = (PetData) pet.getPetData();
             petBase.toNBT(petTag);
             buf.writeNbt(petTag);

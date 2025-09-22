@@ -8,7 +8,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.domumornamentum.block.AbstractBlock;
 import com.ldtteam.domumornamentum.block.ICachedItemGroupBlock;

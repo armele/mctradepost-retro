@@ -224,7 +224,12 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         petData = null;
         this.setOwnerUUID(null);
         this.setTame(false, false);
-        this.setLeashedTo(null, false);
+
+        if (this.isLeashed())
+        {
+            this.dropLeash(true, false);
+        }
+        
         super.remove(reason);
     }
 
@@ -258,6 +263,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
     }
 
+    @SuppressWarnings("unchecked")
     public PetData<PetWolf> getPetData()
     {
         return this.petData;

@@ -61,7 +61,7 @@ public class PetUtil
      */
     public static void insertItems(ITradePostPet pet, Iterable<ItemEntity> items) 
     {
-        ItemStackHandler inventory = pet.getInventory();
+        // ItemStackHandler inventory = pet.getInventory();
         for (ItemEntity item : items)
         {
             insertItem(pet, item);

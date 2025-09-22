@@ -11,9 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.Set;
@@ -70,9 +68,9 @@ public class PetAssignmentModule extends AbstractBuildingModule implements IPers
             CompoundTag tag = new CompoundTag();
             BlockPosUtil.writeToNBT(tag, "WorkLocation", workPos);
 
-            BlockState state = level.getBlockState(workPos);
+            // BlockState state = level.getBlockState(workPos);
             BlockEntity be = level.getBlockEntity(workPos);
-            Block block = state.getBlock();
+            // Block block = state.getBlock();
 
             if (workPos != null && !BlockPos.ZERO.equals(workPos)) 
             {

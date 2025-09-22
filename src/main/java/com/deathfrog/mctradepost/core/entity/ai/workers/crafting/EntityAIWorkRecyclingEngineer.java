@@ -76,6 +76,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      *
      * @param recycling engineer logic for the job he has.
      */
+    @SuppressWarnings("unchecked")
     public EntityAIWorkRecyclingEngineer(@NotNull final JobRecyclingEngineer recyclingengineer)
     {
         super(recyclingengineer);
@@ -270,7 +271,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      */
     public IAIState unloadOutput()
     {
-        BuildingRecycling recycling = (BuildingRecycling) building;
+        // BuildingRecycling recycling = (BuildingRecycling) building;
         boolean cancarry = true;
 
         TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Unloading output."));

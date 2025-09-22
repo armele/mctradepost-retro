@@ -55,6 +55,7 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
      *
      * @param bartender the job they have.
      */
+    @SuppressWarnings("unchecked")
     public EntityAIWorkBartender(@NotNull final JobBartender bartender)
     {
         super(bartender);

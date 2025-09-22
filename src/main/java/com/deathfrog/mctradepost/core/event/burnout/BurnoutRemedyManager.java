@@ -6,8 +6,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import org.apache.logging.log4j.core.config.plugins.validation.constraints.NotBlank;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.api.crafting.ItemStorage;

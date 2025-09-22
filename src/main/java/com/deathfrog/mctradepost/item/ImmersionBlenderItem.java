@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.item;
 import javax.annotation.Nonnull;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public class ImmersionBlenderItem extends Item
 {

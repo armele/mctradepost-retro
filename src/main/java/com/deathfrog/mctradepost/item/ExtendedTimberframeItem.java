@@ -30,7 +30,7 @@ public class ExtendedTimberframeItem extends BlockItem implements IDoItem {
     }
 
     @Override
-    public Component getName(final ItemStack stack)
+    public Component getName(final @Nonnull ItemStack stack)
     {
         final MaterialTextureData textureData = MaterialTextureData.readFromItemStack(stack);
 
