@@ -4,6 +4,8 @@
     "minecraft:beef",
     "#minecraft:meat",
     { "id": "c:foods/raw_meat", "required": false},
+    { "id": "c:rawmeats", "required": false},
+    { "id": "c:rawfish", "required": false},
     { "id": "livingthings:giraffe", "required": false },
     { "id": "livingthings:lion", "required": false }
   ],

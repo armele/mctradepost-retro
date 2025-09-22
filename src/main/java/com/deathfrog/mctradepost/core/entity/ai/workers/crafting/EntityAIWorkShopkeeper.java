@@ -119,6 +119,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     @NonNls
     public static final String REQUESTS_TYPE_SELLABLE_UI = "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables";
 
+    public static final int MINTING_COOLDOWN = 20;
+    protected int mintCooldownCounter = MINTING_COOLDOWN;
+
     /**
      * Worker status icon
      */
@@ -334,8 +337,9 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         coinsToMint = coinsNeededInColony();
 
-        if (coinsToMint > 0)
+        if (coinsToMint > 0 && mintCooldownCounter-- <= 0)
         {
+            mintCooldownCounter = MINTING_COOLDOWN;
             TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Coins are needed: {}", coinsToMint));
             return ShopkeeperState.MINT_COINS;
         }

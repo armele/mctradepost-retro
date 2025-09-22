@@ -47,6 +47,7 @@ import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
+import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
 import com.deathfrog.mctradepost.item.BlockGlazedItem;
@@ -763,6 +764,8 @@ public class MCTradePostMod
 
         // Register our data components.
         MCTPModDataComponents.REGISTRAR.register(modEventBus);
+        
+        ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
 
         LOGGER.info("MCTradePost mod initialized.");
     }

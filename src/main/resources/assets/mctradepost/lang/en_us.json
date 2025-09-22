@@ -278,7 +278,7 @@
     "com.minecolonies.coremod.gui.trade.price.tooltip" : "How many trade coins to pay for the selected stack.",
     "com.minecolonies.coremod.gui.trade.quantity" : "#",
     "com.minecolonies.coremod.gui.trade.quantity.tooltip" : "How many of the selected item to trade.",
-
+    
     "mctradepost.configuration.marketplace": "Marketplace Settings",
     "mctradepost.configuration.tradeCoinValue.tooltip": "What is the value of a single trade coin?",
     "mctradepost.configuration.tradeCoinValue": "Value of a Trade Coin (‡)",
@@ -379,6 +379,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.pets_died": "Pets Died: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.pets_retired": "Pets Retired: %d %s",    
     "com.minecolonies.coremod.gui.townhall.stats.pets_ranaway": "Pets Ran Away: %d %s",    
+    "com.minecolonies.coremod.gui.townhall.stats.coins.minted": "Coins Minted: %d",
 
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",
