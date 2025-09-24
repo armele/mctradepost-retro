@@ -1,0 +1,30 @@
+{
+  "replace": false,
+  "values": [
+    "minecolonies:barbarian",
+    "minecolonies:archerbarbarian",
+    "minecolonies:chiefbarbarian",
+    "minecolonies:amazon",
+    "minecolonies:amazonspearman",
+    "minecolonies:amazonchief",
+    "minecolonies:pirate",
+    "minecolonies:archerpirate",
+    "minecolonies:chiefpirate",
+    "minecolonies:shieldmaiden",
+    "minecolonies:norsemenarcher",
+    "minecolonies:norsemenchief",
+    "minecolonies:mercenary",
+    "minecolonies:campamazon",
+    "minecolonies:campamazonspearman",
+    "minecolonies:campamazonchief",
+    "minecolonies:campbarbarian",
+    "minecolonies:campchiefbarbarian",
+    "minecolonies:camparcherbarbarian",
+    "minecolonies:campshieldmaiden",
+    "minecolonies:campnorsemenchief",
+    "minecolonies:campnorsemenarcher",
+    "minecolonies:camppirate",
+    "minecolonies:campchiefpirate",
+    "minecolonies:camparcherpirate"
+  ]
+}
