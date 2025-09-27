@@ -263,6 +263,20 @@ public class BuildingResort extends AbstractBuilding {
       return compound;
     }
 
+
+    /**
+     * Called when the building has finished upgrading. Resets the flag to re-check for tagged positions.
+     * <p>
+     * This is necessary because the when the building is upgraded, we need to re-read the
+     * positions to ensure that any new ones in the new level are known.
+     */
+    @Override
+    public void onUpgradeComplete(final int newlevel)
+    {
+        initTags = false;
+        super.onUpgradeComplete(newlevel);
+    }
+
     /**
      * Reads the tag positions
      */

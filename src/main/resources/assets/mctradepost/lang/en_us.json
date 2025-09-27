@@ -427,7 +427,13 @@
     "advancement.mctradepost.colony_connected.title": "Express Line",
     "advancement.mctradepost.colony_connected.description": "Connect your Colony to another Colony via rail (enabling trade).",
     "advancement.mctradepost.big_spender.title": "Big Spender",
-    "advancement.mctradepost.big_spender.description": "Successfully withdrew a coin from the Marketplace.",
+    "advancement.mctradepost.big_spender.description": "Successfully withdrew a Trade Coin (‡) from the Marketplace.",
+    "advancement.mctradepost.high_roller.title": "High Roller",
+    "advancement.mctradepost.high_roller.description": "Acquired a gold Trade Coin (‡).",
+    "advancement.mctradepost.bling.title": "Bling Bling",
+    "advancement.mctradepost.bling.description": "Acquired a diamond Trade Coin (‡).",
+    "item.mctradepost.tooltip.souvenir_of": "Souvenir: %s",
+    "item.mctradepost.tooltip.souvenir_value": "Value: %s",
 
     "item.apotheosis.gem": "Apotheosis Gem"
 

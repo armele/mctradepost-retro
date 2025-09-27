@@ -160,10 +160,10 @@ public class BuildingUtil {
 
         @SuppressWarnings("unused")
         IRequester requestingWarehouse = StandardFactoryController.getInstance().getNewInstance(TypeToken.of(BuildingBasedRequester.class), warehouse);
-        final Delivery delivery = new Delivery(sendingBuilding.getLocation(), warehouse.getLocation(), stackToTake, PICKUP_PRIORITY);
+        final Delivery delivery = new Delivery(sendingBuilding.getLocation(), requestingWarehouse.getLocation(), stackToTake, PICKUP_PRIORITY);
 
 
-        final IToken<?> requestToken = warehouse.createRequest(delivery, false);
+        final IToken<?> requestToken = warehouse.createRequest(delivery, true);
 
         sendingBuilding.markDirty();
         warehouse.markDirty();

@@ -4,14 +4,20 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.mojang.logging.LogUtils;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
 import net.neoforged.neoforge.common.loot.LootModifier;
@@ -38,7 +44,7 @@ public class AddCoinModifier extends LootModifier
     protected ObjectArrayList<ItemStack> doApply(@Nonnull ObjectArrayList<ItemStack> generatedLoot, @Nonnull LootContext ctx)
     {
         // The entity whose loot is being generated
-        // Entity e = ctx.getParamOrNull(LootContextParams.THIS_ENTITY);
+        Entity e = ctx.getParamOrNull(LootContextParams.THIS_ENTITY);
         
         // LOGGER.info("Checking coin loot on {}", e);
 
@@ -62,6 +68,17 @@ public class AddCoinModifier extends LootModifier
         {
             generatedLoot.add(new ItemStack(MCTradePostMod.MCTP_COIN_DIAMOND.get(), 1));
         }
+
+        if (!generatedLoot.isEmpty() && e != null)
+        {
+            ctx.getLevel().playSound(null,
+                e.getOnPos(),
+                MCTPModSoundEvents.CASH_REGISTER,
+                SoundSource.NEUTRAL,
+                (float) .8,
+                (float) 1.0f);
+        }
+
         return generatedLoot;
     }
 
