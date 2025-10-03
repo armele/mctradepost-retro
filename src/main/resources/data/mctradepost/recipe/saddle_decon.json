@@ -1,0 +1,9 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecraft:saddle" },
+  "results": [
+    { "item": { "id": "minecraft:leather", "count": 3 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:string", "count": 2 }, "chance": 0.85 },
+    { "item": { "id": "minecraft:white_wool", "count": 1 }, "chance": 0.85}
+  ]
+}

@@ -121,6 +121,8 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
                 {
                     TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Bartender: failed to stock the building with {}.", remedy));
                 }
+
+                incrementActionsDoneAndDecSaturation();
             }
         }
 

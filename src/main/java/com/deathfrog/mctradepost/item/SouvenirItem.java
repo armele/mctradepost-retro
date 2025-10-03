@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.item;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -19,6 +20,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class SouvenirItem extends Item
@@ -162,17 +164,20 @@ public class SouvenirItem extends Item
         }
         catch (Exception e)
         {
-            originalItem = net.minecraft.world.item.Items.AIR;
+            originalItem = Items.AIR;
         }
 
-        if (originalItem != net.minecraft.world.item.Items.AIR)
+        if (originalItem != Items.AIR)
         {
-            ItemStack originalStack = new ItemStack(originalItem);
-            // Use the original stack's hover name so you get localization & custom names
-            Component originalName = originalStack.getHoverName();
-
-            // Prefer a translatable line for i18n: "Souvenir: %s"
-            tooltip.add(Component.translatable("item.mctradepost.tooltip.souvenir_of", originalName).withStyle(ChatFormatting.GRAY));
+            boolean hasCustomName = stack.has(DataComponents.CUSTOM_NAME);
+            if (!hasCustomName) 
+            {
+                Component display = buildSouvenirDisplayName(stack);
+                if (display != null) 
+                {
+                    tooltip.add(display.copy().withStyle(ChatFormatting.GRAY));
+                }
+            }
         }
 
         int value = getSouvenirValue(stack);
@@ -180,5 +185,27 @@ public class SouvenirItem extends Item
         {
             tooltip.add(Component.translatable("item.mctradepost.tooltip.souvenir_value", value).withStyle(ChatFormatting.DARK_GREEN));
         }
+    }
+
+    /**
+     * Builds a Component that represents the display name of a souvenir item.
+     * This will be "Souvenir: <original item name>".
+     * If the souvenir item stack is missing its SouvenirRecord or the original item is AIR, returns null.
+     * @param stack the souvenir item stack
+     * @return the display name of the souvenir item, or null if not applicable
+     */
+    public static Component buildSouvenirDisplayName(ItemStack stack)
+    {
+        final SouvenirRecord rec = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+        if (rec == null) 
+        {
+            return null;
+        }
+
+        final Item original = rec.asOriginalItem();
+        if (original == net.minecraft.world.item.Items.AIR) return null;
+
+        Component origName = new ItemStack(original).getHoverName();
+        return Component.translatable("item.mctradepost.tooltip.souvenir_of", origName);
     }
 }

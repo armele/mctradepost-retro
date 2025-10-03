@@ -1,0 +1,22 @@
+{
+  "type": "recipe",
+  "count": 1,
+  "crafter": "bartender_crafting",
+  "inputs": [
+    {
+      "count": 1,
+      "id": "minecolonies:large_water_bottle"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "additional-output": [
+    {
+      "id": "minecolonies:large_empty_bottle"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "minecraft:ice"
+  },
+  "show-tooltip": true
+}

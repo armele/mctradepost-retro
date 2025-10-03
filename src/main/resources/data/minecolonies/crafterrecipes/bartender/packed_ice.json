@@ -1,0 +1,16 @@
+{
+  "type": "recipe",
+  "crafter": "bartender_crafting",
+  "inputs": [
+    {
+      "count": 9,
+      "id": "minecraft:ice"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "count": 1,
+    "id": "minecraft:packed_ice"
+  },
+  "show-tooltip": true
+}

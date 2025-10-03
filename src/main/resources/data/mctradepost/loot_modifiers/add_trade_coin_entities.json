@@ -1,7 +1,6 @@
 {
   "type": "mctradepost:add_coin",
   "conditions": [
-    { "condition": "neoforge:loot_context_param_set", "parameter_set": "minecraft:entity" },
     { "condition": "minecraft:killed_by_player" },
     {
       "condition": "minecraft:entity_properties",

@@ -1,0 +1,8 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecraft:bundle" },
+  "results": [
+    { "item": { "id": "minecraft:leather", "count": 5 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:string", "count": 1 }, "chance": 1.0 }
+  ]
+}

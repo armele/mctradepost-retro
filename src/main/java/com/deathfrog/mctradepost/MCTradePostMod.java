@@ -60,6 +60,7 @@ import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
+import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -101,13 +102,17 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
@@ -184,6 +189,8 @@ public class MCTradePostMod
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
     
     public static final DeferredRegister<RecipeType<?>> RECIPES = DeferredRegister.create(BuiltInRegistries.RECIPE_TYPE, MCTradePostMod.MODID);
+
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(BuiltInRegistries.RECIPE_SERIALIZER, MCTradePostMod.MODID);
 
     public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
 
@@ -336,9 +343,8 @@ public class MCTradePostMod
     public static final DeferredBlock<WallBlock> THATCH_WALL = BLOCKS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new WallBlock(THATCH.get().properties()));
     public static final DeferredBlock<SlabBlock> THATCH_SLAB = BLOCKS.register(ModBlocksInitializer.THATCH_SLAB_NAME, () -> new SlabBlock(THATCH.get().properties()));
 
-    public static final DeferredBlock<Block> PLASTER = BLOCKS.register(ModBlocksInitializer.PLASTER_NAME, () -> new Block(Block.Properties.of()
+    public static final DeferredBlock<Block> PLASTER = BLOCKS.register(ModBlocksInitializer.PLASTER_NAME, () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)
             .mapColor(MapColor.TERRACOTTA_WHITE)
-            .strength(1.5f, 2.0f)
             .sound(SoundType.BAMBOO_WOOD)));
 
 
@@ -716,6 +722,23 @@ public class MCTradePostMod
                 output.accept(MCTP_COIN_DIAMOND.get());
             }).build());
 
+    /*
+     * RECIPES
+     */
+    public static final DeferredHolder<RecipeType<?>, RecipeType<DeconstructionRecipe>> DECON_RECIPE_TYPE =
+        MCTradePostMod.RECIPES.register(
+            DeconstructionRecipe.DECON_RECIPE_KEY,
+            () -> RecipeType.<DeconstructionRecipe>simple(
+                ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, DeconstructionRecipe.DECON_RECIPE_KEY)
+            )
+        );
+
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<DeconstructionRecipe>> DECON_RECIPE_SERIALIZER =
+        MCTradePostMod.RECIPE_SERIALIZERS.register(
+            DeconstructionRecipe.DECON_RECIPE_KEY,
+            DeconstructionRecipe.Serializer::new
+        );
+
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
@@ -735,6 +758,10 @@ public class MCTradePostMod
 
         // Register custom advancements
         MCTPAdvancementTriggers.DEFERRED_REGISTER.register(modEventBus);
+
+        // Register recipe support
+        RECIPES.register(modEventBus);
+        RECIPE_SERIALIZERS.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class to respond directly to events.

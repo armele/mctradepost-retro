@@ -1,0 +1,39 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "irons_spellbooks:tarnished_helmet"
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "irons_spellbooks"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "irons_spellbooks:tarnished_helmet"
+    }
+  ],
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:string",
+        "count": 3
+      },
+      "chance": 1.0
+    },
+    {
+      "item": {
+        "id": "minecraft:iron_nugget",
+        "count": 4
+      },
+      "chance": 0.85
+    },
+    {
+      "item": {
+        "id": "minecraft:lapis_lazuli",
+        "count": 1
+      },
+      "chance": 0.85
+    }
+  ]
+}

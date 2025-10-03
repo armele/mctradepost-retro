@@ -24,15 +24,22 @@ import com.minecolonies.core.tileentities.TileEntityRack;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -335,5 +342,90 @@ public class MCTPInventoryUtils
         // Use double to avoid integer truncation, then round and clamp to [0, 100]
         int percent = (int) Math.round(100.0 * filled / total);
         return Math.max(0, Math.min(100, percent));
+    }
+
+    /**
+     * Extracts enchantments from an item and places them in new enchanted book items. If the item does not have any enchantments,
+     * an empty list is returned. The enchantments are removed from the original item.
+     * 
+     * @param enchantedItem the item from which to extract enchantments
+     * @return the list of enchanted book items, one per enchantment
+     */
+    public static List<ItemStack> extractEnchantmentsToBooks(ItemStack enchantedItem)
+    {
+        if (!enchantedItem.isEnchanted()) 
+        {
+            return Collections.emptyList();
+        }
+
+        ItemEnchantments ench = enchantedItem.getTagEnchantments();
+        if (ench == null || ench.isEmpty()) 
+        {
+            return Collections.emptyList();
+        }
+
+        List<ItemStack> out = new ArrayList<>();
+
+        // Iterate each (enchantment, level)
+        for (Map.Entry<Holder<Enchantment>, Integer> entry : ench.entrySet())
+        {
+            Holder<Enchantment> holder;
+            int level;
+
+            // Some mappings expose entry as a Map.Entry<Holder<Enchantment>, Integer>:
+            try
+            {
+                holder = (Holder<Enchantment>) (Object) entry.getKey();
+                level = (Integer) (Object) entry.getValue();
+            }
+            catch (Throwable t)
+            {
+                // Others expose specialized accessors:
+                holder = (Holder<Enchantment>) (Object) (entry instanceof Object2IntMap.Entry<?> e ?
+                    e.getKey() :
+                    null);
+                level = (entry instanceof Object2IntMap.Entry<?> e ? e.getIntValue() : 0);
+            }
+
+            if (holder != null && level > 0)
+            {
+                ItemStack book = EnchantedBookItem.createForEnchantment(new EnchantmentInstance(holder, level));
+                out.add(book);
+            }
+        }
+
+        // Strip enchantments from the original item (important if you keep/return it)
+        enchantedItem.remove(DataComponents.ENCHANTMENTS);
+
+        return out;
+    }
+
+    /**
+     * Extracts enchantments from an item and places them in a new enchanted book item. If the item does not have any enchantments, an
+     * empty ItemStack is returned. The enchantments are removed from the original item.
+     * 
+     * @param enchantedItem the item from which to extract enchantments
+     * @return the ItemStack containing a single enchanted book
+     */
+    public static ItemStack extractEnchantmentsToBook(ItemStack enchantedItem)
+    {
+        if (!enchantedItem.isEnchanted())
+        {
+            // Item has no enchantments
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+
+        // Get the enchantments from the original item
+        ItemEnchantments enchantments = enchantedItem.getTagEnchantments();
+
+        // Apply these enchantments to the book
+        book.set(DataComponents.STORED_ENCHANTMENTS, enchantments);
+
+        // Clear the enchantments from the original item
+        enchantedItem.remove(DataComponents.ENCHANTMENTS);
+
+        return book;
     }
 }

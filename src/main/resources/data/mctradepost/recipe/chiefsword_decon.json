@@ -1,0 +1,10 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecolonies:chiefsword" },
+  "results": [
+    { "item": { "id": "minecraft:lapis_lazuli", "count": 1 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:iron_ingot", "count": 2 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:stick", "count": 1 }, "chance": 1.0},
+    { "item": { "id": "minecraft:coal", "count": 1 }, "chance": 1.0}
+  ]
+}

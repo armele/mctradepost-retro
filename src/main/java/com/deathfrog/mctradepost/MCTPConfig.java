@@ -169,9 +169,8 @@ public class MCTPConfig
 
     /**
      * Sets up the configuration on the server side and sends configuration packets to all connected players.
-     * This method ensures it's executed only on the server side by checking the LogicalSide.
      * If a valid server instance is found, it iterates over all connected players and sends them
-     * the current configuration using the ConfigurationPacket. Logs the process for debugging purposes.
+     * the current configuration using the ConfigurationPacket.
      * 
      * @param sourceEvent The event triggering the configuration setup.
      */
@@ -185,7 +184,7 @@ public class MCTPConfig
             }
             MCTradePostMod.LOGGER.info("Config sent to all connected players.");
         } else {
-            MCTradePostMod.LOGGER.error("Could not get server to send config.");
+            MCTradePostMod.LOGGER.info("Currently no server with which to send config.");
         }
     }
     
