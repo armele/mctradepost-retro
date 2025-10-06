@@ -637,7 +637,7 @@ public class EntityAIBurnoutTask
     private IState applyCure()
     {
         // If our vacation has been cancelled (for example, with the vacationclear command) go back to work!
-        if (vacationTracker == null || vacationTracker.getState().equals(VacationState.CHECKED_OUT))
+        if (vacationTracker == null || vacationTracker.getState().equals(VacationState.CHECKED_OUT) || skillToHeal == null)
         {
             reset();
             return AIWorkerState.START_WORKING;
@@ -692,9 +692,20 @@ public class EntityAIBurnoutTask
         {
             LOGGER.warn("Vacationer {} has no remedy items associated with their tracker (this should not happen).", citizen);
         }
+        
+        int currentLevel = -1;
 
-        citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, calcHealSpeed(bestResortLocation), citizenData);
-        int currentLevel = citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
+        try
+        {
+            citizenData.getCitizenSkillHandler().addXpToSkill(skillToHeal, calcHealSpeed(bestResortLocation), citizenData);
+            currentLevel = citizenData.getCitizenSkillHandler().getLevel(skillToHeal);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Error attempting to repair skill {} for Vacationer {} in colony {}.", skillToHeal, citizen.getName(), citizenData.getColony().getID(), e);    
+            reset();
+            return CitizenAIState.IDLE;
+        }
 
         citizen.swing(InteractionHand.MAIN_HAND);
         citizen.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),
@@ -703,10 +714,11 @@ public class EntityAIBurnoutTask
         new CircleParticleEffectMessage(citizen.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, currentLevel)
             .sendToTrackingEntity(citizen);
 
+        final int levelForLogging = currentLevel;
         TraceUtils.dynamicTrace(TRACE_BURNOUT,
             () -> LOGGER.info("Vacationer {} has applied their remedy: Now at level {} of {}",
                 citizen.getName(),
-                currentLevel,
+                levelForLogging,
                 vacationTracker.getTargetLevel()));
 
         if (currentLevel < vacationTracker.getTargetLevel())

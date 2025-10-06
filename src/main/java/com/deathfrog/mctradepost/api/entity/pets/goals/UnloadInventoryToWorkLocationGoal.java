@@ -13,6 +13,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.items.IItemHandler;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 
 public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet> extends Goal
@@ -28,13 +29,13 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     private int cooldownTicks;
 
     // Tunables
-    private static final double ARRIVAL_DIST_SQ = 2.5 * 2.5; // within ~2.5 blocks
-    private static final int MAX_RUN_TICKS = 20 * 12;        // 12s hard timeout
+    private static final double ARRIVAL_DIST_SQ = 3 * 3;     // within ~3 blocks
+    private static final int MAX_RUN_TICKS = 20 * 6;         // 6 seconds hard timeout
     private static final int STUCK_TICKS_LIMIT = 40;         // ~2s without progress
     private static final double PROGRESS_EPSILON_SQ = 0.05 * 0.05;
     private static final int MAX_REPLANS = 3;
     private static final int COOLDOWN_TICKS_ON_FAIL = 40;
-    private static final boolean ALLOW_FALLBACK_UNLOAD_AT_RANGE = true; // set false if you want strict proximity
+    private static final boolean ALLOW_FALLBACK_UNLOAD_AT_RANGE = true; // set false for strict proximity
     private static final double FALLBACK_RANGE = 3.5;         // try unloading at ~3.5 blocks if LOS
     private static final double FALLBACK_RANGE_SQ = FALLBACK_RANGE * FALLBACK_RANGE;
 
@@ -54,22 +55,26 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Determines if the goal can be used.
-     * 
-     * This goal can be used if the cooldown has expired, the pet is not on the client side, the pet has an inventory, the pet has a work location, the inventory is non-empty, and the fraction of full slots in the inventory is >= the unload threshold.
+     * Determines if the goal can be used. This goal can be used if the cooldown has expired, the pet is not on the client side, the
+     * pet has an inventory, the pet has a work location, the inventory is non-empty, and the fraction of full slots in the inventory
+     * is >= the unload threshold.
      * 
      * @return true if the goal can be used, false otherwise
      */
     @Override
     public boolean canUse()
     {
-        if (pet.getNavigation().isInProgress()) return false; // don’t steal MOVE slot
-
-        if (cooldownTicks > 0)
+        if (pet.getNavigation().isInProgress())
         {
-            cooldownTicks--;
             return false;
         }
+
+        if (cooldownTicks-- > 0)
+        {
+            return false;
+        }
+
+        cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
 
         if (pet.level().isClientSide) return false;
         if (pet.getInventory() == null) return false;
@@ -77,6 +82,19 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         BlockPos wp = pet.getWorkLocation();
         if (wp == null) return false;
 
+        return needsUnload();
+    }
+
+    /**
+     * Determines if the pet needs to unload its inventory at its current work location. This method checks if the pet has an
+     * inventory, and if so, counts the number of non-empty slots in the inventory. If the pet has an inventory and the fraction of
+     * non-empty slots in the inventory is greater than or equal to the unload threshold, it returns true, indicating that the pet
+     * needs to unload its inventory.
+     * 
+     * @return true if the pet needs to unload its inventory, false otherwise
+     */
+    protected boolean needsUnload()
+    {
         int fullSlots = 0;
         int totalSlots = pet.getInventory().getSlots();
         for (int i = 0; i < totalSlots; i++)
@@ -90,9 +108,9 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Determines if the goal can continue to be used.
-     * 
-     * This goal can continue to run if the pet has not unloaded its inventory, the timeout has not been exceeded, and either the pet is still navigating to the work position or the pet is close enough to try unloading.
+     * Determines if the goal can continue to be used. This goal can continue to run if the pet has not unloaded its inventory, the
+     * timeout has not been exceeded, and either the pet is still navigating to the work position or the pet is close enough to try
+     * unloading.
      * 
      * @return true if the goal can continue to run, false otherwise
      */
@@ -103,6 +121,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         if (unloaded) return false;
         if (ticksRunning > MAX_RUN_TICKS) return false;
         if (workPos == null) return false;
+        if (!needsUnload()) return false;
 
         boolean navInProgress = pet.getNavigation().isInProgress();
         boolean closeEnough = pet.position().distanceToSqr(Vec3.atCenterOf(workPos)) <= ARRIVAL_DIST_SQ;
@@ -111,8 +130,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Starts the goal by setting the target work position, and moving towards it.
-     * Also resets the state variables like unloaded, hasArrived, ticksRunning, stuckTicks, replanAttempts, and lastPos.
+     * Starts the goal by setting the target work position, and moving towards it. Also resets the state variables like unloaded,
+     * hasArrived, ticksRunning, stuckTicks, replanAttempts, and lastPos.
      */
     @Override
     public void start()
@@ -124,6 +143,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         this.stuckTicks = 0;
         this.replanAttempts = 0;
         this.lastPos = pet.position();
+        this.bestDistSq = Double.MAX_VALUE;
+        this.noApproachTicks = 0;
 
         if (workPos != null)
         {
@@ -133,10 +154,12 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
     /**
      * Ticks the unload goal.
-     * 
-     * <p>This method is called every tick that the goal is active. It checks if the pet has unloaded its inventory, if the timeout has not been exceeded, and if either the pet is still navigating to the work position or the pet is close enough to try unloading.</p>
-     * 
-     * <p>If the pet has unloaded, stops the goal. If the timeout has been exceeded, attempts to unload at the current position or aborts. If the pet is close enough, attempts to unload at the work position. If the pet is stuck, attempts to replan to the work position. If replanning fails, attempts to unload at the current position or aborts.</p>
+     * <p>This method is called every tick that the goal is active. It checks if the pet has unloaded its inventory, if the timeout has
+     * not been exceeded, and if either the pet is still navigating to the work position or the pet is close enough to try
+     * unloading.</p>
+     * <p>If the pet has unloaded, stops the goal. If the timeout has been exceeded, attempts to unload at the current position or
+     * aborts. If the pet is close enough, attempts to unload at the work position. If the pet is stuck, attempts to replan to the work
+     * position. If replanning fails, attempts to unload at the current position or aborts.</p>
      * 
      * @see #canContinueToUse()
      * @see #start()
@@ -192,7 +215,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
                 noApproachTicks++;
             }
             if (noApproachTicks > 40)
-            {   
+            {
                 // ~2s not getting closer
                 if (!replanToWorkPos()) tryFallbackUnloadOrAbort();
                 return;
@@ -217,7 +240,6 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
     /**
      * Resets the goal state and stops the navigation of the pet.
-     * 
      * <p>This method is called when the goal is stopped. It resets all internal state and stops the navigation of the pet.</p>
      * 
      * @see net.minecraft.world.entity.ai.goal.Goal#stop()
@@ -245,10 +267,10 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
     /**
      * Attempts to replan the path to the work position.
-     * 
-     * <p>This method is called when the pet is stuck and the goal is not yet satisfied. It will try to replan the path to the work location
-     * by first trying to path to the center of the block, and if that fails, tries to path to the 8 surrounding blocks in a random order.
-     * If all of those attempts fail, the goal is considered failed and the pet should stop navigating to the work location.</p>
+     * <p>This method is called when the pet is stuck and the goal is not yet satisfied. It will try to replan the path to the work
+     * location by first trying to path to the center of the block, and if that fails, tries to path to the 8 surrounding blocks in a
+     * random order. If all of those attempts fail, the goal is considered failed and the pet should stop navigating to the work
+     * location.</p>
      * 
      * @return true if the replan was successful, false otherwise
      */
@@ -294,9 +316,9 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
     /**
      * Attempts to replan the path to the given target position.
-     * 
-     * <p>This method is called when the pet is stuck and the goal is not yet satisfied. It will try to replan the path to the target position
-     * by trying to path to the center of the block. If the replan fails, the goal is considered failed and the pet should stop navigating to the work location.</p>
+     * <p>This method is called when the pet is stuck and the goal is not yet satisfied. It will try to replan the path to the target
+     * position by trying to path to the center of the block. If the replan fails, the goal is considered failed and the pet should
+     * stop navigating to the work location.</p>
      * 
      * @param target the target position to replan to
      * @return true if the replan was successful, false otherwise
@@ -311,9 +333,9 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Tries to unload the pet's inventory into the work position, but as a fallback, if the pet is within a small radius and has line of sight
-     * to the work position, it will unload without standing exactly on the block. If this fallback is not possible, it will abort the unload
-     * process with a cooldown to avoid thrashing.
+     * Tries to unload the pet's inventory into the work position, but as a fallback, if the pet is within a small radius and has line
+     * of sight to the work position, it will unload without standing exactly on the block. If this fallback is not possible, it will
+     * abort the unload process with a cooldown to avoid thrashing.
      */
     private void tryFallbackUnloadOrAbort()
     {
@@ -334,29 +356,23 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
     /**
      * Returns true if the pet has line of sight to the given block position, and false otherwise.
-     * 
-     * <p>This method is used to determine if the pet can unload its inventory into the work position without standing exactly on the block. If the
-     * pet is within a small radius and has line of sight to the work position, it will unload without standing exactly on the block. Otherwise, it
-     * will abort the unload process with a cooldown to avoid thrashing.</p>
+     * <p>This method is used to determine if the pet can unload its inventory into the work position without standing exactly on the
+     * block. If the pet is within a small radius and has line of sight to the work position, it will unload without standing exactly
+     * on the block. Otherwise, it will abort the unload process with a cooldown to avoid thrashing.</p>
      * 
      * @param pos the block position to check line of sight to
      * @return true if the pet has line of sight to the block, false otherwise
      */
-    private boolean hasLineOfSightToBlock(BlockPos pos) {
+    private boolean hasLineOfSightToBlock(BlockPos pos)
+    {
         if (pos == null) return false;
         if (!pet.level().isLoaded(pos)) return false;
 
         Vec3 start = pet.getEyePosition();
-        Vec3 end   = Vec3.atCenterOf(pos);
+        Vec3 end = Vec3.atCenterOf(pos);
 
         // Colliders = respect solid collision shapes; ignore fluids
-        ClipContext ctx = new ClipContext(
-            start,
-            end,
-            ClipContext.Block.COLLIDER,
-            ClipContext.Fluid.NONE,
-            pet
-        );
+        ClipContext ctx = new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, pet);
 
         BlockHitResult hit = pet.level().clip(ctx);
 
@@ -364,27 +380,19 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         return hit.getType() == HitResult.Type.MISS || pos.equals(hit.getBlockPos());
     }
 
-
     /**
      * Attempts to unload the entire inventory of the pet into the given block position.
-     *
-     * <p>This method is used by the unload goal to actually transfer items from the pet's inventory to the work position. It does so by attempting
-     * to merge items into the container at the target position, and if no merge is possible, attempting to place them into an empty slot. Any items
-     * that cannot be unloaded are left in the pet's inventory. If any items were unloaded, the container is marked as changed and the unload goal
-     * terminates with success.</p>
+     * <p>This method is used by the unload goal to actually transfer items from the pet's inventory to the work position. It does so
+     * by attempting to merge items into the container at the target position, and if no merge is possible, attempting to place them
+     * into an empty slot. Any items that cannot be unloaded are left in the pet's inventory. If any items were unloaded, the container
+     * is marked as changed and the unload goal terminates with success.</p>
      *
      * @param pos the block position of the container to unload into
      */
     private void tryUnloadInto(BlockPos pos)
     {
-        if (!(pet.level() instanceof ServerLevel serverLevel)) return;
-
-        BlockEntity be = serverLevel.getBlockEntity(pos);
-        if (!(be instanceof Container container))
+        if (!(pet.level() instanceof ServerLevel serverLevel))
         {
-            // No container anymore; abort (but don’t hang).
-            cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
-            stop();
             return;
         }
 
@@ -395,23 +403,34 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             ItemStack stack = pet.getInventory().getStackInSlot(i);
             if (stack.isEmpty()) continue;
 
+            int preMergeCount = stack.getCount();
+
             // Insert into any slots we can: first try merges, then empties.
-            stack = tryMergeIntoContainer(stack, container);
+            stack = tryMergeIntoContainer(stack, pet.getInventory());
             if (!stack.isEmpty())
             {
-                stack = tryPlaceIntoEmptySlot(stack, container);
+                stack = tryPlaceIntoEmptySlot(stack, pet.getInventory());
+            }
+
+            // Check if anything changed
+            if (stack.isEmpty() || preMergeCount != stack.getCount())
+            {
+                changed = true;
             }
 
             // Write back remaining / emptied stack
             pet.getInventory().setStackInSlot(i, stack);
-            if (!changed && !stack.isEmpty())
-            { /* still items left; may try again later */ }
-            changed = true;
         }
 
         if (changed)
         {
-            be.setChanged();
+            BlockEntity be = serverLevel.getBlockEntity(pos);
+
+            if (be != null)
+            {
+                be.setChanged();
+            }
+
         }
         else
         {
@@ -426,66 +445,58 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Attempts to merge the given item stack into the given container by inserting it into any slots that are not full and that contain the same item.
-     * 
-     * <p>This method is used by the unload goal to attempt to merge items from the pet's inventory into the container at the work position. If the given
-     * item stack is empty, this method will return an empty stack. Otherwise, it will attempt to merge the given item stack into the container by iterating
-     * over all slots in the container and checking if the item stack can be merged into each slot. If the item stack can be merged into a slot, the
-     * item stack is shrunk by the number of items successfully merged, and the method continues to the next slot. If the item stack cannot be merged into
-     * any slot, the method returns the item stack unchanged.</p>
-     * 
-     * @param stack the item stack to attempt to merge into the container
-     * @param container the container to attempt to merge the item stack into
-     * @return the remaining item stack after attempting to merge it into the container
+     * Attempts to merge the given stack into an IItemHandler by inserting it into existing stacks that are not full and contain the
+     * same item.
+     *
+     * @param stack       the item stack to insert
+     * @param itemHandler the inventory to insert into
+     * @return the remaining item stack after attempting to merge
      */
-    private ItemStack tryMergeIntoContainer(ItemStack stack, Container container)
+    private ItemStack tryMergeIntoContainer(ItemStack stack, IItemHandler itemHandler)
     {
-        for (int j = 0; j < container.getContainerSize() && !stack.isEmpty(); j++)
+        for (int slot = 0; slot < itemHandler.getSlots() && !stack.isEmpty(); slot++)
         {
-            ItemStack target = container.getItem(j);
+            ItemStack target = itemHandler.getStackInSlot(slot);
             if (target.isEmpty()) continue;
             if (!ItemStack.isSameItemSameComponents(target, stack)) continue;
 
-            int space = Math.min(target.getMaxStackSize(), container.getMaxStackSize()) - target.getCount();
+            int space = Math.min(target.getMaxStackSize(), itemHandler.getSlotLimit(slot)) - target.getCount();
             if (space <= 0) continue;
 
             int toTransfer = Math.min(space, stack.getCount());
             if (toTransfer > 0)
             {
-                target.grow(toTransfer);
-                stack.shrink(toTransfer);
+                // Copy for insertion
+                ItemStack insert = stack.copy();
+                insert.setCount(toTransfer);
+
+                ItemStack remaining = itemHandler.insertItem(slot, insert, false);
+                int inserted = toTransfer - remaining.getCount();
+
+                if (inserted > 0)
+                {
+                    stack.shrink(inserted);
+                }
             }
         }
         return stack;
     }
 
     /**
-     * Attempts to place the given item stack into any empty slots in the given container.
-     * 
-     * <p>This method is used by the unload goal to attempt to place items from the pet's inventory into the container at the work position. If the given
-     * item stack is empty, this method will return an empty stack. Otherwise, it will iterate over all slots in the container and attempt to place the
-     * given item stack into the first empty slot it finds. If the item stack can be placed into the slot, the item stack is shrunk by the number of items
-     * successfully placed, and the method continues to the next slot. If the item stack cannot be placed into any slot, the method returns the item stack
-     * unchanged.</p>
-     * 
-     * @param stack the item stack to attempt to place into the container
-     * @param container the container to attempt to place the item stack into
-     * @return the remaining item stack after attempting to place it into the container
+     * Attempts to place the given stack into empty slots in an IItemHandler.
+     *
+     * @param stack       the item stack to place
+     * @param itemHandler the inventory to insert into
+     * @return the remaining item stack after attempting to place it
      */
-    private ItemStack tryPlaceIntoEmptySlot(ItemStack stack, Container container)
+    private ItemStack tryPlaceIntoEmptySlot(ItemStack stack, IItemHandler itemHandler)
     {
-        for (int j = 0; j < container.getContainerSize() && !stack.isEmpty(); j++)
+        for (int slot = 0; slot < itemHandler.getSlots() && !stack.isEmpty(); slot++)
         {
-            ItemStack target = container.getItem(j);
+            ItemStack target = itemHandler.getStackInSlot(slot);
             if (!target.isEmpty()) continue;
 
-            int max = Math.min(stack.getMaxStackSize(), container.getMaxStackSize());
-            int insert = Math.min(max, stack.getCount());
-
-            ItemStack placed = stack.copy();
-            placed.setCount(insert);
-            container.setItem(j, placed);
-            stack.shrink(insert);
+            stack = itemHandler.insertItem(slot, stack, false);
         }
         return stack;
     }

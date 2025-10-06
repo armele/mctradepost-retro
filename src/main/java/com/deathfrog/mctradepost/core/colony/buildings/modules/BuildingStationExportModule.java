@@ -233,7 +233,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             if (shipDistance >= 0)
             { 
                 // Check for completion before the next move.
-                if (exportData.getShipDistance() >= exportData.getTrackDistance())
+                if (shipDistance >= exportData.getTrackDistance())
                 {
                     ((BuildingStation) building).completeExport(exportData);
                     continue;

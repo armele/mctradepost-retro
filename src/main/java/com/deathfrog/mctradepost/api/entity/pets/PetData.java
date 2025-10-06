@@ -295,7 +295,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), getWorkLocation(), 1.2, 2));
         }
 
-        animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300, 40));
+        animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300));
 
         if (getTrainerBuilding() != null)
         {

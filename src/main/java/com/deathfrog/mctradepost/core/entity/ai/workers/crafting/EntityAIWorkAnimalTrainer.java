@@ -5,11 +5,13 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.C
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.DECIDE;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.IDLE;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.START_WORKING;
-import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.GATHERING_REQUIRED_MATERIALS;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.DUMPING;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +28,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -42,6 +45,7 @@ import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.api.util.Tuple;
+import com.minecolonies.api.util.constant.ColonyConstants;
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
@@ -51,6 +55,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -61,12 +66,18 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     public static final String PETS_TRAINED = "pets_trained";
     public static final String PETS_FED = "pets_fed";
     public static final String WORKSTATIONS_EMPTIED = "workstations_emptied";
+    public static final double EMPTY_CHANCE = .10;
+    public static final double FEEDING_CHANCE = .25;
 
+    public static final int PETCHECK_FREQUENCY = 20;
     public static final int PETFOOD_SIZE = 8;
 
     private List<ITradePostPet> hungryPets = new ArrayList<>();
-    private List<ITradePostPet> petsWithFullishWorksites = new ArrayList<>();
+    private Map<BlockPos, Long> workStations = new HashMap<BlockPos, Long>();
+
     private ITradePostPet currentTargetPet = null;
+    private int petCheckCooldown = PETCHECK_FREQUENCY;
+    private BlockPos currentWorkLocation = null;
 
     public enum AnimalTrainerStates implements IAIState
     {
@@ -131,8 +142,46 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     public IAIState decide()
     {
 
+        if (petCheckCooldown-- <= 0)
+        {
+            checkOnPets();
+            petCheckCooldown = PETCHECK_FREQUENCY;
+        }
+
+        if (hungryPets.size() > 0 && ColonyConstants.rand.nextDouble() < FEEDING_CHANCE)
+        {
+            return AnimalTrainerStates.GATHER_PET_FOOD;
+        }
+
+        if (ColonyConstants.rand.nextDouble() < EMPTY_CHANCE)
+        {
+            return AnimalTrainerStates.EMPTY_WORKSITES;
+        }
+
+        if (building.getPets().size() < (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
+            return AnimalTrainerStates.RAISE_PET;
+        }
+
+        return super.decide();
+    }
+
+
+    /**
+     * Iterates over all the pets in the building and checks if they are hungry
+     * or need to be fed. If a pet is hungry, it is added to the
+     * {@link #hungryPets} set. Additionally, it checks if each pet is
+     * currently working and if so, adds their work location to the
+     * {@link #workStations} map. Finally, it removes any entries from
+     * the {@link #workStations} map that are not in the current set of
+     * work locations and adds any missing entries with a default value of 0L.
+     */
+    private void checkOnPets()
+    {
         hungryPets.clear();
-        petsWithFullishWorksites.clear();
+
+        Set<BlockPos> currentWorkStations = new HashSet<>();
 
         for (ITradePostPet pet : building.getPets())
         {
@@ -145,42 +194,20 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
             }
 
-            if (pet.getWorkLocation() != null)
+            if (pet.getWorkLocation() != null && !BlockPos.ZERO.equals(pet.getWorkLocation()))
             {
-                Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), pet.getWorkLocation(), null);
-                if (!optProvider.isPresent())
-                {
-                    continue;
-                }
-
-                IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
-                int howFull = MCTPInventoryUtils.filledSlotsPercentage(chestHandlerOpt);
-
-                if (howFull >= 40)
-                {
-                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Inventory needs to be emptied.", pet.getWorkLocation()));
-                    petsWithFullishWorksites.add(pet);
-                }
+                currentWorkStations.add(pet.getWorkLocation());
             }
         }
 
-        if (hungryPets.size() > 0)
-        {
-            return AnimalTrainerStates.GATHER_PET_FOOD;
-        }
+        // Remove anything not in the current set
+        workStations.keySet().retainAll(currentWorkStations);
 
-        if (petsWithFullishWorksites.size() > 0)
+        // Add any missing entries with default 0L
+        for (BlockPos pos : currentWorkStations) 
         {
-            return AnimalTrainerStates.EMPTY_WORKSITES;
+            workStations.putIfAbsent(pos, 0L);
         }
-
-        if (building.getPets().size() < (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
-        {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
-            return AnimalTrainerStates.RAISE_PET;
-        }
-
-        return super.decide();
     }
 
 
@@ -220,7 +247,12 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return DECIDE;
         }
 
-        needsCurrently = null;
+        if (!walkToBuilding())
+        {
+            return getState();
+        }
+
+        boolean hasFoodToDistribute = false;
 
         for (ITradePostPet pet : hungryPets)
         {
@@ -232,17 +264,20 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                     
             currentTargetPet = pet;
 
-            ItemStorage food = new ItemStorage(PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass()), PETFOOD_SIZE);
+            Item food = PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass());
 
-            int onHand = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), stack -> Objects.equals(new ItemStorage(stack), food));
+            int onHand = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), food);
 
             if (onHand < PETFOOD_SIZE)
             {
-                int inStock = InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(), stack -> Objects.equals(new ItemStorage(stack), food));
+                int inStock = InventoryUtils.getItemCountInItemHandler(building.getItemHandlerCap(), food);
 
                 if (inStock >= PETFOOD_SIZE)
                 {
-                    needsCurrently = new Tuple<>(stack -> Objects.equals(stack.getItem(), food.getItem()), PETFOOD_SIZE);
+                     if (this.checkAndTransferFromHut(new ItemStack(food, PETFOOD_SIZE)))
+                     {
+                         hasFoodToDistribute = true;
+                     }
                 }
                 else
                 {
@@ -250,7 +285,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                     final ImmutableList<IRequest<? extends Stack>> openRequests = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
                     for (final IRequest<? extends Stack> request : openRequests)
                     {
-                        if (request.getRequest().getStack().equals(food.getItemStack()))
+                        if (request.getRequest().getStack().is(food))
                         {
                             alreadyRequested = true;
                             break;
@@ -259,35 +294,25 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
                     if (!alreadyRequested)
                     {
-                        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Requesting {} from warehouse.", food.getItemStack().getHoverName()));
+                        final ItemStack requestStack = new ItemStack(food);
+                        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Requesting {} from warehouse.", requestStack.getHoverName()));
 
-                        worker.getCitizenData().createRequestAsync(new Stack(food.getItemStack(), PETFOOD_SIZE, 2));
+                        worker.getCitizenData().createRequestAsync(new Stack(requestStack, PETFOOD_SIZE, 2));
                     }
                 }
             }
             else
             {
-                return AnimalTrainerStates.FEED_PET;
+                hasFoodToDistribute = true;
             }
         }
 
-
-        if (needsCurrently != null)
+        if (hasFoodToDistribute)
         {
-            return GATHERING_REQUIRED_MATERIALS;
+            return AnimalTrainerStates.FEED_PET;
         }
 
         return DECIDE;
-    }
-
-    /**
-     * After picking up the required food, the next AI state to transition to is AnimalTrainerStates.FEED_PET.
-     * This state is responsible for feeding the injured pet.
-     */
-    @Override
-    public IAIState getStateAfterPickUp()
-    {
-        return AnimalTrainerStates.FEED_PET;
     }
 
 
@@ -303,75 +328,98 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return DECIDE;
         }
 
+        Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), currentTargetPet.getWorkLocation(), null);
+        if (!optProvider.isPresent())
+        {
+            currentTargetPet = null;
+            return DECIDE;
+        }
+
         if (!walkToSafePos(currentTargetPet.getWorkLocation()))
         {
             setDelay(2);
             return getState();
         }
-
-        BlockEntity be = worker.level().getBlockEntity(currentTargetPet.getWorkLocation());
+    
+        IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
+        unloadWorkLocation(currentTargetPet.getWorkLocation());
         
-        if (be instanceof Container) 
+        // Put the food into the work location
+        ItemStorage food = new ItemStorage(PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass()), PETFOOD_SIZE);
+        int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> Objects.equals(new ItemStorage(stack), food));
+
+        if (foodslot >= 0)
         {
-            Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), currentTargetPet.getWorkLocation(), null);
-            if (!optProvider.isPresent())
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Delivering pet food to {}.", currentTargetPet.getWorkLocation()));
+            InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(worker, foodslot, chestHandlerOpt.getItemHandlerCap());
+
+            StatsUtil.trackStat(building, PETS_FED, 1);
+            worker.getCitizenExperienceHandler().addExperience(1.0);
+
+            BlockEntity be = worker.level().getBlockEntity(currentTargetPet.getWorkLocation());
+            if (be != null)
             {
-                currentTargetPet = null;
-                return DECIDE;
-            }
-
-            IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
-            unloadWorkLocation(currentTargetPet);
-            
-            // Put the food into the work location
-            ItemStorage food = new ItemStorage(PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass()), PETFOOD_SIZE);
-            int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> Objects.equals(new ItemStorage(stack), food));
-
-            if (foodslot >= 0)
-            {
-                InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(worker, foodslot, chestHandlerOpt.getItemHandlerCap());
-
-                StatsUtil.trackStat(building, PETS_FED, 1);
-                worker.getCitizenExperienceHandler().addExperience(1.0);
                 be.setChanged();
-            }
-
+            } 
         }
+
+        currentTargetPet = null;
 
         return DUMPING;
     }
 
 
     /**
-     * Walk to a pet's work location that has a full or almost full inventory and unload it. If the pet's inventory is not full or almost full, do nothing.
+     * Walk to a pet's work location and unload it.
      * @return the next AI state to transition to, which is either DUMPING or DECIDE.
      */
     public IAIState emptyWorkSites()
     {
-        if (petsWithFullishWorksites.isEmpty())
+        if (currentWorkLocation == null)
         {
-            return DECIDE;
+            currentWorkLocation = getOldestUnload();
+            if (currentWorkLocation == null) return DECIDE;
         }
 
-        for (ITradePostPet pet : petsWithFullishWorksites)
+        if (!walkToSafePos(currentWorkLocation))
         {
-            if (pet.getWorkLocation() == null || BlockPos.ZERO.equals(pet.getWorkLocation()))
-            {
-                continue;
-            }
-
-            if (!walkToSafePos(pet.getWorkLocation()))
-            {
-                setDelay(2);
-                return getState();
-            }
-
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unloading work station at {}.", pet.getWorkLocation()));
-            unloadWorkLocation(pet);
+            setDelay(2);
+            return getState();
         }
+
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unloading work station at {}.", currentWorkLocation));
+        unloadWorkLocation(currentWorkLocation);
+        workStations.put(currentWorkLocation, worker.level().getGameTime());
+
+        currentWorkLocation = getOldestUnload();
 
         return DUMPING;
         
+    }
+
+
+    /**
+     * Finds the oldest BlockPos in the workStations map, which is the key with the smallest value (oldest timestamp).
+     * If the map is empty, returns null.
+     *
+     * @return the oldest BlockPos in the workStations map, or null if the map is empty.
+     */
+    @Nullable
+    private BlockPos getOldestUnload()
+    {
+        if (workStations.isEmpty()) {
+            return null;
+        }
+
+        long now = worker.level().getGameTime();
+        long threshold = now - (5 * 60 * 20);           // 5 minutes in ticks (20 ticks per second)
+
+        return workStations.entrySet()
+            .stream()
+            .filter(e -> e.getValue() <= threshold)     // only those untouched for >= 5 min
+            .min(Map.Entry.comparingByValue())          // oldest timestamp among them
+            .map(Map.Entry::getKey)
+            .orElse(null);
     }
 
 
@@ -379,22 +427,22 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
      * Unload everything from the work location into the worker's inventory.
      * If the worker's inventory is full, stop unloading.
      */
-    private void unloadWorkLocation(ITradePostPet pet)
+    private void unloadWorkLocation(BlockPos workLocation)
     {
-        BlockEntity be = worker.level().getBlockEntity(pet.getWorkLocation());
-        Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), pet.getWorkLocation(), null);
-        if (!optProvider.isPresent())
+
+        Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(worker.level(), workLocation, null);
+        if (optProvider.isEmpty())
         {
             return;
         }
 
         IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
 
-        // Unload everything in the work location.
+        // Unload everything in the work location EXCEPT pet food.
         for (int i = 0; i < chestHandlerOpt.getItemHandlerCap().getSlots(); i++)
         {
             ItemStack stack = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i);
-            if (!stack.isEmpty())
+            if (!stack.isEmpty() && !PetTypes.isPetFood(stack))
             {
                 boolean canTake = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, i, worker.getItemHandlerCap());
 
@@ -404,8 +452,12 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
             }
         }
-
-        be.setChanged();
+        
+        BlockEntity be = worker.level().getBlockEntity(workLocation);
+        if (be != null)
+        {
+            be.setChanged();
+        }
 
         StatsUtil.trackStat(building, WORKSTATIONS_EMPTIED, 1);
         worker.getCitizenExperienceHandler().addExperience(1.0);

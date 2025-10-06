@@ -3,8 +3,6 @@ package com.deathfrog.mctradepost.api.entity.pets.goals;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkAnimalTrainer;
-import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.InventoryUtils;
 import com.mojang.logging.LogUtils;
 
@@ -12,14 +10,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
-
-import java.util.EnumSet;
-import java.util.Objects;
 
 import org.slf4j.Logger;
 
@@ -34,12 +29,9 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
     public static final int LOG_THROTTLE = 200;
     private final P pet;
     private final int cooldownTicks;          // Minimum ticks between eats, to prevent spamming
-    private final int windupTicks;            // Small delay to simulate "eating" (anim/sound timing)
 
-    private long lastEatTick = -200L;
-    private int eatAtTick = -1;
-    private int cachedSlot = -1;
-    private ItemStorage foodFilter = null;
+    private int eatTickCooldown = 0;
+    private Item foodItem = null;
 
     private int logThrottleCounter = 0;
     
@@ -49,14 +41,10 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
      * @param cooldownTicks how long to wait between self-heals (e.g., 200 = 10s)
      * @param windupTicks   small delay before consuming (e.g., 10)
      */
-    public EatFromInventoryHealGoal(P pet, int cooldownTicks, int windupTicks)
+    public EatFromInventoryHealGoal(P pet, int cooldownTicks)
     {
         this.pet = pet;
         this.cooldownTicks = Math.max(0, cooldownTicks);
-        this.windupTicks = Math.max(0, windupTicks);
-
-        // We don't need to move for this; set LOOK for potential head motion if you do anims later.
-        this.setFlags(EnumSet.of(Goal.Flag.LOOK));
     }
 
     /**
@@ -72,44 +60,73 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
         if (!pet.isAlive() || pet.level().isClientSide()) return false;
 
         // Only when actually injured
-        if (pet.getHealth() >= pet.getMaxHealth()) return false;
-
-        // Respect cooldown
-        if (pet.tickCount - lastEatTick < cooldownTicks) return false;
-
-        if (foodFilter == null)
+        if (pet.getHealth() >= pet.getMaxHealth()) 
         {
-            foodFilter = new ItemStorage(PetTypes.foodForPet(pet.getClass()), EntityAIWorkAnimalTrainer.PETFOOD_SIZE);
+            if (eatTickCooldown > 0) 
+            {
+                eatTickCooldown--;
+            }
+            return false;
         }
 
-        cachedSlot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(pet.getInventory(), stack -> Objects.equals(new ItemStorage(stack), foodFilter));
+        // Respect cooldown
+        if (eatTickCooldown-- > 0) 
+        {
+            return false;
+        }
+
+        eatTickCooldown = cooldownTicks;
+
+        if (foodItem == null)
+        {
+            foodItem = PetTypes.foodForPet(pet.getClass());
+            if (foodItem == null) 
+            {
+                LOGGER.warn("No food item is registered for pet class: {}", pet.getClass().getName());
+                return false;
+            }
+        }
+
+        IItemHandler inv = pet.getInventory();
+        if (inv == null) 
+        {
+            LOGGER.warn("No inventory found for pet: {}", pet.getClass().getName());
+            return false;
+        }
+
+        int numFood = InventoryUtils.getItemCountInItemHandler(inv, foodItem);
 
         if (logThrottleCounter <= 0)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Want to heal - food slot: {}.", cachedSlot));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Want to heal - food item: {} (have {}).", foodItem, numFood));
             logThrottleCounter = LOG_THROTTLE;
         }
 
         logThrottleCounter--;
 
-        return cachedSlot >= 0;
+        return numFood > 0;
     }
 
     @Override
     public boolean canContinueToUse()
     {
-        // One-shot behavior with a brief windup
-        return eatAtTick >= 0 && pet.isAlive() && !pet.level().isClientSide() && (pet.getHealth() < pet.getMaxHealth());
+        return false;
     }
 
     @Override
-    public void start()
-    {
-        // Schedule the consume moment after a short windup
-        eatAtTick = pet.tickCount + windupTicks;
-
-        // Optional: look "down" a bit like vanilla eat behavior
+    public void start() 
+    {        
+        // Cosmetic look
         pet.getLookControl().setLookAt(pet.getX(), pet.getEyeY() - 0.6, pet.getZ(), 10.0F, pet.getMaxHeadXRot());
+
+            // Re-check that we’re still injured and have the item
+        if (pet.getHealth() < pet.getMaxHealth())
+        {
+            consumeOneAndHeal();
+        }
+        
+        // End the goal
+        eatTickCooldown = cooldownTicks;
     }
 
     /**
@@ -120,25 +137,16 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
     @Override
     public void tick()
     {
-        if (pet.level().isClientSide()) return;
-
-        if (eatAtTick >= 0 && pet.tickCount >= eatAtTick)
-        {
-            // Re-check that we’re still injured and have the item
-            if (pet.getHealth() < pet.getMaxHealth() && cachedSlot >= 0)
-            {
-                consumeOneAndHeal(pet, cachedSlot, foodFilter);
-            }
-            // End the goal
-            eatAtTick = -1;
+        if (pet.level().isClientSide())
+        { 
+            return;
         }
     }
 
     @Override
     public void stop()
     {
-        cachedSlot = -1;
-        eatAtTick = -1;
+        eatTickCooldown = cooldownTicks;
     }
 
     @Override
@@ -162,38 +170,41 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
      * @param food   the food item to take (used for logging and for checking if the
      *               item is actually the food we want)
      */
-    private void consumeOneAndHeal(LivingEntity entity, int slot, ItemStorage foodToEat)
+    private void consumeOneAndHeal()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Healing pet - food slot: {} ({}).", slot, foodToEat));
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Healing pet - food: {}.", foodItem));
 
         IItemHandler inv = pet.getInventory();
-        if (inv == null) return;
+        if (inv == null) 
+        {
+            LOGGER.warn("No inventory found for pet: {}", pet.getClass().getName());
+            return;
+        }
 
-        // Simulate first to ensure there is at least 1 to take
-        ItemStack simulated = inv.extractItem(slot, 1, /*simulate*/ true);
-        if (simulated.isEmpty() || !(simulated.getItem().equals(foodToEat.getItem()))) return;
+        boolean didEat = InventoryUtils.attemptReduceStackInItemHandler(pet.getInventory(), new ItemStack(foodItem, 1), 1);
 
-        // Actually remove one item
-        ItemStack removed = inv.extractItem(slot, 1, /*simulate*/ false);
-        if (removed.isEmpty()) return;
+        if (!didEat)
+        {
+            return;
+        }
 
         // Heal up to 2.0 health but not past max
-        float missing = entity.getMaxHealth() - entity.getHealth();
+        float missing = pet.getMaxHealth() - pet.getHealth();
         float healAmount = Math.min(2.0F, Math.max(0.0F, missing));
+        
         if (healAmount > 0.0F)
         {
-            entity.heal(healAmount);
+            pet.heal(healAmount);
 
             // Play a small eat sound
-            entity.level()
+            pet.level()
                 .playSound(null,
-                    entity.blockPosition(),
+                    pet.blockPosition(),
                     SoundEvents.GENERIC_EAT,
                     SoundSource.NEUTRAL,
                     0.8F,
-                    entity.getRandom().nextFloat() * 0.2F + 0.9F);
+                    pet.getRandom().nextFloat() * 0.2F + 0.9F);
         }
 
-        lastEatTick = pet.tickCount;
     }
 }

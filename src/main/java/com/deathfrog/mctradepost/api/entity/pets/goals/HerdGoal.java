@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -96,7 +96,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     {
         if (goalLogToggle != resultingState)
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, loggingStatement);
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, loggingStatement);
             goalLogToggle = resultingState;
         }
     }
@@ -171,7 +171,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         if (currentTargetAnimal != null)
         {
             // TODO: Research to increase speed
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
             walkCommandSent = true;
         }   
@@ -199,7 +199,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (currentTargetAnimal == null) 
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("No target on tick()."));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No target on tick()."));
             reset();
             return;
         }
@@ -210,7 +210,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             if (navigationResult != null && navigationResult.failedToReachDestination()) 
             {
                 final BlockPos targetAnimalPos = currentTargetAnimal.getOnPos();
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Failed to reach {} at {}", currentTargetAnimal, targetAnimalPos));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Failed to reach {} at {}", currentTargetAnimal, targetAnimalPos));
 
                 reset();
                 return;
@@ -223,7 +223,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         if (distance > 2 && !walkCommandSent)
         {
             // TODO: Research to increase speed
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
             walkCommandSent = true;
             targetStuckSteps = 0;
@@ -243,7 +243,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
                 else
                 {
                     // Nudge herded animal toward the target
-                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging target towards herding destination: {}. Distance to target: {}. Stuck steps: {}", herdTarget, targetDistance, targetStuckSteps));
+                    TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Nudging target towards herding destination: {}. Distance to target: {}. Stuck steps: {}", herdTarget, targetDistance, targetStuckSteps));
 
                     Vec3 animalPos = currentTargetAnimal.position();
                     Vec3 targetVec = new Vec3(herdTarget.getX() + 0.5, animalPos.y, herdTarget.getZ() + 0.5);
@@ -272,7 +272,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
                 StatsUtil.trackStatByName(pet.getTrainerBuilding(), BuildingPetshop.ANIMALS_HERDED, currentTargetAnimal.getName(), 1);
                 reset();
             }
@@ -293,7 +293,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             if (currentTargetAnimal != null)
             {
                 final BlockPos targetAnimalPos = currentTargetAnimal.getOnPos();
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetAnimalPos, pet.getStuckTicks()));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetAnimalPos, pet.getStuckTicks()));
             }
 
             double dx = (pet.getRandom().nextDouble() - 0.5) * 0.5;

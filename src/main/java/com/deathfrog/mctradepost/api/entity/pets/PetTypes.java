@@ -126,6 +126,30 @@ public enum PetTypes
     }
 
     /**
+     * Checks if the given item stack is a food item for a pet.
+     * <p>
+     * This method checks if the item in the given item stack is equal to any of the food items
+     * registered in the <code>PetTypes</code> enum. If it is, the method returns <code>true</code>; otherwise,
+     * it returns <code>false</code>.
+     * <p>
+     * This method is used by the <code>EatFromInventoryHealGoal</code> to check if a pet has food in its
+     * inventory.
+     * @param stack the item stack to check
+     * @return whether the item in the given item stack is a food item for a pet
+     */
+    public static boolean isPetFood(ItemStack stack)
+    {
+        for (PetTypes type : PetTypes.values())
+        {
+            if (type.getTrainingItem().getItem().equals(stack.getItem()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Creates a PetData object for the given pet type, using the given CompoundTag to initialize it.
      * 
      * @param type the pet type to create a PetData for

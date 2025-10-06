@@ -111,7 +111,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
             case ASSIGN:
                 if (entity != null && entity instanceof ITradePostPet pet) 
                 {
-                    MCTradePostMod.LOGGER.info("Setting work location: {}", workLocation);
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Setting work location: {}", workLocation));
                     pet.setWorkLocation(workLocation);
                     ((BuildingPetshop) trainerBuilding).markPetsDirty();
                 } 

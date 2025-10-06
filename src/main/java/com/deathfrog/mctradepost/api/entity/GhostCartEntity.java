@@ -12,10 +12,15 @@ import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
@@ -347,4 +352,41 @@ public class GhostCartEntity extends AbstractMinecart
         builder.define(TRADE_ITEM, ItemStack.EMPTY);
     }
 
+
+    /**
+     * Gets the packet that should be sent to the client when this entity is spawned.
+     * This packet is used to inform the client of the entity's existence and initial state.
+     * The packet is sent to all clients tracking this entity.
+     * 
+     * @param serverEntity The entity that is being spawned.
+     * @return The packet that should be sent to the client.
+     */
+    @Override
+    public Packet<ClientGamePacketListener> getAddEntityPacket(@Nonnull ServerEntity serverEntity) 
+    {
+        int data = this.getMinecartType().ordinal();
+        BlockPos pos = this.blockPosition();
+        return new ClientboundAddEntityPacket(this, data, pos);
+    }
+
+    @Override
+    public void startSeenByPlayer(@Nonnull ServerPlayer player) 
+    {
+        super.startSeenByPlayer(player);
+        // LOGGER.info("[GhostCart {}] startSeenByPlayer: {}", getId(), player.getGameProfile().getName());
+    }
+
+    @Override
+    public void stopSeenByPlayer(@Nonnull ServerPlayer player) 
+    {
+        super.stopSeenByPlayer(player);
+        // LOGGER.info("[GhostCart {}] stopSeenByPlayer: {}", getId(), player.getGameProfile().getName());
+    }
+
+    @Override
+    public void recreateFromPacket(@Nonnull ClientboundAddEntityPacket pkt) 
+    {
+        super.recreateFromPacket(pkt);
+        // LOGGER.info("[GhostCart CLIENT {}] recreateFromPacket at {}", getId(), position());
+    }
 }

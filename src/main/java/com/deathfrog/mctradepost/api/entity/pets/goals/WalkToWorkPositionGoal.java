@@ -1,6 +1,5 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
@@ -39,9 +38,14 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     private final double speedModifier;
     private final double stopDistanceSq; // squared distance to stop
     private boolean emergencyThisRun = false;
-    private int tries = 0;
+    private int pathTries = 0;
+    private int feedingTries = 0;
     private int retryCooldown = 0;
-
+    private int ticksRunning = 0;
+    private static final int HARD_TIMEOUT_TICKS = 20 * 30; // ~30 seconds
+    private Vec3 lastProgress = null;
+    private int staleTicks = 0;
+    private int chestCheckCooldown = 0;
 
     public WalkToWorkPositionGoal(P mob, @Nonnull BlockPos workPos, double speed, double stopDistance)
     {
@@ -79,23 +83,23 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
         final long timeOfDay = mob.level().getDayTime() % 24000L;
 
-        // Emergency case: run anytime if injured
+        long today = currentDay();
+        if (hasRunToday(today)) return false;
+
+        // Emergency case: run any time of day if injured and no run made today.
         emergencyThisRun = mob.getHealth() < mob.getMaxHealth();
         if (emergencyThisRun)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.canUse: Emergency run to: ", targetPos));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.canUse: Emergency run to: {}", targetPos));
 
-            return (tries < MAX_TRIES);
+            return true;
         }
 
-        // Otherwise run only duing the day.
+        // Otherwise run only during the day.
         if (timeOfDay >= 12000)
         {
             return false;
         }
-
-        long today = currentDay();
-        if (hasRunToday(today)) return false;
 
         return !isWithinDistance();
     }
@@ -108,23 +112,41 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
      * @return true if the goal can continue to run, false otherwise
      */
     @Override
-    public boolean canContinueToUse()
+    public boolean canContinueToUse() 
     {
         if (mob.level().isClientSide()) return false;
         if (!mob.isAlive()) return false;
         if (BlockPos.ZERO.equals(targetPos)) return false;
+        if (ticksRunning >= HARD_TIMEOUT_TICKS) return false;
 
-
-        emergencyThisRun = mob.getHealth() < mob.getMaxHealth();
+        final boolean stillInjured = mob.getHealth() < mob.getMaxHealth();
 
         if (emergencyThisRun) 
         {
-            return (tries < MAX_TRIES);  
+            // End emergency if we’re no longer injured
+            if (!stillInjured) return false;
+
+            // If we can’t reach and we’ve exhausted retries, bail so others can run
+            if (pathTries >= MAX_TRIES && mob.getNavigation().isDone() && !isWithinDistance()) 
+            {
+                return false;
+            }
+
+            // If we reached, allow up to MAX_TRIES “no food” checks; otherwise keep trying to move
+            if (isWithinDistance()) 
+            {
+                return (feedingTries < MAX_TRIES);
+            } 
+            else 
+            {
+                // still trying to path there
+                return pathTries < MAX_TRIES;
+            }
         }
 
+        // Normal (non-emergency) daytime run
         return !isWithinDistance() && !mob.getNavigation().isDone();
     }
-
     /**
      * Executes the tick logic for this goal. This function is called once per tick for the AI to perform its actions. It checks if the pet is within the stopping distance of the target position, and if so, attempts to pick up food from the work location if there is any.
      * <p>
@@ -133,8 +155,31 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     @Override
     public void tick()
     {
+        ticksRunning++;
+        if (lastProgress == null) lastProgress = mob.position();
+
+        if (mob.position().distanceToSqr(lastProgress) < 0.25) 
+        {
+            staleTicks++;
+        }
+        else
+        {
+            staleTicks = 0;
+            lastProgress = mob.position();
+        }
+
+        if (ticksRunning >= HARD_TIMEOUT_TICKS || staleTicks >= 60)
+        {
+            mob.getNavigation().stop();
+            ticksRunning = HARD_TIMEOUT_TICKS;
+            return;
+        }
+
         if (isWithinDistance())
         {
+            if (chestCheckCooldown-- > 0) return;
+            chestCheckCooldown = 5; // scan every 5 ticks
+
             BlockEntity be = mob.level().getBlockEntity(targetPos);
 
             if (be == null)
@@ -142,7 +187,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
                 return;
             }
 
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Looking for food in the work location."));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Looking for food in the work location."));
 
             // Pick up food from the working location if there is any
             Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(mob.level(), targetPos, null);
@@ -150,6 +195,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             {
                 return;
             }
+
             IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
 
             ItemStorage food = new ItemStorage(PetTypes.foodForPet(mob.getClass()), EntityAIWorkAnimalTrainer.PETFOOD_SIZE);
@@ -157,28 +203,36 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             if (foodslot >= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Picking up some food."));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Picking up some food."));
                 boolean gotFood = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, foodslot, mob.getInventory());
 
                 if (gotFood)
                 {
-                    tries = MAX_TRIES; // No need to try more.
+                    feedingTries = MAX_TRIES; // No need to try more.
+                    be.setChanged();
+                }
+                else
+                {
+                    feedingTries++;
                 }
 
             }
-            
-            be.setChanged();
+            else
+            {
+                feedingTries++;
+            }
         }
         else
         {
             if (retryCooldown > 0) retryCooldown--;
 
-            if ((tries < MAX_TRIES) && mob.getNavigation().isDone() && retryCooldown <= 0)
+            if ((pathTries < MAX_TRIES) && mob.getNavigation().isDone() && retryCooldown <= 0)
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", targetPos));
 
                 PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
-                tries++;
+                pathTries++;
+                feedingTries++;
                 retryCooldown = RETRY_COOLDOWN;
             }
         }
@@ -191,11 +245,13 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     @Override
     public void stop()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.stop"));
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.stop: {}, {}, {}, {}, {}", mob, emergencyThisRun, feedingTries, pathTries, retryCooldown));
 
         emergencyThisRun = false;
-        tries = 0;
+        feedingTries = 0;
+        pathTries = 0;
         retryCooldown = 0;
+        mob.getNavigation().stop();
     }
 
     /**
@@ -205,14 +261,18 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     @Override
     public void start()
     {
-        tries = 0;
-        retryCooldown = 0;
 
-        if (!emergencyThisRun)
+        if (!hasRunToday(currentDay())) 
         {
-            long today = currentDay();
-            mob.getPersistentData().putLong(NBT_LAST_RUN_DAY, today);
+            mob.getPersistentData().putLong(NBT_LAST_RUN_DAY, currentDay());
         }
+        
+        ticksRunning = 0; 
+        lastProgress = mob.position(); 
+        staleTicks = 0;
+        pathTries = 0;
+        feedingTries = 0;
+        retryCooldown = 0;
 
         PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
     }
@@ -224,6 +284,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
      */
     private boolean isWithinDistance()
     {
+        if (targetPos == null) return false;
         return mob.position().distanceToSqr(Vec3.atCenterOf(targetPos)) <= stopDistanceSq;
     }
 
