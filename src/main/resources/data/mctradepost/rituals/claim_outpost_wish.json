@@ -1,0 +1,9 @@
+{
+  "companion_item": "mctradepost:outpost_claim",
+  "companion_item_count": 1,
+  "effect_type": "outpost",
+  "target" : "",
+  "radius": -1,
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
+}

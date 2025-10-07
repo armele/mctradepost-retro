@@ -127,5 +127,6 @@ public final class ModBlocksInitializer
         MCTradePostMod.blockHutRecycling.get().registerBlockItem(registry, new Item.Properties());
         MCTradePostMod.blockHutStation.get().registerBlockItem(registry, new Item.Properties());
         MCTradePostMod.blockHutPetShop.get().registerBlockItem(registry, new Item.Properties());
+        MCTradePostMod.blockHutOutpost.get().registerBlockItem(registry, new Item.Properties());
     }
 }

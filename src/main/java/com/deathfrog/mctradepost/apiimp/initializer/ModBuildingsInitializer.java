@@ -11,12 +11,14 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.PetshopView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -135,6 +137,19 @@ public final class ModBuildingsInitializer
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
                 registry.register(ModBuildings.petshop.getRegistryName(), ModBuildings.petshop);
+            });
+
+            BuildingEntry.Builder outpostBuilder = new BuildingEntry.Builder();
+            outpostBuilder.setBuildingBlock(MCTradePostMod.blockHutOutpost.get());
+            outpostBuilder.setBuildingProducer(BuildingOutpost::new);
+            outpostBuilder.setBuildingViewProducer(() -> OutpostView::new);
+            outpostBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.OUTPOST_ID));
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
+
+            ModBuildings.outpost = outpostBuilder.createBuildingEntry();
+
+            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
+                registry.register(ModBuildings.outpost.getRegistryName(), ModBuildings.outpost);
             });
         }
         

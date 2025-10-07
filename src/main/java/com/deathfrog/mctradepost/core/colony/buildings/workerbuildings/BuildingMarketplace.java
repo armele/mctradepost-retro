@@ -50,6 +50,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -345,6 +346,7 @@ public class BuildingMarketplace extends AbstractBuilding
             if (valueToRemove < econ.getTotalBalance())
             {
                 coinStack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), coinsToMint);
+                CoinItem.setMintColonyId(coinStack, colony.getID());
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
                 econ.deposit(-valueToRemove);
             }
@@ -367,6 +369,15 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     public void depositCoins(Player player, ItemStack coinsToDeposit) {
         int coinValue = MCTPConfig.tradeCoinValue.get();
+
+        if (coinsToDeposit.is(MCTradePostMod.MCTP_COIN_GOLD.get())) 
+        {
+            coinValue = coinValue * CoinItem.GOLD_MULTIPLIER;
+        }
+        else if (coinsToDeposit.is(MCTradePostMod.MCTP_COIN_DIAMOND.get())) 
+        {
+            coinValue = coinValue * CoinItem.DIAMOND_MULTIPLIER;
+        }
 
         if (coinsToDeposit.getCount() > 0) {
             int valueToAdd = coinsToDeposit.getCount() * coinValue;

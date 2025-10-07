@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": {
+      "item": "minecolonies:blockhutfarmer"
+    },
+    "G": {
+      "item": "minecolonies:blockhutguardtower"
+    },
+    "S": {
+      "item": "mctradepost:blockhutstation"
+    },
+    "T": {
+      "item": "structurize:sceptergold"
+    },
+    "X": {
+      "tag": "minecraft:planks"
+    }
+  },
+  "pattern": [
+    "XTX",
+    "FGS",
+    "XXX"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:blockhutoutpost"
+  }
+}

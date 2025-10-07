@@ -19,6 +19,8 @@ public class MCTradePostTileEntities
 
     public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> PET_SHOP;
 
+    public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> OUTPOST;
+
     public static DeferredHolder<BlockEntityType<?>, BlockEntityType<MCTPTileEntityColonyBuilding>> BUILDING;
 
 

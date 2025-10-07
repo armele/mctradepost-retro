@@ -7,7 +7,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler.RitualState;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.minecolonies.api.util.NBTUtils;
 
 import net.minecraft.core.BlockPos;
@@ -19,10 +19,10 @@ import net.minecraft.nbt.Tag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
 public class WellLocations implements INBTSerializable<CompoundTag> {
-    private final Map<BlockPos, WishingWellHandler.RitualState> activeRituals = new HashMap<>();
+    private final Map<BlockPos, RitualState> activeRituals = new HashMap<>();
     private final Set<BlockPos> knownWells = new HashSet<>();
 
-    public Map<BlockPos, WishingWellHandler.RitualState> getActiveRituals() {
+    public Map<BlockPos, RitualState> getActiveRituals() {
         return activeRituals;
     }
 
@@ -51,7 +51,7 @@ public class WellLocations implements INBTSerializable<CompoundTag> {
             ritualTag.putInt("BaseCoinCount", baseCount);
             ritualTag.putInt("GoldCoinCount", goldCount);
             ritualTag.putInt("DiamondCoinCount", diamondCount);
-            ritualTag.putInt("CompanionCount", state.companionCount);
+            ritualTag.putInt("CompanionCount", state.getCompanionCount());
             ritualTag.putLong("LastUsed", state.lastUsed);
             ritualList.add(ritualTag);
         }
@@ -80,24 +80,14 @@ public class WellLocations implements INBTSerializable<CompoundTag> {
             BlockPos pos = NBTUtils.readBlockPos(ritualTag.getCompound("Pos"));
 
             RitualState state = new RitualState();
-            // Store the saved counts so requirement checks don’t lie between load and first rebuild
-            int savedBase = ritualTag.getInt("BaseCoinCount");
-            int savedGold = ritualTag.getInt("GoldCoinCount");
-            int savedDiamond = ritualTag.getInt("DiamondCoinCount");
 
             // Make lists null for now; we’ll rebuild them from the world on first tick/usage.
             state.baseCoins = null;
             state.goldCoins = null;
             state.diamondCoins = null;
+            state.companionItems = null;
 
-            state.companionCount = ritualTag.getInt("CompanionCount");
             state.lastUsed = ritualTag.getLong("LastUsed");
-
-            // Optionally store the saved counts in transient fields if you want
-            // requirement checks to pass before we rebuild from the world:
-            state.cachedBaseCount = savedBase;
-            state.cachedGoldCount = savedGold;
-            state.cachedDiamondCount = savedDiamond;
 
             activeRituals.put(pos, state);
         }

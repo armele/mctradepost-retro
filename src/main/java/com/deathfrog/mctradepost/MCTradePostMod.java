@@ -34,6 +34,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutRecycling;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
+import com.deathfrog.mctradepost.core.blocks.huts.BlockHutOutpost;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
@@ -56,6 +57,7 @@ import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
+import com.deathfrog.mctradepost.item.OutpostClaimItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
@@ -81,6 +83,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.FoxRenderer;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
+import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -123,6 +126,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
@@ -257,6 +261,9 @@ public class MCTradePostMod
     public static final DeferredItem<CoinItem> MCTP_COIN_DIAMOND = ITEMS.register("mctp_coin_diamond", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
 
+    public static final DeferredItem<OutpostClaimItem> OUTPOST_CLAIM = ITEMS.register("outpost_claim",
+        () -> new OutpostClaimItem(new Item.Properties()));
+
     /*
     * ENTITIES 
     */
@@ -298,6 +305,7 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutRecycling = BLOCKS.register(BlockHutRecycling.HUT_NAME, () -> new BlockHutRecycling());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutStation = BLOCKS.register(BlockHutStation.HUT_NAME, () -> new BlockHutStation());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetShop = BLOCKS.register(BlockHutPetShop.HUT_NAME, () -> new BlockHutPetShop());
+    public static final DeferredBlock<MCTPBaseBlockHut> blockHutOutpost = BLOCKS.register(BlockHutOutpost.HUT_NAME, () -> new BlockHutOutpost());
 
     public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -1069,6 +1077,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutRecycling.get());
                     event.accept(MCTradePostMod.blockHutStation.get());
                     event.accept(MCTradePostMod.blockHutPetShop.get());
+                    event.accept(MCTradePostMod.blockHutOutpost.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
@@ -1153,6 +1162,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_SLAB.get());
+                    event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                 }
             });
 
@@ -1267,6 +1277,19 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void registerClientReloadListeners(RegisterClientReloadListenersEvent event) {
             event.registerReloadListener(new RitualManager());
+        }
+
+        @OnlyIn(Dist.CLIENT)
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+            event.enqueueWork(() -> {
+                ItemProperties.register(
+                    MCTradePostMod.OUTPOST_CLAIM.get(),
+                    ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, OutpostClaimItem.LINKED),
+                    (stack, level, entity, seed) ->
+                        OutpostClaimItem.hasLinkedBlockPos(stack) ? 1.0F : 0.0F
+                );
+            });
         }
     }
 

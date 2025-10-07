@@ -39,6 +39,10 @@ public class TileEntityInitializer
 
         MCTradePostTileEntities.PET_SHOP = BLOCK_ENTITIES.register(ModBuildings.PETSHOP_ID, 
             () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(DSL.remainderType()));  
+
+        MCTradePostTileEntities.OUTPOST = BLOCK_ENTITIES.register(ModBuildings.OUTPOST_ID, 
+            () -> BlockEntityType.Builder.of(MCTPTileEntityColonyBuilding::new, ModBuildings.getHuts()).build(DSL.remainderType()));  
  
+            
     }
 }

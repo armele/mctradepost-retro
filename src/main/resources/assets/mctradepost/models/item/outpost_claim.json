@@ -1,0 +1,12 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "mctradepost:item/outpost_claim_unset"
+  },
+  "overrides": [
+    {
+      "predicate": { "mctradepost:linked": 1.0 },
+      "model": "mctradepost:item/outpost_claim_set"
+    }
+  ]
+}
