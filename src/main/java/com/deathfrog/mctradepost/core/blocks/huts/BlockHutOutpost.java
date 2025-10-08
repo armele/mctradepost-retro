@@ -111,80 +111,24 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         String path)
     {
         Log.getLogger().info("Special outpost placer! ");
-        // TODO: Eliminate if not used.
+        
+        // Make sure the chunk is present (defensive)
+        if (!world.isAreaLoaded(pos, 1)) return false;
 
-        BlockState anchor = blueprint.getBlockState(blueprint.getPrimaryBlockOffset());
-        if (anchor.getBlock() instanceof AbstractBlockHut && (fancyPlacement || !player.isCreative()))
+        // Require the Outpost Marker at this exact position
+        if (!world.getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
         {
-            if (!(Boolean) ((ServerConfiguration) IMinecoloniesAPI.getInstance().getConfig().getServer()).blueprintBuildMode.get() &&
-                !this.canPaste(anchor.getBlock(), player, pos))
+            if (player != null) 
             {
-                return false;
+                player.displayClientMessage(
+                    Component.translatable("com.mctradepost.outpost.buildfailure"),
+                    true
+                );
             }
-            else
-            {
-                world.destroyBlock(pos, true);
-                world.setBlockAndUpdate(pos, anchor);
-                ((BlockHutOutpost) anchor.getBlock())
-                    .onBlockPlacedByBuildTool(world, pos, anchor, player, (ItemStack) null, rotationMirror, pack, path);
-                if ((Boolean) ((ServerConfiguration) IMinecoloniesAPI.getInstance().getConfig().getServer()).blueprintBuildMode.get())
-                {
-                    return true;
-                }
-                else
-                {
-                    IColony colony = colonyByTrack(world, player, pos);
-
-                    if (colony == null)
-                    {
-                        Log.getLogger().error("No colony found along track at {}", pos);
-                        return false;
-                    }
-
-                    IBuilding building = colony.getBuildingManager().getBuilding(pos);
-                    if (building == null)
-                    {
-                        if (anchor.getBlock() != MCTradePostMod.blockHutOutpost.get())
-                        {
-                            SoundUtils.playErrorSound(player, player.blockPosition());
-                            Log.getLogger().error("BuildTool: building is null!", new Exception());
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        SoundUtils.playSuccessSound(player, player.blockPosition());
-                        if (building.getTileEntity() != null)
-                        {
-                            building.getTileEntity().setColony(colony);
-                        }
-
-                        String adjusted = path.replace(".blueprint", "");
-                        String num = adjusted.substring(path.replace(".blueprint", "").length() - 2, adjusted.length() - 1);
-                        building.setStructurePack(pack);
-                        building.setBlueprintPath(path);
-
-                        try
-                        {
-                            building.setBuildingLevel(Integer.parseInt(num));
-                        }
-                        catch (NumberFormatException var14)
-                        {
-                            building.setBuildingLevel(1);
-                        }
-
-                        building.setRotationMirror(rotationMirror);
-                        building.onUpgradeComplete(building.getBuildingLevel());
-                    }
-
-                    return true;
-                }
-            }
+            return false;
         }
-        else
-        {
-            return true;
-        }
+
+        return super.setup(player, world, pos, blueprint, rotationMirror, fancyPlacement, pack, path);
     }
 
     /**

@@ -4,6 +4,7 @@ package com.deathfrog.mctradepost.core.event.wishingwell;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
@@ -13,7 +14,6 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionH
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
-import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.OutpostClaimItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -21,6 +21,7 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
+import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.Colony;
 import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
 import com.minecolonies.core.util.AdvancementUtils;
@@ -626,6 +627,7 @@ public class WishingWellHandler {
             if (state.getCompanionCount() != 1) 
             {
                 MCTradePostMod.LOGGER.warn("Outpost ritual called with incorrect number of companion items ({}). One and only one outpost claim marker is required.", state.getCompanionCount());
+                MessageUtils.format("One and only one outpost claim marker is required.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }
             
@@ -634,6 +636,7 @@ public class WishingWellHandler {
             if (!(companionItem.getItem() instanceof OutpostClaimItem))
             {
                 MCTradePostMod.LOGGER.warn("Outpost ritual called with unrecognized companion item.");
+                MessageUtils.format("Outpost ritual called with unrecognized companion item.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }   
 
@@ -642,6 +645,7 @@ public class WishingWellHandler {
             if (claimLocation == null || BlockPos.ZERO.equals(claimLocation))
             {
                 MCTradePostMod.LOGGER.warn("Outpost ritual called with unset claim location.");
+                MessageUtils.format("Outpost ritual called with unset claim location.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }
 
@@ -668,16 +672,19 @@ public class WishingWellHandler {
             if (stations.isEmpty())
             {
                 MCTradePostMod.LOGGER.warn("A station is required for the outpost ritual.");
+                MessageUtils.format("A station is required for the outpost ritual.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }
 
             if (connected)
             {
-                ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, 1, (ServerLevel) colony.getWorld(), true); 
+                ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, 1, (ServerLevel) colony.getWorld(), false); 
+                BlockOutpostMarker.placeOutpostMarker(level, claimLocation, null);
             }
             else
             {
                 MCTradePostMod.LOGGER.warn("The outpost claim at {} must be connected to one of these train stations {} via track.", claimLocation, stations);
+                MessageUtils.format("The outpost claim location must be connected to a train station via track.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }
 

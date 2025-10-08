@@ -75,7 +75,8 @@ public final class ModBlocksInitializer
     public final static String MIXED_STONE_BRICK_STAIRS_NAME = "mixed_stone_brick_stairs";
     public final static String MIXED_STONE_BRICK_WALL_NAME = "mixed_stone_brick_wall";
     public final static String MIXED_STONE_BRICK_SLAB_NAME = "mixed_stone_brick_slab";
-    
+    public final static String BLOCK_OUTPOST_MARKER_NAME = "block_outpost_marker";
+
     // Pet Working Blocks
     public final static String TROUGH_NAME = "trough";
     public final static String SCAVENGE_NAME = "scavenge";

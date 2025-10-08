@@ -24,6 +24,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
+import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
@@ -49,6 +50,7 @@ import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
+import com.deathfrog.mctradepost.core.placementhandlers.OutpostPlacementHandler;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
 import com.deathfrog.mctradepost.item.BlockGlazedItem;
@@ -68,6 +70,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.core.items.ItemFood;
@@ -105,10 +108,8 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
@@ -530,7 +531,8 @@ public class MCTradePostMod
     public static final DeferredBlock<SlabBlock> WOVEN_KELP_SLAB =
         BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new SlabBlock(WOVEN_KELP.get().properties()));
 
-
+    public static final DeferredBlock<BlockOutpostMarker> BLOCK_OUTPOST_MARKER =
+        BLOCKS.register(ModBlocksInitializer.BLOCK_OUTPOST_MARKER_NAME, () -> new BlockOutpostMarker(Blocks.BLACK_BANNER.properties()));
     /*
     * ITEMS (Block)
     */
@@ -830,6 +832,8 @@ public class MCTradePostMod
         // Some common setup code
         LOGGER.info("MCTradePost common setup ");  
         ItemValueRegistry.loadInitialValuesFromJson();  
+
+        PlacementHandlers.add(new OutpostPlacementHandler());
     }
 
     /**

@@ -19,6 +19,11 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
       super(id);
    }
 
+   /**
+    * Serializes the current state of this module to the given buffer.
+    * The state is represented as a list of item stacks, where each item stack is serialized using the {@link Utils#serializeCodecMess(RegistryFriendlyByteBuf, ItemStack)} method.
+    * The list size is written as an integer, followed by the serialized item stacks.
+    */
    @Override
    public void serializeToView(@NotNull RegistryFriendlyByteBuf buf)
    {

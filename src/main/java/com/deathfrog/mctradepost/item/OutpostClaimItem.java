@@ -101,7 +101,11 @@ public class OutpostClaimItem extends Item
         if (hasLinkedBlockPos(stack))
         {
             BlockPos pos = getLinkedBlockPos(stack);
-            tooltip.add(Component.literal("Linked block: " + pos.toShortString()).withStyle(ChatFormatting.GRAY));
+            tooltip.add(Component.translatable("com.mctradepost.outpost.marker.set.tooltip", pos.toShortString()).withStyle(ChatFormatting.GRAY));
+        }
+        else   
+        {
+            tooltip.add(Component.translatable("com.mctradepost.outpost.marker.unset.tooltip").withStyle(ChatFormatting.GRAY));
         }
     }
 

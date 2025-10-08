@@ -252,6 +252,16 @@
     "mctradepost:animaltrainer.job.desc": "Teaching your four legged friends to earn their keep.",
     "mctradepost:animaltrainer.skills.desc": "Improves pet skill increases.",
 
+    "com.mctradepost.building.outpost": "Outpost",
+    "com.minecolonies.building.outpost": "Outpost",
+    "com.mctradepost.building.outpost.desc": "Extend your reach to the edges of the world.",
+    "block.mctradepost.blockhutoutpost": "Outpost",
+    "block.minecolonies.blockhutoutpost": "Outpost",
+    "com.mctradepost.job.scout": "Scout",
+    "com.mctradepost.gui.visiblestatus.scout": "Scouting",
+    "mctradepost:scout.job.desc": "Eking out a living on the edge of civilization.",
+    "mctradepost:scout.skills.desc": "Improves survivability.",
+
     "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables": "Sellables",
     "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables": "Recyclables",
     "com.mctradepost.core.gui.modules.econ": "Economics",
@@ -364,6 +374,9 @@
     "com.mctradepost.resort.burnout": "All Work and No Play",
 
     "com.mctradepost.outpost.claim" : "Outpost claim at %s",
+    "com.mctradepost.outpost.marker.set.tooltip" : "Use a wishing well to stake an outpost claim at %s",
+    "com.mctradepost.outpost.marker.unset.tooltip" : "Right click on a block to set an outpost claim location.",
+    "com.mctradepost.outpost.buildfailure" : "You can only place an Outpost after making an Outpost Claim using a wishing well.",
 
     "com.minecolonies.coremod.gui.townhall.stats.current_balance": "‡ Impact: %d",
     "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",
