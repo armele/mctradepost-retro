@@ -1,0 +1,8 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecraft:trident" },
+  "results": [
+    { "item": { "id": "minecraft:prismarine_shard", "count": 4 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:iron_nugget", "count": 3 }, "chance": 1.0 }
+  ]
+}

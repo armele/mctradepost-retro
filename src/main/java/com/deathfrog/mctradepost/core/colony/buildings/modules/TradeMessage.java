@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.common.network.PlayMessageType;
@@ -159,7 +160,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                 break;
 
             case QUERY:
-                notifyConnectedStations(building, player);
+                // notifyConnectedStations(building, player);
                 break;
 
         }
@@ -177,9 +178,9 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 
             for (StationData remoteStationData : station.getStations().values())
             {
-                if (remoteStationData.getStation() != null && remoteStationData.getTrackConnectionStatus() == TrackConnectionStatus.CONNECTED)
+                if (remoteStationData.getStation() != null && station.getTrackConnectionResult(remoteStationData).connected)
                 {
-                    BuildingStation remoteStation = remoteStationData.getStation();
+                    ITradeCapable remoteStation = remoteStationData.getStation();
                     remoteStation.markTradesDirty();
                     IColony colony = remoteStation.getColony();
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));

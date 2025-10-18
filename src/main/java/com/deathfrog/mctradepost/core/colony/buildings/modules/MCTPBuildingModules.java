@@ -1,11 +1,13 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.OutpostLivingBuildingModule;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostLivingBuildingModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetAssignmentModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingItemsModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
@@ -105,6 +107,11 @@ public class MCTPBuildingModules
         () -> new WorkerBuildingModule(MCTPModJobs.animaltrainer.get(), Skill.Dexterity, Skill.Athletics, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> SCOUT_WORK          =
+      new BuildingEntry.ModuleProducer<>("scout_work", 
+        () -> new WorkerBuildingModule(MCTPModJobs.scout.get(), Skill.Stamina, Skill.Knowledge, true, (b) -> 1),
+        () -> WorkerBuildingModuleView::new);
+
    public static final BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView> STATION_CONNECTION     =
       new BuildingEntry.ModuleProducer<BuildingStationConnectionModule, StationConnectionModuleView>("station_connection", () -> new BuildingStationConnectionModule(), () -> StationConnectionModuleView::new);
 
@@ -129,6 +136,9 @@ public class MCTPBuildingModules
         () -> new PetTrainingItemsModule(),
         () -> PetTrainingItemsModuleView::new);
 
+    public static final BuildingEntry.ModuleProducer<OutpostLivingBuildingModule, OutpostLivingBuildingModuleView> OUTPOST_LIVING =
+      new BuildingEntry.ModuleProducer<>("outpost_living", () -> new OutpostLivingBuildingModule(), () -> OutpostLivingBuildingModuleView::new);
+
     /**
      * Leisure
      */
@@ -143,6 +153,8 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<BuildingResort.CraftingModule,CraftingModuleView> BARTENDER_CRAFT         =
       new BuildingEntry.ModuleProducer<>("bartender_craft", () -> new BuildingResort.CraftingModule(MCTPModJobs.bartender.get()), () -> CraftingModuleView::new);
+
+
 
     /**
      * Storage

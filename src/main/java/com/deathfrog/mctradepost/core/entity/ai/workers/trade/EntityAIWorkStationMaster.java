@@ -7,6 +7,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
@@ -173,37 +174,58 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 boolean hasExports = false;
                 boolean remoteHasFunds = false;
 
-                BuildingStationImportModule remoteImportModule = exportData.getDestinationStationData().getStation().getModule(MCTPBuildingModules.IMPORTS);
+                StationData destinationStationData = exportData.getDestinationStationData();
 
-                if (!TrackConnectionStatus.CONNECTED.equals(exportData.getDestinationStationData().getTrackConnectionStatus()) 
-                    || !remoteImportModule.hasTrade(exportData.getTradeItem().getItemStack(), exportData.getCost(), exportData.getQuantity()))
+                if (destinationStationData == null)
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} no longer has a valid destination station - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
                     currentExport = exportData;
                     return StationMasterStates.ELIMINATE_OLD_ORDER;
                 }
 
-                int availableExportItemCount = availableCount(building, exportData.getTradeItem());
+                ITradeCapable remoteTradeCapable = destinationStationData.getStation();
+                TrackConnectionResult connectionResult = building.getTrackConnectionResult(destinationStationData);
+
+                if (connectionResult == null)
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("UNKNOWN connection to remote station for export of {}.", exportData.getTradeItem()));
+                    currentRemoteStation = destinationStationData;
+                    return StationMasterStates.CHECK_CONNECTION;
+                }
+
+                boolean stationConnected = connectionResult.isConnected();
+
+                if (!destinationStationData.isOutpost())
+                {
+                    BuildingStationImportModule remoteImportModule = destinationStationData.getStation().getModule(MCTPBuildingModules.IMPORTS);
+
+                    if (!stationConnected
+                        || !remoteImportModule.hasTrade(exportData.getTradeItem().getItemStack(), exportData.getCost(), exportData.getQuantity()))
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (trade not offered) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
+                        currentExport = exportData;
+                        return StationMasterStates.ELIMINATE_OLD_ORDER;
+                    }
+                }
+
+                int availableExportItemCount = BuildingUtil.availableCount(building, exportData.getTradeItem());
                 
-                if ((availableExportItemCount >= exportData.getQuantity())
-                    && TrackConnectionStatus.CONNECTED.equals(exportData.getDestinationStationData().getTrackConnectionStatus())
-                )
+                if (availableExportItemCount >= exportData.getQuantity())
                 {
                     hasExports = true;
                 }
 
-                BuildingStation remoteStation = (BuildingStation) exportData.getDestinationStationData().getStation();
 
-                if (remoteStation == null || remoteStation.getAllAssignedCitizen().isEmpty())
+                if (remoteTradeCapable == null || remoteTradeCapable.getAllAssignedCitizen().isEmpty())
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (remote station not staffed) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
                     currentExport = exportData;
                     return StationMasterStates.ELIMINATE_OLD_ORDER;
                 }
 
-                ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+                ICitizenData remoteWorker = remoteTradeCapable.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
 
-                int availableRemoteFunds = availableCount(remoteStation, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+                int availableRemoteFunds = BuildingUtil.availableCount(remoteTradeCapable, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
 
                 if ((availableRemoteFunds >= exportData.getCost()) && (remoteWorker != null))  
                 {
@@ -213,9 +235,16 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
                 if (hasExports)
                 {
+                    if (!stationConnected)
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No connection to remote station for export of {} - check connection (status {}).", exportData.getTradeItem(), connectionResult));
+                        currentRemoteStation = destinationStationData;
+                        return StationMasterStates.CHECK_CONNECTION;
+                    }
+
                     if (remoteHasFunds)
                     {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} and necessary funds are available - mark for shipment.", exportData.getTradeItem()));
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} {} and necessary funds are available - mark for shipment.", exportData.getQuantity(), exportData.getTradeItem()));
                         currentExport = exportData;
 
                         return StationMasterStates.SEND_SHIPMENT;
@@ -226,16 +255,21 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", exportData.getTradeItem()));
 
                         // Announce to the remote colony that the station does not have the required funds (with a cooldown)
-                        int cooldown = remoteStationMessageCooldown.getOrDefault(exportData.getDestinationStationData(), 0);
+                        int cooldown = remoteStationMessageCooldown.getOrDefault(destinationStationData, 0);
                         if (cooldown == 0)
                         {
                             TraceUtils.dynamicTrace(TRACE_STATION, () -> TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Informed remote colony of funding need for {}.", exportData.getTradeItem())));
-                            remoteStation.addPaymentRequest(exportData.getCost());
-                            remoteStationMessageCooldown.put(exportData.getDestinationStationData(), MESSAGE_COOLDOWN_TIME);
+                            
+                            if (remoteTradeCapable instanceof BuildingStation remoteStation)
+                            {
+                                remoteStation.addPaymentRequest(exportData.getCost());
+                            }
+
+                            remoteStationMessageCooldown.put(destinationStationData, MESSAGE_COOLDOWN_TIME);
                         }     
                         else
                         {
-                            remoteStationMessageCooldown.put(exportData.getDestinationStationData(), cooldown - 1);
+                            remoteStationMessageCooldown.put(destinationStationData, cooldown - 1);
                         }         
                         building.markTradesDirty();
                     }
@@ -261,39 +295,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         currentExport = null;
         return AIWorkerState.DECIDE;
-    }
-
-    /**
-     * Counts the number of items in the given {@link ItemStorage} that are available in the given {@link BuildingStation} and its assigned worker.
-     * 
-     * @param building The building to check.
-     * @param stack    The item storage to check.
-     * @return The count of available items.
-     */
-    protected int availableCount(BuildingStation buildingStation, ItemStorage stack)
-    {
-        int amountInBuilding = 0;
-        int amountInWorkerInventory = 0;
-        
-        if (buildingStation != null)
-        {
-            amountInBuilding =
-                InventoryUtils.getItemCountInItemHandler(buildingStation.getItemHandlerCap(), ExportData.hasExportItem(stack));
-
-            if (buildingStation.getAllAssignedCitizen().isEmpty())
-            {
-                amountInWorkerInventory = 0;
-            }
-            else
-            {
-                ICitizenData  worker = buildingStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-                amountInWorkerInventory = InventoryUtils.getItemCountInItemHandler(worker.getInventory(), ExportData.hasExportItem(stack));  
-            }
-
-
-        }
-        
-        return amountInBuilding + amountInWorkerInventory;
     }
 
     /**
@@ -372,19 +373,21 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             for (IBuilding checkbuilding : colony.getBuildingManager().getBuildings().values())
             {
                 // Disregard if it's not a station, or if it is the current station.
-                if (!(checkbuilding instanceof BuildingStation station) || station.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
+                if (!(checkbuilding instanceof ITradeCapable tradeCapableBuilding) || tradeCapableBuilding.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
                 {
                     continue;
                 }
 
-                if (building.hasStationAt(station.getPosition()))
+                if (this.building.hasStationAt(tradeCapableBuilding.getPosition()))
                 {
-                    StationData stationData = building.getStationAt(station.getPosition());
+                    StationData stationData = this.building.getStationAt(tradeCapableBuilding.getPosition());
 
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if station should be checked: {}", stationData));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if trade capable building at {} should be checked: {}", tradeCapableBuilding.getPosition(), stationData));
 
-                    if (stationData.getTrackConnectionStatus().equals(TrackConnectionStatus.UNKNOWN) 
-                        || (stationData.ageOfCheck() > MCTPConfig.trackValidationFrequency.get())
+                    ITradeCapable remoteTradeCapable = stationData.getStation();
+                    TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
+                    
+                    if ((connectionResult == null) || (connectionResult.ageOfCheck(world.getGameTime()) > MCTPConfig.trackValidationFrequency.get())
                     )                   
                     {
                         currentRemoteStation = stationData;
@@ -394,8 +397,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 else
                 {
                     // Add the newly discovered station.
-                    currentRemoteStation = new StationData(station);
-                    building.addStation(currentRemoteStation);
+                    currentRemoteStation = new StationData(tradeCapableBuilding);
+                    this.building.addStation(currentRemoteStation);
                     return true;
                 }
             }
@@ -427,7 +430,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Cached connection found. Validating it."));
 
-                boolean isValid = TrackPathConnection.validateExistingPath(world, connectionResult.path);
+                boolean isValid = TrackPathConnection.validateExistingPath(world, connectionResult);
 
                 currentCheckingTrack.addAll(connectionResult.path);
 
@@ -437,7 +440,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             if (connectionResult.connected)
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
-                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.CONNECTED);
 
                 AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
                         player -> MCTPAdvancementTriggers.COLONY_CONNECTED.get().trigger(player));
@@ -446,7 +448,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 final TrackConnectionResult logResult = connectionResult;
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, logResult.closestPoint));
-                currentRemoteStation.setTrackConnectionStatus(TrackConnectionStatus.DISCONNECTED);
             }
         }
         
@@ -542,42 +543,47 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return getState();
         }
 
-        if (!building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
+        final ArrayList<ItemStack> itemList = new ArrayList<>();
+        for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
         {
-            final ArrayList<ItemStack> itemList = new ArrayList<>();
-            for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
+
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing need for {}.", exportData.getTradeItem().getItemStack().getHoverName()));
+
+
+            if (BuildingUtil.buildingWorkerHasRequestOutstandingForItem(building, exportData.getTradeItem()))
             {
-                int availableExportItemCount = availableCount(building, exportData.getTradeItem());
-
-                itemList.clear();
-                int quantity = exportData.getQuantity();
-                
-                int amountStillNeeded = quantity - availableExportItemCount;
-
-                while (amountStillNeeded > 0)
-                {
-                    final ItemStack itemStack = exportData.getTradeItem().getItemStack().copy();
-
-                    int amountToTake = Math.min(itemStack.getMaxStackSize(), amountStillNeeded);
-                    itemStack.setCount(amountToTake);
-                    amountStillNeeded -= amountToTake;
-
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list.", itemStack));
-
-                    itemList.add(itemStack);
-                }
-
-                if (itemList.isEmpty())
-                {
-                    continue;
-                }
-
-                worker.getCitizenData().createRequestAsync(new StackList(itemList, BuildingStation.EXPORT_ITEMS, quantity));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Skipping request for {} - request already outstanding.", exportData.getTradeItem().getItemStack().getHoverName()));
+                continue;
             }
-        }
-        else
-        {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("{} already has open requests. Not placing new ones.", worker.getCitizenData().getName()));
+
+            int availableExportItemCount = BuildingUtil.availableCount(building, exportData.getTradeItem());
+
+            itemList.clear();
+            int quantity = exportData.getQuantity();
+            
+            int amountStillNeeded = quantity - availableExportItemCount;
+
+            while (amountStillNeeded > 0)
+            {
+                final ItemStack itemStack = exportData.getTradeItem().getItemStack().copy();
+
+                int amountToTake = Math.min(itemStack.getMaxStackSize(), amountStillNeeded);
+                itemStack.setCount(amountToTake);
+                amountStillNeeded -= amountToTake;
+
+                final int currentAmountStillNeeded = amountStillNeeded;
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list. Total order: {}. On hand: {}. Amount still needed: {}. Taking {} in this stack.", 
+                    itemStack, quantity, availableExportItemCount, currentAmountStillNeeded, amountToTake));
+
+                itemList.add(itemStack);
+            }
+
+            if (itemList.isEmpty())
+            {
+                continue;
+            }
+
+            worker.getCitizenData().createRequestAsync(new StackList(itemList, BuildingStation.EXPORT_ITEMS, quantity));
         }
 
         setDelay(2);

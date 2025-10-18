@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 
@@ -28,6 +30,7 @@ import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 public class StationView extends AbstractBuildingView 
 {
     protected Map<BlockPos, StationData> stations = new HashMap<>();
+    protected Map<StationData, Boolean> connectionstatus = new HashMap<>();
 
     public StationView(final IColonyView colony, final BlockPos location) 
     {
@@ -42,6 +45,29 @@ public class StationView extends AbstractBuildingView
     public Map<BlockPos, StationData> getStations() 
     {
         return stations;
+    }
+
+    /**
+     * Retrieves the track connection status of the given station data object.
+     * If the status is unknown, returns TrackConnectionStatus.UNKNOWN.
+     * If the status is known to be connected, returns TrackConnectionStatus.CONNECTED.
+     * If the status is known to be disconnected, returns TrackConnectionStatus.DISCONNECTED.
+     * 
+     * @param station The station data object for which the track connection status is being retrieved.
+     * @return The track connection status of the given station data object, or TrackConnectionStatus.UNKNOWN if unknown.
+     */
+    public TrackConnectionStatus stationConnectionStatus(StationData station)
+    {
+        Boolean connected = connectionstatus.get(station);
+
+        if (connected != null) 
+        {
+            return connected ? TrackConnectionStatus.CONNECTED : TrackConnectionStatus.DISCONNECTED;
+        }
+        else
+        {
+            return TrackConnectionStatus.UNKNOWN;
+        }
     }
 
     /**
@@ -72,6 +98,27 @@ public class StationView extends AbstractBuildingView
                     BuildingStation.LOGGER.warn("Failed to deserialize station from tag: {}", compound);
                 }
             }
+        }
+
+        final int connSize = buf.readInt();
+        for (int i = 0; i < connSize; i++) {
+            final CompoundTag keyTag = buf.readNbt();
+            final boolean value = buf.readBoolean();
+
+            if (keyTag == null) 
+            {
+                BuildingStation.LOGGER.warn("Invalid connectionresults entry {}; keyTag={}, value={}", i, keyTag, value);
+                continue;
+            }
+
+            final StationData deserializedKey = StationData.fromNBT(keyTag);
+            if (deserializedKey == null) 
+            {
+                BuildingStation.LOGGER.warn("Failed to deserialize StationData key in connectionresults; skipping {}", i);
+                continue;
+            }
+
+            this.connectionstatus.put(deserializedKey, Boolean.valueOf(value));
         }
     }
 }

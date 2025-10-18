@@ -97,7 +97,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
          */
         public boolean isEnabled()
         {
-            return destinationStation != null && destinationStation.getTrackConnectionStatus() == TrackConnectionStatus.CONNECTED;
+            return destinationStation != null && ((StationView) buildingView).stationConnectionStatus(destinationStation) == TrackConnectionStatus.CONNECTED;
         }
 
         /**
@@ -346,7 +346,7 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
                 for (ExportGui exportGui : potentialExportMap)
                 {
-                    if (TrackConnectionStatus.CONNECTED.equals(exportGui.destinationStation.getTrackConnectionStatus()))
+                    if (TrackConnectionStatus.CONNECTED.equals(((StationView) buildingView).stationConnectionStatus(exportGui.destinationStation)))
                     {
                         // MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
 

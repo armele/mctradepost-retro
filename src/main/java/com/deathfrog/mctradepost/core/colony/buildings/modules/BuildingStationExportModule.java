@@ -170,16 +170,27 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         }
     }
 
+
     /**
-     * Adds a trade to the list of imports if the list is not full, or if the item is already in the list.
-     *
-     * @param itemStack the itemstack to add.
-     * @param quantity  the quantity to add.
+     * Adds a new export to the list of configured exports for this station.
+     * This will add the export to the list and mark the module as dirty.
+     * 
+     * @param destinationStation The station to export to.
+     * @param itemStack The item to export.
+     * @param cost The cost of exporting one unit of the item.
+     * @param quantity The quantity of the item to export.
+     * @return The newly added export data.
      */
-    public void addExport(StationData destinationStation, final ItemStack itemStack, final int cost, final int quantity)
+    public ExportData addExport(StationData destinationStation, final ItemStack itemStack, final int cost, final int quantity)
     {
-        exportList.add(new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost, quantity));
+        ExportData addedExport = new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost, quantity);
+        exportList.add(addedExport);
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added export {} to {}. Post-addition size: {}", itemStack, destinationStation.getBuildingPosition(), exportList.size()));
+
         markDirty();
+
+        return addedExport;
     }
 
     /**
@@ -254,11 +265,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} for {} at {} of {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} {} for {} at {} of {}", exportData.getQuantity(),  exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} not shipping.", exportData.getTradeItem().getItem(), exportData.getCost()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} {} for {} not shipping.", exportData.getQuantity(), exportData.getTradeItem().getItemStack().getHoverName(), exportData.getCost()));
             }
         }
     }

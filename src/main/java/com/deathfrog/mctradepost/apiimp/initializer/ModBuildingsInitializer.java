@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
+import com.minecolonies.core.colony.buildings.DefaultBuildingInstance;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -23,6 +24,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingP
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public final class ModBuildingsInitializer
@@ -141,10 +143,15 @@ public final class ModBuildingsInitializer
 
             BuildingEntry.Builder outpostBuilder = new BuildingEntry.Builder();
             outpostBuilder.setBuildingBlock(MCTradePostMod.blockHutOutpost.get());
-            outpostBuilder.setBuildingProducer(BuildingOutpost::new);
+            outpostBuilder.setBuildingProducer((colony, blockPos) -> new BuildingOutpost(colony, blockPos, ModBuildings.OUTPOST_ID, 5));
             outpostBuilder.setBuildingViewProducer(() -> OutpostView::new);
             outpostBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.OUTPOST_ID));
-            outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.SCOUT_WORK);
+            // outpostBuilder.addBuildingModuleProducer(BuildingModules.WORKORDER_VIEW); /* Also requires settings. */
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.HOME);
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
 
             ModBuildings.outpost = outpostBuilder.createBuildingEntry();
 

@@ -19,11 +19,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
-public class OutpostClaimItem extends Item
+public class OutpostClaimMarkerItem extends Item
 {
     public static final String LINKED = "linked";
     
-    public OutpostClaimItem(Properties properties)
+    public OutpostClaimMarkerItem(Properties properties)
     {
         super(properties);
     }
@@ -45,7 +45,6 @@ public class OutpostClaimItem extends Item
 
         if (!level.isClientSide && !stack.isEmpty())
         {
-            // TODO: Verify the outpost is connected to the colony by rail.
             setLinkedBlockPos(stack, clicked);
             player.displayClientMessage(Component.translatable("com.mctradepost.outpost.claim", clicked.toShortString()), true);
         }

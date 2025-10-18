@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.blocks.huts;
 
-import javax.annotation.Nonnull;
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -9,31 +10,27 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
-import com.minecolonies.api.IMinecoloniesAPI;
-import com.minecolonies.api.blocks.AbstractBlockHut;
-import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
-import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
-import com.minecolonies.api.util.SoundUtils;
 import com.mojang.logging.LogUtils;
-import com.minecolonies.api.configuration.ServerConfiguration;
+
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import com.minecolonies.api.util.Log;
 
 public class BlockHutOutpost extends MCTPBaseBlockHut
 {
     public static final String HUT_NAME = "blockhutoutpost";
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    public BlockHutOutpost() {
+        super();
+    }
 
     @Override
     public String getHutName()
@@ -72,7 +69,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     @Nullable
     public static BlockPos getLinkedBlockPos(ItemStack stack)
     {
-        return stack.getOrDefault(MCTPModDataComponents.LINKED_BLOCK_POS.get(), null);
+        return stack.getOrDefault(MCTPModDataComponents.LINKED_BLOCK_POS.get(), BlockPos.ZERO);
     }
 
 
@@ -100,6 +97,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         }
     }
 
+
     @Override
     public boolean setup(ServerPlayer player,
         Level world,
@@ -111,42 +109,55 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         String path)
     {
         Log.getLogger().info("Special outpost placer! ");
-        
+        boolean allowPlacement = false;
+
         // Make sure the chunk is present (defensive)
         if (!world.isAreaLoaded(pos, 1)) return false;
 
-        // Require the Outpost Marker at this exact position
-        if (!world.getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
+        if (player.isCreative())
         {
-            if (player != null) 
-            {
-                player.displayClientMessage(
-                    Component.translatable("com.mctradepost.outpost.buildfailure"),
-                    true
-                );
-            }
-            return false;
+            Log.getLogger().info("Creative mode placement allowed.");
+            allowPlacement = true;
         }
 
-        return super.setup(player, world, pos, blueprint, rotationMirror, fancyPlacement, pack, path);
+
+        // Require the Outpost Marker at this exact position unless we're in creative mode.
+        if (world.getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
+        {
+            Log.getLogger().info("Outpost marker found.");
+            allowPlacement = true;
+        }
+
+        if (allowPlacement) 
+        {
+            Log.getLogger().info("Placing outpost.");
+            return super.setup(player, world, pos, blueprint, rotationMirror, fancyPlacement, pack, path);
+        }
+
+        if (player != null) 
+        {
+            player.displayClientMessage(
+                Component.translatable("com.mctradepost.outpost.buildfailure"),
+                true
+            );
+        }
+        Log.getLogger().info("Outpost placement not allowed here.");
+
+        return false;
     }
 
     /**
-     * Determines if a player can paste a given block at a given position.
-     *
-     * @param anchor the block to be pasted
-     * @param player the player attempting the paste
-     * @param pos    the position at which the block is being pasted
-     * @return true if the player can paste the block, false otherwise
+     * Gets the requirements for placing an outpost hut at the given position.
+     * @param level the ClientLevel to get the requirements for
+     * @param pos the BlockPos to get the requirements for
+     * @param player the LocalPlayer to get the requirements for
+     * @return a list of MutableComponent representing the requirements
      */
-    protected boolean canPaste(final Block anchor, final Player player, final BlockPos pos)
+    @Override
+    public List<MutableComponent> getRequirements(final ClientLevel level, final BlockPos pos, final LocalPlayer player)
     {
-        return true;
-    }
-
-    protected IColony colonyByTrack(final Level world, final Player player, final BlockPos pos)
-    {
-        // TODO: Update this.
-        return IColonyManager.getInstance().getColonyByPosFromWorld(world, pos);
+        List<MutableComponent> requirements = super.getRequirements(level, pos, player);
+        requirements.add(Component.translatable("com.mctradepost.outpost.requirements"));
+        return requirements;
     }
 }

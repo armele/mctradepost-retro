@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 import java.util.Queue;
 
@@ -26,6 +27,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationEx
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -71,7 +73,7 @@ import net.minecraft.world.level.Level;
 import static com.minecolonies.api.util.constant.Constants.MAX_STORY;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
-public class BuildingStation extends AbstractBuilding 
+public class BuildingStation extends AbstractBuilding implements ITradeCapable
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -91,15 +93,15 @@ public class BuildingStation extends AbstractBuilding
     /**
      * Structurize position tag for the start of the rail network in this station.
      */
-    private final String STATION_START = "station_start";
+    public static final String STATION_START = "station_start";
 
     /**
      * Map of station data for other stations (by station block position).
      */
-    private Map<BlockPos, StationData> stations = new HashMap<>();
+    private Map<BlockPos, StationData> stations = new ConcurrentHashMap<>();
 
     /**
-     * Map of track connection results for other stations (by station data).
+     * Map of track connection results for other trade capable buildings (by station data).
      */
     private Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
 
@@ -278,7 +280,7 @@ public class BuildingStation extends AbstractBuilding
 
             IBuilding building = stationColony.getBuildingManager().getBuilding(remoteStation.getBuildingPosition());
 
-            if (building == null || !(building instanceof BuildingStation)) {
+            if (building == null || !(building instanceof ITradeCapable)) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
                 markTradesDirty();
@@ -463,7 +465,11 @@ public class BuildingStation extends AbstractBuilding
 
         for (Map.Entry<BlockPos, StationData> entry : stations.entrySet())
         {
-            stationTagList.add(entry.getValue().toNBT());
+            if (entry.getValue() != null && !BlockPos.ZERO.equals(entry.getValue().getBuildingPosition()) &&
+                !BlockPos.ZERO.equals(entry.getValue().getRailStartPosition()))
+            {
+                stationTagList.add(entry.getValue().toNBT());
+            }
         }
 
         compound.put(TAG_STATIONS, stationTagList);
@@ -514,6 +520,14 @@ public class BuildingStation extends AbstractBuilding
         for (final Entry<BlockPos, StationData> station : stations.entrySet())
         {
             buf.writeNbt(station.getValue().toNBT());
+        }
+
+
+        buf.writeInt(connectionresults.size());
+        for (final Map.Entry<StationData, TrackConnectionResult> e : connectionresults.entrySet()) 
+        {
+            buf.writeNbt(e.getKey().toNBT());       // key
+            buf.writeBoolean(e.getValue().connected);     // value
         }
     }
 
@@ -594,67 +608,31 @@ public class BuildingStation extends AbstractBuilding
     {
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
 
-        ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+        ItemStack finalPayment = ItemStack.EMPTY;
+        
+        if (exportData.getCost() > 0) 
+        {
+            finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+        }
 
         StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
         StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
 
-        BuildingStation remoteStation = exportData.getDestinationStationData().getStation();
+        ITradeCapable remoteStation = exportData.getDestinationStationData().getStation();
  
         MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
 
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
         if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
         {
-            boolean calledForPickup = false;
-            int pickupAmount = exportData.getQuantity();
-            while (pickupAmount > 0)
-            {
-                int thisPickup = 0;
-                if (pickupAmount > exportData.getTradeItem().getItemStack().getMaxStackSize())
-                {
-                    thisPickup = exportData.getTradeItem().getItemStack().getMaxStackSize();
-                }
-                else
-                {
-                    thisPickup = pickupAmount;
-                }
-                pickupAmount -= thisPickup;
-                IToken<?> token = BuildingUtil.bringThisToTheWarehouse(remoteStation, new ItemStack(exportData.getTradeItem().getItemStack().getItem(), thisPickup));
-
-                if (token != null)
-                {
-                    calledForPickup = true;
-                }
-            }
-
-            if (calledForPickup)
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", remoteStation.getBuildingDisplayName(), remoteStation.getPosition()));
-            }
-
+            remoteStation.onShipmentReceived(exportData);
         }
         else
         {
             MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
         }
     
-        
-        if (!getAllAssignedCitizen().isEmpty())
-        {
-            ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
-        }
-        
-        if (!remoteStation.getAllAssignedCitizen().isEmpty())
-        {
-            ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-            
-            if (remoteWorker != null && !remoteWorker.getEntity().isEmpty())
-            {
-                remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
-            }
-        }
+        this.onShipmentDelivered(exportData);
         
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Resetting export."));
         
@@ -666,4 +644,62 @@ public class BuildingStation extends AbstractBuilding
             exportData.setCart(null);
         }
     }
+
+    @Override
+    public void onShipmentDelivered(ExportData shipmentSent)
+    {
+        if (!getAllAssignedCitizen().isEmpty())
+        {
+            ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentSent.getCost());
+        }
+    }
+
+    /**
+     * Called when a shipment has been received at this building. This method is used to call for a pickup for the received items.
+     * If the building is an outpost, it will call for a pickup for the full amount of the shipment. If the building is not an outpost, it will call for a pickup for each stack of the shipment, up to the max stack size of the item.
+     * 
+     * @param itemShipped the shipment that was received
+     */
+    @Override
+    public void onShipmentReceived(ExportData shipmentReceived)
+    {
+        boolean calledForPickup = false;
+        int pickupAmount = shipmentReceived.getQuantity();
+        while (pickupAmount > 0)
+        {
+            int thisPickup = 0;
+            if (pickupAmount > shipmentReceived.getTradeItem().getItemStack().getMaxStackSize())
+            {
+                thisPickup = shipmentReceived.getTradeItem().getItemStack().getMaxStackSize();
+            }
+            else
+            {
+                thisPickup = pickupAmount;
+            }
+            pickupAmount -= thisPickup;
+            IToken<?> token = BuildingUtil.bringThisToTheWarehouse(this, new ItemStack(shipmentReceived.getTradeItem().getItemStack().getItem(), thisPickup));
+
+            if (token != null)
+            {
+                calledForPickup = true;
+            }
+        }
+
+        if (calledForPickup)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", this.getBuildingDisplayName(), this.getPosition()));
+        }
+
+        if (!this.getAllAssignedCitizen().isEmpty())
+        {
+            ICitizenData worker = this.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+            
+            if (worker != null && !worker.getEntity().isEmpty())
+            {
+                worker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentReceived.getCost());
+            }
+        }
+    }
+
 }

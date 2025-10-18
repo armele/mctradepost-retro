@@ -7,6 +7,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
@@ -24,7 +25,7 @@ public class ExportData
     {
     };
 
-    private final BuildingStation sourceStation;
+    private final ITradeCapable sourceStation;
     private final StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
@@ -36,7 +37,7 @@ public class ExportData
     private GhostCartEntity cart = null;
 
 
-    public ExportData(BuildingStation sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, int quantity)
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, int quantity)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;

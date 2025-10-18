@@ -1,0 +1,199 @@
+package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
+
+import java.util.Collection;
+import java.util.Set;
+
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import com.mojang.logging.LogUtils;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+
+import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.workorders.WorkOrderType;
+import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
+
+public class BuildingOutpost extends AbstractBuilding
+{
+    public static final Logger LOGGER = LogUtils.getLogger();
+    public static final int STATION_VALIDATION_COOLDOWN = 100;
+
+    protected int stationValidationCooldown = STATION_VALIDATION_COOLDOWN;
+    protected BuildingStation connectedStation = null;
+
+    public BuildingOutpost(@NotNull IColony colony, BlockPos pos)
+    {
+        super(colony, pos);
+    }
+
+
+    @Override
+    public String getSchematicName()
+    {
+        return ModBuildings.OUTPOST_ID;
+    }
+
+    @Override
+    public void onRestart(ICitizenData citizen)
+    {
+        super.onRestart(citizen);
+
+        // establishConnectedStation();
+    }
+
+    @Override
+    public int getClaimRadius(int newLevel) 
+    {
+        return 1;
+    }
+
+    /**
+     * Retrieves the BuildingStation object that is connected to this outpost by tracks.
+     * This will be null if no connected station is found.
+     * 
+     * @return the connected station, or null if no station is connected
+     */
+    public BuildingStation getConnectedStation()
+    {
+        return connectedStation;
+    }
+
+    /**
+     * Returns true if the outpost is not connected to any other station, false otherwise.
+     * 
+     * @return true if the outpost is not connected, false otherwise
+     */
+    public boolean isDisconnected()
+    {
+        return connectedStation == null;
+    }
+
+    /**
+     * If a scout is not assigned to this outpost, will send a message to the player (if given) or the colony (if no player is given) stating that a scout is missing.
+     * If the requested position is not equal to the outpost's current position, will send a message to the player (if given) or the colony (if no player is given) 
+     * stating that the outpost's builder has been switched.
+     * 
+     * Will return the outpost's current position as the requested builder location.
+     * 
+     * @param player the player that is attempting to build the outpost (may be null)
+     * @param requestedBuilder the position that the outpost is to be built at
+     * @return the position that the outpost was built at, or BlockPos.ZERO if no outpost was built
+     */
+    protected BlockPos outpostBuilder(Player player, BlockPos requestedBuilder)
+    {
+        Set<ICitizenData> assignedWorkers = this.getAllAssignedCitizen();
+        ICitizenData scout = null;
+        
+        for (ICitizenData worker : assignedWorkers)
+        {
+            if (worker.getJob() instanceof JobScout)
+            {
+                scout = worker;
+            }
+        }
+
+        if (scout == null)
+        {
+            if (player != null)
+            {
+                MessageUtils.format("com.mctradepost.outpost.builder.missing").sendTo(player);
+            }
+            else
+            {
+                MessageUtils.format("com.mctradepost.outpost.builder.missing").sendTo(getColony());
+            }
+            return BlockPos.ZERO;
+        }
+
+        if (!requestedBuilder.equals(getPosition()))
+        {
+            if (player != null)
+            {
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", scout.getName()).sendTo(player);
+            }
+            else
+            {
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", scout.getName()).sendTo(getColony());
+            }
+        }
+
+        return this.getPosition();
+    }
+
+    @Override
+    public void requestUpgrade(Player player, BlockPos builder)
+    {
+        super.requestUpgrade(player, outpostBuilder(player, builder));
+    }
+
+    @Override
+    protected void requestWorkOrder(WorkOrderType type, BlockPos builder) 
+    {
+        super.requestWorkOrder(type, outpostBuilder(null, builder));
+    }
+
+    @Override
+    public boolean canBeBuiltByBuilder(int newLevel) 
+    {
+        return getBuildingLevel() + 1 == newLevel;
+    }
+
+    /**
+     * Called every tick that the colony updates.
+     * 
+     * @param colony the colony that this building is a part of
+     */
+    public void onColonyTick(IColony colony)
+    {
+        super.onColonyTick(colony);
+
+        if (stationValidationCooldown-- <= 0)
+        {
+            // establishConnectedStation();
+            stationValidationCooldown = STATION_VALIDATION_COOLDOWN;
+        }
+    }
+
+    /**
+     * Iterates through all buildings in the colony and checks if any of them are
+     * BuildingStations that are connected to this outpost by tracks.
+     * 
+     * If a connected station is found, it is stored in the connectedStation field.
+     */
+    protected void establishConnectedStation()
+    {
+        Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
+        boolean connected = false;
+
+        for (IBuilding building : buildings)
+        {
+            if (building instanceof BuildingStation station)
+            {
+                TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) colony.getWorld(), getPosition(), station.getRailStartPosition(), true);
+
+                if (result.isConnected())
+                {
+                    connectedStation = station;
+                    connected = true;
+                    break;
+                }
+            }
+        }
+
+        if (!connected)
+        {
+            connectedStation = null;
+        }
+    }
+
+}

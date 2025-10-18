@@ -3,17 +3,25 @@ package com.deathfrog.mctradepost.api.util;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
 
 import net.minecraft.core.BlockPos;
@@ -168,5 +176,70 @@ public class BuildingUtil {
         warehouse.markDirty();
 
         return requestToken;
+    }
+
+    /**
+     * Counts the number of items in the given {@link ItemStorage} that are available in the given {@link IBuilding} and its assigned worker.
+     * 
+     * @param building The building to check.
+     * @param stack    The item storage to check.
+     * @return The count of available items.
+     */
+    public static int availableCount(IBuilding buildingStation, ItemStorage stack)
+    {
+        int amountInBuilding = 0;
+        int amountInWorkerInventory = 0;
+        
+        if (buildingStation != null)
+        {
+            amountInBuilding =
+                InventoryUtils.getItemCountInItemHandler(buildingStation.getItemHandlerCap(), ExportData.hasExportItem(stack));
+
+            if (buildingStation.getAllAssignedCitizen().isEmpty())
+            {
+                amountInWorkerInventory = 0;
+            }
+            else
+            {
+                ICitizenData  worker = buildingStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+                amountInWorkerInventory = InventoryUtils.getItemCountInItemHandler(worker.getInventory(), ExportData.hasExportItem(stack));  
+            }
+
+
+        }
+        
+        return amountInBuilding + amountInWorkerInventory;
+    }
+
+    /**
+     * Checks if any of the workers assigned to the given building have an outstanding request for the given item.
+     * 
+     * @param building the building to check.
+     * @param stack the item storage to check.
+     * @return true if any worker has an outstanding request for the given item, false otherwise.
+     */
+    public static boolean buildingWorkerHasRequestOutstandingForItem(IBuilding building, ItemStorage stack)
+    {
+        boolean alreadyRequested = false;
+
+        for (final ICitizenData worker : building.getAllAssignedCitizen())
+        {
+            final ImmutableList<IRequest<? extends Stack>> openRequests = building.getOpenRequestsOfType(worker.getId(), TypeToken.of(Stack.class));
+            for (final IRequest<? extends Stack> request : openRequests)
+            {
+                if (request.getRequest().getStack().is(stack.getItem()))
+                {
+                    alreadyRequested = true;
+                    break;
+                }
+            }
+            
+            if (alreadyRequested)
+            {
+                break;
+            }
+        }
+
+        return alreadyRequested;
     }
 }

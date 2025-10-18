@@ -1,0 +1,8 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecolonies:pirate_legs" },
+  "results": [
+    { "item": { "id": "minecraft:leather", "count": 7 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:iron_nugget", "count": 2 }, "chance": 1.0 }
+  ]
+}

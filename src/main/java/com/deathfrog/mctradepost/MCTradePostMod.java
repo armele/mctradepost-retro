@@ -59,7 +59,7 @@ import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
-import com.deathfrog.mctradepost.item.OutpostClaimItem;
+import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
@@ -262,8 +262,8 @@ public class MCTradePostMod
     public static final DeferredItem<CoinItem> MCTP_COIN_DIAMOND = ITEMS.register("mctp_coin_diamond", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
 
-    public static final DeferredItem<OutpostClaimItem> OUTPOST_CLAIM = ITEMS.register("outpost_claim",
-        () -> new OutpostClaimItem(new Item.Properties()));
+    public static final DeferredItem<OutpostClaimMarkerItem> OUTPOST_CLAIM = ITEMS.register("outpost_claim",
+        () -> new OutpostClaimMarkerItem(new Item.Properties()));
 
     /*
     * ENTITIES 
@@ -1289,9 +1289,9 @@ public class MCTradePostMod
             event.enqueueWork(() -> {
                 ItemProperties.register(
                     MCTradePostMod.OUTPOST_CLAIM.get(),
-                    ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, OutpostClaimItem.LINKED),
+                    ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, OutpostClaimMarkerItem.LINKED),
                     (stack, level, entity, seed) ->
-                        OutpostClaimItem.hasLinkedBlockPos(stack) ? 1.0F : 0.0F
+                        OutpostClaimMarkerItem.hasLinkedBlockPos(stack) ? 1.0F : 0.0F
                 );
             });
         }

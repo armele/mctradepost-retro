@@ -14,11 +14,12 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionH
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
-import com.deathfrog.mctradepost.item.OutpostClaimItem;
+import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
+import com.minecolonies.api.colony.colonyEvents.IColonyRaidEvent;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
 import com.minecolonies.api.util.MessageUtils;
@@ -461,9 +462,9 @@ public class WishingWellHandler {
         // IRaiderManager raidManager = colony.getRaiderManager();
         for (IColonyEvent event : colony.getEventManager().getEvents().values()) 
         {
-            if (event instanceof HordeRaidEvent) 
+            if (event instanceof IColonyRaidEvent) 
             {
-                targets = ((HordeRaidEvent) event).getEntities();
+                targets = ((IColonyRaidEvent) event).getEntities();
                 break;
             }
         }
@@ -633,14 +634,14 @@ public class WishingWellHandler {
             
             ItemStack companionItem = state.companionItems.get(0).getItem();
 
-            if (!(companionItem.getItem() instanceof OutpostClaimItem))
+            if (!(companionItem.getItem() instanceof OutpostClaimMarkerItem))
             {
                 MCTradePostMod.LOGGER.warn("Outpost ritual called with unrecognized companion item.");
                 MessageUtils.format("Outpost ritual called with unrecognized companion item.").sendTo(marketplace.getColony()).forAllPlayers();
                 return RitualResult.FAILED;
             }   
 
-            BlockPos claimLocation = OutpostClaimItem.getLinkedBlockPos(companionItem);
+            BlockPos claimLocation = OutpostClaimMarkerItem.getLinkedBlockPos(companionItem);
 
             if (claimLocation == null || BlockPos.ZERO.equals(claimLocation))
             {
