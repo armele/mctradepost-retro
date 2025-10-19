@@ -1,10 +1,15 @@
 package com.deathfrog.mctradepost.api.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.ICitizenData;
@@ -18,6 +23,7 @@ import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
+import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.BlockPosUtil;
@@ -212,34 +218,34 @@ public class BuildingUtil {
     }
 
     /**
-     * Checks if any of the workers assigned to the given building have an outstanding request for the given item.
+     * Retrieves all request resolvers for all buildings in the given colony.
      * 
-     * @param building the building to check.
-     * @param stack the item storage to check.
-     * @return true if any worker has an outstanding request for the given item, false otherwise.
+     * @param colony The colony to retrieve the resolvers from.
+     * @return A collection of request resolvers for all buildings in the colony.
      */
-    public static boolean buildingWorkerHasRequestOutstandingForItem(IBuilding building, ItemStorage stack)
+    public static Collection<IToken<?>> getAllBuildingResolversForColony(IColony colony)
     {
-        boolean alreadyRequested = false;
+        Collection<IToken<?>> resolvers = new ArrayList<>();
+        Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
 
-        for (final ICitizenData worker : building.getAllAssignedCitizen())
+        for (IBuilding building : buildings)
         {
-            final ImmutableList<IRequest<? extends Stack>> openRequests = building.getOpenRequestsOfType(worker.getId(), TypeToken.of(Stack.class));
-            for (final IRequest<? extends Stack> request : openRequests)
+            ImmutableCollection<IRequestResolver<?>> buildingResolvers = building.getResolvers();
+
+            for (IRequestResolver<?> resolver : buildingResolvers)
             {
-                if (request.getRequest().getStack().is(stack.getItem()))
-                {
-                    alreadyRequested = true;
-                    break;
-                }
-            }
-            
-            if (alreadyRequested)
-            {
-                break;
-            }
+                resolvers.add(resolver.getId());
+            }   
         }
 
-        return alreadyRequested;
+        final IBuilding townHall = colony.getBuildingManager().getTownHall();
+        if (townHall != null) {
+            for (IRequestResolver<?> resolver : townHall.getResolvers())
+            {
+                resolvers.add(resolver.getId());
+            }   
+        }
+
+        return resolvers;
     }
 }

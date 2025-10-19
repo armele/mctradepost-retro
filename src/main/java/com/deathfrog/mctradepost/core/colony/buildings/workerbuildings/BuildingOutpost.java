@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -16,23 +19,79 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.requestsystem.factory.IFactoryController;
+import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.DefaultBuildingInstance;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingFarmer;
+import com.minecolonies.core.colony.requestsystem.resolvers.DeliveryRequestResolver;
+import com.minecolonies.core.colony.requestsystem.resolvers.PickupRequestResolver;
+import com.minecolonies.core.colony.requestsystem.resolvers.WarehouseConcreteRequestResolver;
+import com.minecolonies.core.colony.requestsystem.resolvers.WarehouseRequestResolver;
+import com.minecolonies.core.commands.commandTypes.IMCColonyOfficerCommand;
 
 public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCapable
 {
+    public enum OutpostOrderState
+    {
+        NEEDED,     // The outpost has a need for something
+        ORDERED,    // Connected station has been asked to deliver this order
+        RECEIVED,   // Outpost has received the order from the connected station
+        DELIVERED   // Scout has delivered the order to the necessary place in the outpost
+    };
+
+    public class OutpostShipment
+    {
+        protected BlockPos outpostDestination;
+        protected OutpostOrderState state;
+
+        public OutpostShipment(BlockPos outpostDestination, OutpostOrderState state)
+        {
+            this.outpostDestination = outpostDestination;
+            this.state = state;
+        }
+
+        public OutpostOrderState getState()
+        {
+            return state;
+        }
+
+        public void setState(OutpostOrderState state)
+        {
+            this.state = state;
+        }
+
+        public BlockPos getOutpostDestination()
+        {
+            return outpostDestination;
+        }
+
+        public void setOutpostDestination(BlockPos outpostDestination)
+        {
+            this.outpostDestination = outpostDestination;
+        }
+
+    }
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int STATION_VALIDATION_COOLDOWN = 100;
     public static final int STATION_CONNECTION_COOLDOWN = 20;
@@ -41,7 +100,10 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
     protected int stationValidationCooldown = STATION_CONNECTION_COOLDOWN;
     protected BuildingStation connectedStation = null;
-    
+    protected OutpostRequestResolver<IRequestable> outpostResolver;
+
+    public Map<ExportData, OutpostShipment> expectedShipments = new ConcurrentHashMap<>();
+
     /**
      * Map of track connection results for other trade capable buildings (by station data).
      */
@@ -396,7 +458,112 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     @Override
     public void onShipmentReceived(ExportData shipmentReceived)
     {
-        // TODO: Distribute to requesting citizen/hut.
+        OutpostShipment matchingShipment = expectedShipments.get(shipmentReceived);
+        
+        if (matchingShipment != null)
+        {
+            matchingShipment.state = OutpostOrderState.RECEIVED;
+        }
+
+        BuildingStationExportModule exports = connectedStation.getModule(MCTPBuildingModules.EXPORTS);
+
+        if (exports == null)
+        {
+            LOGGER.warn("No export module on connected station - cannot place order.");
+            return;
+        }
+
+        exports.removeExport(shipmentReceived);
     }
 
+    /**
+     * Retrieves the number of expected shipments for this outpost.
+     * This is the number of shipments that are currently in transit from another station to this outpost.
+     * @return The number of expected shipments for this outpost.
+     */
+    public int getExpectedShipmentSize()
+    {
+        return expectedShipments.size();
+    }
+
+    /**
+     * Adds a shipment to the expected shipments for this outpost. The shipment is associated with the given outpost destination.
+     * When the shipment is received, the state of the shipment is updated to OutpostOrderState.RECEIVED.
+     * 
+     * @param shipment The shipment to add to the expected shipments.
+     * @param outpostDestination The outpost destination that the shipment is associated with.
+     */
+    public void addExpectedShipment(ExportData shipment, BlockPos outpostDestination)
+    {
+        expectedShipments.put(shipment, new OutpostShipment(outpostDestination, OutpostOrderState.NEEDED));
+    }
+
+
+    /**
+     * Creates a collection of request resolvers for this outpost.
+     * This collection contains all request resolvers from the superclass, as well as an additional resolver for outpost requests.
+     * The outpost request resolver is responsible for resolving requests for the outpost.
+     * @return A collection of request resolvers for this outpost.
+     */
+    @Override
+    public ImmutableCollection<IRequestResolver<?>> createResolvers()
+    {
+        final ImmutableCollection<IRequestResolver<?>> supers = super.createResolvers();
+        final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
+
+        outpostResolver = new OutpostRequestResolver<IRequestable>(getRequester().getLocation(),
+            getColony().getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN));
+
+        builder.addAll(supers);
+        builder.add(outpostResolver);
+
+        return builder.build();
+    }
+
+
+    /**
+     * Retrieves the request resolver responsible for resolving requests for this outpost.
+     * @return The request resolver responsible for resolving requests for this outpost.
+     */
+    public IRequestResolver<?> getOutpostResolver()
+    {
+        if (outpostResolver == null)
+        {
+            createResolvers();
+        }
+
+        return outpostResolver;
+    }
+
+    /**
+     * Checks if the given building is an outpost building, either directly or indirectly through its parent.
+     * A building is considered an outpost building if it is an instance of BuildingOutpost, or if its parent is.
+     * @param checkBuilding The building to check.
+     * @return True if the building is an outpost building, false otherwise.
+     */
+    public static boolean isOutpostBuilding(@Nonnull IBuilding checkBuilding)
+    {
+        boolean qualifies = false;
+
+        if (checkBuilding instanceof BuildingOutpost)
+        {
+            qualifies = true;
+        }
+        else
+        {
+            BlockPos parent = checkBuilding.getParent();
+
+            if (parent != null && checkBuilding.getColony() != null)
+            {
+                IBuilding parentBuilding = checkBuilding.getColony().getBuildingManager().getBuilding(parent);
+                
+                if (parentBuilding instanceof BuildingOutpost)
+                {
+                    qualifies = true;
+                }
+            }
+        } 
+
+        return qualifies;
+    }
 }

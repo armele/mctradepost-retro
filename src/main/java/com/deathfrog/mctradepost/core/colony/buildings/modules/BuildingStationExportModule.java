@@ -194,6 +194,27 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     }
 
     /**
+     * Removes the given export data from the list of configured exports for this station.
+     * If the export data is found in the list, it is removed and the module is marked as dirty.
+     * 
+     * @param exportData the export data to remove.
+     * @return true if the export data was found and removed, false otherwise.
+     */
+    public boolean removeExport(ExportData exportData)
+    {
+        if (exportData == null)
+        {
+            return false;
+        }
+
+        boolean removed = exportList.remove(exportData);
+        markDirty();
+        
+        return removed;
+    }
+
+
+    /**
      * Removes a trade associated with the given ItemStack from the trade list.
      *
      * @param itemStack The ItemStack representing the trade to be removed.

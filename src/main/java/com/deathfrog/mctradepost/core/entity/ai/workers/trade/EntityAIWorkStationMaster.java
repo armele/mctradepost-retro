@@ -15,7 +15,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
-import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
@@ -26,7 +25,6 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
@@ -549,8 +547,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing need for {}.", exportData.getTradeItem().getItemStack().getHoverName()));
 
-
-            if (BuildingUtil.buildingWorkerHasRequestOutstandingForItem(building, exportData.getTradeItem()))
+            if (building.isItemStackInRequest(exportData.getTradeItem().getItemStack()))
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Skipping request for {} - request already outstanding.", exportData.getTradeItem().getItemStack().getHoverName()));
                 continue;
