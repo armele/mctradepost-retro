@@ -173,7 +173,16 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 boolean hasExports = false;
                 boolean remoteHasFunds = false;
 
-                BuildingStationImportModule remoteImportModule = exportData.getDestinationStationData().getStation().getModule(MCTPBuildingModules.IMPORTS);
+                BuildingStation destinationStation = exportData.getDestinationStationData().getStation();
+
+                if (destinationStation == null)
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (destination station no longer exists) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
+                    currentExport = exportData;
+                    return StationMasterStates.ELIMINATE_OLD_ORDER;
+                }
+
+                BuildingStationImportModule remoteImportModule = destinationStation.getModule(MCTPBuildingModules.IMPORTS);
 
                 if (!TrackConnectionStatus.CONNECTED.equals(exportData.getDestinationStationData().getTrackConnectionStatus()) 
                     || !remoteImportModule.hasTrade(exportData.getTradeItem().getItemStack(), exportData.getCost(), exportData.getQuantity()))

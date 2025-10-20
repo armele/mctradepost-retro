@@ -242,6 +242,12 @@ public class MCTradePostMod
     public static final DeferredItem<Item> QUARTZ_MORTAR = ITEMS.register("quartz_mortar",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> WISH_PLENTY = ITEMS.register("wish_plenty",
+        () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> WISH_HEALTH = ITEMS.register("wish_health",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
@@ -1153,6 +1159,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_SLAB.get());
+                    event.accept(MCTradePostMod.WISH_PLENTY.get());
+                    event.accept(MCTradePostMod.WISH_HEALTH.get());
                 }
             });
 
