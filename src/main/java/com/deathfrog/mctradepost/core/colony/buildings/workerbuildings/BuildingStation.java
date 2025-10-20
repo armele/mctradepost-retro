@@ -619,6 +619,21 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable
         StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
 
         ITradeCapable remoteStation = exportData.getDestinationStationData().getStation();
+
+        if (remoteStation == null)
+        {
+            // If the remote station has been destroyed, refund the shipped items to the shipping station.
+            // No funds will be recived (but the destination station is not refunded).
+            MCTPInventoryUtils.InsertOrDropByQuantity(this, exportData.getTradeItem(), exportData.getQuantity());
+            exportData.setShipDistance(-1);
+            GhostCartEntity cart = exportData.getCart();
+            if (cart != null) 
+            {
+                cart.discard();
+                exportData.setCart(null);
+            }
+            return;
+        }
  
         MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
 

@@ -1,0 +1,9 @@
+{
+  "companion_item": "mctradepost:wish_health",
+  "companion_item_count": 1,
+  "effect_type": "community",
+  "target" : "",
+  "radius": -1,
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin_diamond"
+}

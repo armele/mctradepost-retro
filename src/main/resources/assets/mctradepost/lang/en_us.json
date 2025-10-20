@@ -360,6 +360,10 @@
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "New trades available in connected stations!",
 
+    "item.mctradepost.wish_health": "Wish of Health",
+    "item.mctradepost.wish_plenty": "Wish of Plenty",
+
+
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "item.mctradepost.mctp_coin_gold": "Gold Trade Coin (‡)",
     "item.mctradepost.mctp_coin_diamond": "Diamond Trade Coin (‡)",

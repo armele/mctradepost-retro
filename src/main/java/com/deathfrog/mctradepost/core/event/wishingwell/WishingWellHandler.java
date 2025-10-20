@@ -4,6 +4,7 @@ package com.deathfrog.mctradepost.core.event.wishingwell;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -12,6 +13,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnectio
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
+import com.minecolonies.api.colony.ICitizenData;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
@@ -21,10 +23,15 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
 import com.minecolonies.api.colony.colonyEvents.IColonyRaidEvent;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.Colony;
 import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
+import com.minecolonies.core.datalistener.model.Disease;
+import com.minecolonies.core.entity.citizen.EntityCitizen;
+import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
 import com.minecolonies.core.util.AdvancementUtils;
 import com.minecolonies.core.util.ChunkDataHelper;
 
@@ -171,7 +178,7 @@ public class WishingWellHandler {
                 state.companionItems = sameTypeCompanions;
                 state.lastUsed = System.currentTimeMillis();
 
-                RitualResult result = triggerRitual(level, state, center, companionType, marketplace);
+                RitualResult result = triggerRitual(marketplace, state, center, companionType);
 
                 switch (result) 
                 {
@@ -491,10 +498,13 @@ public class WishingWellHandler {
 
         Double radius = (double) ritual.radius();
 
-        if (radius < 0) {
-            // Global purge: all loaded entities of this type
+        if (radius < 0) 
+        {
+            // Global: all loaded entities of this type
             targets = level.getEntities(entityType, entity -> entity.getType().equals(entityType));
-        } else {
+        } 
+        else 
+        {
             // Local purge
             targets = level.getEntities(entityType, new AABB(pos).inflate(radius), entity ->
                 entity.getType().equals(entityType));
@@ -601,6 +611,62 @@ public class WishingWellHandler {
     }
 
 
+    public static RitualResult processRitualCommunity(BuildingMarketplace marketplace, BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
+    {
+        ServerLevel currentLevel = (ServerLevel) marketplace.getColony().getWorld();
+
+        if (state.getCompanionCount() < ritual.companionItemCount()) 
+        {
+            return RitualResult.NEEDS_INGREDIENTS;
+        }
+
+        try
+        {
+            Item companionItem = BuiltInRegistries.ITEM.get(ritual.companionItem());
+            List<ICitizenData> citizens = marketplace.getColony().getCitizenManager().getCitizens();
+
+            for (ICitizenData citizen : citizens) 
+            {
+                AbstractEntityCitizen entity = citizen.getEntity().get();
+
+                if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get())) 
+                {
+                    if (citizen.getEntity().isPresent())
+                    {
+                        entity.setHealth(entity.getMaxHealth());
+                        citizen.setSaturation(ICitizenData.MAX_SATURATION);
+
+                        entity.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),
+                            (float) SoundUtils.BASIC_VOLUME,
+                            (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
+                        new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
+                            .sendToTrackingEntity(entity);
+                    }
+                }
+                else if (companionItem.equals(MCTradePostMod.WISH_HEALTH.get())) 
+                {
+                    ICitizenDiseaseHandler diseaseHandler = citizen.getCitizenDiseaseHandler();
+                    final Disease disease = diseaseHandler.getDisease();
+                    if (disease != null)
+                    {
+                        diseaseHandler.cure();
+                        entity.playSound(SoundEvents.NOTE_BLOCK_HARP.value(), (float) SoundUtils.BASIC_VOLUME, (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
+                        new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
+                            .sendToTrackingEntity(entity);
+                    }
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            MCTradePostMod.LOGGER.error("Failed to process community ritual.", e);
+            return RitualResult.FAILED;
+        }
+        showRitualEffect(currentLevel, pos);
+        return RitualResult.COMPLETED;
+    }
+
+
     /**
      * Processes an outpost ritual at the specified BlockPos within the ServerLevel.
      * This ritual sets up an outpost claim marker at the specified BlockPos and connects it to the nearest station.
@@ -613,7 +679,7 @@ public class WishingWellHandler {
      * @return RitualResult indicating whether the ritual was completed, needed ingredients,
      * or failed due to an error
      **/
-   public static RitualResult processRitualOutpost(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual, RitualState state, BuildingMarketplace marketplace)
+   public static RitualResult processRitualOutpost(BuildingMarketplace marketplace, BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
     {
         if (state.getCompanionCount() < ritual.companionItemCount()) 
         {
@@ -660,7 +726,7 @@ public class WishingWellHandler {
                 if (building instanceof BuildingStation station)
                 {
                     stations.add(station);
-                    TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks(level, claimLocation, station.getRailStartPosition(), true);
+                    TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) marketplace.getColony().getWorld(), claimLocation, station.getRailStartPosition(), true);
 
                     if (result.isConnected())
                     {
@@ -680,7 +746,7 @@ public class WishingWellHandler {
             if (connected)
             {
                 ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, 1, (ServerLevel) colony.getWorld(), false); 
-                BlockOutpostMarker.placeOutpostMarker(level, claimLocation, null);
+                BlockOutpostMarker.placeOutpostMarker((ServerLevel) marketplace.getColony().getWorld(), claimLocation, null);
             }
             else
             {
@@ -697,7 +763,7 @@ public class WishingWellHandler {
             return RitualResult.FAILED;
         }
 
-        showRitualEffect(level, pos);
+        showRitualEffect((ServerLevel) marketplace.getColony().getWorld(), pos);
         return RitualResult.COMPLETED;
     }
 
@@ -714,7 +780,7 @@ public class WishingWellHandler {
      * 
      * @return true if the ritual was triggered, false otherwise
      */
-    private static RitualResult triggerRitual(ServerLevel level, RitualState state, BlockPos pos, Item companionItem, BuildingMarketplace marketplace) 
+    private static RitualResult triggerRitual(BuildingMarketplace marketplace, RitualState state, BlockPos pos, Item companionItem) 
     {
         MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} base coins, {} gold coins and {} diamond coins.", 
             pos, companionItem, state.entityCount(state.baseCoins), state.entityCount(state.goldCoins), state.entityCount(state.diamondCoins));    
@@ -743,7 +809,7 @@ public class WishingWellHandler {
                 switch (ritual.effect()) 
                 {
                     case RitualManager.RITUAL_EFFECT_SLAY:
-                        if (processRitualSlay(level, pos, ritual)) 
+                        if (processRitualSlay((ServerLevel) marketplace.getColony().getWorld(), pos, ritual)) 
                         {
                             result = RitualResult.COMPLETED;
                         } else {
@@ -752,7 +818,7 @@ public class WishingWellHandler {
                         break;
 
                     case RitualManager.RITUAL_EFFECT_WEATHER:
-                        if (processRitualWeather(level, pos, ritual) ) 
+                        if (processRitualWeather((ServerLevel) marketplace.getColony().getWorld(), pos, ritual) ) 
                         {
                             result =  RitualResult.COMPLETED;
                         } else {
@@ -761,7 +827,7 @@ public class WishingWellHandler {
                         break;
 
                     case RitualManager.RITUAL_EFFECT_SUMMON:
-                        if (processRitualSummon(level, pos, ritual) ) 
+                        if (processRitualSummon((ServerLevel) marketplace.getColony().getWorld(), pos, ritual) ) 
                         {
                             result =  RitualResult.COMPLETED;
                         } else {
@@ -770,11 +836,16 @@ public class WishingWellHandler {
                         break;
 
                     case RitualManager.RITUAL_EFFECT_TRANSFORM:
-                        result =  processRitualTransform(level, pos, ritual, state);
+                        result =  processRitualTransform((ServerLevel) marketplace.getColony().getWorld(), pos, ritual, state);
+                        break;
+
+                    case RitualManager.RITUAL_EFFECT_COMMUNITY:
+                        result =  processRitualCommunity(marketplace, pos, ritual, state);
                         break;
 
                     case RitualManager.RITUAL_EFFECT_OUTPOST:
-                        result =  processRitualOutpost(level, pos, ritual, state, marketplace);
+                        result =  processRitualOutpost(marketplace, pos, ritual, state);
+                        break;
                         break;
 
                     default:

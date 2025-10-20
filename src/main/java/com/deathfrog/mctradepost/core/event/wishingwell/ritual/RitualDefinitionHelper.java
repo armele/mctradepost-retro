@@ -122,6 +122,7 @@ public class RitualDefinitionHelper
     public String describe() {
         String text = "Not Defined: " + this.ritualDefinition.effect();
         EntityType<?> entityType = null;
+        Item item = null;
 
         switch (this.ritualDefinition.effect()) 
         {
@@ -164,7 +165,7 @@ public class RitualDefinitionHelper
                 break;
 
             case RitualManager.RITUAL_EFFECT_TRANSFORM:
-                Item item = getTargetAsItem();
+                item = getTargetAsItem();
                 if (item == null) 
                 {
                     text = "Broken ritual! Target item not recognized: " + this.ritualDefinition.target();
@@ -174,6 +175,26 @@ public class RitualDefinitionHelper
                     ItemStack stack = new ItemStack(item);
                     text = "Transforms these into " + stack.getHoverName().getString();
                 }
+                break;
+
+            case RitualManager.RITUAL_EFFECT_COMMUNITY:
+                String benefit = "";
+                Item companionItem = BuiltInRegistries.ITEM.get(companionItem());
+
+                if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get())) 
+                {
+                    benefit = "feeds all citizens.";    
+                }
+                else if (companionItem.equals(MCTradePostMod.WISH_HEALTH.get())) 
+                {
+                    benefit = "cures all sick citizens.";
+                }
+                else
+                {
+                    benefit = "UNKNOWN (" + companionItem().toString() + ")) report to mod author.";
+                }
+
+                text = "Colony community benefit: " + benefit;
                 break;
 
             case RitualManager.RITUAL_EFFECT_OUTPOST:
