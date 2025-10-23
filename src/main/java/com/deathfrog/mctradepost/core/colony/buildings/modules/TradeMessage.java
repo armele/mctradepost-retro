@@ -10,6 +10,7 @@ import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
@@ -136,7 +137,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                     else
                     {
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
-                        building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost, quantity);
+                        building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, new ItemStorage(itemStack, quantity), cost);
                     }
                     notifyConnectedStations(building, player);
                 }

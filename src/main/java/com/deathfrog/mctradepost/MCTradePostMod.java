@@ -45,6 +45,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolverFactory;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
@@ -73,6 +74,8 @@ import com.google.gson.stream.JsonWriter;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.core.colony.requestsystem.resolvers.factory.DeliveryRequestResolverFactory;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -837,6 +840,9 @@ public class MCTradePostMod
     {
         // Some common setup code
         LOGGER.info("MCTradePost common setup ");  
+
+        StandardFactoryController.getInstance().registerNewFactory(new OutpostRequestResolverFactory());
+
         ItemValueRegistry.loadInitialValuesFromJson();  
 
         PlacementHandlers.add(new OutpostPlacementHandler());

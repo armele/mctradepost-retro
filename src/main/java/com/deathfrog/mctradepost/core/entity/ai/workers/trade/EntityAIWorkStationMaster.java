@@ -10,9 +10,11 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -54,6 +56,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     public static final int BASE_XP_EXISTING_TRACK = 1;
     public static final int BASE_XP_SEND_SHIPMENT = 2;
 
+
+    protected static final int OUTPOST_COOLDOWN_TIMER = 10;
+    protected static int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+
     public static final Map<StationData, Integer> remoteStationMessageCooldown = new HashMap<>();
 
     public enum StationMasterStates implements IAIState
@@ -63,7 +69,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         SEND_SHIPMENT,
         ELIMINATE_OLD_ORDER,
         REQUEST_FUNDS,
-        WALK_THE_TRACK;
+        WALK_THE_TRACK,
+        HANDLE_OUTPOST_REQUESTS;
 
         @Override
         public boolean isOkayToEat()
@@ -86,6 +93,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
           new AITarget<IAIState>(IDLE, START_WORKING, 10),
           new AITarget<IAIState>(START_WORKING, DECIDE, 10),
           new AITarget<IAIState>(DECIDE, this::decideWhatToDo, 10),
+          new AITarget<IAIState>(StationMasterStates.HANDLE_OUTPOST_REQUESTS, this::handleOutpostRequests, 10),
           new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, 50),
           new AITarget<IAIState>(StationMasterStates.ELIMINATE_OLD_ORDER, this::eliminateOldOrder, 50),
           new AITarget<IAIState>(StationMasterStates.FIND_MATCHING_OFFERS, this::findMatchingOffers, 50),
@@ -104,6 +112,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState decideWhatToDo()
     {
+
+        if (outpostCooldown-- <= 0)
+        {
+            outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+            return StationMasterStates.HANDLE_OUTPOST_REQUESTS;
+        }
 
         if (shouldCheckConnection())
         {
@@ -127,6 +141,22 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     }
 
     /**
+     * Instructs building to handle outpost requests.
+     * @return The next AI state to transition to.
+     */
+    protected IAIState handleOutpostRequests()
+    {
+        if (!walkToBuilding())
+        {
+            setDelay(2);
+            return getState();
+        }
+
+        building.handleOutpostRequests();
+        return AIWorkerState.DECIDE;
+    }
+
+    /**
      * Cancels an out of date export designation.
      * @return the next AI state to transition to.
      */
@@ -143,13 +173,16 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     }
 
     /**
-     * Determines if the Station Master should export a configured item. It checks if there are any exports configured, and if so,
-     * if the items are available in the building's inventory. If the items are available, it records the export data and returns true.
-     * Otherwise, it records null and returns false.
-     * 
-     * @return true if an export should be sent, false otherwise.
+     * This method is responsible for finding a matching export for a given set of exports.
+     * It will iterate through all the exports and check if the destination exists or if the order should be eliminated.
+     * It will also check if the track connection is valid or if the remote station is staffed.
+     * If all the above conditions are met, it will mark the export for shipment and return the next state.
+     * If not all conditions are met, it will notify the remote station of insufficient funds and mark the export for cooldown.
+     * If no exports are found to be shipped, it will return the next state.
+     *
+     * @return The next AI state to transition to.
      */
-    protected IAIState findMatchingOffers() 
+    protected IAIState findMatchingOffers()
     {
         if (!walkToBuilding())
         {
@@ -157,152 +190,286 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return getState();
         }
 
-        if (building.getModule(MCTPBuildingModules.EXPORTS).exportCount() > 0)
-        {
-            int unsatisfiedNeeds = 0;
+        final BuildingStationExportModule exportsModule = building.getModule(MCTPBuildingModules.EXPORTS);
 
-            for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
-            {
-                if ((exportData.getShipDistance() >= 0) || (exportData.getLastShipDay() == building.getColony().getDay()))
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today.", exportData.getTradeItem(), exportData.getShipDistance(), exportData.getTrackDistance()));
-                    continue;
-                }
-
-                boolean hasExports = false;
-                boolean remoteHasFunds = false;
-
-                ITradeCapable destinationStation = exportData.getDestinationStationData().getStation();
-
-                if (destinationStation == null)
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (destination station no longer exists) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
-                    currentExport = exportData;
-                    return StationMasterStates.ELIMINATE_OLD_ORDER;
-                }
-
-                BuildingStationImportModule remoteImportModule = destinationStation.getModule(MCTPBuildingModules.IMPORTS);
-
-                if (remoteImportModule == null)
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} no longer has a valid destination station - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
-                    currentExport = exportData;
-                    return StationMasterStates.ELIMINATE_OLD_ORDER;
-                }
-
-                ITradeCapable remoteTradeCapable = destinationStationData.getStation();
-                TrackConnectionResult connectionResult = building.getTrackConnectionResult(destinationStationData);
-
-                if (connectionResult == null)
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("UNKNOWN connection to remote station for export of {}.", exportData.getTradeItem()));
-                    currentRemoteStation = destinationStationData;
-                    return StationMasterStates.CHECK_CONNECTION;
-                }
-
-                boolean stationConnected = connectionResult.isConnected();
-
-                if (!destinationStationData.isOutpost())
-                {
-                    BuildingStationImportModule remoteImportModule = destinationStationData.getStation().getModule(MCTPBuildingModules.IMPORTS);
-
-                    if (!stationConnected
-                        || !remoteImportModule.hasTrade(exportData.getTradeItem().getItemStack(), exportData.getCost(), exportData.getQuantity()))
-                    {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (trade not offered) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
-                        currentExport = exportData;
-                        return StationMasterStates.ELIMINATE_OLD_ORDER;
-                    }
-                }
-
-                int availableExportItemCount = BuildingUtil.availableCount(building, exportData.getTradeItem());
-                
-                if (availableExportItemCount >= exportData.getQuantity())
-                {
-                    hasExports = true;
-                }
-
-
-                if (remoteTradeCapable == null || remoteTradeCapable.getAllAssignedCitizen().isEmpty())
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} for {} is no longer valid (remote station not staffed) - marking for removal.", exportData.getTradeItem(), exportData.getCost()));
-                    currentExport = exportData;
-                    return StationMasterStates.ELIMINATE_OLD_ORDER;
-                }
-
-                ICitizenData remoteWorker = remoteTradeCapable.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-
-                int availableRemoteFunds = BuildingUtil.availableCount(remoteTradeCapable, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
-
-                if ((availableRemoteFunds >= exportData.getCost()) && (remoteWorker != null))  
-                {
-                    remoteHasFunds = true;
-                    exportData.setInsufficientFunds(false);
-                }
-
-                if (hasExports)
-                {
-                    if (!stationConnected)
-                    {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No connection to remote station for export of {} - check connection (status {}).", exportData.getTradeItem(), connectionResult));
-                        currentRemoteStation = destinationStationData;
-                        return StationMasterStates.CHECK_CONNECTION;
-                    }
-
-                    if (remoteHasFunds)
-                    {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supply of {} {} and necessary funds are available - mark for shipment.", exportData.getQuantity(), exportData.getTradeItem()));
-                        currentExport = exportData;
-
-                        return StationMasterStates.SEND_SHIPMENT;
-                    }
-                    else
-                    {
-                        exportData.setInsufficientFunds(true);
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", exportData.getTradeItem()));
-
-                        // Announce to the remote colony that the station does not have the required funds (with a cooldown)
-                        int cooldown = remoteStationMessageCooldown.getOrDefault(destinationStationData, 0);
-                        if (cooldown == 0)
-                        {
-                            TraceUtils.dynamicTrace(TRACE_STATION, () -> TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Informed remote colony of funding need for {}.", exportData.getTradeItem())));
-                            
-                            if (remoteTradeCapable instanceof BuildingStation remoteStation)
-                            {
-                                remoteStation.addPaymentRequest(exportData.getCost());
-                            }
-
-                            remoteStationMessageCooldown.put(destinationStationData, MESSAGE_COOLDOWN_TIME);
-                        }     
-                        else
-                        {
-                            remoteStationMessageCooldown.put(destinationStationData, cooldown - 1);
-                        }         
-                        building.markTradesDirty();
-                    }
-                }
-                else
-                {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed to export {}: {}.", exportData.getTradeItem().getItem(), exportData.getQuantity()));
-                    unsatisfiedNeeds += 1;
-                }
-            }
-
-            if (unsatisfiedNeeds > 0)
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed for exports."));
-                return AIWorkerState.GET_MATERIALS;
-            }
-        }
-        else
+        if (exportsModule.exportCount() == 0)
         {
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No exports configured for {}.", worker.getName()));
             setDelay(10);
+            currentExport = null;
+            return AIWorkerState.DECIDE;
+        }
+
+        int unsatisfiedNeeds = 0;
+
+        for (ExportData exportData : exportsModule.getExports())
+        {
+            // Skip if already shipping or already shipped today
+            if (isAlreadyShippingToday(exportData)) continue;
+
+            // 1) Destination must exist or we eliminate the order
+            IAIState state = resolveDestinationOrEliminate(exportData);
+            if (state != null) return state;
+
+            // From here on, these are safe to dereference
+            final StationData dest = exportData.getDestinationStationData();
+            final ITradeCapable remote = dest.getStation();
+
+            // 2) Connection lookup or check
+            final TrackConnectionResult conn = building.getTrackConnectionResult(dest);
+            state = getConnectionOrCheck(conn, dest, exportData);
+            if (state != null) return state;
+
+            final boolean stationConnected = conn.isConnected();
+
+            // 3) If not an outpost, the remote must offer the trade and be connected, else eliminate
+            state = validateRemoteImportOrEliminate(dest, stationConnected, exportData);
+            if (state != null) return state;
+
+            // 4) Do we have the goods locally?
+            final boolean hasExports = hasLocalSupply(exportData);
+
+            // 5) Remote must be staffed, else eliminate
+            state = ensureRemoteStaffedOrEliminate(remote, exportData);
+            if (state != null) return state;
+
+            // 6) Remote funds check
+            final boolean remoteHasFunds = remoteHasFunds(remote, exportData);
+
+            // 7) Decide next state based on supply, connection, and funds
+            if (hasExports)
+            {
+                if (!stationConnected)
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION,
+                        () -> LOGGER.info("No connection to remote station for export of {} - check connection (status {}).",
+                            exportData.getTradeItem(),
+                            conn));
+                    currentRemoteStation = dest;
+                    return StationMasterStates.CHECK_CONNECTION; // (Outposts path; non-outposts were eliminated earlier)
+                }
+
+                if (remoteHasFunds)
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION,
+                        () -> LOGGER.info("Supply of {} {} and necessary funds are available - mark for shipment.",
+                            exportData.getQuantity(),
+                            exportData.getTradeItem()));
+                    currentExport = exportData;
+                    return StationMasterStates.SEND_SHIPMENT;
+                }
+                else
+                {
+                    notifyInsufficientFundsAndCooldown(remote, dest, exportData);
+                    building.markTradesDirty();
+                    // keep scanning other exports
+                }
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION,
+                    () -> LOGGER
+                        .info("Supplies needed to export {}: {}.", exportData.getTradeItem().getItem(), exportData.getQuantity()));
+                unsatisfiedNeeds++;
+                // keep scanning other exports
+            }
+        }
+
+        if (unsatisfiedNeeds > 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed for exports."));
+            return AIWorkerState.GET_MATERIALS;
         }
 
         currentExport = null;
         return AIWorkerState.DECIDE;
     }
+
+    /**
+     * Returns true if the export is already in progress or happened already today.
+     * @param e the export data to check
+     * @return true if the export is already in progress or happened already today, false otherwise
+     */
+    protected boolean isAlreadyShippingToday(final ExportData e)
+    {
+        if ((e.getShipDistance() >= 0) || (e.getLastShipDay() == building.getColony().getDay()))
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today.",
+                    e.getTradeItem(),
+                    e.getShipDistance(),
+                    e.getTrackDistance()));
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * Resolves the destination station for a given export data object.
+     * If the destination station no longer exists, the export is marked for removal and the AI state is set to ELIMINATE_OLD_ORDER.
+     * @param e The export data object containing the trade item, cost, and destination station data.
+     * @return The next AI state to transition to, or null if no transition is needed.
+     */
+    protected IAIState resolveDestinationOrEliminate(final ExportData e)
+    {
+        final ITradeCapable remote = e.getDestinationStationData().getStation();
+        if (remote == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info(
+                    "Export of {} for {} is no longer valid (destination station no longer exists) - marking for removal.",
+                    e.getTradeItem(),
+                    e.getCost()));
+            currentExport = e;
+            return StationMasterStates.ELIMINATE_OLD_ORDER;
+        }
+        return null;
+    }
+
+    /**
+     * Checks if the remote station is connected and offers the trade.
+     * If the connection is unknown (null), the export is marked for removal and the AI state is set to CHECK_CONNECTION.
+     * @param conn The connection result between the local station and the remote station.
+     * @param dest The station data object of the remote station.
+     * @param e The export data object containing the trade item, cost, and destination station data.
+     * @return The next AI state to transition to, or null if no transition is needed.
+     */
+    protected IAIState getConnectionOrCheck(final TrackConnectionResult conn, final StationData dest, final ExportData e)
+    {
+        if (conn == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("UNKNOWN connection to remote station for export of {}.", e.getTradeItem()));
+            currentRemoteStation = dest;
+            return StationMasterStates.CHECK_CONNECTION;
+        }
+        return null;
+    }
+
+    /**
+     * Validates if the remote station is connected and offers the trade.
+     * If either condition is not met, the export is marked for removal.
+     * Outposts skip import validation.
+     * 
+     * @param dest the destination station to validate
+     * @param stationConnected whether the station is connected
+     * @param e the export data to validate
+     * @return the next AI state to transition to, or null if no transition is needed
+     */
+    protected IAIState validateRemoteImportOrEliminate(final StationData dest, final boolean stationConnected, final ExportData e)
+    {
+        if (dest.isOutpost()) return null; // outposts skip import validation
+
+        final BuildingStationImportModule remoteImport = dest.getStation().getModule(MCTPBuildingModules.IMPORTS);
+
+        if (remoteImport == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Export of {} for {} no longer has a valid destination station - marking for removal.",
+                    e.getTradeItem(),
+                    e.getCost()));
+            currentExport = e;
+            return StationMasterStates.ELIMINATE_OLD_ORDER;
+        }
+
+        final boolean tradeOffered = remoteImport.hasTrade(e.getTradeItem().getItemStack(), e.getCost(), e.getQuantity());
+
+        if (!stationConnected || !tradeOffered)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Export of {} for {} is no longer valid (trade not offered) - marking for removal.",
+                    e.getTradeItem(),
+                    e.getCost()));
+            currentExport = e;
+            return StationMasterStates.ELIMINATE_OLD_ORDER;
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns true if the building has enough of the specified item to fulfill the export request.
+     * 
+     * @param e the export data to check against the building's inventory.
+     * @return true if the building has enough of the item, false otherwise.
+     */
+    protected boolean hasLocalSupply(final ExportData e)
+    {
+        final int available = BuildingUtil.availableCount(building, e.getTradeItem());
+        return available >= e.getQuantity();
+    }
+
+    /**
+     * Ensures that a remote station has a worker assigned to process an export.
+     * If the remote station does not have a worker, the export is marked for removal.
+     * If the remote station is an outpost and does not have a record of this expected shipment, the export is marked for removal.
+     * @param remote the remote station to check.
+     * @param e the export data to validate against the remote station.
+     * @return the next AI state to transition to, or null if no transition is needed.
+     */
+    protected IAIState ensureRemoteStaffedOrEliminate(final ITradeCapable remote, final ExportData e)
+    {
+        if (remote == null || remote.getAllAssignedCitizen().isEmpty())
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Export of {} for {} is no longer valid (remote station not staffed) - marking for removal.",
+                    e.getTradeItem(),
+                    e.getCost()));
+            currentExport = e;
+            return StationMasterStates.ELIMINATE_OLD_ORDER;
+        }
+
+        if (remote instanceof BuildingOutpost outpost)
+        {
+            boolean hasExpectedShipment = outpost.hasExpectedShipment(e);
+            if (!hasExpectedShipment)
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION,
+                    () -> LOGGER.info("Export of {} to outpost {} is no longer valid (no record of this expected shipment) - marking for removal.",
+                        e.getTradeItem(),
+                        outpost.getBuildingDisplayName()));
+                        
+                currentExport = e;
+                return StationMasterStates.ELIMINATE_OLD_ORDER;
+            }
+        }
+
+        return null;
+    }
+
+    protected boolean remoteHasFunds(final ITradeCapable remote, final ExportData e)
+    {
+        final int availableRemoteFunds = BuildingUtil.availableCount(remote, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+        final ICitizenData remoteWorker = remote.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+        final boolean ok = (availableRemoteFunds >= e.getCost()) && (remoteWorker != null);
+        if (ok) e.setInsufficientFunds(false);
+        return ok;
+    }
+
+    protected void notifyInsufficientFundsAndCooldown(final ITradeCapable remote, final StationData dest, final ExportData e)
+    {
+        e.setInsufficientFunds(true);
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Necessary funds are NOT available.", e.getTradeItem()));
+
+        int cooldown = remoteStationMessageCooldown.getOrDefault(dest, 0);
+        if (cooldown == 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Informed remote colony of funding need for {}.", e.getTradeItem()));
+
+            if (remote instanceof BuildingStation remoteStation)
+            {
+                remoteStation.addPaymentRequest(e.getCost());
+            }
+            remoteStationMessageCooldown.put(dest, MESSAGE_COOLDOWN_TIME);
+        }
+        else
+        {
+            remoteStationMessageCooldown.put(dest, cooldown - 1);
+        }
+    }
+
 
     /**
      * Initiates trade shipment by setting the shipment distance to 0 for the current export. 

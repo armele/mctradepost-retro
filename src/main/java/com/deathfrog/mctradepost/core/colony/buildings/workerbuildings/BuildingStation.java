@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,10 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationEx
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostShipmentTracking;
+import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
@@ -39,7 +44,11 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
@@ -52,6 +61,7 @@ import com.minecolonies.core.colony.eventhooks.citizenEvents.VisitorSpawnedEvent
 import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
+import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -69,11 +79,10 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-
 import static com.minecolonies.api.util.constant.Constants.MAX_STORY;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
-public class BuildingStation extends AbstractBuilding implements ITradeCapable
+public class BuildingStation extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -431,27 +440,43 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable
     }
 
     /**
+     * Gets the stationmaster (worker) assigned to this building.
+     *
+     * @return the stationmaster, or null if none is found.
+     */
+    public ICitizenData getStationmaster()
+    {
+        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get()).getAssignedCitizen();
+        
+        if (employees.isEmpty()) {
+            return null;
+        }
+    
+        return employees.get(0);
+    }
+
+    /**
      * Returns true if the station is open for business, i.e. if it has a
      * stationmaster assigned and they are working.
      * @return true if the station is open for business, false otherwise.
      */
     public boolean isOpenForBusiness() 
     {
-        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get()).getAssignedCitizen();
-        
-        if (employees.isEmpty()) {
+        ICitizenData stationmaster = getStationmaster();
+
+        if (stationmaster == null) {
             return false;
         }
     
-        final Optional<AbstractEntityCitizen> optionalEntityCitizen = employees.get(0).getEntity();
+        final Optional<AbstractEntityCitizen> optionalEntityCitizen = stationmaster.getEntity();
 
         if (!optionalEntityCitizen.isPresent()) {
             return false;
         }
         
-        AbstractEntityCitizen stationmaster = optionalEntityCitizen.get();
+        AbstractEntityCitizen stationmasterEntity = optionalEntityCitizen.get();
 
-        IState workState = ((EntityCitizen) stationmaster).getCitizenAI().getState();
+        IState workState = ((EntityCitizen) stationmasterEntity).getCitizenAI().getState();
 
         return CitizenAIState.WORKING.equals(workState);
     }
@@ -708,13 +733,157 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable
 
         if (!this.getAllAssignedCitizen().isEmpty())
         {
-            ICitizenData worker = this.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
+            ICitizenData worker = this.getStationmaster();
             
             if (worker != null && !worker.getEntity().isEmpty())
             {
                 worker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentReceived.getCost());
             }
         }
+    }
+
+    /**
+     * Returns a list of all connected outposts to this station.
+     * The list only contains outposts that are directly connected to this station by tracks.
+     * 
+     * @return a list of all connected outposts to this station.
+     */
+    public List<BuildingOutpost> findConnectedOutposts()
+    {
+        List<BuildingOutpost> outposts = new ArrayList<>(); 
+        for (StationData stationData : connectionresults.keySet())
+        {
+            TrackConnectionResult connectionResult = connectionresults.get(stationData);
+
+            if (connectionResult.isConnected() && stationData.getStation() instanceof BuildingOutpost outpost)
+            {
+                outposts.add(outpost);
+            }
+        }
+        return outposts;
+    }
+
+    /**
+     * Analyzes all requests from connected outposts and attempts to resolve them.
+     * If a request is in the CREATED or ASSIGNED state, it checks if the outpost has a qualifying item to ship.
+     * If so, it initiates a shipment and sets the request state to RESOLVED.
+     * If no qualifying item is found, it echoes the request to the stationmaster and sets the request state to ASSIGNED.
+     * If the request is already in progress, it does nothing.
+     * This method is called every tick by the outpost's AI.
+     */
+    public void handleOutpostRequests()
+    {
+        ICitizenData stationmaster = getStationmaster();
+
+        if (stationmaster == null)
+        {
+            return;
+        }
+
+        final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
+        IRequestResolver<?> currentlyAssignedResolver = null;
+ 
+        for (BuildingOutpost outpost : findConnectedOutposts())
+        {
+            final Collection<IRequest<?>> openRequests = outpost.getOutpostRequests();
+
+            if (openRequests == null || openRequests.isEmpty())
+            {
+                continue;
+            }
+
+            for (final IRequest<?> request : openRequests)
+            {
+                try
+                {
+                    currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+                } catch (IllegalArgumentException e)
+                {
+                    requestManager.getRequestHandler().registerRequest(request);
+                    requestManager.assignRequest(request.getId());
+                    LOGGER.warn("Repairing request registration for request: {}", request);
+                    // request.setState(requestManager, RequestState.CANCELLED);
+                    continue;
+                }
+
+                if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(outpost.getLocation()))
+                {
+                    LOGGER.info("Analyzing request in state {} - details: {}", request.getState(), request.getLongDisplayString());
+                    OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
+
+                    if (tracking == null)
+                    {
+                        LOGGER.warn("No outpost shipment tracking found for request: {}", request);
+                        continue;
+                    }
+
+                    if (tracking.getState().ordinal() <= OutpostOrderState.SHIPMENT_REQUESTED.ordinal())
+                    {
+                        LOGGER.info("Checking if satisfiable: {}", request);
+                        // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
+                        ItemStorage satisfier = inventorySatisfiesRequest(request);
+
+                        if (satisfier != null)
+                        {
+                            LOGGER.info("We have something to ship: {}", satisfier);
+                            initiateShipment(satisfier, request, outpost);
+                            
+                            // requestManager.updateRequestState(request.getId(), RequestState.RESOLVED);
+                            // request.setState(requestManager, RequestState.RESOLVED);
+                            continue;
+                        }
+                    }
+                    
+                    // Echo the request if nothing satisfies the requirements and we haven't already echoed.
+                    if (request.getState().ordinal() <= RequestState.IN_PROGRESS.ordinal())
+                    {
+                        LOGGER.info("Handling request {} assigned to Outpost.", request.getLongDisplayString());
+
+                        if (request.hasChildren())
+                        {
+                            LOGGER.info("Request already has {} children. Skipping.", request.getChildren().size());
+                            continue;
+                        }
+
+                        IToken<?> echoToken = this.createRequest(stationmaster, OutpostRequestResolver.cloneRequestable(requestManager, request.getRequest()), true);
+
+                        LOGGER.info("Adding echoed request to request list.");
+
+                        request.addChild(echoToken);
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Initiates a shipment of goods from this station to an outpost.
+     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
+     * The shipment data is added to the outpost's expected shipments.
+     * 
+     * @param thingsToDeliver the items to ship
+     * @param outpostDestination the outpost to ship to
+     */
+    public void initiateShipment(ItemStorage thingsToDeliver, IRequest<?> associatedRequest, BuildingOutpost outpostDestination)
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+        
+        if (exports == null)
+        {
+            LOGGER.error("No export module on connected station - cannot place order.");
+            return;
+        }
+
+        int cost = 0;
+
+        StationData destinationStation = new StationData(outpostDestination);
+        ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
+
+        OutpostShipmentTracking shipment = outpostDestination.addExpectedShipment(export, outpostDestination.getPosition());
+        shipment.setAssociatedRequest(associatedRequest);
+        shipment.setState(OutpostOrderState.SHIPMENT_REQUESTED);
     }
 
 }

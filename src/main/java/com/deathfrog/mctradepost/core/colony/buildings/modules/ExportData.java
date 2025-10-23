@@ -29,7 +29,6 @@ public class ExportData
     private final StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
-    private final int quantity;
     private int shipDistance = -1;
     private int trackDistance = -1;
     private int lastShipDay = -1;
@@ -37,13 +36,12 @@ public class ExportData
     private GhostCartEntity cart = null;
 
 
-    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, int quantity)
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
         this.tradeItem = tradeItem;
         this.cost = cost;
-        this.quantity = quantity;
         this.shipDistance = -1;
         this.trackDistance = -1;
         this.lastShipDay = -1;
@@ -62,7 +60,7 @@ public class ExportData
 
     public int getQuantity()
     {
-        return quantity;
+        return tradeItem.getAmount();
     }
 
     public int getShipDistance()

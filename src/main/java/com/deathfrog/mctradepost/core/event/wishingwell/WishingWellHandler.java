@@ -846,7 +846,6 @@ public class WishingWellHandler {
                     case RitualManager.RITUAL_EFFECT_OUTPOST:
                         result =  processRitualOutpost(marketplace, pos, ritual, state);
                         break;
-                        break;
 
                     default:
                         MCTradePostMod.LOGGER.warn("Unknown ritual effect: {}", ritual.effect());

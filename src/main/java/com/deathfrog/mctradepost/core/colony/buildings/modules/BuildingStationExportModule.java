@@ -101,14 +101,14 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             }
             ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
             int cost = compoundNBT.getInt(TAG_COST);
-            int quantity = compoundNBT.getInt(TAG_QUANTITY);
+            // int quantity = compoundNBT.getInt(TAG_QUANTITY);
             int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
             int trackDistance = compoundNBT.getInt(TAG_TRACK_DISTANCE);
             int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
             boolean nsf = compoundNBT.getBoolean(TAG_NSF);
             if (station != null)
             {
-                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost, quantity);
+                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
                 exportData.spawnCartForTrade();
@@ -137,7 +137,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             compoundNBT.put("exportStation", exportData.getDestinationStationData().toNBT());
             compoundNBT.put(NbtTagConstants.STACK, exportData.getTradeItem().getItemStack().saveOptional(provider));
             compoundNBT.putInt(TAG_COST, exportData.getCost());
-            compoundNBT.putInt(TAG_QUANTITY, exportData.getQuantity());
+            // compoundNBT.putInt(TAG_QUANTITY, exportData.getQuantity());
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
             compoundNBT.putInt(TAG_TRACK_DISTANCE, exportData.getTrackDistance());
             compoundNBT.putInt(TAG_LAST_SHIP_DAY, exportData.getLastShipDay());
@@ -181,12 +181,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param quantity The quantity of the item to export.
      * @return The newly added export data.
      */
-    public ExportData addExport(StationData destinationStation, final ItemStack itemStack, final int cost, final int quantity)
+    public ExportData addExport(StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
     {
-        ExportData addedExport = new ExportData((BuildingStation) building, destinationStation, new ItemStorage(itemStack), cost, quantity);
+        ExportData addedExport = new ExportData((BuildingStation) building, destinationStation, itemToDeliver, cost);
         exportList.add(addedExport);
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added export {} to {}. Post-addition size: {}", itemStack, destinationStation.getBuildingPosition(), exportList.size()));
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added export {} to {}. Post-addition size: {}", itemToDeliver, destinationStation.getBuildingPosition(), exportList.size()));
 
         markDirty();
 

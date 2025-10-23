@@ -1,12 +1,10 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -46,10 +44,8 @@ import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.advancements.critereon.CollectionContentsPredicate.Single;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -60,15 +56,12 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.minecraft.core.particles.ParticleTypes;
@@ -92,6 +85,7 @@ public class BuildingRecycling extends AbstractBuilding
     public static final String RECYCLER_NO_RECYCLABLES_SET = "com.mctradepost.recycler.no_list_configured";
     public static final String NO_RECYCLE_TAG = "NoRecycle";
 
+    public static final int PENALTY_RECYCLING_STAT_LEVEL = 10;
     public static final int FLAWLESS_RECYCLING_STAT_LEVEL = MCTPConfig.flawlessRecycling.get();
 
     /**
@@ -804,6 +798,43 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
+     * Calculates the recycling efficiency based on the worker's skill level.
+     * This method calculates a value between 0.5 and 1.0, where 0.5 is the baseline efficiency
+     * and 1.0 is the maximum efficiency.
+     * 
+     * If the worker's skill level is less than 0, this method will return 1.0.
+     * If the worker's skill level is less than or equal to PENALTY_RECYCLING_STAT_LEVEL, this method will
+     * return the baseline efficiency minus a value proportional to the difference between the
+     * worker's skill level and PENALTY_RECYCLING_STAT_LEVEL.
+     * If the worker's skill level is greater than PENALTY_RECYCLING_STAT_LEVEL, this method will
+     * return the baseline efficiency plus a value proportional to the difference between the
+     * worker's skill level and FLAWLESS_RECYCLING_STAT_LEVEL, capped at 1.0.
+     * 
+     * @param workerSkill the skill level of the worker
+     * @return the recycling efficiency based on the worker's skill level
+     */
+    protected double calculateRecyclingEfficiency(int workerSkill)
+    {
+        double baseline = 0.5;
+
+        if (workerSkill < 0)
+        {
+            return 1.0;
+        }
+        else
+        {
+            if (workerSkill <= PENALTY_RECYCLING_STAT_LEVEL)
+            {
+                return baseline - (0.05 * (PENALTY_RECYCLING_STAT_LEVEL - workerSkill));
+            }
+            else
+            {
+                return Math.min(1.0, baseline + (.5 * ((double) workerSkill / (double) FLAWLESS_RECYCLING_STAT_LEVEL)));
+            }
+        }
+    }
+
+    /**
      * Given an input item stack, return a list of output stacks using the associated deconstruction recipe. This method takes the
      * input stack and converts it into a list of output stacks using the associated recipe. Each output stack is then inserted into an
      * output chest using the tryInsertIntoOutputChest method.
@@ -871,8 +902,7 @@ public class BuildingRecycling extends AbstractBuilding
 
             // Scale the output count based on the number of items in the input stack
             int recipeProductCount = referenceResultStack.getCount() > 0 ? referenceResultStack.getCount() : 1;
-            double recyclingEfficiency =
-                (workerSkill < 0) ? 1.0 : .5 + (.5 * Math.min(1.0, (double) workerSkill / (double) FLAWLESS_RECYCLING_STAT_LEVEL));
+            double recyclingEfficiency = calculateRecyclingEfficiency(workerSkill);
             double damageFactor =
                 inputStack.getMaxDamage() > 0 ? inputStack.getDamageValue() / (double) inputStack.getMaxDamage() : 1.0;
             int recyclingOutputCount = (int) ((double) total * ((double) inputStack.getCount() / (double) recipeProductCount));
