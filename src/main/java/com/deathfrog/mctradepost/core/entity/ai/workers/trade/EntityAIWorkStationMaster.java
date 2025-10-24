@@ -34,6 +34,9 @@ import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.references.Items;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -59,6 +62,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     protected static final int OUTPOST_COOLDOWN_TIMER = 10;
     protected static int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+
+    protected static final int VALIDATION_COOLDOWN_TIMER = 10;
+    protected static int validationCooldown = VALIDATION_COOLDOWN_TIMER;
+
+    protected static final int MATCHING_COOLDOWN_TIMER = 5;
+    protected static int matchingCooldown = MATCHING_COOLDOWN_TIMER;
 
     public static final Map<StationData, Integer> remoteStationMessageCooldown = new HashMap<>();
 
@@ -100,7 +109,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
           new AITarget<IAIState>(StationMasterStates.CHECK_CONNECTION, this::checkConnection, 50),
           new AITarget<IAIState>(StationMasterStates.REQUEST_FUNDS, this::requestFunds, 50),
           new AITarget<IAIState>(StationMasterStates.SEND_SHIPMENT, this::sendShipment, 50),
-          new AITarget<IAIState>(StationMasterStates.WALK_THE_TRACK, this::walkTheTrack, 2)
+          new AITarget<IAIState>(StationMasterStates.WALK_THE_TRACK, this::walkTheTrack, 1)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -112,16 +121,23 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState decideWhatToDo()
     {
+        outpostCooldown--;
+        validationCooldown--;
+        matchingCooldown--;
 
-        if (outpostCooldown-- <= 0)
+        if (outpostCooldown <= 0)
         {
             outpostCooldown = OUTPOST_COOLDOWN_TIMER;
             return StationMasterStates.HANDLE_OUTPOST_REQUESTS;
         }
 
-        if (shouldCheckConnection())
+        if (validationCooldown <= 0)
         {
-            return StationMasterStates.CHECK_CONNECTION;
+            validationCooldown = VALIDATION_COOLDOWN_TIMER;
+            if (shouldCheckConnection())
+            {
+                return StationMasterStates.CHECK_CONNECTION;
+            }   
         }
 
         currentFundRequest = building.removePaymentRequest();
@@ -130,9 +146,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.REQUEST_FUNDS;
         }
 
-        if (building.getModule(MCTPBuildingModules.EXPORTS).exportCount() > 0)
+        if (matchingCooldown <= 0)
         {
-            return StationMasterStates.FIND_MATCHING_OFFERS;
+            matchingCooldown = MATCHING_COOLDOWN_TIMER;
+
+            if (building.getModule(MCTPBuildingModules.EXPORTS).exportCount() > 0)
+            {
+                return StationMasterStates.FIND_MATCHING_OFFERS;
+            }
         }
 
         EntityNavigationUtils.walkToRandomPos(worker, 15, 0.6D);
@@ -168,8 +189,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             building.markTradesDirty();
             currentExport = null;
         }
+        else
+        {
+            LOGGER.warn("Asked to eliminate shipment with no curren export identified.");
+            currentExport = null;
+        }
 
-        return StationMasterStates.FIND_MATCHING_OFFERS;
+        return DECIDE;
     }
 
     /**
@@ -204,6 +230,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         for (ExportData exportData : exportsModule.getExports())
         {
+            if (exportData.getTradeItem().getItemStack().isEmpty())
+            {
+                currentExport = exportData;
+                return StationMasterStates.ELIMINATE_OLD_ORDER;
+            }
+
             // Skip if already shipping or already shipped today
             if (isAlreadyShippingToday(exportData)) continue;
 
@@ -246,7 +278,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                             exportData.getTradeItem(),
                             conn));
                     currentRemoteStation = dest;
-                    return StationMasterStates.CHECK_CONNECTION; // (Outposts path; non-outposts were eliminated earlier)
+                    return StationMasterStates.CHECK_CONNECTION;
                 }
 
                 if (remoteHasFunds)
@@ -373,7 +405,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.ELIMINATE_OLD_ORDER;
         }
 
-        final boolean tradeOffered = remoteImport.hasTrade(e.getTradeItem().getItemStack(), e.getCost(), e.getQuantity());
+        final boolean tradeOffered = remoteImport.hasTrade(e.getTradeItem().getItemStack().copy(), e.getCost(), e.getQuantity());
 
         if (!stationConnected || !tradeOffered)
         {
@@ -479,7 +511,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState sendShipment() 
     {
-        if (currentExport != null)
+        if (currentExport != null && currentExport.getTradeItem() != null && !currentExport.getTradeItem().getItemStack().isEmpty())
         {   
             TrackConnectionResult tcr = ((BuildingStation) building).getTrackConnectionResult(currentExport.getDestinationStationData());
             if (tcr == null)
@@ -494,14 +526,18 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             currentExport.setTrackDistance(trackDistance);
             currentExport.setLastShipDay(building.getColony().getDay());
 
+            final ItemStack cargoCopy = currentExport.getTradeItem().getItemStack().copy();
+            ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy());
+            ItemStorage refundIfNeeded = new ItemStorage(cargoCopy.copy());
+
             // Remove the outbound export from this building/worker
-            if (MCTPInventoryUtils.combinedInventoryRemoval(building, currentExport.getTradeItem(), currentExport.getQuantity())) 
+            if (MCTPInventoryUtils.combinedInventoryRemoval(building, removeFromStorage, currentExport.getQuantity())) 
             {
                 // Remove the inbound payment from remote building/worker.
                 if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Receiving station no longer has adequate funds.  Restoring items."));
-                    MCTPInventoryUtils.InsertOrDropByQuantity(building, currentExport.getTradeItem(), currentExport.getQuantity());
+                    MCTPInventoryUtils.InsertOrDropByQuantity(building, refundIfNeeded, currentExport.getQuantity());
 
                     currentExport = null;
                     incrementActionsDoneAndDecSaturation();
@@ -522,8 +558,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
 
             building.markTradesDirty();
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", currentExport));
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", 
+                currentExport.getTradeItem().getItemStack().getHoverName()));
 
+            currentExport = null;
+        }
+        else
+        {
+            LOGGER.warn("Asked to send a shipment with an invalid current export to initiate shipment for: {}", currentExport);
             currentExport = null;
         }
         

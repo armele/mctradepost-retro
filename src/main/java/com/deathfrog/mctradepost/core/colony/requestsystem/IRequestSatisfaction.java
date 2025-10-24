@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.requestsystem;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.jetbrains.annotations.NotNull;
@@ -8,8 +9,13 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.requestable.Tool;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
+import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ToolRequest;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -44,7 +50,6 @@ public interface IRequestSatisfaction extends IBuilding
         final int required = requiredCountFor(payload);
 
         final IItemHandler inv = getItemHandlerCap();
-        ItemStack lastMatchedStack = null;
         int have = 0;
 
         for (int slot = 0; slot < inv.getSlots(); slot++)
@@ -53,17 +58,10 @@ public interface IRequestSatisfaction extends IBuilding
             if (stack.isEmpty()) continue;
             if (matcher.test(stack))
             {
-                lastMatchedStack = stack.copy();
                 have += stack.getCount();
-                if (have >= required) return new ItemStorage(stack, required);
+                if (have >= required) return new ItemStorage(stack.copy(), required);
             }
 
-        }
-        
-        // If we have some, but not enough, go ahead and allow a partial match with what we have.
-        if (have > 0) 
-        {
-            return new ItemStorage(lastMatchedStack, have);
         }
 
         return null;
@@ -92,7 +90,32 @@ public interface IRequestSatisfaction extends IBuilding
             return st -> !st.isEmpty() && ItemStack.isSameItemSameComponents(st, wanted);
         }
 
-        // 3) Tag-based requests (if your requestable exposes a TagKey<Item> or HolderSet<Item>)
+        // 3) StackList matcher
+        if (req instanceof StackList sl)
+        {
+            // Pre-filter empties once; the predicate runs a lot in hot paths
+            final List<ItemStack> wanteds = sl.getStacks().stream().filter(s -> s != null && !s.isEmpty()).toList();
+
+            if (wanteds.isEmpty())
+            {
+                return st -> false;
+            }
+
+            return st -> !st.isEmpty() && wanteds.stream().anyMatch(w -> ItemStack.isSameItem(st, w));
+        }
+
+        // Tool requests
+        if (req instanceof Tool tool)
+        {
+            final EquipmentTypeEntry type = tool.getEquipmentType();
+            final int min = tool.getMinLevel();             // -1 means “no minimum”
+            final int max = tool.getMaxLevel();             // Integer.MAX_VALUE means “no maximum”
+
+            // Use the same logic MineColonies uses:
+            return st -> !st.isEmpty() && ItemStackUtils.hasEquipmentLevel(st, type, min, max);
+        }
+
+        // Tag-based requests (if requestable exposes a TagKey<Item> or HolderSet<Item>)
         if (req instanceof QualifiesByTag tagReq)
         {
             final TagKey<Item> tag = tagReq.tag();
@@ -106,14 +129,14 @@ public interface IRequestSatisfaction extends IBuilding
             return st -> p.test(st);
         }
 
-        // 4) Ingredient-based (“any item matching this Ingredient”)
+        // Ingredient-based (“any item matching this Ingredient”)
         if (req instanceof QualifiesByIngredient ingReq)
         {
             final Ingredient ing = ingReq.ingredient();
             return st -> !st.isEmpty() && ing.test(st);
         }
 
-        // 5) Custom predicate-capable requestables
+        // Custom predicate-capable requestables
         if (req instanceof PredicateBackedRequestable p)
         {
             return st -> !st.isEmpty() && p.matches(st);
@@ -141,6 +164,11 @@ public interface IRequestSatisfaction extends IBuilding
         {
             return Math.max(0, q.requiredCount());
         }
+        if (req instanceof StackList sl)
+        {
+            return Math.max(0, sl.getCount());
+        }
+
         // Fallback: assume 1
         return 1;
     }

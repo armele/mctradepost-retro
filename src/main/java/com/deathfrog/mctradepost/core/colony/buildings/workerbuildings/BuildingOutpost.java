@@ -37,6 +37,7 @@ import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.colony.workorders.WorkOrderType;
@@ -53,55 +54,12 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     public enum OutpostOrderState
     {
         NEEDED,                 // The outpost has a need for something
-        SHIPMENT_REQUESTED,     // Connected station has been asked to deliver this order
+        NEEDS_ITEM_FOR_SHIPPING,// Connected station needs something before it can ship
+        SHIPMENT_INITIATED,     // Connected station has started the shipment
         RECEIVED,               // Outpost has received the order from the connected station
-        READY_FOR_DELIVERY,     // Scout is ready to deliver the order
+        READY_FOR_DELIVERY,     // Scout is ready to deliver the order (it is in their inventory)
         DELIVERED               // Scout has delivered the order to the necessary place in the outpost
     };
-
-    public class OutpostShipmentTracking
-    {
-        protected BlockPos outpostDestination;
-        protected OutpostOrderState state;
-        protected IRequest<?> associatedRequest;
-
-        public OutpostShipmentTracking(BlockPos outpostDestination, OutpostOrderState state)
-        {
-            this.outpostDestination = outpostDestination;
-            this.state = state;
-        }
-
-        public IRequest<?> getAssociatedRequest()
-        {
-            return associatedRequest;
-        }
-
-        public void setAssociatedRequest(IRequest<?> associatedRequest)
-        {
-            this.associatedRequest = associatedRequest;
-        }
-
-        public OutpostOrderState getState()
-        {
-            return state;
-        }
-
-        public void setState(OutpostOrderState state)
-        {
-            this.state = state;
-        }
-
-        public BlockPos getOutpostDestination()
-        {
-            return outpostDestination;
-        }
-
-        public void setOutpostDestination(BlockPos outpostDestination)
-        {
-            this.outpostDestination = outpostDestination;
-        }
-
-    }
 
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int STATION_VALIDATION_COOLDOWN = 100;
@@ -116,7 +74,8 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     protected IToken<?> outpostResolverToken = null;
 
 
-    public Map<ExportData, OutpostShipmentTracking> expectedShipments = new ConcurrentHashMap<>();
+    // Map of request tokens to shipment tracking objects.
+    public Map<IToken<?>, OutpostShipmentTracking> expectedShipments = new ConcurrentHashMap<>();
 
     /**
      * Map of track connection results for other trade capable buildings (by station data).
@@ -306,7 +265,33 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
             }
         }
 
-        // LOGGER.info("Connection cooldown: {}", stationValidationCooldown);
+        List<IRequest<?>> requestsToRemove = new ArrayList<>();
+
+        for (IToken<?> requestId : expectedShipments.keySet())
+        {
+            IRequest<?> request = this.getColony().getRequestManager().getRequestForToken(requestId);
+            OutpostShipmentTracking tracking = expectedShipments.get(requestId);
+
+            if (tracking == null)
+            {
+                continue;
+            }
+            else
+            {
+                if (tracking.getState() == OutpostOrderState.DELIVERED 
+                    || request.getState() == RequestState.CANCELLED 
+                    || request.getState() == RequestState.FAILED
+                    || request.getState() == RequestState.COMPLETED)
+                {
+                    requestsToRemove.add(request);
+                }
+            }
+        }
+
+        for (IRequest<?> request : requestsToRemove)
+        {
+            expectedShipments.remove(request.getId());
+        }
     }
 
     /**
@@ -525,12 +510,21 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      * @param shipment The shipment to add to the expected shipments.
      * @param outpostDestination The outpost destination that the shipment is associated with.
      */
-    public OutpostShipmentTracking addExpectedShipment(ExportData shipment, BlockPos outpostDestination)
+    public OutpostShipmentTracking addExpectedShipment(IRequest<?> request, ExportData shipment, BlockPos outpostDestination)
     {
-        OutpostShipmentTracking createdShipment = new OutpostShipmentTracking(outpostDestination, OutpostOrderState.NEEDED);
-        expectedShipments.put(shipment, createdShipment);
+        OutpostShipmentTracking tracking = expectedShipments.get(request.getId());
 
-        return createdShipment;
+        if (tracking == null)
+        {
+            tracking = new OutpostShipmentTracking(outpostDestination, shipment, OutpostOrderState.NEEDED);    
+            expectedShipments.put(request.getId(), tracking);
+        } 
+        else
+        {
+            tracking.setAssociatedExportData(shipment);
+        }
+
+        return tracking;
     }
 
     /**
@@ -541,19 +535,16 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      */
     public boolean hasExpectedShipment(ExportData exportData) 
     { 
-        return expectedShipments.containsKey(exportData); 
-    }
 
-    /**
-     * Removes the expected shipment associated with the given export data from the outpost's expected shipments.
-     * If the shipment is found and removed, returns true. Otherwise, returns false.
-     * 
-     * @param exportData The export data to remove the associated expected shipment for.
-     * @return True if the shipment is found and removed, false otherwise.
-     */
-    public boolean removeExpectedShipment(ExportData exportData)
-    {
-        return expectedShipments.remove(exportData) != null;
+        for (OutpostShipmentTracking shipment : expectedShipments.values())
+        {
+            if (shipment.exportData != null && shipment.exportData.equals(exportData))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -561,17 +552,16 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      * @param shipment The request to find the associated OutpostShipment for.
      * @return The OutpostShipment associated with the given request, or null if no matching shipment is found.
      */
-    public OutpostShipmentTracking trackingForRequest(IRequest<?> shipment)
-    {
-        for (OutpostShipmentTracking expectedShipment : expectedShipments.values())
-        {
-            if (expectedShipment.getAssociatedRequest().equals(shipment))
-            {
-                return expectedShipment;
-            }
-        }
+    public OutpostShipmentTracking trackingForRequest(IRequest<?> request)
+    {        
+        OutpostShipmentTracking tracking = expectedShipments.get(request);
 
-        return null;
+        if (tracking == null)
+        {
+            tracking = this.addExpectedShipment(request, null, request.getRequester().getLocation().getInDimensionLocation());
+        }
+    
+        return tracking;
     }
 
 
@@ -676,6 +666,14 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
                 {
                     outpostRequests.addAll(openRequests);
                 }
+            }
+
+            // Gather requests not associated with the specific citizen, too.
+            final Collection<IRequest<?>> openRequests = childBuilding.getOpenRequests(-1);
+
+            if (openRequests != null)
+            {
+                outpostRequests.addAll(openRequests);
             }
         }
 

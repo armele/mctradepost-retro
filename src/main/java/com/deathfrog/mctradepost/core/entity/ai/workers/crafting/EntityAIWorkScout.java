@@ -4,11 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostShipmentTracking;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -28,7 +26,7 @@ import com.minecolonies.core.colony.requestsystem.management.IStandardRequestMan
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
-
+import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
@@ -155,7 +153,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
      */
     public IAIState wander()
     {
-        EntityNavigationUtils.walkToRandomPosWithin(worker, 10, Constants.DEFAULT_SPEED, building.getCorners());
+        EntityNavigationUtils.walkToRandomPos(worker, 10, Constants.DEFAULT_SPEED);
         return DECIDE;
     }
 
@@ -248,6 +246,8 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
             if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(building.getLocation()))
             {
+                OutpostShipmentTracking shipmentTracking = building.trackingForRequest(request);
+
                 LOGGER.info("Checking if satisfiable from the building: {} with state {}", request.getLongDisplayString(), request.getState());
                 // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
                 ItemStorage satisfier = building.inventorySatisfiesRequest(request);
@@ -256,9 +256,18 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
                 {
                     LOGGER.info("We have something to deliver: {}", satisfier);
                     
-                    currentDeliverableSatisfier = satisfier.getItemStack();
+                    currentDeliverableSatisfier = satisfier.getItemStack().copy();
                     currentDeliverableRequest = request;
+                    shipmentTracking.setState(OutpostOrderState.RECEIVED);
 
+                    // Once we have the necessary thing in the outpost, we can mark all remaining outstanding children as cancelled, and remove them.
+                    for (IToken<?> child : request.getChildren())
+                    {
+                        // IRequest<?> childRequest = requestManager.getRequestForToken(child);
+                        requestManager.updateRequestState(child, RequestState.COMPLETED);
+                        request.removeChild(child);
+                    }
+                    
                     return ScoutStates.MAKE_DELIVERY;
                 }
             }
@@ -280,27 +289,38 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
     public IAIState makeDelivery()
     {
 
-        if (currentDeliverableRequest == null)
+        if (currentDeliverableSatisfier == null)
         {
-            currentDeliverableSatisfier = null;
+            LOGGER.info("No current deliverable satisfier in makeDelivery.");
+
+            currentDeliverableRequest = null;
             return DECIDE;
         }
 
         OutpostShipmentTracking tracking = building.trackingForRequest(currentDeliverableRequest);
+        IBuilding deliveryTarget = targetBuildingForRequest(currentDeliverableRequest);
 
         if (tracking == null)
         {
             // Somewhere along the line something got cancelled, and we aren't expecting this any more...
-            currentDeliverableSatisfier = null;
-            currentDeliverableRequest   = null;
-            return DECIDE;
+            LOGGER.info("No tracking for delivery: {} - repairing.", currentDeliverableSatisfier);
+            
+            if (!getInventory().isEmpty())
+            {
+                tracking = new  OutpostShipmentTracking(deliveryTarget.getPosition(), null, OutpostOrderState.READY_FOR_DELIVERY);    
+            }
+            else
+            {
+                tracking = new  OutpostShipmentTracking(deliveryTarget.getPosition(), null, OutpostOrderState.DELIVERED);
+            }
         }
+
+        LOGGER.info("Making delivery of {} to {} (tracking status {})", currentDeliverableSatisfier, deliveryTarget.getBuildingDisplayName(), tracking.getState());
 
         // Walk to the destination building with the needed item.
         if (tracking.getState() == OutpostOrderState.READY_FOR_DELIVERY)
         {
-            IBuilding deliveryTarget = targetBuildingForRequest(currentDeliverableRequest);
-            if (!EntityNavigationUtils.walkToBuilding(this.worker, deliveryTarget))
+            if (!EntityNavigationUtils.walkToBuilding(this.worker, deliveryTarget) && !getInventory().isEmpty())
             {
                 LOGGER.info("Walking to {} with delivery: {}", deliveryTarget.getBuildingDisplayName(), currentDeliverableSatisfier);
                 return getState();
@@ -308,26 +328,30 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
 
             // Transfer the item into the target building's inventory once we've arrived.
-            int slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> ItemStack.matches(stack, currentDeliverableSatisfier));
-            InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, deliveryTarget);
-            worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            int slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> ItemStack.isSameItem(stack, currentDeliverableSatisfier));
 
-            tracking.setState(OutpostOrderState.DELIVERED);
-            
-            // requestManager.updateRequestState(currentDeliverableRequest.getId(), RequestState.RESOLVED);
+            if (slot >= 0)
+            {
+                InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, deliveryTarget);
+                worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
-            incrementActionsDoneAndDecSaturation();
-            worker.getCitizenExperienceHandler().addExperience(DEFAULT_SCOUT_XP);
+                tracking.setState(OutpostOrderState.DELIVERED);
+                
+                IRequestManager requestManager = building.getColony().getRequestManager();
+                requestManager.updateRequestState(currentDeliverableRequest.getId(), RequestState.COMPLETED);
 
-            // currentDeliverableRequest.setState(requestManager, RequestState.COMPLETED);
-            currentDeliverableSatisfier = null;
-            currentDeliverableRequest = null;
+                incrementActionsDoneAndDecSaturation();
+                worker.getCitizenExperienceHandler().addExperience(DEFAULT_SCOUT_XP);
 
+                // currentDeliverableRequest.setState(requestManager, RequestState.COMPLETED);
+                currentDeliverableSatisfier = null;
+                currentDeliverableRequest = null;
+            }
             return DECIDE;
         }
 
         // Walk to our home buliding to pick up an item.
-        if (!walkToBuilding())
+        if (!EntityNavigationUtils.walkToBuilding(this.worker, building))
         {
             setDelay(2);
             return getState();
@@ -336,14 +360,37 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
         // Pick up the item.
         int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> ItemStack.matches(stack, currentDeliverableSatisfier));
 
-        if (slot > 0)
+        if (slot >= 0)
         {
-            ItemStorage deliveryItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot));
-            InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
-            worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
+            LOGGER.info("Item to deliver found in slot {}.", slot);
+
+
+            ItemStorage deliveryItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot).copy());
+            boolean moved = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
+
+            if (moved)
+            {
+                int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
+                    s -> ItemStack.matches(s, currentDeliverableSatisfier));
+                if (held >= 0)
+                {
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(held));
+                }
+                else
+                {
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                }
+
+                tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
+            }
 
             LOGGER.info("Scout delivering item (final leg) {}.", deliveryItem);
-            tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
+        }
+        else
+        {
+            LOGGER.info("Scout unable to find {} to deliver (final leg), despite a reported match.", currentDeliverableSatisfier);
+            currentDeliverableSatisfier = null;
+            currentDeliverableRequest   = null;
         }
 
         return DECIDE;

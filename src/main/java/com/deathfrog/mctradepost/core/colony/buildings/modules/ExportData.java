@@ -88,7 +88,7 @@ public class ExportData
 
         if (cart == null) return null;
 
-        cart.setTradeItem(this.getTradeItem().getItemStack());
+        cart.setTradeItem(this.getTradeItem().getItemStack().copy());
         this.setCart(cart);
 
         ChunkUtil.releaseChunkTicket(level, path.getFirst(), 1);
@@ -238,5 +238,11 @@ public class ExportData
     public boolean isInsufficientFunds()
     {
         return insufficientFunds;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ExportData{" + "sourceStation=" + sourceStation + ", destinationStation=" + destinationStationData + "tradeItem=" + tradeItem +'}';
     }
 }

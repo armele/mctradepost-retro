@@ -11,12 +11,14 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.IBuilding;
-import com.minecolonies.api.colony.requestsystem.factory.IFactoryController;
 import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.requestable.Tool;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -25,11 +27,9 @@ import com.minecolonies.core.colony.requestsystem.requesters.IBuildingBasedReque
 import com.minecolonies.core.colony.requestsystem.resolvers.core.AbstractRequestResolver;
 import com.mojang.logging.LogUtils;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.connection.ConnectionType;
 
 /*
  * Modelled after DeliverymenRequestResolver
@@ -108,8 +108,6 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         {
             return false;
         }
-        
-        LOGGER.info("Request can be resolved by outpost: {}", requestToCheck.getLongDisplayString());
 
         return BuildingOutpost.isOutpostBuilding(requestingBuilding);
     }
@@ -252,19 +250,26 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         {
             if (src instanceof Stack s)
             {
-                // Rebuild with copied ItemStack and same count/flags
-                ItemStack stackCopy = s.getStack().copy();
-                return new Stack(stackCopy,
-                    s.getCount(),
-                    s.getMinimumCount(),
-                    true);
+                IDeliverable clone = s.copyWithCount(s.getCount());
+                return clone;
             } 
             else if (src instanceof Delivery d)
-            {
+            { 
                 // Delivery usually wraps a Stack; rebuild similarly
                 ItemStack stackCopy = d.getStack().copy();
                 return new Delivery(d.getStart(), d.getTarget(), stackCopy, d.getPriority());
-            } else 
+            } 
+            else if (src instanceof StackList sl) 
+            {
+                StackList clone = (StackList) sl.copyWithCount(sl.getCount());
+                return clone;
+            }
+            else if (src instanceof Tool tr)
+            {
+                IDeliverable clone = tr.copyWithCount(0);
+                return clone;
+            }
+            else
             {
                 LOGGER.warn("Unknown requestable type: {}", src.getClass().getName());
             }
@@ -272,12 +277,9 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         }
         catch (Throwable t)
         {
-            LOGGER.warn("cloneRequestable failed (manual): {}", t.getMessage());
+            LOGGER.error("cloneRequestable failed (manual): {}", t.getMessage());
         }
-
-        LOGGER.warn("cloneRequestable: unsupported type {}", src.getClass().getName());
         
         return null;
     }
-
 }

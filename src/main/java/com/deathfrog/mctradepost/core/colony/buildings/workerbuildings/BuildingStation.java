@@ -29,7 +29,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationIm
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostShipmentTracking;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
@@ -46,6 +46,7 @@ import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -75,6 +76,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.ByIdMap.OutOfBoundsStrategy;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -769,7 +771,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * If so, it initiates a shipment and sets the request state to RESOLVED.
      * If no qualifying item is found, it echoes the request to the stationmaster and sets the request state to ASSIGNED.
      * If the request is already in progress, it does nothing.
-     * This method is called every tick by the outpost's AI.
+     * This method is called as needed by the worker's AI.
      */
     public void handleOutpostRequests()
     {
@@ -808,16 +810,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
                 if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(outpost.getLocation()))
                 {
-                    LOGGER.info("Analyzing request in state {} - details: {}", request.getState(), request.getLongDisplayString());
                     OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
+                    LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking.getState(), request.getLongDisplayString());
 
-                    if (tracking == null)
-                    {
-                        LOGGER.warn("No outpost shipment tracking found for request: {}", request);
-                        continue;
-                    }
-
-                    if (tracking.getState().ordinal() <= OutpostOrderState.SHIPMENT_REQUESTED.ordinal())
+                    if (tracking.getState() == OutpostOrderState.NEEDED 
+                        || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING)
                     {
                         LOGGER.info("Checking if satisfiable: {}", request);
                         // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
@@ -825,7 +822,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
                         if (satisfier != null)
                         {
-                            LOGGER.info("We have something to ship: {}", satisfier);
+                            LOGGER.info("Station has something to ship: {}", satisfier);
                             initiateShipment(satisfier, request, outpost);
                             
                             // requestManager.updateRequestState(request.getId(), RequestState.RESOLVED);
@@ -835,21 +832,28 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     }
                     
                     // Echo the request if nothing satisfies the requirements and we haven't already echoed.
-                    if (request.getState().ordinal() <= RequestState.IN_PROGRESS.ordinal())
+                    if (tracking.getState() == OutpostOrderState.NEEDED)
                     {
                         LOGGER.info("Handling request {} assigned to Outpost.", request.getLongDisplayString());
 
-                        if (request.hasChildren())
+                        IRequestable clonedRequestable = OutpostRequestResolver.cloneRequestable(requestManager, request.getRequest());
+                        IToken<?> echoToken = null;
+
+                        if (clonedRequestable != null)
                         {
-                            LOGGER.info("Request already has {} children. Skipping.", request.getChildren().size());
-                            continue;
+                            echoToken = this.createRequest(stationmaster, clonedRequestable, true);
+
+                            LOGGER.info("Adding echoed request of {} to request list.", request.getLongDisplayString());
+
+                            request.addChild(echoToken);
+                            
+                            tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
+                        }
+                        else
+                        {
+                            LOGGER.warn("Unable to clone requestable for request: {}", request.getLongDisplayString());
                         }
 
-                        IToken<?> echoToken = this.createRequest(stationmaster, OutpostRequestResolver.cloneRequestable(requestManager, request.getRequest()), true);
-
-                        LOGGER.info("Adding echoed request to request list.");
-
-                        request.addChild(echoToken);
                         continue;
                     }
                 }
@@ -876,14 +880,22 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             return;
         }
 
+        if (thingsToDeliver == null || thingsToDeliver.isEmpty())
+        {
+            LOGGER.error("Shipments should not be initiated with nothing to deliver. Associated request: {}", associatedRequest.getLongDisplayString());
+            return;
+        }
+
         int cost = 0;
 
         StationData destinationStation = new StationData(outpostDestination);
         ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
 
-        OutpostShipmentTracking shipment = outpostDestination.addExpectedShipment(export, outpostDestination.getPosition());
-        shipment.setAssociatedRequest(associatedRequest);
-        shipment.setState(OutpostOrderState.SHIPMENT_REQUESTED);
+        OutpostShipmentTracking shipment = outpostDestination.addExpectedShipment(associatedRequest, export, outpostDestination.getPosition());
+
+        shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
+
+        LOGGER.info("Set up export order for {} to {}.", thingsToDeliver, outpostDestination.getBuildingDisplayName());
     }
 
 }

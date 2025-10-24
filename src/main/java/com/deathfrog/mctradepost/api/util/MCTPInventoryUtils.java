@@ -240,12 +240,12 @@ public class MCTPInventoryUtils
 
         if (buildingCount >= amountToDeduct)
         {
-            InventoryUtils.reduceStackInItemHandler(building.getItemHandlerCap(), itemToDeduct.getItemStack(), amountToDeduct);
+            InventoryUtils.reduceStackInItemHandler(building.getItemHandlerCap(), itemToDeduct.getItemStack().copy(), amountToDeduct);
             remainingNeed = 0;
         }       
         else if (buildingCount > 0)
         {
-            InventoryUtils.reduceStackInItemHandler(building.getItemHandlerCap(), itemToDeduct.getItemStack(), buildingCount);
+            InventoryUtils.reduceStackInItemHandler(building.getItemHandlerCap(), itemToDeduct.getItemStack().copy(), buildingCount);
             remainingNeed = amountToDeduct - buildingCount;
         }
 
@@ -256,12 +256,12 @@ public class MCTPInventoryUtils
                 workerCount = InventoryUtils.getItemCountInItemHandler(buildingWorker.getInventory(), stack -> Objects.equals(new ItemStorage(stack), itemToDeduct));
                 if ((workerCount >= remainingNeed) && (buildingWorker != null) && (buildingWorker.getInventory() != null))
                 {   
-                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack(), remainingNeed);
+                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack().copy(), remainingNeed);
                     remainingNeed = 0;
                 }
                 else
                 {
-                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack(), workerCount);
+                    InventoryUtils.reduceStackInItemHandler(buildingWorker.getInventory(), itemToDeduct.getItemStack().copy(), workerCount);
                     remainingNeed = remainingNeed - workerCount;
                 }
             }
