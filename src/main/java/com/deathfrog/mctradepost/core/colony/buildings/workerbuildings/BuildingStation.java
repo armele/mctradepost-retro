@@ -29,7 +29,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationIm
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
@@ -45,7 +44,6 @@ import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
-import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -76,7 +74,6 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.ByIdMap.OutOfBoundsStrategy;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -642,6 +639,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
         }
 
+        int shipmentCountdown = exportData.getShipmentCountdown();
+        if (shipmentCountdown > 0) 
+        {
+            shipmentCountdown -= 1;
+            exportData.setShipmentCountdown(shipmentCountdown);
+        }
+
         StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
         StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
 
@@ -811,7 +815,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(outpost.getLocation()))
                 {
                     OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
-                    LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking.getState(), request.getLongDisplayString());
+                    LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString());
 
                     if (tracking.getState() == OutpostOrderState.NEEDED 
                         || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING)
@@ -890,12 +894,48 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         StationData destinationStation = new StationData(outpostDestination);
         ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
+        export.setShipmentCountdown(1);
 
-        OutpostShipmentTracking shipment = outpostDestination.addExpectedShipment(associatedRequest, export, outpostDestination.getPosition());
-
+        OutpostShipmentTracking shipment = outpostDestination.trackingForRequest(associatedRequest);
         shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
 
         LOGGER.info("Set up export order for {} to {}.", thingsToDeliver, outpostDestination.getBuildingDisplayName());
+    }
+
+
+    /**
+     * Initiates a return shipment of goods to this station.
+     * It is the caller's responsibility to eliminate the items from the source inventory.
+     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
+     * 
+     * @param thingsToDeliver the items to ship
+     * @param carNumber the carNumber is used to space out cars when many are being sent in a short time frame.
+     */
+    public void initiateReturn(ItemStorage thingsToDeliver, int carNumber)
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+        
+        if (exports == null)
+        {
+            LOGGER.error("No export module - cannot place return order.");
+            return;
+        }
+
+        if (thingsToDeliver == null || thingsToDeliver.isEmpty())
+        {
+            LOGGER.error("Shipments should not be initiated with nothing to deliver. Item being returned is null.");
+            return;
+        }
+
+        int cost = 0;
+
+        StationData destinationStation = new StationData(this);
+        ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
+        export.setShipmentCountdown(1);
+        export.setReverse(true);
+        export.setShipDistance(carNumber);
+
+        LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName());
     }
 
 }

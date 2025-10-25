@@ -358,7 +358,7 @@
     "com.mctradepost.research.effects.fivestarservice.description": "Increase the XP of vacationers by %s.",
 
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
-    "mctradepost.station.trades_updated": "New trades available in connected stations!",
+    "mctradepost.station.trades_updated": "Trade availability has changed in connected stations!",
 
     "item.mctradepost.wish_health": "Wish of Health",
     "item.mctradepost.wish_plenty": "Wish of Plenty",
@@ -391,6 +391,7 @@
     "com.mctradepost.outpost.mode.scouting" : "Working at the outpost.",
     "com.mctradepost.outpost.mode.none" : "Lazing about at the outpost.",
     "com.mctradepost.core.gui.modules.outpost.residents": "Outpost Residents",
+    "com.mctradepost.core.gui.modules.outpost.exports": "Return to Colony",
 
     "com.minecolonies.coremod.gui.townhall.stats.current_balance": "‡ Impact: %d",
     "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",

@@ -7,6 +7,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStatio
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostLivingBuildingModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetAssignmentModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingItemsModuleView;
@@ -125,6 +126,12 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("exports",
         () -> new BuildingStationExportModule(),
         () -> BuildingStationExportModuleView::new);
+
+
+   public static final BuildingEntry.ModuleProducer<OutpostExportModule,OutpostExportModuleView> OUTPOST_EXPORTS              =
+      new BuildingEntry.ModuleProducer<>("outpost_exports",
+        () -> new OutpostExportModule(),
+        () -> () -> new OutpostExportModuleView(OutpostExportModule.ID, OutpostExportModule.OUTPOST_EXPORT_WINDOW_DESC));
 
    public static final BuildingEntry.ModuleProducer<PetAssignmentModule,PetAssignmentModuleView> PET_ASSIGNMENT              =
       new BuildingEntry.ModuleProducer<>("pet_assignment",

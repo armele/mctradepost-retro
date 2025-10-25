@@ -118,7 +118,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
 
         if (this.petData == null)
         {
-            LOGGER.warn("Skipping pet goal registration: petData is null");
+            // LOGGER.warn("Skipping pet goal registration: petData is null");
             return;
         }
         petData.assignPetGoals();

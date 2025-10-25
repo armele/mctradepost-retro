@@ -3,19 +3,23 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 
@@ -67,6 +71,9 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
     protected static final String TAG_CONNECTED_STATION = "connected_station";
     protected static final String NBT_OUTPOST_TOKEN = "mctp_outpost_token";
+    private static final String TAG_REQUEST_TOKEN             = "request_token";
+    private static final String TAG_REQUEST_STATE             = "request_state";
+    private static final String TAG_REQUEST_TRACKING = "requestTracking";
 
     protected int stationValidationCooldown = STATION_CONNECTION_COOLDOWN;
     protected BuildingStation connectedStation = null;
@@ -75,7 +82,7 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
 
     // Map of request tokens to shipment tracking objects.
-    public Map<IToken<?>, OutpostShipmentTracking> expectedShipments = new ConcurrentHashMap<>();
+    public Map<IToken<?>, OutpostShipmentTracking> requestTracking = new ConcurrentHashMap<>();
 
     /**
      * Map of track connection results for other trade capable buildings (by station data).
@@ -149,6 +156,18 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
         return missing;
     }
 
+    /**
+     * Serializes the outpost's state into an NBT tag. The tag contains the following elements:
+     * <ul>
+     * <li>"ConnectedStation": the position of the building station that is connected to this outpost by tracks, stored as a BlockPos.</li>
+     * <li>"OutpostResolverToken": the token used to identify the outpost's resolver, stored as a CompoundTag representing the token.</li>
+     * <li>"RequestTracking": a list of block positions that are currently being tracked by the outpost, stored as a ListTag of BlockPos.</li>
+     * </ul>
+     * If any of these values are missing, the default values are set: BlockPos.ZERO for the connected station, null for the outpost resolver token, and an empty list for the request tracking.
+     * 
+     * @param provider The holder lookup provider for item and block references.
+     * @return the serialized NBT tag.
+     */
     @Override
     public CompoundTag serializeNBT(@SuppressWarnings("null") HolderLookup.Provider provider)
     {
@@ -157,11 +176,26 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
         if (outpostResolverToken != null)
         {
-            StandardFactoryController.getInstance().serializeTag(provider, outpostResolverToken);
+            CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, outpostResolverToken);
+            compound.put(NBT_OUTPOST_TOKEN, outpostToken);
+        }
+
+        if (!requestTracking.isEmpty())
+        {
+            writeRequestTrackingToNbt(provider, compound);
         }
 
         return compound;
     }
+
+    /**
+     * Deserializes the NBT data for the outpost, restoring its state from the
+     * provided CompoundTag.
+     *
+     * @param provider The holder lookup provider for item and block references.
+     * @param compound The CompoundTag containing the serialized state of the
+     *                 outpost.
+     */
 
     @SuppressWarnings("null")
     @Override
@@ -171,12 +205,113 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
         BlockPos buildingId = BlockPosUtil.read(compound, TAG_CONNECTED_STATION);
         if (!BlockPos.ZERO.equals(buildingId))
         {
-            this.connectedStation = (BuildingStation) getColony().getBuildingManager().getBuilding(buildingId);
+            final IBuilding b = getColony().getBuildingManager().getBuilding(buildingId);
+            if (b instanceof BuildingStation station)
+            {
+                this.connectedStation = station;
+            }
+            else
+            {
+                LOGGER.warn("Connected station at {} is not a BuildingStation ({}).", buildingId, b);
+                this.connectedStation = null;
+            }
         }
         
         if (compound.contains(NBT_OUTPOST_TOKEN)) 
         {
             outpostResolverToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_OUTPOST_TOKEN));
+        }
+
+        readRequestTrackingFromNbt(provider, compound);
+    }
+
+    public void writeRequestTrackingToNbt(HolderLookup.Provider provider,final CompoundTag compound)
+    {
+        final ListTag list = new ListTag();
+
+        for (Map.Entry<IToken<?>, OutpostShipmentTracking> e : requestTracking.entrySet())
+        {
+            if (e.getKey() == null || e.getValue() == null) continue;
+
+            final CompoundTag entry = new CompoundTag();
+            // Serialize the token via StandardFactoryController
+            final CompoundTag tokenTag = StandardFactoryController.getInstance().serializeTag(provider, e.getKey());
+            if (tokenTag != null)
+            {
+                entry.put(TAG_REQUEST_TOKEN, tokenTag);
+                entry.putString(TAG_REQUEST_STATE, e.getValue().getState().name());
+                list.add(entry);
+            }
+        }
+
+        compound.put(TAG_REQUEST_TRACKING, list);
+    }
+
+
+    public void readRequestTrackingFromNbt(final HolderLookup.Provider provider,
+        final CompoundTag compound)
+    {
+        requestTracking.clear();
+
+        if (!compound.contains(TAG_REQUEST_TRACKING, net.minecraft.nbt.Tag.TAG_LIST))
+        {
+            return;
+        }
+
+        final ListTag list = compound.getList(TAG_REQUEST_TRACKING, net.minecraft.nbt.Tag.TAG_COMPOUND);
+
+        for (int i = 0; i < list.size(); i++)
+        {
+            final CompoundTag entry = list.getCompound(i);
+
+            // --- Token ---
+            if (!entry.contains(TAG_REQUEST_TOKEN, net.minecraft.nbt.Tag.TAG_COMPOUND))
+            {
+                LOGGER.warn("RequestTracking[{}]: missing or wrong-type token; skipping.", i);
+                continue;
+            }
+
+            final CompoundTag tokenTag = entry.getCompound(TAG_REQUEST_TOKEN);
+            IToken<?> token = null;
+            try
+            {
+                token = (IToken<?>) StandardFactoryController.getInstance().deserializeTag(provider, tokenTag);
+            }
+            catch (Exception ex)
+            {
+                LOGGER.warn("RequestTracking[{}]: failed to deserialize token: {}", i, ex.toString());
+                continue;
+            }
+            if (token == null)
+            {
+                LOGGER.warn("RequestTracking[{}]: deserialized token is null; skipping.", i);
+                continue;
+            }
+
+            // --- State ---
+            OutpostOrderState state = OutpostOrderState.NEEDED; // default/fallback
+
+            if (entry.contains(TAG_REQUEST_STATE, net.minecraft.nbt.Tag.TAG_STRING))
+            {
+                final String name = entry.getString(TAG_REQUEST_STATE);
+                try
+                {
+                    state = OutpostOrderState.valueOf(name);
+                }
+                catch (IllegalArgumentException iae)
+                {
+                    LOGGER.warn("RequestTracking[{}]: unknown state '{}'; defaulting to {}.", i, name, state);
+                }
+            }
+            else
+            {
+                LOGGER.warn("RequestTracking[{}]: missing state; defaulting to {}.", i, state);
+            }
+
+            // --- Tracking object ---
+            final OutpostShipmentTracking tracking = new OutpostShipmentTracking(state);
+
+            requestTracking.put(token, tracking);
         }
     }
 
@@ -267,30 +402,28 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
         List<IRequest<?>> requestsToRemove = new ArrayList<>();
 
-        for (IToken<?> requestId : expectedShipments.keySet())
+        for (IToken<?> requestId : requestTracking.keySet())
         {
             IRequest<?> request = this.getColony().getRequestManager().getRequestForToken(requestId);
-            OutpostShipmentTracking tracking = expectedShipments.get(requestId);
+            OutpostShipmentTracking tracking = requestTracking.get(requestId);
 
-            if (tracking == null)
+            if (tracking == null 
+                || request == null
+                || tracking.getState() == OutpostOrderState.DELIVERED 
+                || request.getState() == RequestState.CANCELLED 
+                || request.getState() == RequestState.FAILED
+                || request.getState() == RequestState.COMPLETED)
             {
-                continue;
-            }
-            else
-            {
-                if (tracking.getState() == OutpostOrderState.DELIVERED 
-                    || request.getState() == RequestState.CANCELLED 
-                    || request.getState() == RequestState.FAILED
-                    || request.getState() == RequestState.COMPLETED)
-                {
-                    requestsToRemove.add(request);
-                }
+                requestsToRemove.add(request);
             }
         }
 
         for (IRequest<?> request : requestsToRemove)
         {
-            expectedShipments.remove(request.getId());
+            if (request != null)
+            {
+                requestTracking.remove(request.getId());
+            }
         }
     }
 
@@ -457,11 +590,10 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     @Override
     public void onShipmentDelivered(ExportData shipmentSent)
     {
-        OutpostShipmentTracking receivedShipment = expectedShipments.get(shipmentSent);
-
-        if (receivedShipment != null)
+        if (!getAllAssignedCitizen().isEmpty())
         {
-            receivedShipment.state = OutpostOrderState.DELIVERED;
+            ICitizenData exportWorker = getScout();
+            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(1);
         }
     }
 
@@ -473,13 +605,6 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     @Override
     public void onShipmentReceived(ExportData shipmentReceived)
     {
-        OutpostShipmentTracking matchingShipment = expectedShipments.get(shipmentReceived);
-        
-        if (matchingShipment != null)
-        {
-            matchingShipment.state = OutpostOrderState.RECEIVED;
-        }
-
         BuildingStationExportModule exports = connectedStation.getModule(MCTPBuildingModules.EXPORTS);
 
         if (exports == null)
@@ -489,6 +614,12 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
         }
 
         exports.removeExport(shipmentReceived);
+
+        if (!getAllAssignedCitizen().isEmpty())
+        {
+            ICitizenData exportWorker = getScout();
+            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(1);
+        }
     }
 
     
@@ -498,53 +629,9 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      * This is the number of shipments that are currently in transit from another station to this outpost.
      * @return The number of expected shipments for this outpost.
      */
-    public int getExpectedShipmentSize()
+    public int getRequestTrackingSize()
     {
-        return expectedShipments.size();
-    }
-
-    /**
-     * Adds a shipment to the expected shipments for this outpost. The shipment is associated with the given outpost destination.
-     * When the shipment is received, the state of the shipment is updated to OutpostOrderState.RECEIVED.
-     * 
-     * @param shipment The shipment to add to the expected shipments.
-     * @param outpostDestination The outpost destination that the shipment is associated with.
-     */
-    public OutpostShipmentTracking addExpectedShipment(IRequest<?> request, ExportData shipment, BlockPos outpostDestination)
-    {
-        OutpostShipmentTracking tracking = expectedShipments.get(request.getId());
-
-        if (tracking == null)
-        {
-            tracking = new OutpostShipmentTracking(outpostDestination, shipment, OutpostOrderState.NEEDED);    
-            expectedShipments.put(request.getId(), tracking);
-        } 
-        else
-        {
-            tracking.setAssociatedExportData(shipment);
-        }
-
-        return tracking;
-    }
-
-    /**
-     * Checks if the outpost has an expected shipment associated with the given export data.
-     * 
-     * @param exportData The export data to check for an associated expected shipment.
-     * @return True if the outpost has an expected shipment associated with the given export data, false otherwise.
-     */
-    public boolean hasExpectedShipment(ExportData exportData) 
-    { 
-
-        for (OutpostShipmentTracking shipment : expectedShipments.values())
-        {
-            if (shipment.exportData != null && shipment.exportData.equals(exportData))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return requestTracking.size();
     }
 
     /**
@@ -554,11 +641,12 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      */
     public OutpostShipmentTracking trackingForRequest(IRequest<?> request)
     {        
-        OutpostShipmentTracking tracking = expectedShipments.get(request);
+        OutpostShipmentTracking tracking = requestTracking.get(request.getId());
 
         if (tracking == null)
         {
-            tracking = this.addExpectedShipment(request, null, request.getRequester().getLocation().getInDimensionLocation());
+            tracking = new OutpostShipmentTracking(OutpostOrderState.NEEDED);    
+            requestTracking.put(request.getId(), tracking);
         }
     
         return tracking;
@@ -645,11 +733,11 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      * This will include all requests from this outpost itself, as well as all requests from all its children.
      * @return A list of all open requests in this outpost.
      */
-    public List<IRequest<?>> getOutpostRequests()
+    public Set<IRequest<?>> getOutpostRequests()
     {        
-        List<IRequest<?>> outpostRequests = new ArrayList<>();
+        Set<IRequest<?>> outpostRequests = new HashSet<>();
 
-        for (BlockPos child : this.getChildren())
+        for (BlockPos child : this.getWorkBuildings())
         {
             IBuilding childBuilding = this.getColony().getBuildingManager().getBuilding(child);
 
@@ -658,8 +746,6 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
             for (ICitizenData citizen : childBuilding.getAllAssignedCitizen())
             {
                 // LOGGER.info("Checking requests for citizen {}", citizen.getName());
-
-
                 final Collection<IRequest<?>> openRequests = childBuilding.getOpenRequests(citizen.getId());
 
                 if (openRequests != null)
@@ -679,6 +765,24 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
         return outpostRequests;
     }
+
+
+    /**
+     * Returns a set of BlockPos that represent the building's work buildings. This includes all child buildings of the outpost, as well as the outpost itself.
+     *
+     * @return A set of BlockPos that represent the building's work buildings.
+     */
+    public Set<BlockPos> getWorkBuildings()
+    {
+        Set<BlockPos> workBuildings = new HashSet<>();
+
+        workBuildings.addAll(getChildren());
+        workBuildings.add(getPosition());
+
+        return workBuildings;
+
+    }
+
 
     public ICitizenData getScout()
     {

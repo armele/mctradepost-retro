@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateConstants;
 import com.mojang.logging.LogUtils;
 
@@ -56,7 +57,8 @@ public class GhostCartEntity extends AbstractMinecart
     private long strideStartTick;    // gameTime when stride began
     private double strideLength;     // sum of block distances for start..target
     private final int COLONY_T = TickRateConstants.MAX_TICKRATE;
-
+    protected boolean reversed = false;
+    
     private static final EntityDataAccessor<ItemStack> TRADE_ITEM =
         SynchedEntityData.defineId(GhostCartEntity.class, EntityDataSerializers.ITEM_STACK);
 
@@ -68,9 +70,24 @@ public class GhostCartEntity extends AbstractMinecart
         this.setSilent(true);
     }
 
-    public void setPath(List<BlockPos> path)
+    public void setPath(List<BlockPos> path) 
     {
-        this.path = ImmutableList.copyOf(path);
+        // keep old API defaulting to forward
+        setPath(path, false);
+    }
+
+    /** NEW: direction-aware setter */
+    public void setPath(List<BlockPos> path, boolean reverse) 
+    {
+        this.reversed = reverse;
+        // Use a reversed *view* so indexing logic (0..n-1) stays identical
+        List<BlockPos> effective = reverse ? Lists.reverse(path) : path;
+        this.path = ImmutableList.copyOf(effective);
+    }
+
+    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path) 
+    {
+        return spawn(level, path, false);
     }
 
     /**
@@ -81,7 +98,8 @@ public class GhostCartEntity extends AbstractMinecart
      * @param path The list of BlockPos that the entity should follow.
      * @return The spawned GhostCartEntity.
      */
-    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path) {
+    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path, boolean reverse) 
+    {
         GhostCartEntity e = MCTradePostMod.GHOST_CART.get()
                             .create(level, null, path.get(0),
                                     MobSpawnType.EVENT, false, false);
@@ -91,7 +109,7 @@ public class GhostCartEntity extends AbstractMinecart
             return null; 
         }
 
-        e.setPath(path);
+        e.setPath(path, reverse);
         e.setPos(Vec3.atCenterOf(path.get(0)));
         e.setRot(0, 0);
 

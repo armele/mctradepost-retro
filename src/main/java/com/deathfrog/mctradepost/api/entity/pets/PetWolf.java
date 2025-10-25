@@ -100,7 +100,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
         if (this.petData == null)
         {
-            LOGGER.warn("Skipping pet goal registration: petData is null");
+            // LOGGER.warn("Skipping pet goal registration: petData is null");
             return;
         }
         petData.assignPetGoals();

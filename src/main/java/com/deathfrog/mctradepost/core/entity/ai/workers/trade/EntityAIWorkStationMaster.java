@@ -236,6 +236,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 return StationMasterStates.ELIMINATE_OLD_ORDER;
             }
 
+            if (exportData.getShipmentCountdown() == 0)
+            {
+                currentExport = exportData;
+                return StationMasterStates.ELIMINATE_OLD_ORDER;
+            }
+
             // Skip if already shipping or already shipped today
             if (isAlreadyShippingToday(exportData)) continue;
 
@@ -450,21 +456,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     e.getCost()));
             currentExport = e;
             return StationMasterStates.ELIMINATE_OLD_ORDER;
-        }
-
-        if (remote instanceof BuildingOutpost outpost)
-        {
-            boolean hasExpectedShipment = outpost.hasExpectedShipment(e);
-            if (!hasExpectedShipment)
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION,
-                    () -> LOGGER.info("Export of {} to outpost {} is no longer valid (no record of this expected shipment) - marking for removal.",
-                        e.getTradeItem(),
-                        outpost.getBuildingDisplayName()));
-                        
-                currentExport = e;
-                return StationMasterStates.ELIMINATE_OLD_ORDER;
-            }
         }
 
         return null;

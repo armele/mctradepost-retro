@@ -6,7 +6,6 @@ import java.util.function.Predicate;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -29,11 +28,16 @@ public class ExportData
     private final StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
+
+    // By default, ship infinitely. If set >0, the export will only be shipped shipmentCountdown number of times.
+    private int shipmentCountdown = -1;
+    protected boolean reverse = false;
     private int shipDistance = -1;
     private int trackDistance = -1;
     private int lastShipDay = -1;
     private boolean insufficientFunds = false;
     private GhostCartEntity cart = null;
+
 
 
     public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
@@ -45,6 +49,7 @@ public class ExportData
         this.shipDistance = -1;
         this.trackDistance = -1;
         this.lastShipDay = -1;
+        this.shipmentCountdown = -1;
         this.insufficientFunds = false;
     }
 
@@ -68,6 +73,26 @@ public class ExportData
         return shipDistance;
     }
 
+    public int getShipmentCountdown()
+    {
+        return shipmentCountdown;
+    }
+
+    public void setShipmentCountdown(int shipmentCountdown) 
+    { 
+        this.shipmentCountdown = shipmentCountdown; 
+    }
+
+    public boolean isReverse() 
+    { 
+        return reverse; 
+    } 
+
+    public void setReverse(boolean reverse) 
+    { 
+        this.reverse = reverse; 
+    }
+
     /**
      * Spawns a GhostCartEntity for trade if one does not already exist. The cart is initialized with the current export's trade item
      * and set on this export data.
@@ -84,7 +109,7 @@ public class ExportData
         ChunkUtil.ensureChunkLoaded(level, path.getFirst());
 
         GhostCartEntity cart =
-            GhostCartEntity.spawn(level, ImmutableList.copyOf(path));
+            GhostCartEntity.spawn(level, ImmutableList.copyOf(path), isReverse());
 
         if (cart == null) return null;
 

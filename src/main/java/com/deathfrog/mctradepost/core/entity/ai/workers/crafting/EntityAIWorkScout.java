@@ -3,12 +3,15 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.OutpostExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
@@ -18,20 +21,25 @@ import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
+import com.minecolonies.api.util.FoodUtils;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.constant.Constants;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
+import com.minecolonies.core.colony.buildings.modules.RestaurantMenuModule;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -43,13 +51,22 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
     public static final Logger LOGGER = LogUtils.getLogger();
 
     protected static final int OUTPOST_COOLDOWN_TIMER = 10;
-    protected static final int DEFAULT_SCOUT_XP = 2;
     protected static int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+
+    protected static final int SMALL_SCOUT_XP = 1;
+    protected static final int DEFAULT_SCOUT_XP = 2;
+    protected static final int FOOD_ORDERING_THRESHOLD = 3;
+    protected static final int FOOD_ORDERING_SIZE = 8;
+
+    protected long lastFoodCheck = 0;
+    protected long lastReturnProductsCheck = 0;
 
     public enum ScoutStates implements IAIState
     {
         HANDLE_OUTPOST_REQUESTS,
         MAKE_DELIVERY,
+        ORDER_FOOD,
+        RETURN_PRODUCTS,
         UNLOAD_INVENTORY;
 
         @Override
@@ -58,25 +75,6 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             return true;
         }
     }
-
-    /**
-     * Work status icons
-     */
-    private final static VisibleCitizenStatus OUTPOST_FARMING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_farming.png"),
-            "com.mctradepost.outpost.mode.farming");
-
-    private final static VisibleCitizenStatus OUTPOST_BUILDING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_building.png"),
-            "com.mctradepost.outpost.mode.building");
-
-    private final static VisibleCitizenStatus OUTPOST_SCOUTING =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_scouting.png"),
-            "com.mctradepost.outpost.mode.scouting");
-
-    private final static VisibleCitizenStatus OUTPOST_NONE =
-        new VisibleCitizenStatus(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_none.png"),
-            "com.mctradepost.outpost.mode.none");
 
     Collection<IToken<?>> resolverBlacklist = null;
     protected ItemStack currentDeliverableSatisfier = null;
@@ -94,6 +92,8 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             new AITarget<IAIState>(ScoutStates.HANDLE_OUTPOST_REQUESTS, this::handleOutpostRequests, 10),
             new AITarget<IAIState>(ScoutStates.UNLOAD_INVENTORY, this::unloadInventory, 10),
             new AITarget<IAIState>(ScoutStates.MAKE_DELIVERY, this::makeDelivery, 10),
+            new AITarget<IAIState>(ScoutStates.ORDER_FOOD, this::orderFood, 10),
+            new AITarget<IAIState>(ScoutStates.RETURN_PRODUCTS, this::returnProducts, 10),
             new AITarget<IAIState>(WANDER, this::wander, 10)
 
             // TODO: Order Food
@@ -138,9 +138,113 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             return ScoutStates.UNLOAD_INVENTORY;
         }
 
+        long today = building.getColony().getDay();
+        if (today > lastFoodCheck)
+        {
+            LOGGER.info("Checking outpost food status for day {} in colony {}.", today, building.getColony().getName());
+            return ScoutStates.ORDER_FOOD;
+        }
+
+
+        if (today > lastReturnProductsCheck)
+        {
+            LOGGER.info("Checking items to ship back on day {} in colony {}.", today, building.getColony().getName());
+            return ScoutStates.RETURN_PRODUCTS;
+        }
+
+
         if (worker.getRandom().nextInt(100) < Constants.WANDER_CHANCE)
         {
             return WANDER;
+        }
+
+        return DECIDE;
+    }
+
+    /**
+     * Orders food for the outpost if it is needed. The scout will attempt to order food from the nearest warehouse.
+     * If the scout is successful in ordering food, the lastFoodCheck variable will be updated to the current day.
+     * @return The DECIDE state, which will cause the scout to decide what to do next.
+     */
+    public IAIState orderFood()
+    {
+        if (orderFoodForOutpost())
+        {
+            lastFoodCheck = building.getColony().getDay();
+        }
+
+        return DECIDE;
+    }
+
+
+    /**
+     * Initiates the return of products from the outpost back to the connected station. This AIState is responsible for checking each
+     * outpost building and returning any products that are found to the connected station. If no connected station is found or
+     * no outpost export module is found, the AI will transition back to the DECIDE state. The lastReturnProductsCheck variable will be updated
+     * to the current day if the AI is successful in returning products.
+     *
+     * @return The DECIDE state, which will cause the scout to decide what to do next.
+     */
+    public IAIState returnProducts()
+    {
+        final OutpostExportModule module = building.getModule(MCTPBuildingModules.OUTPOST_EXPORTS);
+
+        if (module == null)
+        {
+            LOGGER.error("No outpost export module found!");
+            return DECIDE;
+        }
+
+        BuildingStation connectedStation = building.getConnectedStation();
+
+        if (connectedStation == null)
+        {
+            LOGGER.info("No connected station found for outpost.");
+            return DECIDE;
+        }
+        
+        int returnCount = 0;
+
+        for (BlockPos workLocation : building.getWorkBuildings())
+        {
+            IBuilding outpostBuilding = building.getColony().getBuildingManager().getBuilding(workLocation);
+
+            if (outpostBuilding != null)
+            {
+                
+                for (int i = 0; i < outpostBuilding.getItemHandlerCap().getSlots(); i++)
+                {
+                    final IItemHandler handler = outpostBuilding.getItemHandlerCap();
+                    ItemStack inSlot = handler.getStackInSlot(i);
+                    if (inSlot.isEmpty()) continue;
+
+                    // If your list check shouldn't depend on count, normalize to count=1
+                    ItemStorage candidate = new ItemStorage(inSlot.copyWithCount(1));
+
+                    if (module.isItemInList(candidate))
+                    {
+                        int toTake = inSlot.getCount();
+                        // This actually removes from the inventory
+                        ItemStack extracted = handler.extractItem(i, toTake, /*simulate*/ false);
+
+                        if (!extracted.isEmpty())
+                        {
+                            // Pass the *extracted* items forward so counts are exact
+                            ItemStorage shipped = new ItemStorage(extracted.copy());
+                            connectedStation.initiateReturn(shipped, returnCount);
+                            returnCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        lastReturnProductsCheck = building.getColony().getDay();
+
+        if (returnCount > 0)
+        {
+            incrementActionsDoneAndDecSaturation();
+            worker.getCitizenExperienceHandler().addExperience(SMALL_SCOUT_XP);
         }
 
         return DECIDE;
@@ -265,7 +369,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
                     {
                         // IRequest<?> childRequest = requestManager.getRequestForToken(child);
                         requestManager.updateRequestState(child, RequestState.COMPLETED);
-                        request.removeChild(child);
+                        // request.removeChild(child);
                     }
                     
                     return ScoutStates.MAKE_DELIVERY;
@@ -307,11 +411,11 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             
             if (!getInventory().isEmpty())
             {
-                tracking = new  OutpostShipmentTracking(deliveryTarget.getPosition(), null, OutpostOrderState.READY_FOR_DELIVERY);    
+                tracking = new  OutpostShipmentTracking(OutpostOrderState.READY_FOR_DELIVERY);    
             }
             else
             {
-                tracking = new  OutpostShipmentTracking(deliveryTarget.getPosition(), null, OutpostOrderState.DELIVERED);
+                tracking = new  OutpostShipmentTracking(OutpostOrderState.DELIVERED);
             }
         }
 
@@ -425,6 +529,84 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
         }
 
         return building.getColony().getBuildingManager().getBuilding(request.getRequester().getLocation().getInDimensionLocation());
+    }
+
+    /**
+     * Attempts to order food for the outpost workers using the nearest restaurant.
+     * @return true if food was ordered, false otherwise.
+     */
+    public boolean orderFoodForOutpost()
+    {
+        BlockPos restaurantPos = building.getColony().getBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
+        boolean didOrder = false;
+
+        if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
+        {
+            LOGGER.info("Unable to find a restaurant in the colony for food ordering.");
+            return false;
+        }
+
+        IBuilding restaurant = building.getColony().getBuildingManager().getBuilding(restaurantPos);
+
+        if (restaurant == null)
+        {
+            LOGGER.info("Unable to find a restaurant at position {}in the colony for food ordering.", restaurantPos);
+            return false;
+        }
+
+        final RestaurantMenuModule module = restaurant.getModule(BuildingModules.RESTAURANT_MENU);
+
+        if (module == null)
+        {
+            LOGGER.info("Unable to find a restaurant menu module for food ordering.");
+            return false;
+        }
+
+        for (BlockPos outpostWorkPos : building.getWorkBuildings())
+        {
+            IBuilding outpostWorksite = building.getColony().getBuildingManager().getBuilding(outpostWorkPos);
+
+            for (ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
+            {
+                int foodCount = 0;
+                final ItemStorage foodWeHave = FoodUtils.checkForFoodInBuilding(citizen, module.getMenu(), outpostWorksite);
+                final ItemStorage foodAvailable = FoodUtils.checkForFoodInBuilding(citizen, module.getMenu(), restaurant);
+
+                if (foodWeHave != null)
+                {
+                    foodCount = foodWeHave.getAmount();
+                }
+
+                if (foodCount <= FOOD_ORDERING_THRESHOLD)
+                {
+                    if (foodAvailable != null)
+                    {
+                        ItemStorage toOrder = new ItemStorage(foodAvailable.getItem(), FOOD_ORDERING_SIZE);
+                        Stack requestStack = new Stack(toOrder);
+                        outpostWorksite.createRequest(citizen, requestStack, true);  
+                        didOrder = true; 
+                    }
+                    else
+                    {
+                        LOGGER.info("Unable to find food to request for {}.", citizen.getName());
+                        // TODO: Consider an alert here to warn about food availability.
+                    }
+                }
+                else
+                {
+                    LOGGER.info("Already have enough food for {}.", citizen.getName());
+                }
+
+            }
+        }
+
+        if (didOrder)
+        {
+            incrementActionsDoneAndDecSaturation();
+            worker.getCitizenExperienceHandler().addExperience(SMALL_SCOUT_XP);
+        }
+
+        return true;
     }
 
 
