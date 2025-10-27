@@ -148,7 +148,7 @@ public final class ModBuildingsInitializer
             outpostBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.OUTPOST_ID));
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.SCOUT_WORK);
             // outpostBuilder.addBuildingModuleProducer(BuildingModules.WORKORDER_VIEW); /* Also requires settings. */
-            outpostBuilder.addBuildingModuleProducer(BuildingModules.HOME);
+            // outpostBuilder.addBuildingModuleProducer(BuildingModules.HOME);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_EXPORTS);

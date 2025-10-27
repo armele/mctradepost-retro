@@ -75,7 +75,6 @@ import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
-import com.minecolonies.core.colony.requestsystem.resolvers.factory.DeliveryRequestResolverFactory;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;

@@ -61,6 +61,7 @@ import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
+import com.minecolonies.core.entity.ai.minimal.EntityAISleep;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -80,6 +81,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import static com.minecolonies.api.util.constant.Constants.MAX_STORY;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class BuildingStation extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
 {
@@ -805,28 +807,27 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
                 } catch (IllegalArgumentException e)
                 {
+                    // Repair request if it is not registered with the request manager.
                     requestManager.getRequestHandler().registerRequest(request);
                     requestManager.assignRequest(request.getId());
-                    LOGGER.warn("Repairing request registration for request: {}", request);
-                    // request.setState(requestManager, RequestState.CANCELLED);
                     continue;
                 }
 
                 if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(outpost.getLocation()))
                 {
                     OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
-                    LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString());
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
 
                     if (tracking.getState() == OutpostOrderState.NEEDED 
                         || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING)
                     {
-                        LOGGER.info("Checking if satisfiable: {}", request);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking if satisfiable: {}", request));
                         // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
                         ItemStorage satisfier = inventorySatisfiesRequest(request);
 
                         if (satisfier != null)
                         {
-                            LOGGER.info("Station has something to ship: {}", satisfier);
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Station has something to ship: {}", satisfier));
                             initiateShipment(satisfier, request, outpost);
                             
                             // requestManager.updateRequestState(request.getId(), RequestState.RESOLVED);
@@ -838,7 +839,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     // Echo the request if nothing satisfies the requirements and we haven't already echoed.
                     if (tracking.getState() == OutpostOrderState.NEEDED)
                     {
-                        LOGGER.info("Handling request {} assigned to Outpost.", request.getLongDisplayString());
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Handling request {} assigned to Outpost.", request.getLongDisplayString()));
 
                         IRequestable clonedRequestable = OutpostRequestResolver.cloneRequestable(requestManager, request.getRequest());
                         IToken<?> echoToken = null;
@@ -847,7 +848,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                         {
                             echoToken = this.createRequest(stationmaster, clonedRequestable, true);
 
-                            LOGGER.info("Adding echoed request of {} to request list.", request.getLongDisplayString());
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Adding echoed request of {} to request list.", request.getLongDisplayString()));
 
                             request.addChild(echoToken);
                             
@@ -899,7 +900,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         OutpostShipmentTracking shipment = outpostDestination.trackingForRequest(associatedRequest);
         shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
 
-        LOGGER.info("Set up export order for {} to {}.", thingsToDeliver, outpostDestination.getBuildingDisplayName());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Set up export order for {} to {}.", thingsToDeliver, outpostDestination.getBuildingDisplayName()));
     }
 
 
@@ -935,7 +936,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         export.setReverse(true);
         export.setShipDistance(carNumber);
 
-        LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
     }
 
 }

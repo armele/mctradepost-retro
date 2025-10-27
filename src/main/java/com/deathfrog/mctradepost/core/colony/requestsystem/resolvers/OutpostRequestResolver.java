@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -30,6 +31,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 /*
  * Modelled after DeliverymenRequestResolver
@@ -53,7 +55,7 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
     @Override
     public List<IToken<?>> attemptResolveRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IRequestable> requestToCheck)
     {
-        LOGGER.info("Attempting to resolve outpost request: {}", requestToCheck);
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Attempting to resolve outpost request: {}", requestToCheck));
 
         IBuilding requestingBuilding = buildingForRequest(manager, requestToCheck);
 
@@ -121,8 +123,7 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
      */
     public void onRequestAssigned(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IRequestable> request, boolean simulation)
     {
-        // TODO: Take action once request is assigned.
-        LOGGER.info("This request has been assigned to the outpost: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This request has been assigned to the outpost: {}", request.getLongDisplayString()));
     }
 
     @Override
@@ -134,31 +135,31 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
     @Override
     public void onAssignedRequestBeingCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
     {
-        LOGGER.info("Outpost assigned request being cancelled: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Outpost assigned request being cancelled: {}", request.getLongDisplayString()));
     }
 
     @Override
     public void onAssignedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
     {
-        LOGGER.info("Outpost assigned request cancelled: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Outpost assigned request cancelled: {}", request.getLongDisplayString()));
     }
 
     @Override
     public void resolveRequest(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
     {
-        LOGGER.info("Resolving outpost request.: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Resolving outpost request.: {}", request.getLongDisplayString()));
     }
 
     @Override
     public void onRequestedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<?> request)
     {
-        LOGGER.info("Requested outpost request cancelled: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Requested outpost request cancelled: {}", request.getLongDisplayString()));
     }
 
     @Override
     public void onRequestedRequestComplete(@NotNull IRequestManager arg0, @NotNull IRequest<?> request)
     {
-        LOGGER.info("Requested outpost request complete: {}", request.getLongDisplayString());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Requested outpost request complete: {}", request.getLongDisplayString()));
     }
 
     @Override

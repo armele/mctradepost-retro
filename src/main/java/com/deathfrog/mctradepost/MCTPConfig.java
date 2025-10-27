@@ -53,8 +53,11 @@ public class MCTPConfig
     public static final ConfigValue<Integer>  baseTradeSpeed;
     public static final ConfigValue<Integer>  importsPerLevel;
 
-    // Animal Trainier Settings
+    // Animal Trainer Settings
     public static final ConfigValue<Integer>  petsPerLevel;
+
+    // Outpost Settings
+    public static final ConfigValue<Boolean>  outpostEnabled;
 
     static {
         BUILDER.push("marketplace");
@@ -158,6 +161,14 @@ public class MCTPConfig
         petsPerLevel = BUILDER
             .comment("Number of pets per building level.")
             .define("petsPerLevel", 2);
+        
+        BUILDER.pop();
+
+        // Outpost Settings
+        BUILDER.push("outpost");
+        outpostEnabled = BUILDER
+            .comment("Allow use of the Outpost.")
+            .define("outpostEnabled", true);
         
         BUILDER.pop();
 

@@ -15,6 +15,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.mojang.logging.LogUtils;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -22,6 +23,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.IItemHandler;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class OutpostExportModule extends ItemListModule implements ITickingModule
 {
@@ -105,19 +108,36 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
 
                 if (outpostBuilding != null)
                 {
-                    for (int i = 0; i < outpostBuilding.getItemHandlerCap().getSlots(); i++)
+                    IItemHandler itemHandler = null;
+                    
+                    // Safeguard against Minecolonies bug for buildings that don't include racks.
+                    try
                     {
-                        ItemStack stack = outpostBuilding.getItemHandlerCap().getStackInSlot(i);
+                        itemHandler = outpostBuilding.getItemHandlerCap();
+                    }
+                    catch (Exception e)
+                    {
+                        LOGGER.error("Failed to get outpost item handler capability for {}: {}", outpostBuilding.getBuildingDisplayName(), e);
+                    }
+
+                    if (itemHandler == null)
+                    {
+                        continue;
+                    }
+
+                    for (int i = 0; i < itemHandler.getSlots(); i++)
+                    {
+                        ItemStack stack = itemHandler.getStackInSlot(i);
 
                         if (!stack.isEmpty())
                         {
-                            outpostInventory.add(new ItemStorage(stack, 1));
+                            outpostInventory.add(new ItemStorage(stack.copy(), 1));
                         }
                     }
                 }
             }
         }
 
-        LOGGER.info("Refreshing outpost export module. Items: {}", outpostInventory.size());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Refreshing outpost export module. Items: {}", outpostInventory.size()));
     }
 }

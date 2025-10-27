@@ -5,6 +5,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
+
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -111,6 +113,19 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         Log.getLogger().info("Special outpost placer! ");
         boolean allowPlacement = false;
 
+        if (!MCTPConfig.outpostEnabled.get())
+        {
+            if (player != null) 
+            {
+                player.displayClientMessage(
+                    Component.translatable("com.mctradepost.outpost.disallowed"),
+                    true
+                );
+            }
+            return false;
+        }
+
+
         // Make sure the chunk is present (defensive)
         if (!world.isAreaLoaded(pos, 1)) return false;
 
@@ -160,4 +175,27 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         requirements.add(Component.translatable("com.mctradepost.outpost.requirements"));
         return requirements;
     }
+
+    /*
+    @Override
+    public boolean canPlaceAt(final BlockPos pos, final Player player)
+    {
+        boolean allowPlacement = false;
+        
+        if (player.isCreative())
+        {
+            // Log.getLogger().info("Creative mode placement allowed.");
+            allowPlacement = true;
+        }
+
+        // Require the Outpost Marker at this exact position unless we're in creative mode.
+        if (player.level().getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
+        {
+            // Log.getLogger().info("Outpost marker found.");
+            allowPlacement = true;
+        }
+
+        return allowPlacement;
+    }
+    */
 }

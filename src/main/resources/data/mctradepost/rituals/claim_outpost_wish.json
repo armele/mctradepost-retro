@@ -5,5 +5,5 @@
   "target" : "",
   "radius": -1,
   "coin_cost": 1,
-  "coin_type": "mctradepost:mctp_coin"
+  "coin_type": "mctradepost:mctp_coin_diamond"
 }

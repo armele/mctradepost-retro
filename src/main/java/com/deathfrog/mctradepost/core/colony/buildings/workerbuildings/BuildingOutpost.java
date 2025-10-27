@@ -25,6 +25,7 @@ import net.minecraft.world.entity.player.Player;
 
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -48,12 +49,13 @@ import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.core.colony.buildings.DefaultBuildingInstance;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingFarmer;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
-public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCapable, IRequestSatisfaction
+public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
 {
     public enum OutpostOrderState
     {
@@ -84,15 +86,13 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     // Map of request tokens to shipment tracking objects.
     public Map<IToken<?>, OutpostShipmentTracking> requestTracking = new ConcurrentHashMap<>();
 
-    /**
-     * Map of track connection results for other trade capable buildings (by station data).
-     */
-    private Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
+    protected Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
     
 
     public BuildingOutpost(@NotNull IColony colony, BlockPos pos, String schematicName, int maxLevel)
     {
-        super(colony, pos, schematicName, maxLevel);
+        // super(colony, pos, schematicName, maxLevel);
+        super(colony, pos);
     }
 
 
@@ -109,7 +109,7 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
 
         establishConnectedStation();
     }
-
+    
     @Override
     public int getClaimRadius(int newLevel) 
     {
@@ -225,6 +225,18 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
         readRequestTrackingFromNbt(provider, compound);
     }
 
+    /**
+     * Writes the request tracking data to the provided CompoundTag.
+     *
+     * Iterates over the request tracking map and for each entry, serializes the
+     * token using StandardFactoryController and stores it, along with the
+     * state name of the tracking, in a new CompoundTag. The new CompoundTags are
+     * then stored in a ListTag which is added to the provided CompoundTag under
+     * the key {@link #TAG_REQUEST_TRACKING}.
+     * 
+     * @param provider The holder lookup provider for item and block references.
+     * @param compound The CompoundTag to write the request tracking data to.
+     */
     public void writeRequestTrackingToNbt(HolderLookup.Provider provider,final CompoundTag compound)
     {
         final ListTag list = new ListTag();
@@ -328,6 +340,12 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
      */
     protected BlockPos outpostBuilderPosition(Player player, BlockPos requestedBuilder)
     {
+
+        // At level 0 anyone can build it.
+        if (getBuildingLevel() == 0)
+        {
+            return requestedBuilder;
+        }
 
         BuildingBuilder outpostBuilder = getOutpostBuilder();
 
@@ -461,18 +479,19 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
         {
             if (candidateStation == null)
             {
-                LOGGER.info("Unable to find connected station - no candidate stations found.");
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find connected station - no candidate stations found."));
             }
             else
             {
-                LOGGER.info("Unable to find connected station between {} and {}.", this.getRailStartPosition(), candidateStation.getRailStartPosition());
+                final BuildingStation logCopy = candidateStation;
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find connected station between {} and {}.", this.getRailStartPosition(), logCopy.getRailStartPosition()));
             }
             connectedStation = null;
         }
         else
         {
             connectedStation = candidateStation;
-            LOGGER.info("Found connected station at {} with rail start position of {}.", connectedStation.getPosition(), connectedStation.getRailStartPosition());
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Found connected station at {} with rail start position of {}.", connectedStation.getPosition(), connectedStation.getRailStartPosition()));
         }
     }
 
@@ -570,7 +589,7 @@ public class BuildingOutpost extends DefaultBuildingInstance implements ITradeCa
     {
         TrackConnectionResult result = connectionresults.get(stationData);
         
-        LOGGER.info("Outpost connection result status: {}", result == null ? "Null" : result.isConnected() ? "Connected" : "Not connected.");
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Outpost connection result status: {}", result == null ? "Null" : result.isConnected() ? "Connected" : "Not connected."));
 
         return result;
     }

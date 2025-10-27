@@ -1,0 +1,37 @@
+{
+    "name": "Exploration",
+    "subtitle": "Learn how to stake your claim...",
+    "branch": "economic",
+    "researchLevel": 3,
+    "parentResearch": "mctradepost:economic/tourism",
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 2
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "minecraft:spyglass"
+        },
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_gold"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/outpost_claim",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:outpost_claim"
+}

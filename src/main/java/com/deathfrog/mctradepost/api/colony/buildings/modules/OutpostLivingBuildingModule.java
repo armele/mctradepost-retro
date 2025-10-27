@@ -1,9 +1,10 @@
 package com.deathfrog.mctradepost.api.colony.buildings.modules;
 
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.minecolonies.api.colony.ICitizen;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.buildings.modules.LivingBuildingModule;
 import com.mojang.logging.LogUtils;
@@ -18,6 +19,13 @@ public class OutpostLivingBuildingModule extends LivingBuildingModule
     {
         return OUTPOST_RESIDENTS;
     }    
+
+    @Override
+    public List<ICitizenData> getAssignedCitizen()
+    {
+        // LOGGER.info("OutpostLivingBuildingModule.getAssignedCitizen has {} assigned", super.getAssignedCitizen().size());
+        return super.getAssignedCitizen();
+    }
 
     @Override
     public boolean removeCitizen(@NotNull ICitizenData citizenData)
@@ -35,7 +43,6 @@ public class OutpostLivingBuildingModule extends LivingBuildingModule
 
     protected void outpostGoals(boolean livesInOutpost)
     {
-        LOGGER.info("Swapping goals based on livesInOutpost: {}", livesInOutpost);
-        // TODO: Replace the normal Eat goal with an Outpost Eat goal.
+        // Placeholder: If goals need to change based on outpost assignment, do it here.
     }
 }

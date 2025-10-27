@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.OutpostExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
@@ -45,6 +46,7 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*
 
 import java.util.Collection;
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, BuildingOutpost>
 {
@@ -141,14 +143,14 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
         long today = building.getColony().getDay();
         if (today > lastFoodCheck)
         {
-            LOGGER.info("Checking outpost food status for day {} in colony {}.", today, building.getColony().getName());
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking outpost food status for day {} in colony {}.", today, building.getColony().getName()));
             return ScoutStates.ORDER_FOOD;
         }
 
 
         if (today > lastReturnProductsCheck)
         {
-            LOGGER.info("Checking items to ship back on day {} in colony {}.", today, building.getColony().getName());
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking items to ship back on day {} in colony {}.", today, building.getColony().getName()));
             return ScoutStates.RETURN_PRODUCTS;
         }
 
@@ -199,7 +201,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (connectedStation == null)
         {
-            LOGGER.info("No connected station found for outpost.");
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No connected station found for outpost."));
             return DECIDE;
         }
         
@@ -272,7 +274,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
     {
         boolean canhold = true;
 
-        LOGGER.info("Unloading junk from my inventory.");
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unloading junk from my inventory."));
 
         if (!walkToSafePos(building.getPosition()))
         {
@@ -298,7 +300,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
         }
         else
         {
-            LOGGER.warn("No inventory handling found on the building...");
+            LOGGER.warn("No inventory handling found on building Scout is attempting to unload into.");
         }
 
         if (canhold)
@@ -343,7 +345,8 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             } catch (IllegalArgumentException e)
             {
                 LOGGER.warn("Unable to get resolver for request {} ({})", request, e.getLocalizedMessage());
-                request.setState(requestManager, RequestState.CANCELLED);
+                // request.setState(requestManager, RequestState.CANCELLED);
+                building.getColony().getRequestManager().updateRequestState(request.getId(), RequestState.CANCELLED);
                 continue;
             }
 
@@ -352,26 +355,28 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             {
                 OutpostShipmentTracking shipmentTracking = building.trackingForRequest(request);
 
-                LOGGER.info("Checking if satisfiable from the building: {} with state {}", request.getLongDisplayString(), request.getState());
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking if satisfiable from the building: {} with state {}", request.getLongDisplayString(), request.getState()));
                 // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
                 ItemStorage satisfier = building.inventorySatisfiesRequest(request);
 
                 if (satisfier != null)
                 {
-                    LOGGER.info("We have something to deliver: {}", satisfier);
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("We have something to deliver: {}", satisfier));
                     
                     currentDeliverableSatisfier = satisfier.getItemStack().copy();
                     currentDeliverableRequest = request;
                     shipmentTracking.setState(OutpostOrderState.RECEIVED);
 
-                    // Once we have the necessary thing in the outpost, we can mark all remaining outstanding children as cancelled, and remove them.
+                    // Once we have the necessary thing in the outpost, we can mark all remaining outstanding children as no longer needed, and remove them.
+                    /*
                     for (IToken<?> child : request.getChildren())
                     {
                         // IRequest<?> childRequest = requestManager.getRequestForToken(child);
-                        requestManager.updateRequestState(child, RequestState.COMPLETED);
+                        requestManager.updateRequestState(child, RequestState.RESOLVED);
                         // request.removeChild(child);
                     }
-                    
+                    */
+
                     return ScoutStates.MAKE_DELIVERY;
                 }
             }
@@ -395,7 +400,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (currentDeliverableSatisfier == null)
         {
-            LOGGER.info("No current deliverable satisfier in makeDelivery.");
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No current deliverable satisfier in makeDelivery."));
 
             currentDeliverableRequest = null;
             return DECIDE;
@@ -407,7 +412,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
         if (tracking == null)
         {
             // Somewhere along the line something got cancelled, and we aren't expecting this any more...
-            LOGGER.info("No tracking for delivery: {} - repairing.", currentDeliverableSatisfier);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No tracking for delivery: {} - repairing.", currentDeliverableSatisfier));
             
             if (!getInventory().isEmpty())
             {
@@ -419,14 +424,15 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
             }
         }
 
-        LOGGER.info("Making delivery of {} to {} (tracking status {})", currentDeliverableSatisfier, deliveryTarget.getBuildingDisplayName(), tracking.getState());
+        final OutpostShipmentTracking trackingForLog = tracking;
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Making delivery of {} to {} (tracking status {})", currentDeliverableSatisfier, deliveryTarget.getBuildingDisplayName(), trackingForLog.getState()));
 
         // Walk to the destination building with the needed item.
         if (tracking.getState() == OutpostOrderState.READY_FOR_DELIVERY)
         {
             if (!EntityNavigationUtils.walkToBuilding(this.worker, deliveryTarget) && !getInventory().isEmpty())
             {
-                LOGGER.info("Walking to {} with delivery: {}", deliveryTarget.getBuildingDisplayName(), currentDeliverableSatisfier);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Walking to {} with delivery: {}", deliveryTarget.getBuildingDisplayName(), currentDeliverableSatisfier));
                 return getState();
             }
 
@@ -436,18 +442,33 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
             if (slot >= 0)
             {
-                InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, deliveryTarget);
+                try
+                {
+                    InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, deliveryTarget);
+                }
+                catch (NullPointerException e)
+                {
+                    LOGGER.warn("Error inserting into target building {}: {}", deliveryTarget.getBuildingDisplayName(), e.getLocalizedMessage());
+                }
+
                 worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 
                 tracking.setState(OutpostOrderState.DELIVERED);
                 
-                IRequestManager requestManager = building.getColony().getRequestManager();
-                requestManager.updateRequestState(currentDeliverableRequest.getId(), RequestState.COMPLETED);
+                // IRequestManager requestManager = building.getColony().getRequestManager();
+                // requestManager.updateRequestState(currentDeliverableRequest.getId(), RequestState.COMPLETED);
 
                 incrementActionsDoneAndDecSaturation();
                 worker.getCitizenExperienceHandler().addExperience(DEFAULT_SCOUT_XP);
 
                 // currentDeliverableRequest.setState(requestManager, RequestState.COMPLETED);
+                currentDeliverableSatisfier = null;
+                currentDeliverableRequest = null;
+            }
+            else
+            {
+                // Somewhere along the way we lost the thing we were supposed to transfer. Reset and retry.
+                tracking.setState(OutpostOrderState.RECEIVED);
                 currentDeliverableSatisfier = null;
                 currentDeliverableRequest = null;
             }
@@ -466,7 +487,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (slot >= 0)
         {
-            LOGGER.info("Item to deliver found in slot {}.", slot);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item to deliver found in slot {}.", slot));
 
 
             ItemStorage deliveryItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot).copy());
@@ -488,11 +509,11 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
                 tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
             }
 
-            LOGGER.info("Scout delivering item (final leg) {}.", deliveryItem);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Scout delivering item (final leg) {}.", deliveryItem));
         }
         else
         {
-            LOGGER.info("Scout unable to find {} to deliver (final leg), despite a reported match.", currentDeliverableSatisfier);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Scout unable to find {} to deliver (final leg), despite a reported match.", currentDeliverableSatisfier));
             currentDeliverableSatisfier = null;
             currentDeliverableRequest   = null;
         }
@@ -524,7 +545,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (request.getRequester().getLocation() == null)
         {
-            LOGGER.info("No request location associated with this request.");
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No target building for request can be found - no request location is associated with this request."));
             return null;
         }
 
@@ -542,7 +563,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
         {
-            LOGGER.info("Unable to find a restaurant in the colony for food ordering.");
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant in the colony for food ordering."));
             return false;
         }
 
@@ -550,7 +571,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (restaurant == null)
         {
-            LOGGER.info("Unable to find a restaurant at position {}in the colony for food ordering.", restaurantPos);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant at position {}in the colony for food ordering.", restaurantPos));
             return false;
         }
 
@@ -558,7 +579,7 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
 
         if (module == null)
         {
-            LOGGER.info("Unable to find a restaurant menu module for food ordering.");
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant menu module for food ordering."));
             return false;
         }
 
@@ -588,13 +609,13 @@ public class EntityAIWorkScout extends AbstractEntityAICrafting<JobScout, Buildi
                     }
                     else
                     {
-                        LOGGER.info("Unable to find food to request for {}.", citizen.getName());
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find food to request for {}.", citizen.getName()));
                         // TODO: Consider an alert here to warn about food availability.
                     }
                 }
                 else
                 {
-                    LOGGER.info("Already have enough food for {}.", citizen.getName());
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Already have enough food for {}.", citizen.getName()));
                 }
 
             }
