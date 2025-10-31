@@ -147,6 +147,16 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {
+        
+        try
+        {
+            super.readAdditionalSaveData(compound);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+        }
+
         petData = new PetData<PetFox>(this, compound);
 
         // Reset and safely re-register goals
@@ -154,15 +164,6 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         this.targetSelector.removeAllGoals(g -> true);
         if (petData != null) {
             registerGoals(); // only register once we have all colony context
-        }
-        
-        try
-        {
-            // super.readAdditionalSaveData(compound);
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         boolean registered = PetRegistryUtil.isRegistered(this);
@@ -204,6 +205,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         
         if (petData != null)
         {
+            petData.tick(this.level());
             petData.aiWatchdogTick();
             petData.logActiveGoals();
         }
@@ -247,18 +249,28 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     @Override
     public void remove(@Nonnull RemovalReason reason)
     {
-
         if (petData != null)
         {
             petData.onRemoval(reason);
         }
 
-        PetRegistryUtil.unregister(this);
-        petData = null;
+        switch (reason) {
+            case KILLED, DISCARDED -> {
+                PetRegistryUtil.unregister(this);
 
-        if (this.isLeashed())
-        {
-            this.dropLeash(true, false);
+                petData = null;
+
+                if (this.isLeashed())
+                {
+                    this.dropLeash(true, false);
+                }
+            }
+            case UNLOADED_TO_CHUNK, CHANGED_DIMENSION -> {
+                // benign; don’t clear persistent state
+            }
+            default -> {
+                // benign; don’t clear persistent state
+            }
         }
         
         super.remove(reason);

@@ -3,6 +3,9 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
@@ -11,12 +14,16 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 public class ExportData
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     public static final String TAG_COST = "cost";
     public static final String TAG_QUANTITY = "quantity";
 
@@ -40,7 +47,7 @@ public class ExportData
 
 
 
-    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
@@ -51,11 +58,22 @@ public class ExportData
         this.lastShipDay = -1;
         this.shipmentCountdown = -1;
         this.insufficientFunds = false;
+        this.reverse = reverse;
+    }
+
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
+    {
+        this(sourceStation, destinationStationData, tradeItem, cost, false);
     }
 
     public StationData getDestinationStationData()
     {
         return destinationStationData;
+    }
+
+    public ITradeCapable getSourceStation()
+    {
+        return sourceStation;
     }
 
     public int getCost()
@@ -87,11 +105,6 @@ public class ExportData
     { 
         return reverse; 
     } 
-
-    public void setReverse(boolean reverse) 
-    { 
-        this.reverse = reverse; 
-    }
 
     /**
      * Spawns a GhostCartEntity for trade if one does not already exist. The cart is initialized with the current export's trade item
@@ -133,13 +146,30 @@ public class ExportData
 
         if (sourceStation == null) return null;
 
-        TrackConnectionResult tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
+        TrackConnectionResult tcr = null;
+        
+        if (!isReverse())
+        {
+            tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
+        }
+        else
+        {
+            StationData returningLocation = new StationData(this.getSourceStation());
+            ITradeCapable destinationStation = this.getDestinationStationData().getStation();
+
+            if (destinationStation != null)
+            {
+                tcr = destinationStationData.getStation().getTrackConnectionResult(returningLocation);
+            }
+        }
+
         if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
         {
             cart = spawnCartForTrade(tcr.path);
         }
         else
-        {
+        { 
+            LOGGER.error("Failed to spawn cart for trade - no path information for export: {}", this);
             return null;
         }
 
@@ -268,6 +298,9 @@ public class ExportData
     @Override
     public String toString()
     {
-        return "ExportData{" + "sourceStation=" + sourceStation + ", destinationStation=" + destinationStationData + "tradeItem=" + tradeItem +'}';
+        return "ExportData{" + "sourceStation={" + sourceStation.getLocation().getInDimensionLocation().toShortString()
+        + "}, destinationStation={" + destinationStationData.toString() 
+        + "}, tradeItem=" + tradeItem 
+        + ", reverse=" + reverse +'}';
     }
 }

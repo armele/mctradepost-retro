@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
@@ -26,9 +27,13 @@ import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.tileentities.AbstractTileEntityRack;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.Tuple;
+import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
+import com.minecolonies.core.tileentities.TileEntityRack;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -37,6 +42,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class BuildingUtil {
     public static final String TAG_DIMENSION = "dimension";
@@ -247,5 +253,30 @@ public class BuildingUtil {
         }
 
         return resolvers;
+    }
+
+    public static List<Tuple<ItemStack, BlockPos>> getMatchingItemStacksInBuilding(@Nonnull IBuilding building, @Nonnull final Predicate<ItemStack> itemStackSelectionPredicate)
+    {
+        Level level = building.getColony().getWorld();
+        List<Tuple<ItemStack, BlockPos>> found = new ArrayList<>();
+        
+        if (building != null)
+        {
+            for (@Nonnull final BlockPos pos : building.getContainers())
+            {
+                if (WorldUtil.isBlockLoaded(level, pos))
+                {
+                    final BlockEntity entity = level.getBlockEntity(pos);
+                    if (entity instanceof final TileEntityRack rack && !rack.isEmpty() && rack.getItemCount(itemStackSelectionPredicate) > 0)
+                    {
+                        for (final ItemStack stack : (InventoryUtils.filterItemHandler(rack.getInventory(), itemStackSelectionPredicate)))
+                        {
+                            found.add(new Tuple<>(stack, pos));
+                        }
+                    }
+                }
+            }
+        }
+        return found;
     }
 }

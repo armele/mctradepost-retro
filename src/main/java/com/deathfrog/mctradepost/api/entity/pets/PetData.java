@@ -69,6 +69,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     private int stallTicks = 0;
     protected int watchdogCooldown = 0;
     protected static final int WATCHDOWN_COOLDOWN_INTERVAL = 20;
+    protected static final String TAG_INV = "Inventory";
+
+    // If your ItemStackHandler API requires a registry provider at load time, we
+    // can buffer the tag until the Level is available (first tick).
+    protected CompoundTag pendingInv = null;
 
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
@@ -92,6 +97,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             this.petType = PetTypes.fromPetClass(animal.getClass());
             this.entityUuid = animal.getUUID();
             this.entityId = animal.getId();
+            animal.setPersistenceRequired(); // prevent natural despawn
         }
 
     }
@@ -142,7 +148,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             compound.putUUID("uuid", animal.getUUID());
         }
-        // MCTradePostMod.LOGGER.info("Serialized PetData to NBT: {}", compound);
+
+        // --- INVENTORY (always save) ---
+        if (animal != null && animal.level() != null)
+        {
+            compound.put(TAG_INV, inventory.serializeNBT(animal.level().registryAccess()));
+        }
+        // LOGGER.info("Serialized PetData to NBT: {}", compound);
     }
 
     /**
@@ -167,16 +179,70 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         UUID uuid = compound.hasUUID("uuid") ? compound.getUUID("uuid") : null;
         this.entityUuid = uuid; // add a field if you want
 
-        String dimname = compound.getString("dimension");
-        ResourceLocation level = ResourceLocation.parse(dimname);
-        dimension = ResourceKey.create(Registries.DIMENSION, level);
 
-        if (animal != null)
+        // Dimension (guard against blank)
+        String dimname = compound.getString("dimension");
+        if (dimname != null && !dimname.isEmpty()) 
         {
-            // inventory.deserializeNBT(animal.level().registryAccess(), compound.getCompound("Inventory"));
+            ResourceLocation level = ResourceLocation.parse(dimname);
+            dimension = ResourceKey.create(Registries.DIMENSION, level);
+        } 
+        else 
+        {
+            dimension = null;
+        }
+
+        // --- INVENTORY (always read if present) ---
+        if (compound.contains(TAG_INV))
+        {
+            CompoundTag invTag = compound.getCompound(TAG_INV);
+
+            boolean applied = false;
+            if (!applied) 
+            {
+                try 
+                {
+                    // Variant B: API with provider
+                    if (animal != null && animal.level() != null) 
+                    {
+                        inventory.deserializeNBT(animal.level().registryAccess(), invTag);
+                        applied = true;
+                    }
+                } catch (Throwable ignored) 
+                { 
+                    LOGGER.error("Error deserializing inventory", ignored);
+                }
+            }
+
+            // If still not applied (no Level yet), keep it for later
+            if (!applied) {
+                pendingInv = invTag.copy();
+            }
+
         }
     }
 
+
+    /**
+     * Called once per tick while this pet is active.
+     * <p>If the server is present (i.e. not client-side), this method will attempt to apply any pending inventory data that was
+     * deserialized from NBT earlier. If the pet is on the client-side, this does nothing.</p>
+     * @param level The level containing the pet, used to access the registry if needed.
+     */
+
+    public void tick(Level level)
+    {
+        if (!level.isClientSide) 
+        {
+            tryApplyPendingInventory(level);
+        }
+    }
+
+    /**
+     * Gets the BlockPos ID of the trainer building associated with this pet.
+     * 
+     * @return the BlockPos ID of the trainer building associated with this pet.
+     */
     public BlockPos getTrainerBuildingID()
     {
         return trainerBuildingID;
@@ -625,7 +691,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             Goal goal = wrapped.getGoal();
             if (wrapped.isRunning())
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal: " + goal.getClass().getSimpleName()));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal for pet {}: {} ", getEntityId(), goal.getClass().getSimpleName()));
             }
         }
 
@@ -635,7 +701,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             if (wrapped.isRunning())
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS,
-                    () -> LOGGER.info("Active Target Goal: " + goal.getClass().getSimpleName()));
+                    () -> LOGGER.info("Active Target Goal for pet {}: {}" , getEntityId(), goal.getClass().getSimpleName()));
             }
         }
     }
@@ -660,5 +726,23 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RANAWAY, this.getAnimalType(), 1);
         }
+    }
+
+    /** Call from the entity’s server tick once level/registry are available. */
+    public void tryApplyPendingInventory(Level level)
+    {
+        if (pendingInv == null || level == null || level.isClientSide) return;
+
+            try 
+            {
+                inventory.deserializeNBT(level.registryAccess(), pendingInv);
+            } 
+            catch (Throwable err) 
+            {
+                // LOGGER.error("Failed to deserialize pet inventory", err);
+                return;
+            }
+
+        pendingInv = null; // applied successfully
     }
 }

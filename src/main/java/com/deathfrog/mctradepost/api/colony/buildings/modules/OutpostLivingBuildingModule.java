@@ -12,7 +12,7 @@ import com.mojang.logging.LogUtils;
 public class OutpostLivingBuildingModule extends LivingBuildingModule
 {
     public static final Logger LOGGER = LogUtils.getLogger();
-    public static final int OUTPOST_RESIDENTS = 3;
+    public static final int OUTPOST_RESIDENTS = 2;
 
     @Override
     public int getModuleMax()

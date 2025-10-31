@@ -1,33 +1,35 @@
 package com.deathfrog.mctradepost.core.colony.requestsystem.resolvers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
-import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.requestable.StackList;
-import com.minecolonies.api.colony.requestsystem.requestable.Tool;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.core.colony.requestsystem.requesters.IBuildingBasedRequester;
-import com.minecolonies.core.colony.requestsystem.resolvers.core.AbstractRequestResolver;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.requestsystem.resolvers.core.AbstractBuildingDependentRequestResolver;
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
@@ -36,7 +38,7 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 /*
  * Modelled after DeliverymenRequestResolver
  */
-public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable> implements IBuildingBasedRequester
+public class OutpostRequestResolver extends AbstractBuildingDependentRequestResolver<IDeliverable>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -51,29 +53,12 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         return 300;
     }
 
-    @Nullable
     @Override
-    public List<IToken<?>> attemptResolveRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IRequestable> requestToCheck)
+    public int getSuitabilityMetric(@NotNull IRequestManager manager, @NotNull IRequest<? extends IDeliverable> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Attempting to resolve outpost request: {}", requestToCheck));
-
-        IBuilding requestingBuilding = buildingForRequest(manager, requestToCheck);
-
-        if (requestingBuilding == null)
-        {
-            return null;
-        }
-
-        boolean qualifies = BuildingOutpost.isOutpostBuilding(requestingBuilding);
-
-        if (manager.getColony().getWorld().isClientSide || !qualifies)
-        {
-            return null;
-        }
-
-        return Lists.newArrayList();
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking OutpostRequestResolver suitability metric for request {}.", request.getLongDisplayString()));
+        return -1;
     }
-
 
     /**
      * Returns the display name of the building that made the request.
@@ -85,35 +70,9 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
     @Override
     public @NotNull MutableComponent getRequesterDisplayName(@NotNull IRequestManager manager, @NotNull IRequest<?> request) 
     {
-        IBuilding requestingBuilding = buildingForRequest(manager, request);
-
-        if (requestingBuilding == null)
-        {
-            return Component.translatable("com.mctradepost.building.outpost");
-        }
-
-        return Component.translatable(requestingBuilding.getBuildingDisplayName());
+        return Component.translatable("com.mctradepost.building.outpost");
     }
 
-    @Override
-    public boolean canResolveRequest(@NotNull final IRequestManager manager, final IRequest<? extends IRequestable> requestToCheck)
-    {
-
-        if (manager.getColony().getWorld().isClientSide)
-        {
-            return false;
-        }
-
-        IBuilding requestingBuilding = buildingForRequest(manager, requestToCheck);
-
-        if (requestingBuilding == null)
-        {
-            return false;
-        }
-
-        return BuildingOutpost.isOutpostBuilding(requestingBuilding);
-    }
-    
     /**
      * Called by the manager given to indicate that this request has been assigned to you.
      *
@@ -121,9 +80,9 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
      * @param request    The request assigned.
      * @param simulation True when simulating.
      */
-    public void onRequestAssigned(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IRequestable> request, boolean simulation)
+    public void onRequestAssigned(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request, boolean simulation)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This request has been assigned to the outpost: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This request {} has been assigned to the outpost: {}", request.getId(), request.getLongDisplayString()));
     }
 
     @Override
@@ -133,21 +92,15 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         return true;
     }
     @Override
-    public void onAssignedRequestBeingCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
+    public void onAssignedRequestBeingCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IDeliverable> request)
     {
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Outpost assigned request being cancelled: {}", request.getLongDisplayString()));
     }
 
     @Override
-    public void onAssignedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
+    public void onAssignedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IDeliverable> request)
     {
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Outpost assigned request cancelled: {}", request.getLongDisplayString()));
-    }
-
-    @Override
-    public void resolveRequest(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IRequestable> request)
-    {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Resolving outpost request.: {}", request.getLongDisplayString()));
     }
 
     @Override
@@ -163,58 +116,10 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
     }
 
     @Override
-    public TypeToken<IRequestable> getRequestType()
+    public TypeToken<IDeliverable> getRequestType()
     {
         // LOGGER.info("Checking outpost request type.");
-        return TypeConstants.REQUESTABLE;
-    }
-
-
-    /**
-     * Returns the building associated with the given resolver token.
-     * If the request manager is null or the resolver is null, returns null.
-     * Otherwise, returns the building associated with the location of the given resolver token.
-     * @param token The token of the resolver to find the building for.
-     * @return The building associated with the given resolver token, or null if the request manager or resolver is null.
-     */
-    public IBuilding buildingForRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<?> request)
-    {
-        IBuilding requestingBuilding = null;
-        
-        if (manager.getColony() == null)
-        {
-            LOGGER.warn("buildingForRequest: null colony for manager");
-            return null;
-        }
-        
-        if (manager.getColony().getBuildingManager() == null)
-        {
-            LOGGER.warn("buildingForRequest has a null building manager.");
-            return null;
-        }
-        
-        if (request.getRequester() == null)
-        {
-            LOGGER.warn("buildingForRequest has a null requester.");
-            return null;
-        }
-        
-        if (request.getRequester().getLocation() == null)
-        {
-            LOGGER.warn("buildingForRequest has a null requester location.");
-            return null;
-        }
-        
-        if (request.getRequester().getLocation().getInDimensionLocation() == null)
-        {
-            LOGGER.warn("buildingForRequest has a in-dimension location.");
-            return null;
-        }
-
-
-        requestingBuilding = manager.getColony().getBuildingManager().getBuilding(request.getRequester().getLocation().getInDimensionLocation());
-
-        return requestingBuilding;
+        return TypeConstants.DELIVERABLE;
     }
 
     /**
@@ -242,7 +147,7 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
      * @param manager the request manager from which to clone the requestable
      * @param src the source requestable to clone
      * @return the cloned requestable, or null if the type is unsupported
-     */
+     *
     public static @Nullable IRequestable cloneRequestable(IRequestManager manager, IRequestable src)
     {
 
@@ -282,5 +187,166 @@ public class OutpostRequestResolver extends AbstractRequestResolver<IRequestable
         }
         
         return null;
+    }
+    */
+
+    @Override
+    public @Nullable List<IToken<?>> attemptResolveForBuilding(@NotNull IRequestManager manager,
+        @NotNull IRequest<? extends IDeliverable> requestToCheck,
+        @NotNull AbstractBuilding requestingBuilding)
+    {
+        if (manager.getColony().getWorld().isClientSide)
+        {
+            return null;
+        }
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Attempting to resolve outpost request: {}", requestToCheck));
+
+        if (requestingBuilding == null)
+        {
+            return Lists.newArrayList();
+        }
+
+        IBuilding outpostBuilding = BuildingOutpost.toOutpostBuilding(requestingBuilding);
+
+        if (outpostBuilding == null)
+        {
+            return Lists.newArrayList();
+        }
+
+        IBuilding connectedStation = ((BuildingOutpost) outpostBuilding).getConnectedStation();
+
+        if (connectedStation == null)
+        {
+            return null;
+        }
+
+        OutpostShipmentTracking tracking = ((BuildingOutpost) outpostBuilding).trackingForRequest(requestToCheck);
+        List<IToken<?>> prerequisiteRequests = new ArrayList<>();
+
+        if (requestToCheck.getRequest() instanceof IDeliverable deliverable)
+        {
+            final int totalRequested = deliverable.getCount();
+
+            /*
+            int totalInOutpost = 0;
+            final List<Tuple<ItemStack, BlockPos>> outpostInv = BuildingUtil.getMatchingItemStacksInBuilding(outpostBuilding, itemStack -> deliverable.matches(itemStack));
+
+            for (final Tuple<ItemStack, BlockPos> stack : outpostInv)
+            {
+                if (!stack.getA().isEmpty())
+                {
+                    totalInOutpost += stack.getA().getCount();
+                }
+            }
+            */
+
+            int totalInStation = 0;
+            int totalScheduled = 0;
+            final List<Tuple<ItemStack, BlockPos>> stationInv = BuildingUtil.getMatchingItemStacksInBuilding(connectedStation, itemStack -> ((IDeliverable) requestToCheck.getRequest()).matches(itemStack));
+
+            for (final Tuple<ItemStack, BlockPos> stack : stationInv)
+            {
+                if (!stack.getA().isEmpty())
+                {
+                    totalInStation += stack.getA().getCount();
+
+                    if (totalInStation <= totalRequested)
+                    {
+                        totalScheduled = totalScheduled + stack.getA().getCount();
+                        Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), stack.getA().copy(), 0);
+                        IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
+                        prerequisiteRequests.add(deliveryRequestToken);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created partial delivery request {}.", deliveryRequestToken));
+                    }
+                    else
+                    {
+                        ItemStack partialShipment = stack.getA().copyWithCount(totalRequested - totalScheduled);
+                        Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), partialShipment, 0);
+                        IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
+                        prerequisiteRequests.add(deliveryRequestToken);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created satisfied delivery request {}.", deliveryRequestToken));
+                        break;
+                    }
+                }
+            }
+            
+            final int totalRemainingRequired = Math.max(totalRequested - totalInStation, 0);
+
+            final int stationCountForLog = totalInStation;
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This is a deliverable requestof type {} with {} items in the station, and {} items remaining to be collected for shipment.", 
+                deliverable.getClass().getName(),    
+                stationCountForLog, 
+                totalRemainingRequired));
+
+            if (totalRemainingRequired > 0)
+            {
+                IDeliverable deliverableCopy = ((IDeliverable) requestToCheck.getRequest()).copyWithCount(totalRemainingRequired);
+
+                tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
+
+                /*
+                IToken<?> stationNeed = connectedStation.createRequest(deliverableCopy, true);
+                prerequisiteRequests.add(stationNeed);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created station need request {}.", stationNeed));
+                */
+
+                ItemStack finalShipment = deliverableCopy.getResult().copy();
+                Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), finalShipment, 0);
+                IToken<?> finalShipmentToken = outpostBuilding.createRequest(delivery, true);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created final shipment request {}.", finalShipmentToken));
+                prerequisiteRequests.add(finalShipmentToken);
+
+            }
+            else
+            {
+                // We have everything we need, but the station master still needs to make the shipment(s).
+                tracking.setState(OutpostOrderState.ITEM_READY_TO_SHIP);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Station has everything needed to fulfil request: {}", requestToCheck.getLongDisplayString()));
+            }
+        }
+
+        return prerequisiteRequests;
+    }
+
+
+    /**
+     * Checks if this resolver can resolve the given request for the given building.
+     * This resolver can only resolve requests for outpost buildings.
+     * If the request is not for an outpost building, this method will return false.
+     * If the world is the client side, this method will also return false.
+     * If the building is null, this method will also return false.
+     * 
+     * @param manager the request manager for the colony.
+     * @param requestToCheck the request to check if this resolver can resolve it.
+     * @param requestingBuilding the building that made the request.
+     * @return true if this resolver can resolve the request, false otherwise.
+     */
+    @Override
+    public boolean canResolveForBuilding(@NotNull IRequestManager manager,
+        @NotNull IRequest<? extends IDeliverable> requestToCheck,
+        @NotNull AbstractBuilding requestingBuilding)
+    {
+
+        if (manager.getColony().getWorld().isClientSide)
+        {
+            return false;
+        }
+
+        if (requestingBuilding == null)
+        {
+            return false;
+        }
+
+        return BuildingOutpost.isOutpostBuilding(requestingBuilding);
+    }
+
+    @Override
+    public void resolveForBuilding(@NotNull IRequestManager manager,
+        @NotNull IRequest<? extends IDeliverable> request,
+        @NotNull AbstractBuilding building)
+    {
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Requested outpost request resolved: {}", request.getLongDisplayString()));
+        manager.updateRequestState(request.getId(), RequestState.RESOLVED);
     }
 }

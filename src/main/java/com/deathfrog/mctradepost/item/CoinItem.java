@@ -25,6 +25,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 
 public class CoinItem extends Item
 {
@@ -133,25 +135,25 @@ public class CoinItem extends Item
     // --- CoinItem helpers: persist/retrieve colony id on the stack ---
 
     /** Returns true if the stack has a minted-colony id component. */
-    public static boolean hasMintColonyId(ItemStack stack)
+    public static boolean hasMintColony(ItemStack stack)
     {
-        return !stack.isEmpty() && stack.has(MCTPModDataComponents.MINT_COLONY_ID.get());
+        return !stack.isEmpty() && stack.has(MCTPModDataComponents.MINT_COLONY_NAME.get());
     }
 
     /** Set (persist) the colony id on the item stack. */
-    public static void setMintColonyId(ItemStack stack, int colonyId)
+    public static void setMintColony(ItemStack stack, String colonyName)
     {
         if (!stack.isEmpty())
         {
-            stack.set(MCTPModDataComponents.MINT_COLONY_ID.get(), colonyId);
+            stack.set(MCTPModDataComponents.MINT_COLONY_NAME.get(), colonyName);
         }
     }
 
     /** Get the colony id, or defaultValue if not present. */
-    public static int getMintColonyId(ItemStack stack, int defaultValue)
+    public static String getMintColony(ItemStack stack, String defaultValue)
     {
         if (stack.isEmpty()) return defaultValue;
-        return stack.getOrDefault(MCTPModDataComponents.MINT_COLONY_ID.get(), defaultValue);
+        return stack.getOrDefault(MCTPModDataComponents.MINT_COLONY_NAME.get(), defaultValue);
     }
 
     /** Clear the colony id. */
@@ -159,38 +161,26 @@ public class CoinItem extends Item
     {
         if (!stack.isEmpty())
         {
-            stack.remove(MCTPModDataComponents.MINT_COLONY_ID.get());
+            stack.remove(MCTPModDataComponents.MINT_COLONY_NAME.get());
         }
     }
 
+    @OnlyIn(Dist.CLIENT)
     @Override
     public void appendHoverText(@Nonnull ItemStack stack,
         @Nonnull Item.TooltipContext ctx,
         @Nonnull List<net.minecraft.network.chat.Component> tooltip,
         @Nonnull TooltipFlag flag)
     {
-        boolean colonyExists = false;
-
         // Only show if present
-        if (hasMintColonyId(stack))
+        if (hasMintColony(stack))
         {
-            int colonyId = getMintColonyId(stack, -1);
-
-            List<IColony> colonies = IColonyManager.getInstance().getAllColonies();
-            for (IColony colony : colonies)
-            {
-                if (colony.getID() == colonyId)
-                {
-                    // i18n-friendly line (preferred)
-                    tooltip.add(Component.translatable("com.mctradepost.coremod.gui.econ.coins.mintcolony.tooltip", colony.getName())
-                        .withStyle(net.minecraft.ChatFormatting.GRAY));
-                    colonyExists = true;
-                    break;
-                }
-            }
+            String colonyName = getMintColony(stack, "Unknown");
+            // i18n-friendly line (preferred)
+            tooltip.add(Component.translatable("com.mctradepost.coremod.gui.econ.coins.mintcolony.tooltip", colonyName)
+                .withStyle(net.minecraft.ChatFormatting.GRAY));
         }
-
-        if (!colonyExists)
+        else
         {
             // i18n-friendly line (preferred)
             tooltip.add(Component.translatable("com.mctradepost.coremod.gui.econ.coins.mintunknown.tooltip")

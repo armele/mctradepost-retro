@@ -33,14 +33,14 @@ public class MCTPModDataComponents {
             // The codec to read/write the data across the network
             .networkSynchronized(RecyclableRecord.STREAM_CODEC)
     );
-
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> MINT_COLONY_ID =
-        REGISTRAR.registerComponentType(
-            "mint_colony_id",
-            builder -> builder
-                .persistent(Codec.INT)                 // disk save/load
-                .networkSynchronized(ByteBufCodecs.VAR_INT) // client sync
-        );
+    
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<String>> MINT_COLONY_NAME =
+    REGISTRAR.registerComponentType(
+        "mint_colony_name",
+        builder -> builder
+            .persistent(Codec.STRING)
+            .networkSynchronized(ByteBufCodecs.STRING_UTF8)
+    );
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> LINKED_BLOCK_POS =
         REGISTRAR.registerComponentType(

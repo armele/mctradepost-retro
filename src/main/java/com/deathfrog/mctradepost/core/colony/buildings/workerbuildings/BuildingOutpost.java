@@ -20,6 +20,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 
@@ -37,6 +40,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnectio
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.MinecoloniesAPIProxy;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -48,19 +52,21 @@ import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingFarmer;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
-public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
+public class BuildingOutpost extends AbstractBuildingStructureBuilder implements ITradeCapable, IRequestSatisfaction
 {
     public enum OutpostOrderState
     {
         NEEDED,                 // The outpost has a need for something
         NEEDS_ITEM_FOR_SHIPPING,// Connected station needs something before it can ship
+        ITEM_READY_TO_SHIP,     // Connected station has something to ship
         SHIPMENT_INITIATED,     // Connected station has started the shipment
         RECEIVED,               // Outpost has received the order from the connected station
         READY_FOR_DELIVERY,     // Scout is ready to deliver the order (it is in their inventory)
@@ -77,7 +83,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     private static final String TAG_REQUEST_STATE             = "request_state";
     private static final String TAG_REQUEST_TRACKING = "requestTracking";
 
-    protected int stationValidationCooldown = STATION_CONNECTION_COOLDOWN;
+    protected int stationValidationCooldown = 0;
     protected BuildingStation connectedStation = null;
     protected OutpostRequestResolver outpostResolver;
     protected IToken<?> outpostResolverToken = null;
@@ -110,10 +116,31 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         establishConnectedStation();
     }
     
+    /**
+     * Returns the claim radius for this outpost at the given level.
+     * This outpost currently always claims a single block in all directions, 
+     * (regardless of level) so the claim radius is always 1.
+     * 
+     * @param newLevel the new level that the outpost is being upgraded to
+     * @return the claim radius for the outpost at the given level
+     */
     @Override
     public int getClaimRadius(int newLevel) 
     {
         return 1;
+    }
+
+
+    /**
+     * Determines if citizens can be assigned to this outpost.
+     * Noteworthy is that this allows level 0 assignment.
+     * 
+     * @return true if citizens can be assigned to this outpost, false otherwise
+     */
+    @Override
+    public boolean canAssignCitizens()
+    {
+        return true;
     }
 
     /**
@@ -225,6 +252,12 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         readRequestTrackingFromNbt(provider, compound);
     }
 
+    @Override
+    public void serializeToView(@NotNull RegistryFriendlyByteBuf buf, boolean fullSync) 
+    {
+            super.serializeToView(buf, fullSync);
+            buf.writeInt(this.getOutpostLevel());
+    }
     /**
      * Writes the request tracking data to the provided CompoundTag.
      *
@@ -260,6 +293,20 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     }
 
 
+    /**
+     * Reads the request tracking data from the provided CompoundTag.
+     * 
+     * <p>Clears the request tracking map and then iterates over the list of
+     * request tracking entries stored in the CompoundTag under the key
+     * {@link #TAG_REQUEST_TRACKING}. For each entry, deserializes the token
+     * using StandardFactoryController and then stores it, along with the
+     * state name of the tracking, in a new CompoundTag. The new CompoundTags are
+     * then stored in a ListTag which is added to the provided CompoundTag under
+     * the key {@link #TAG_REQUEST_TRACKING}.
+     * 
+     * @param provider The holder lookup provider for item and block references.
+     * @param compound The CompoundTag to read the request tracking data from.
+     */
     public void readRequestTrackingFromNbt(final HolderLookup.Provider provider,
         final CompoundTag compound)
     {
@@ -341,46 +388,68 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     protected BlockPos outpostBuilderPosition(Player player, BlockPos requestedBuilder)
     {
 
-        // At level 0 anyone can build it.
-        if (getBuildingLevel() == 0)
-        {
-            return requestedBuilder;
-        }
-
-        BuildingBuilder outpostBuilder = getOutpostBuilder();
-
-        if (outpostBuilder == null)
+        if (!requestedBuilder.equals(this.getPosition()))
         {
             if (player != null)
             {
-                MessageUtils.format("com.mctradepost.outpost.builder.missing").sendTo(player);
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(this.getBuildingDisplayName())).sendTo(player);
             }
             else
             {
-                MessageUtils.format("com.mctradepost.outpost.builder.missing").sendTo(getColony());
-            }
-            return BlockPos.ZERO;
-        }
-
-        if (!requestedBuilder.equals(outpostBuilder.getPosition()))
-        {
-            if (player != null)
-            {
-                MessageUtils.format("com.mctradepost.outpost.builder.switched", outpostBuilder.getBuildingDisplayName()).sendTo(player);
-            }
-            else
-            {
-                MessageUtils.format("com.mctradepost.outpost.builder.switched", outpostBuilder.getBuildingDisplayName()).sendTo(getColony());
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(this.getBuildingDisplayName())).sendTo(getColony());
             }
         }
 
-        return outpostBuilder.getPosition();
+        return this.getPosition();
     }
 
+    /**
+     * Requests that the outpost be upgraded to the next level.
+     * If the outpost is currently at level 0 and the parent building is at level 1 or higher, the outpost will be built.
+     * If the outpost is not at the maximum level and the parent building is at a lower level, the outpost will be upgraded.
+     * If the outpost is at the maximum level, a message will be sent to the player indicating that no upgrade is available.
+     * If the outpost requires a research effect to be upgraded and the effect is not yet researched, a message will be sent to the player indicating that the research effect is required.
+     * If the outpost requires a research effect to be upgraded and the effect has already been researched but the outpost is not yet at the required level, a message will be sent to the player indicating that the outpost requires an upgrade.
+     * 
+     * NOTE that this uses the Outpost "fake level" workaround.
+     * 
+     * @param player the player requesting the upgrade
+     * @param builder the position of the builder requesting the upgrade
+     */
     @Override
     public void requestUpgrade(Player player, BlockPos builder)
     {
-        super.requestUpgrade(player, outpostBuilderPosition(player, builder));
+        BlockPos useBuilder = outpostBuilderPosition(player, builder);
+
+        final ResourceLocation hutResearch = colony.getResearchManager().getResearchEffectIdFrom(this.getBuildingType().getBuildingBlock());
+
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
+              colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) < 1)
+        {
+            MessageUtils.format(TranslationConstants.WARNING_BUILDING_REQUIRES_RESEARCH_UNLOCK).sendTo(player);
+            return;
+        }
+        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
+              (colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) <= getOutpostLevel()))
+        {
+            MessageUtils.format(TranslationConstants.WARNING_BUILDING_REQUIRES_RESEARCH_UPGRADE).sendTo(player);
+            return;
+        }
+
+        final IBuilding parentBuilding = colony.getBuildingManager().getBuilding(getParent());
+
+        if (getOutpostLevel() == 0 && (parentBuilding == null || parentBuilding.getBuildingLevel() > 0))
+        {
+            requestWorkOrder(WorkOrderType.BUILD, useBuilder);
+        }
+        else if (getOutpostLevel() < getMaxBuildingLevel() && (parentBuilding == null || getOutpostLevel() < parentBuilding.getBuildingLevel() || parentBuilding.getBuildingLevel() >= parentBuilding.getMaxBuildingLevel()))
+        {
+            requestWorkOrder(WorkOrderType.UPGRADE, useBuilder);
+        }
+        else
+        {
+            MessageUtils.format(TranslationConstants.WARNING_NO_UPGRADE).sendTo(player);
+        }
     }
 
     @Override
@@ -393,6 +462,41 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     public boolean canBeBuiltByBuilder(int newLevel) 
     {
         return getBuildingLevel() + 1 == newLevel;
+    }
+
+    /**
+     * Returns the current building level of this outpost.
+     * If the building level is 0, returns 1, as the outpost is always considered to be at least level 1
+     * for the purposes of other colony logic.
+     * 
+     * Otherwise, returns the building level as determined by the superclass.
+     * @return the current building level of this outpost
+     */
+    @Override
+    public int getBuildingLevel() 
+    {
+        if (super.getBuildingLevel() == 0)
+        {
+            return 1;
+        }
+        
+        return super.getBuildingLevel();
+    }
+
+
+    /**
+     * Returns the current building level of this outpost,
+     * reflecting a "0" level outpost if currently unbuilt.
+     * 
+     * Note that this differs from getBuildingLevel() only if the outpost is at level 0.
+     * Kludgey workaround since we want to do things at level 0 that Minecolonies code base
+     * assumes cannot happen until level 1.
+     * 
+     * @return the current building level of this outpost (without the outpost bump)
+     */
+    public int getOutpostLevel()
+    {
+        return super.getBuildingLevel();
     }
 
     /**
@@ -453,6 +557,9 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
      */
     protected void establishConnectedStation()
     {
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Validating Outpost connected to station in colony {}.", this.getColony().getName()));
+
         Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
         BuildingStation candidateStation = null;
         boolean isCurrentlyDisconnected = this.isDisconnected();
@@ -460,7 +567,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         for (IBuilding building : buildings)
         {
-            if (building instanceof BuildingStation station)
+            if (building instanceof BuildingStation station && building.getColony().getID() == this.getColony().getID())
             {
                 candidateStation = station;
 
@@ -725,9 +832,27 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     {
         boolean qualifies = false;
 
-        if (checkBuilding instanceof BuildingOutpost)
+        IBuilding outpostBuilding = toOutpostBuilding(checkBuilding);
+
+        if (outpostBuilding != null)
         {
             qualifies = true;
+        }
+
+        return qualifies;
+    }
+
+    /**
+     * Checks if the given building is an outpost building, either directly or indirectly through its parent.
+     * A building is considered an outpost building if it is an instance of BuildingOutpost, or if its parent is.
+     * @param checkBuilding The building to check.
+     * @return True if the building is an outpost building, false otherwise.
+     */
+    public static IBuilding toOutpostBuilding(@Nonnull IBuilding checkBuilding)
+    {
+        if (checkBuilding instanceof BuildingOutpost)
+        {
+            return checkBuilding;
         }
         else
         {
@@ -739,12 +864,12 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
                 
                 if (parentBuilding instanceof BuildingOutpost)
                 {
-                    qualifies = true;
+                    return parentBuilding;
                 }
             }
         } 
 
-        return qualifies;
+        return null;
     }
 
     /**
@@ -758,14 +883,14 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         for (BlockPos child : this.getWorkBuildings())
         {
-            IBuilding childBuilding = this.getColony().getBuildingManager().getBuilding(child);
+            IBuilding outpostBuilding = this.getColony().getBuildingManager().getBuilding(child);
 
             // LOGGER.info("Checking requests in building {}", childBuilding.getBuildingDisplayName());
 
-            for (ICitizenData citizen : childBuilding.getAllAssignedCitizen())
+            for (ICitizenData citizen : outpostBuilding.getAllAssignedCitizen())
             {
                 // LOGGER.info("Checking requests for citizen {}", citizen.getName());
-                final Collection<IRequest<?>> openRequests = childBuilding.getOpenRequests(citizen.getId());
+                final Collection<IRequest<?>> openRequests = outpostBuilding.getOpenRequests(citizen.getId());
 
                 if (openRequests != null)
                 {
@@ -774,11 +899,11 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             }
 
             // Gather requests not associated with the specific citizen, too.
-            final Collection<IRequest<?>> openRequests = childBuilding.getOpenRequests(-1);
+            final Collection<IRequest<?>> buildingRequests = outpostBuilding.getOpenRequests(-1);
 
-            if (openRequests != null)
+            if (buildingRequests != null)
             {
-                outpostRequests.addAll(openRequests);
+                outpostRequests.addAll(buildingRequests);
             }
         }
 

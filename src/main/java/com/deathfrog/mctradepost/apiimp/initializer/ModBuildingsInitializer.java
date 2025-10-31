@@ -117,6 +117,7 @@ public final class ModBuildingsInitializer
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATION_CONNECTION);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.IMPORTS);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.EXPORTS);
+            stationBuilder.addBuildingModuleProducer(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
             stationBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
 
             ModBuildings.station = stationBuilder.createBuildingEntry();
@@ -152,6 +153,9 @@ public final class ModBuildingsInitializer
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_EXPORTS);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDING_RESOURCES);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDER_SETTINGS);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.WORKORDER_VIEW);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
 
             ModBuildings.outpost = outpostBuilder.createBuildingEntry();

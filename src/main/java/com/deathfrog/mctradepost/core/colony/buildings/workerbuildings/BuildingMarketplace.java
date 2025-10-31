@@ -346,7 +346,7 @@ public class BuildingMarketplace extends AbstractBuilding
             if (valueToRemove < econ.getTotalBalance())
             {
                 coinStack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), coinsToMint);
-                CoinItem.setMintColonyId(coinStack, colony.getID());
+                CoinItem.setMintColony(coinStack, colony.getName());
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
                 econ.deposit(-valueToRemove);
             }

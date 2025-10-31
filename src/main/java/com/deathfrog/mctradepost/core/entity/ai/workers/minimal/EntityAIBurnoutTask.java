@@ -10,6 +10,7 @@ import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.ICitizenData;
@@ -354,11 +355,26 @@ public class EntityAIBurnoutTask
             return false;
         }
 
-        if (citizenData.getWorkBuilding() instanceof BuildingResort)
+        IBuilding workBuilding = citizenData.getWorkBuilding();
+        if (workBuilding != null)
         {
-            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers don't take vacations: {}", citizen));
-            reset();
-            return false;
+            BlockPos parentBuildingPosition = workBuilding.getParent();
+            IBuilding parentBuilding = null;
+
+            if (parentBuildingPosition != null && !BlockPos.ZERO.equals(parentBuildingPosition))
+            {
+                parentBuilding = citizenData.getColony().getBuildingManager().getBuilding(parentBuildingPosition);
+            }
+
+            // Workers at the Resort and Outpost cannot take vacations.
+            if (workBuilding instanceof BuildingResort 
+                || workBuilding instanceof BuildingOutpost
+                || (parentBuilding != null && parentBuilding instanceof BuildingOutpost))
+            {
+                TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers don't take vacations: {}", citizen));
+                reset();
+                return false;
+            }
         }
 
         if (vacationTracker != null && vacationTracker.getState() != Vacationer.VacationState.CHECKED_OUT)

@@ -21,9 +21,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import com.minecolonies.api.util.Log;
+import com.minecolonies.api.util.MessageUtils;
 
 public class BlockHutOutpost extends MCTPBaseBlockHut
 {
@@ -176,26 +178,42 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         return requirements;
     }
 
-    /*
+
     @Override
     public boolean canPlaceAt(final BlockPos pos, final Player player)
     {
-        boolean allowPlacement = false;
-        
+        // Creative mode always allowed
         if (player.isCreative())
         {
-            // Log.getLogger().info("Creative mode placement allowed.");
-            allowPlacement = true;
+            return true;
         }
 
-        // Require the Outpost Marker at this exact position unless we're in creative mode.
-        if (player.level().getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
+        // Get the level reference
+        Level level = player.level();
+
+        // Define search radius
+        final int radius = 16;
+
+        // Search for an Outpost Marker block within radius
+        BlockPos.MutableBlockPos checkPos = new BlockPos.MutableBlockPos();
+        for (int x = -radius; x <= radius; x++)
         {
-            // Log.getLogger().info("Outpost marker found.");
-            allowPlacement = true;
+            for (int y = -radius; y <= radius; y++)
+            {
+                for (int z = -radius; z <= radius; z++)
+                {
+                    checkPos.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
+                    if (level.getBlockState(checkPos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get()))
+                    {
+                        // Found a marker nearby — allow placement
+                        return true;
+                    }
+                }
+            }
         }
 
-        return allowPlacement;
+        MessageUtils.format("The outpost hut block must be within 16 blocks of your outpost marker.").sendTo(player);
+        return false;
     }
-    */
+
 }

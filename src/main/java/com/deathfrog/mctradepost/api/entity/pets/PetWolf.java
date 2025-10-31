@@ -133,6 +133,16 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {   
+
+        try
+        {
+            super.readAdditionalSaveData(compound);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+        }
+
         petData = new PetData<PetWolf>(this, compound);
 
         // Reset and safely re-register goals
@@ -144,15 +154,6 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         else 
         {
             LOGGER.warn("Failed to deserialize pet data from {}: petData is null", compound);
-        }
-
-        try
-        {
-            super.readAdditionalSaveData(compound);
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         boolean registered = PetRegistryUtil.isRegistered(this);
@@ -195,6 +196,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
         if (petData != null)
         {
+            petData.tick(this.level());
             petData.aiWatchdogTick();
             petData.logActiveGoals();
         }
@@ -214,20 +216,29 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     public void remove(@Nonnull RemovalReason reason)
     {
-
         if (petData != null)
         {
             petData.onRemoval(reason);
         }
-        
-        PetRegistryUtil.unregister(this);
-        petData = null;
-        this.setOwnerUUID(null);
-        this.setTame(false, false);
 
-        if (this.isLeashed())
-        {
-            this.dropLeash(true, false);
+        switch (reason) {
+            case KILLED, DISCARDED -> {
+                PetRegistryUtil.unregister(this);
+                this.setOwnerUUID(null);
+                
+                petData = null;
+
+                if (this.isLeashed())
+                {
+                    this.dropLeash(true, false);
+                }
+            }
+            case UNLOADED_TO_CHUNK, CHANGED_DIMENSION -> {
+                // benign; don’t clear persistent state
+            }
+            default -> {
+                // benign; don’t clear persistent state
+            }
         }
         
         super.remove(reason);

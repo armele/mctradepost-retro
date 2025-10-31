@@ -69,7 +69,7 @@ public final class ModJobsInitializer
 
         MCTPModJobs.scout = register(DEFERRED_REGISTER, MCTPModJobs.SCOUT_ID.getPath(), () -> new JobEntry.Builder()
           .setJobProducer(JobScout::new)
-          .setJobViewProducer(() -> CrafterJobView::new)
+          .setJobViewProducer(() -> DefaultJobView::new)
           .setRegistryName(MCTPModJobs.SCOUT_ID)
           .createJobEntry());
 

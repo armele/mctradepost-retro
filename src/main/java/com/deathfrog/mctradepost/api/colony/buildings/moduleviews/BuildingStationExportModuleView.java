@@ -49,7 +49,8 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
             int lastShipDay = buf.readInt();
             boolean nsf = buf.readBoolean();
             int shipmentCountdown = buf.readInt();
-            ExportData exportData = new ExportData(null, destinationStation, new ItemStorage(itemStack, quantity), cost);
+            boolean reverse = buf.readBoolean();
+            ExportData exportData = new ExportData(null, destinationStation, new ItemStorage(itemStack, quantity), cost, reverse);
             exportData.setShipDistance(shipDistance);
             exportData.setTrackDistance(trackDistance);
             exportData.setLastShipDay(lastShipDay);

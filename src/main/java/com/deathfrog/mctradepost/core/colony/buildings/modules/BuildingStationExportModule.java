@@ -13,6 +13,7 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
@@ -48,11 +49,6 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * The cost tag name.
      */
     private static final String TAG_COST = "cost";
-
-    /**
-     * The cost tag name.
-     */
-    private static final String TAG_QUANTITY = "quantity";
 
     /**
      * The ship distance tag name.
@@ -120,14 +116,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
             if (station != null)
             {
-                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost);
+                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost, reverse);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
                 exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
                 exportData.setInsufficientFunds(nsf);
                 exportData.setShipmentCountdown(shipmentCountdown);
-                exportData.setReverse(reverse);
                 exportList.add(exportData);
             }
         }
@@ -184,6 +179,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             buf.writeInt(exportData.getLastShipDay());
             buf.writeBoolean(exportData.isInsufficientFunds());
             buf.writeInt(exportData.getShipmentCountdown());
+            buf.writeBoolean(exportData.isReverse());
         }
     }
 
@@ -200,10 +196,40 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      */
     public ExportData addExport(StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
     {
-        ExportData addedExport = new ExportData((BuildingStation) building, destinationStation, itemToDeliver, cost);
+        return addExport((ITradeCapable) building, destinationStation, itemToDeliver, cost);
+    }
+
+    public ExportData addExport(ITradeCapable source, StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
+    {
+        ExportData addedExport = new ExportData(source, destinationStation, itemToDeliver, cost);
         exportList.add(addedExport);
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added export {} to {}. Post-addition size: {}", itemToDeliver, destinationStation.getBuildingPosition(), exportList.size()));
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added export {} to {}. Post-addition size: {}", 
+            itemToDeliver, destinationStation.getBuildingPosition(), exportList.size()));
+
+        markDirty();
+
+        return addedExport;
+    }
+
+    /**
+     * Adds a new export to the list of configured exports for this station.
+     * The export is set to be a 'return' export, which means it will be treated as a return shipment
+     * from the "fromBuilding" to the train station.
+     * 
+     * This will add the export to the list and mark the module as dirty.
+     * 
+     * @param fromBuilding The station that the items are being returned from.
+     * @param itemToDeliver The item to return.
+     * @return The newly added export data.
+     */
+    public ExportData addReturn(ITradeCapable fromBuilding, final ItemStorage itemToDeliver)
+    {
+        ExportData addedExport = new ExportData(fromBuilding, new StationData((ITradeCapable)building), itemToDeliver, 0, true);
+        exportList.add(addedExport);
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Added 'return' export {} from {}. Post-addition size: {}", 
+            itemToDeliver, fromBuilding.getPosition(), exportList.size()));
 
         markDirty();
 

@@ -1,9 +1,12 @@
 package com.deathfrog.mctradepost.core.colony.requestsystem;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
@@ -15,7 +18,7 @@ import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Deliver
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ToolRequest;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -37,13 +40,16 @@ public interface IRequestSatisfaction extends IBuilding
     /**
      * True if the building has enough of something that matches the request's criteria.
      */
-    default ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request)
+    default ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, boolean allowPartial)
     {
+        final Logger LOGGER = LogUtils.getLogger();
+
         final IRequestable payload = request.getRequest();
         final Predicate<ItemStack> matcher = matcherFor(payload);
+
         if (matcher == null)
         {
-            // Unknown type → cannot determine; be conservative
+            // LOGGER.info("Unknown requestable type {}.", payload.getClass().getName());
             return null;
         }
 
@@ -52,17 +58,34 @@ public interface IRequestSatisfaction extends IBuilding
         final IItemHandler inv = getItemHandlerCap();
         int have = 0;
 
+        // LOGGER.info("Looking for {} across {} slots.", required, inv.getSlots());
+        List<ItemStack> matchingStacks = new ArrayList<>();
+
         for (int slot = 0; slot < inv.getSlots(); slot++)
         {
             final ItemStack stack = inv.getStackInSlot(slot);
             if (stack.isEmpty()) continue;
             if (matcher.test(stack))
             {
+                matchingStacks.add(stack);
                 have += stack.getCount();
-                if (have >= required) return new ItemStorage(stack.copy(), required);
+                if (have >= required) 
+                {
+                    // LOGGER.info("Found enough matching items: {}", have);
+                    return new ItemStorage(stack.copy(), required);
+                }
             }
 
         }
+        
+        if (allowPartial && !matchingStacks.isEmpty()) 
+        {
+            ItemStack biggestStack = matchingStacks.stream()
+                .max(Comparator.comparingInt(ItemStack::getCount))
+                .orElse(ItemStack.EMPTY);
+            return new ItemStorage(biggestStack.copy(), have); 
+        }
+        // LOGGER.info("Not enough matching items: {}", have);
 
         return null;
     }
@@ -73,7 +96,7 @@ public interface IRequestSatisfaction extends IBuilding
      * Builds a predicate that tells whether an inventory ItemStack qualifies for the requestable. Extend this as you introduce new
      * requestable types.
      */
-    default Predicate<ItemStack> matcherFor(IRequestable req)
+    static Predicate<ItemStack> matcherFor(IRequestable req)
     {
         // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
         if (req instanceof Stack)
@@ -173,7 +196,7 @@ public interface IRequestSatisfaction extends IBuilding
         return 1;
     }
 
-    default Predicate<ItemStack> predicateForHolderSet(HolderSet<Item> set)
+    static Predicate<ItemStack> predicateForHolderSet(HolderSet<Item> set)
     {
         if (set instanceof HolderSet.Named<Item> named)
         {

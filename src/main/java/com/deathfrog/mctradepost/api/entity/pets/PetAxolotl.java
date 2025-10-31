@@ -215,20 +215,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
     {
-        petData = new PetData<>(this, compound);
-
-        // Reset and safely re-register goals
-        this.goalSelector.removeAllGoals(g -> true);
-        this.targetSelector.removeAllGoals(g -> true);
-        if (petData != null)
-        {
-            registerGoals(); // only register once we have all colony context
-        }
-        else
-        {
-            LOGGER.warn("Failed to deserialize pet data from {}: petData is null", compound);
-        }
-
         try
         {
             super.readAdditionalSaveData(compound);
@@ -236,6 +222,21 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         catch (Exception e)
         {
             LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+        }
+
+        petData = new PetData<>(this, compound);
+
+        // Reset and safely re-register goals
+        this.goalSelector.removeAllGoals(g -> true);
+        this.targetSelector.removeAllGoals(g -> true);
+        
+        if (petData != null)
+        {
+            registerGoals(); // only register once we have all colony context
+        }
+        else
+        {
+            LOGGER.warn("Failed to deserialize pet data from {}: petData is null", compound);
         }
 
         boolean registered = PetRegistryUtil.isRegistered(this);
@@ -265,6 +266,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
 
         if (petData != null)
         {
+            petData.tick(this.level());
             petData.aiWatchdogTick();
             petData.logActiveGoals();
         }
@@ -285,12 +287,23 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
             petData.onRemoval(reason);
         }
 
-        PetRegistryUtil.unregister(this);
-        petData = null;
+        switch (reason) {
+            case KILLED, DISCARDED -> {
+                PetRegistryUtil.unregister(this);
+                
+                petData = null;
 
-        if (this.isLeashed())
-        {
-            this.dropLeash(true, false);
+                if (this.isLeashed())
+                {
+                    this.dropLeash(true, false);
+                }
+            }
+            case UNLOADED_TO_CHUNK, CHANGED_DIMENSION -> {
+                // benign; don’t clear persistent state
+            }
+            default -> {
+                // benign; don’t clear persistent state
+            }
         }
         
         super.remove(reason);

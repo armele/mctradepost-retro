@@ -46,11 +46,13 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolverFactory;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolverFactory;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
+import com.deathfrog.mctradepost.core.network.messages.OutpostAssignMessage;
 import com.deathfrog.mctradepost.core.placementhandlers.OutpostPlacementHandler;
 import com.deathfrog.mctradepost.item.AdvancedClipboardItem;
 import com.deathfrog.mctradepost.item.BlockDistressedItem;
@@ -841,6 +843,7 @@ public class MCTradePostMod
         LOGGER.info("MCTradePost common setup ");  
 
         StandardFactoryController.getInstance().registerNewFactory(new OutpostRequestResolverFactory());
+        StandardFactoryController.getInstance().registerNewFactory(new TrainDeliveryResolverFactory());
 
         ItemValueRegistry.loadInitialValuesFromJson();  
 
@@ -912,6 +915,8 @@ public class MCTradePostMod
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
+            OutpostAssignMessage.TYPE.register(registrar);
+
         }
 
         @EventBusSubscriber(modid = MCTradePostMod.MODID)

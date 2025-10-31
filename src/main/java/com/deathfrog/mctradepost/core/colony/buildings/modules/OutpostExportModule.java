@@ -110,16 +110,19 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
                 {
                     IItemHandler itemHandler = null;
                     
-                    // Safeguard against Minecolonies bug for buildings that don't include racks.
-                    try
+                    if (outpostBuilding.getBuildingLevel() > 0)
                     {
-                        itemHandler = outpostBuilding.getItemHandlerCap();
+                        // Safeguard against Minecolonies bug for buildings that don't include racks.
+                        try
+                        {
+                            itemHandler = outpostBuilding.getItemHandlerCap();
+                        }
+                        catch (Exception e)
+                        {
+                            LOGGER.error("Failed to get outpost item handler capability for {}: {}", outpostBuilding.getBuildingDisplayName(), e);
+                        }
                     }
-                    catch (Exception e)
-                    {
-                        LOGGER.error("Failed to get outpost item handler capability for {}: {}", outpostBuilding.getBuildingDisplayName(), e);
-                    }
-
+                    
                     if (itemHandler == null)
                     {
                         continue;
@@ -131,7 +134,7 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
 
                         if (!stack.isEmpty())
                         {
-                            outpostInventory.add(new ItemStorage(stack.copy(), 1));
+                            outpostInventory.add(new ItemStorage(stack.copy(), 1, true, true));
                         }
                     }
                 }

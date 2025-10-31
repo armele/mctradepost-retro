@@ -31,10 +31,13 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
 import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -43,8 +46,12 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -54,7 +61,10 @@ import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
+import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
+import com.minecolonies.core.colony.buildings.modules.WarehouseRequestQueueModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.eventhooks.citizenEvents.VisitorSpawnedEvent;
 import com.minecolonies.core.datalistener.CustomVisitorListener;
@@ -89,6 +99,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
     public static String EXPORTS_SHIPPED = "exports_shipped";
     public static String IMPORTS_RECEIVED = "imports_received";
+    public static String NBT_TDR_TOKEN = "tdr_token";
+
+    protected TrainDeliveryResolver trainDeliveryResolver;
+    protected IToken<?> trainDeliveryResolverToken = null;
 
     /**
      * List of additional citizens (visitors)
@@ -500,6 +514,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         compound.put(TAG_STATIONS, stationTagList);
 
+        if (trainDeliveryResolverToken != null)
+        {
+            CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, trainDeliveryResolverToken);
+            compound.put(NBT_TDR_TOKEN, outpostToken);
+        }
+
         return compound;
     }
 
@@ -527,6 +547,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             {
                 MCTradePostMod.LOGGER.warn("Failed to deserialize station data from tag: {}", stationTag);
             }
+        }
+
+        if (compound.contains(NBT_TDR_TOKEN)) 
+        {
+            trainDeliveryResolverToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_TDR_TOKEN));
         }
 
     }
@@ -750,11 +775,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
     }
 
+
     /**
-     * Returns a list of all connected outposts to this station.
-     * The list only contains outposts that are directly connected to this station by tracks.
-     * 
-     * @return a list of all connected outposts to this station.
+     * Returns a list of connected outpost buildings.
+     * A connected outpost is defined as one which is connected to this station by a track,
+     * and is part of the same colony as this station.
+     * @return a list of connected outpost buildings
      */
     public List<BuildingOutpost> findConnectedOutposts()
     {
@@ -763,7 +789,9 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             TrackConnectionResult connectionResult = connectionresults.get(stationData);
 
-            if (connectionResult.isConnected() && stationData.getStation() instanceof BuildingOutpost outpost)
+            if (connectionResult.isConnected() 
+                && stationData.getStation() instanceof BuildingOutpost outpost
+                && this.getColony().getID() == outpost.getColony().getID())
             {
                 outposts.add(outpost);
             }
@@ -781,10 +809,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     public void handleOutpostRequests()
     {
+        final WarehouseRequestQueueModule module = this.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
+        if (module == null)
+        {
+            LOGGER.error("No request queue module found on station: {}", this.getBuildingDisplayName());
+            return;
+        }
+
         ICitizenData stationmaster = getStationmaster();
 
-        if (stationmaster == null)
+        if (stationmaster == null || module.getMutableRequestList().isEmpty())
         {
+            // Cannot do work (no station master) or no requests to handle
             return;
         }
 
@@ -793,49 +829,88 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
  
         for (BuildingOutpost outpost : findConnectedOutposts())
         {
+            /*
             final Collection<IRequest<?>> openRequests = outpost.getOutpostRequests();
 
             if (openRequests == null || openRequests.isEmpty())
             {
+                
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No open requests for outpost: {}", outpost.getBuildingDisplayName()));
                 continue;
             }
+            */
 
-            for (final IRequest<?> request : openRequests)
-            {
+            final List<IToken<?>> openRequests = module.getMutableRequestList();
+            final List<IToken<?>> reqsToRemove = new ArrayList<>();
+
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} requests for outpost: {}", openRequests.size(), outpost.getBuildingDisplayName()));
+
+            int car = 1;
+
+            for (final IToken<?> requestToken : openRequests)
+            {   
+                final IRequest<?> request = requestManager.getRequestForToken(requestToken);
+
+                if (request == null || !(request.getRequest() instanceof Delivery delivery))
+                {
+                    reqsToRemove.add(requestToken);
+                    continue;
+                }
+
                 try
                 {
                     currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
                 } catch (IllegalArgumentException e)
                 {
                     // Repair request if it is not registered with the request manager.
-                    requestManager.getRequestHandler().registerRequest(request);
-                    requestManager.assignRequest(request.getId());
+                    // requestManager.getRequestHandler().registerRequest(request);
+                    // requestManager.assignRequest(request.getId());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
                     continue;
                 }
-
-                if (currentlyAssignedResolver instanceof OutpostRequestResolver && currentlyAssignedResolver.getLocation().equals(outpost.getLocation()))
+                
+                // Make sure we're sending to the right destination outpost
+                if (delivery.getTarget().getInDimensionLocation().equals(outpost.getLocation().getInDimensionLocation()))
                 {
                     OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
 
                     if (tracking.getState() == OutpostOrderState.NEEDED 
-                        || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING)
+                        || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
+                        || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP)
                     {
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking if satisfiable: {}", request));
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking if satisfiable: {}", request));
                         // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
-                        ItemStorage satisfier = inventorySatisfiesRequest(request);
+                        ItemStorage satisfier = inventorySatisfiesRequest(request, true);
 
                         if (satisfier != null)
                         {
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Station has something to ship: {}", satisfier));
-                            initiateShipment(satisfier, request, outpost);
-                            
+                            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Station has something to ship: {}", satisfier));
+                            initiateShipment(satisfier, request, outpost, car++);
+                            reqsToRemove.add(requestToken);
                             // requestManager.updateRequestState(request.getId(), RequestState.RESOLVED);
                             // request.setState(requestManager, RequestState.RESOLVED);
                             continue;
                         }
+                        else
+                        {
+                            ItemStack desiredShipment = delivery.getStack().copy();
+
+                            if (desiredShipment.isEmpty())
+                            {
+                                reqsToRemove.add(requestToken);
+                                continue;
+                            }
+
+                            // We need something to deliver!
+                            IDeliverable deliverableCopy = new Stack(desiredShipment);
+                            tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
+                            this.createRequest(deliverableCopy, true);
+
+                        }
                     }
                     
+                    /*
                     // Echo the request if nothing satisfies the requirements and we haven't already echoed.
                     if (tracking.getState() == OutpostOrderState.NEEDED)
                     {
@@ -861,8 +936,20 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
                         continue;
                     }
+                    */
+                }
+                else
+                {
+                    final IRequestResolver<?> resovlerForTrace = currentlyAssignedResolver;
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} is not handled by an OutpostRequestResolver (It is handled by {}), or isn't for this outpost: {}", 
+                        request.getLongDisplayString(), 
+                        resovlerForTrace != null ? resovlerForTrace.getLocation() : "null",
+                        outpost.getBuildingDisplayName()));
                 }
             }
+
+            module.getMutableRequestList().removeAll(reqsToRemove);
+            module.markDirty();
         }
     }
 
@@ -873,9 +960,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * The shipment data is added to the outpost's expected shipments.
      * 
      * @param thingsToDeliver the items to ship
+     * @param associatedRequest the request associated with the shipment
      * @param outpostDestination the outpost to ship to
+     * @param car When called multiple times in short succession use different car numbers to space them out on the track.
      */
-    public void initiateShipment(ItemStorage thingsToDeliver, IRequest<?> associatedRequest, BuildingOutpost outpostDestination)
+    public void initiateShipment(ItemStorage thingsToDeliver, IRequest<?> associatedRequest, BuildingOutpost outpostDestination, int car)
     {
         BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
         
@@ -895,7 +984,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         StationData destinationStation = new StationData(outpostDestination);
         ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
-        export.setShipmentCountdown(1);
+        export.setShipmentCountdown(car);
 
         OutpostShipmentTracking shipment = outpostDestination.trackingForRequest(associatedRequest);
         shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
@@ -912,7 +1001,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param thingsToDeliver the items to ship
      * @param carNumber the carNumber is used to space out cars when many are being sent in a short time frame.
      */
-    public void initiateReturn(ItemStorage thingsToDeliver, int carNumber)
+    public void initiateReturn(StationData returningFrom, ItemStorage thingsToDeliver, int carNumber)
     {
         BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
         
@@ -928,15 +1017,55 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             return;
         }
 
-        int cost = 0;
+        int trackDistance = 0;
 
-        StationData destinationStation = new StationData(this);
-        ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
+        ExportData export = exports.addReturn(returningFrom.getStation(), thingsToDeliver);
         export.setShipmentCountdown(1);
-        export.setReverse(true);
         export.setShipDistance(carNumber);
+            
+        TrackConnectionResult tcr = getTrackConnectionResult(returningFrom);
+        if (tcr != null)
+        {
+            trackDistance = tcr.path.size();
+        }
+        else
+        {
+            // Fallback: This should only be needed if the connection got broken between the two stations between checks.
+            // If the connection got broken between the two stations, just use the block positions of the rail start locations.
+            trackDistance = (int) BlockPosUtil.dist(returningFrom.getRailStartPosition(), this.getRailStartPosition());
+        }
+
+        export.setTrackDistance(trackDistance);
 
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
+    }
+
+    /**
+     * Creates a collection of request resolvers for this outpost.
+     * This collection contains all request resolvers from the superclass, as well as an additional resolver for outpost requests.
+     * The outpost request resolver is responsible for resolving requests for the outpost.
+     * @return A collection of request resolvers for this outpost.
+     */
+    @Override
+    public ImmutableCollection<IRequestResolver<?>> createResolvers()
+    {
+        final ImmutableCollection<IRequestResolver<?>> supers = super.createResolvers();
+        final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
+
+        if (trainDeliveryResolverToken != null)
+        {
+            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), trainDeliveryResolverToken);
+        }
+        else
+        {
+            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), colony.getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN));
+            trainDeliveryResolverToken = trainDeliveryResolver.getId();
+        }
+
+        builder.addAll(supers);
+        builder.add(trainDeliveryResolver);
+
+        return builder.build();
     }
 
 }

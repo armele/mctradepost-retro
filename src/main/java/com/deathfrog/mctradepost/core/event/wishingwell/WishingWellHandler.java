@@ -29,8 +29,11 @@ import com.minecolonies.api.colony.colonyEvents.IColonyRaidEvent;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
+import com.minecolonies.api.entity.citizen.happiness.ExpirationBasedHappinessModifier;
+import com.minecolonies.api.entity.citizen.happiness.StaticHappinessSupplier;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.constant.HappinessConstants;
 import com.minecolonies.core.colony.Colony;
 import com.minecolonies.core.datalistener.model.Disease;
 import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
@@ -643,6 +646,7 @@ public class WishingWellHandler
                     {
                         entity.setHealth(entity.getMaxHealth());
                         citizen.setSaturation(ICitizenData.MAX_SATURATION);
+                        citizen.getCitizenHappinessHandler().addModifier(new ExpirationBasedHappinessModifier(HappinessConstants.HADGREATFOOD, 2.0, new StaticHappinessSupplier(2.0), 5));
 
                         entity.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),
                             (float) SoundUtils.BASIC_VOLUME,
@@ -808,6 +812,8 @@ public class WishingWellHandler
         }
 
         showRitualEffect((ServerLevel) marketplace.getColony().getWorld(), pos);
+        MessageUtils.format("An outpost has been claimed at " + pos.toShortString()).sendTo(marketplace.getColony()).forAllPlayers();
+        
         return RitualResult.COMPLETED;
     }
 

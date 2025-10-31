@@ -74,3 +74,5 @@ The Module View will almost certainly implement a Window class (src\main\java\co
 # Troubleshooting
 The most common (and difficult) errors are mismatches between server and client view serialization.  Here are some pointers:
 * A CitizenData.View for #X has thrown an exception during loading - Check the pairing between the Job and the JobView in ModJobsInitializer. The view must extend the correct abstract class that corresponds to the job.
+
+Similarly, the hierarchy of the Building and BuildingView must match, as must each module on the building.

@@ -1,7 +1,12 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+
 import java.util.EnumSet;
 import java.util.Random;
+
+import org.slf4j.Logger;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -13,10 +18,16 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.mojang.logging.LogUtils;
 
 public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet> extends Goal
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+    
     private final P pet;
     private final float unloadThreshold; // e.g., 0.8 = 80%
 
@@ -103,7 +114,12 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
                 fullSlots++;
             }
         }
-        return totalSlots > 0 && ((float) fullSlots / totalSlots) >= unloadThreshold;
+
+        float fillPct = ((float) fullSlots / totalSlots);
+
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, total slots: {}", pet.getId(), unloadThreshold, fillPct, totalSlots));
+
+        return (totalSlots > 0) && (fillPct >= unloadThreshold);
     }
 
     /**
@@ -395,6 +411,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             return;
         }
 
+        // LOGGER.info("Trying unload for pet {}.", pet.getId());
+
         boolean changed = false;
 
         for (int i = 0; i < pet.getInventory().getSlots(); i++)
@@ -451,34 +469,10 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      * @param itemHandler the inventory to insert into
      * @return the remaining item stack after attempting to merge
      */
-    private ItemStack tryMergeIntoContainer(ItemStack stack, IItemHandler itemHandler)
-    {
-        for (int slot = 0; slot < itemHandler.getSlots() && !stack.isEmpty(); slot++)
-        {
-            ItemStack target = itemHandler.getStackInSlot(slot);
-            if (target.isEmpty()) continue;
-            if (!ItemStack.isSameItemSameComponents(target, stack)) continue;
+    private ItemStack tryMergeIntoContainer(ItemStack stack, IItemHandler handler) {
+        if (stack.isEmpty()) return stack;
 
-            int space = Math.min(target.getMaxStackSize(), itemHandler.getSlotLimit(slot)) - target.getCount();
-            if (space <= 0) continue;
-
-            int toTransfer = Math.min(space, stack.getCount());
-            if (toTransfer > 0)
-            {
-                // Copy for insertion
-                ItemStack insert = stack.copy();
-                insert.setCount(toTransfer);
-
-                ItemStack remaining = itemHandler.insertItem(slot, insert, false);
-                int inserted = toTransfer - remaining.getCount();
-
-                if (inserted > 0)
-                {
-                    stack.shrink(inserted);
-                }
-            }
-        }
-        return stack;
+        return ItemHandlerHelper.insertItemStacked(handler, stack, false);
     }
 
     /**
