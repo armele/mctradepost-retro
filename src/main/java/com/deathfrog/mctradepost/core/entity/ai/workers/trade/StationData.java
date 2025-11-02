@@ -12,6 +12,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public class StationData
 {
@@ -50,6 +51,13 @@ public class StationData
      */
     public ITradeCapable getStation()
     {
+        if (ServerLifecycleHooks.getCurrentServer() == null)
+        {
+            // Safeguard against possible NPE in getColonyByPosFromDim
+            BuildingStation.LOGGER.warn("No colony identifiable from dimension {} and position {} due to null server (this seems bad).", dimension, buildingposition);
+            return null;
+        }
+
         IColony colony = IColonyManager.getInstance().getColonyByPosFromDim(dimension, buildingposition);
         if (colony == null)
         {

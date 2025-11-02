@@ -57,6 +57,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     {
         super(entityType, level);
         petData = new PetData<PetFox>(this);
+        registerGoals();
     }
 
     @Override

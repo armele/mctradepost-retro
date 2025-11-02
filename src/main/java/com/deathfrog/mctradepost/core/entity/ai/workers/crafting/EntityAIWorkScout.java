@@ -21,7 +21,6 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
-import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
@@ -63,12 +62,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
@@ -803,11 +800,23 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     @Override
     protected boolean mineBlock(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
     {
-        return mineBlock(blockToMine,
-            safeStand,
-            true,
-            !IColonyManager.getInstance().getCompatibilityManager().isOre(world.getBlockState(blockToMine)),
-            null);
+        boolean canmine = false;
+
+        try
+        {
+            canmine = mineBlock(blockToMine,
+                safeStand,
+                true,
+                !IColonyManager.getInstance().getCompatibilityManager().isOre(world.getBlockState(blockToMine)),
+                null);
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while mining block at {}", blockToMine, e));
+        }
+
+
+        return canmine;
     }
 
     /**

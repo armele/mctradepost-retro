@@ -142,54 +142,14 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     }
 
     /**
-     * Clones a requestable by serializing it through the factory controller if it supports requestables,
-     * or manually if it doesn't.
-     * @param manager the request manager from which to clone the requestable
-     * @param src the source requestable to clone
-     * @return the cloned requestable, or null if the type is unsupported
+     * Attempts to resolve the outpost request by generating any necessary prerequisite requests, such as deliveries from the station
+     * or shipments from the outpost to the station.
      *
-    public static @Nullable IRequestable cloneRequestable(IRequestManager manager, IRequestable src)
-    {
-
-        // Common manual cases
-        try
-        {
-            if (src instanceof Stack s)
-            {
-                IDeliverable clone = s.copyWithCount(s.getCount());
-                return clone;
-            } 
-            else if (src instanceof Delivery d)
-            { 
-                // Delivery usually wraps a Stack; rebuild similarly
-                ItemStack stackCopy = d.getStack().copy();
-                return new Delivery(d.getStart(), d.getTarget(), stackCopy, d.getPriority());
-            } 
-            else if (src instanceof StackList sl) 
-            {
-                StackList clone = (StackList) sl.copyWithCount(sl.getCount());
-                return clone;
-            }
-            else if (src instanceof Tool tr)
-            {
-                IDeliverable clone = tr.copyWithCount(0);
-                return clone;
-            }
-            else
-            {
-                LOGGER.warn("Unknown requestable type: {}", src.getClass().getName());
-            }
-            // TODO: Add other requestables as a fallback as needed...
-        }
-        catch (Throwable t)
-        {
-            LOGGER.error("cloneRequestable failed (manual): {}", t.getMessage());
-        }
-        
-        return null;
-    }
-    */
-
+     * @param manager the request manager from which to resolve the request
+     * @param requestToCheck the request to check for resolution
+     * @param requestingBuilding the building from which the request is being made
+     * @return a list of prerequisite requests, or null if the request cannot be resolved
+     */
     @Override
     public @Nullable List<IToken<?>> attemptResolveForBuilding(@NotNull IRequestManager manager,
         @NotNull IRequest<? extends IDeliverable> requestToCheck,
@@ -200,7 +160,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             return null;
         }
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Attempting to resolve outpost request: {}", requestToCheck));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Attempting to resolve outpost request: {} - {}", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
 
         if (requestingBuilding == null)
         {
@@ -274,35 +234,26 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             final int totalRemainingRequired = Math.max(totalRequested - totalInStation, 0);
 
             final int stationCountForLog = totalInStation;
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This is a deliverable requestof type {} with {} items in the station, and {} items remaining to be collected for shipment.", 
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("This is deliverable request {} of type {} with {} items in the station, and {} items remaining to be collected for shipment: {}", 
+                requestToCheck.getId(),
                 deliverable.getClass().getName(),    
                 stationCountForLog, 
-                totalRemainingRequired));
+                totalRemainingRequired,
+                requestToCheck.getLongDisplayString()));
 
             if (totalRemainingRequired > 0)
             {
                 IDeliverable deliverableCopy = ((IDeliverable) requestToCheck.getRequest()).copyWithCount(totalRemainingRequired);
-
                 tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
-
-                /*
-                IToken<?> stationNeed = connectedStation.createRequest(deliverableCopy, true);
-                prerequisiteRequests.add(stationNeed);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created station need request {}.", stationNeed));
-                */
-
-                ItemStack finalShipment = deliverableCopy.getResult().copy();
-                Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), finalShipment, 0);
-                IToken<?> finalShipmentToken = outpostBuilding.createRequest(delivery, true);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created final shipment request {}.", finalShipmentToken));
+                IToken<?> finalShipmentToken = connectedStation.createRequest(deliverableCopy, true);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Created final shipment request for {} as {} for: {}", requestToCheck.getId(), finalShipmentToken, deliverableCopy.toString()));
                 prerequisiteRequests.add(finalShipmentToken);
-
             }
             else
             {
                 // We have everything we need, but the station master still needs to make the shipment(s).
                 tracking.setState(OutpostOrderState.ITEM_READY_TO_SHIP);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Station has everything needed to fulfil request: {}", requestToCheck.getLongDisplayString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Station has everything needed to fulfil request {}: {}", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
             }
         }
 
@@ -334,6 +285,11 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
         }
 
         if (requestingBuilding == null)
+        {
+            return false;
+        }
+
+        if (manager.getColony().getID() != requestingBuilding.getColony().getID())
         {
             return false;
         }

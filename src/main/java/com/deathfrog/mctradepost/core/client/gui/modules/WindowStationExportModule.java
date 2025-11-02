@@ -34,12 +34,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-public class WindowStationExportModule extends AbstractModuleWindow
+public class WindowStationExportModule extends AbstractModuleWindow<BuildingStationExportModuleView>
 {
     private static final String PANE_STATIONS = "stations";
-    private static final String STATION_EXPORT_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationexport.xml";
+    private static final String STATION_EXPORT_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationexport.xml";
     IBuildingView buildingView = null;
-    BuildingStationExportModuleView moduleView = null;
+
     List<ExportGui> potentialExportMap = new ArrayList<>();
  
     /**
@@ -163,9 +163,9 @@ public class WindowStationExportModule extends AbstractModuleWindow
 
     public WindowStationExportModule(IBuildingView buildingView, BuildingStationExportModuleView moduleView)
     {
-        super(buildingView, MCTradePostMod.MODID + STATION_EXPORT_WINDOW_RESOURCE_SUFFIX);
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, STATION_EXPORT_WINDOW_RESOURCE_SUFFIX));
         this.buildingView = buildingView;
-        this.moduleView = moduleView;
+
         registerButton(TAG_BUTTON_TAKETRADE, this::takeTradeClicked);
 
         // MCTradePostMod.LOGGER.info("Configuring exports module window with {} connected stations.", stations.size());

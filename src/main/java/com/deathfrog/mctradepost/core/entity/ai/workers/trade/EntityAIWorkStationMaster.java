@@ -14,7 +14,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationEx
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -34,9 +33,6 @@ import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
-import net.minecraft.references.Items;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -63,7 +59,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     protected static final int OUTPOST_COOLDOWN_TIMER = 10;
     protected static int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
 
-    protected static final int VALIDATION_COOLDOWN_TIMER = 10;
+    protected static final int VALIDATION_COOLDOWN_TIMER = 60;
     protected static int validationCooldown = VALIDATION_COOLDOWN_TIMER;
 
     protected static final int MATCHING_COOLDOWN_TIMER = 5;
@@ -131,15 +127,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.HANDLE_OUTPOST_REQUESTS;
         }
 
-        if (validationCooldown <= 0)
-        {
-            validationCooldown = VALIDATION_COOLDOWN_TIMER;
-            if (shouldCheckConnection())
-            {
-                return StationMasterStates.CHECK_CONNECTION;
-            }   
-        }
-
         currentFundRequest = building.removePaymentRequest();
         if (currentFundRequest != null)
         {
@@ -154,6 +141,15 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 return StationMasterStates.FIND_MATCHING_OFFERS;
             }
+        }
+
+        if (validationCooldown <= 0)
+        {
+            validationCooldown = VALIDATION_COOLDOWN_TIMER;
+            if (shouldCheckConnection())
+            {
+                return StationMasterStates.CHECK_CONNECTION;
+            }   
         }
 
         EntityNavigationUtils.walkToRandomPos(worker, 15, 0.6D);
@@ -333,10 +329,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if ((e.getShipDistance() >= 0) || (e.getLastShipDay() == building.getColony().getDay()))
         {
             TraceUtils.dynamicTrace(TRACE_STATION,
-                () -> LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today.",
+                () -> LOGGER.info("Export of {} is already in progress ({} of {} progress) or happened already today. Cart: {}.",
                     e.getTradeItem(),
                     e.getShipDistance(),
-                    e.getTrackDistance()));
+                    e.getTrackDistance(),
+                    e.getCart()));
             return true;
         }
         return false;
@@ -778,8 +775,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 amountStillNeeded -= amountToTake;
 
                 final int currentAmountStillNeeded = amountStillNeeded;
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list. Total order: {}. On hand: {}. Amount still needed: {}. Taking {} in this stack.", 
-                    itemStack, quantity, availableExportItemCount, currentAmountStillNeeded, amountToTake));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list in colony {}. Total order: {}. On hand: {}. Amount still needed: {}. Taking {} in this stack.", 
+                    itemStack, building.getColony().getID(), quantity, availableExportItemCount, currentAmountStillNeeded, amountToTake));
 
                 itemList.add(itemStack);
             }

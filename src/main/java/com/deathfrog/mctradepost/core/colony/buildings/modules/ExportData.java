@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -9,6 +11,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -142,7 +145,7 @@ public class ExportData
      */
     public GhostCartEntity spawnCartForTrade()
     {
-        if (cart != null) return cart;
+        if (this.cart != null && this.cart.hasPath()) return cart;
 
         if (sourceStation == null) return null;
 
@@ -165,11 +168,18 @@ public class ExportData
 
         if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
         {
-            cart = spawnCartForTrade(tcr.path);
+            if (this.cart == null)
+            {
+                this.cart = spawnCartForTrade(tcr.path);
+            }
+            else
+            {
+                this.cart.setPath(tcr.path, isReverse());
+            }
         }
         else
         { 
-            LOGGER.error("Failed to spawn cart for trade - no path information for export: {}", this);
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Deferring cart spawn for trade - no path information for export: {}", this));
             return null;
         }
 

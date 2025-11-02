@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import java.util.Map;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.blockui.Pane;
@@ -13,16 +14,17 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
  * BOWindow for the BuildingStation's export window.
  */
-public class WindowSupplyTradeModule extends AbstractModuleWindow
+public class WindowSupplyTradeModule extends AbstractModuleWindow<BuildingStationExportModuleView>
 {
     private static final String PANE_STATIONS = "stations";
-    private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationconnection.xml";
+    private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
 
@@ -45,9 +47,9 @@ public class WindowSupplyTradeModule extends AbstractModuleWindow
      */
     protected ScrollingList connectionDisplayList;
 
-    public WindowSupplyTradeModule(IBuildingView buildingView)
+    public WindowSupplyTradeModule(BuildingStationExportModuleView moduleView, IBuildingView buildingView)
     {
-        super(buildingView, MCTradePostMod.MODID + STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX);
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX));
         this.buildingView = buildingView;
         stations = ((StationView) buildingView).getStations();
 

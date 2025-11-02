@@ -128,14 +128,21 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
                         continue;
                     }
 
+                    boolean didAdd = false;
+
                     for (int i = 0; i < itemHandler.getSlots(); i++)
                     {
                         ItemStack stack = itemHandler.getStackInSlot(i);
 
                         if (!stack.isEmpty())
                         {
-                            outpostInventory.add(new ItemStorage(stack.copy(), 1, true, true));
+                            didAdd = didAdd || outpostInventory.add(new ItemStorage(stack.copy(), 1, true, true));
                         }
+                    }
+
+                    if (didAdd)
+                    {
+                        this.markDirty();
                     }
                 }
             }

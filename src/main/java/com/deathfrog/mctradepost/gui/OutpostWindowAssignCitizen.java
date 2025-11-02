@@ -18,6 +18,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -77,7 +79,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
      */
     public OutpostWindowAssignCitizen(final IColonyView c, final OutpostView buildingView, final OutpostLivingBuildingModuleView livingModule)
     {
-        super(Constants.MOD_ID + ASSIGN_CITIZEN_RESOURCE_SUFFIX);
+        super(ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "gui/windowassigncitizen.xml"));
         this.colony = c;
         this.livingModule = livingModule;
         this.buildingView = buildingView;

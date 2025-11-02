@@ -51,6 +51,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     {
         super(entityType, level);
         petData = new PetData<>(this);
+        registerGoals();
     }
 
     @Override

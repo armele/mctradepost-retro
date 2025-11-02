@@ -13,6 +13,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 
 /**
  * Building statistic module.
@@ -42,15 +43,15 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.mctradepost.core.gui.modules.recyclerprogress";
+        return Component.translatable("com.mctradepost.core.gui.modules.recyclerprogress");
     }
 
     @Override
     public BOWindow getWindow()
     {
-        return new WindowRecyclerProgressModule(getBuildingView(), this, maxProcessors);
+        return new WindowRecyclerProgressModule(this, maxProcessors);
     }
 
     /**

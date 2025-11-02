@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -15,6 +17,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
@@ -80,9 +83,9 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public @Nullable Component getDesc()
     {
-        return("com.minecolonies.coremod.gui.station.exports");
+        return(Component.translatable("com.minecolonies.coremod.gui.station.exports"));
     }
     
     /**

@@ -12,13 +12,14 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 public class OutpostExportModuleView extends ItemListModuleView
 {
     protected Set<ItemStorage> possibleItems = new HashSet<ItemStorage>();
 
-    public OutpostExportModuleView(String id, String desc)
+    public OutpostExportModuleView(String id, Component desc)
     {
         super(id, desc, false, null);
     }

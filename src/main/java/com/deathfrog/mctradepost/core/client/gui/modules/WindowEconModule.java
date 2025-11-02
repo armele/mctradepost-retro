@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
@@ -13,6 +14,7 @@ import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.text.NumberFormat;
@@ -25,7 +27,7 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
 /**
  * BOWindow for the Marketplace hut's ECON module.
  */
-public class WindowEconModule extends AbstractModuleWindow
+public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 {
     private IStatisticsManager statsManager = null;
     /**
@@ -48,10 +50,10 @@ public class WindowEconModule extends AbstractModuleWindow
     /**
      * Util tags.
      */
-    private static final String ECONWINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layouteconmodule.xml";
+    private static final String ECONWINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layouteconmodule.xml";
 
-    public WindowEconModule(IBuildingView building, IStatisticsManager statsManager) {
-        super(building, MCTradePostMod.MODID + ECONWINDOW_RESOURCE_SUFFIX);
+    public WindowEconModule(EconModuleView econModuleView, IStatisticsManager statsManager) {
+        super(econModuleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ECONWINDOW_RESOURCE_SUFFIX));
         this.statsManager = statsManager;
 
         Button withdraw = findPaneOfTypeByID(TAG_BUTTON_WITHDRAW_COIN, Button.class);

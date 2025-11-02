@@ -47,6 +47,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     {
         super(entityType, level);
         petData = new PetData<>(this);
+        registerGoals();
     }
 
     public BlockPos getTargetPosition()

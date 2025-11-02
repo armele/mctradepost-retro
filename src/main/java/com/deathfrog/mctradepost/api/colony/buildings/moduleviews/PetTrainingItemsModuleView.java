@@ -3,12 +3,16 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowPetTrainingItemsModule;
 import com.ldtteam.blockui.views.BOWindow;
-import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
+import javax.annotation.Nullable;
+
 import org.jetbrains.annotations.NotNull;
+import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 
 public class PetTrainingItemsModuleView extends AbstractBuildingModuleView
 {
@@ -28,7 +32,7 @@ public class PetTrainingItemsModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WindowPetTrainingItemsModule(buildingView);
+        return new WindowPetTrainingItemsModule(this);
     }
 
     /**
@@ -48,9 +52,9 @@ public class PetTrainingItemsModuleView extends AbstractBuildingModuleView
      * @return The description of the module.
      */
     @Override
-    public String getDesc()
+    public @Nullable Component  getDesc()
     {
-        return "com.minecolonies.coremod.gui.petstore.trainingitems";
+        return Component.translatable("com.minecolonies.coremod.gui.petstore.trainingitems");
     }
 
 }

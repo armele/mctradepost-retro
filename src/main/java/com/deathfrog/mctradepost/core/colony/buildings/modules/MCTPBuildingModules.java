@@ -32,6 +32,8 @@ import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.SettingsModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
 
+import net.minecraft.network.chat.Component;
+
 
 public class MCTPBuildingModules
 {
@@ -74,7 +76,7 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<RecyclingItemListModule,RecyclableListModuleView> ITEMLIST_RECYCLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_recyclable", () -> new RecyclingItemListModule(EntityAIWorkRecyclingEngineer.RECYCLING_LIST),
-        () -> () -> new RecyclableListModuleView(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, EntityAIWorkRecyclingEngineer.REQUESTS_TYPE_RECYCLABLE_UI, false));
+        () -> () -> new RecyclableListModuleView(EntityAIWorkRecyclingEngineer.RECYCLING_LIST, Component.translatable(EntityAIWorkRecyclingEngineer.REQUESTS_TYPE_RECYCLABLE_UI), false));
         
      /**
       * Economic
@@ -95,7 +97,7 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new MarketplaceItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
-        () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI, false,
+        () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, Component.translatable(EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI), false,
           (buildingView) -> ItemValueRegistry.getSellableItems()));
     
     public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> STATIONMASTER_WORK          =
@@ -131,7 +133,7 @@ public class MCTPBuildingModules
    public static final BuildingEntry.ModuleProducer<OutpostExportModule,OutpostExportModuleView> OUTPOST_EXPORTS              =
       new BuildingEntry.ModuleProducer<>("outpost_exports",
         () -> new OutpostExportModule(),
-        () -> () -> new OutpostExportModuleView(OutpostExportModule.ID, OutpostExportModule.OUTPOST_EXPORT_WINDOW_DESC));
+        () -> () -> new OutpostExportModuleView(OutpostExportModule.ID, Component.translatable(OutpostExportModule.OUTPOST_EXPORT_WINDOW_DESC)));
 
    public static final BuildingEntry.ModuleProducer<PetAssignmentModule,PetAssignmentModuleView> PET_ASSIGNMENT              =
       new BuildingEntry.ModuleProducer<>("pet_assignment",

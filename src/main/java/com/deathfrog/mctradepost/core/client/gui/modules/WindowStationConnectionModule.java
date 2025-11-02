@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import java.util.Map;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.blockui.Pane;
@@ -10,16 +11,16 @@ import com.ldtteam.blockui.views.Box;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IColonyView;
-import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
-public class WindowStationConnectionModule extends AbstractModuleWindow
+public class WindowStationConnectionModule extends AbstractModuleWindow<StationConnectionModuleView>
 {
     private static final String PANE_STATIONS = "stations";
-    private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutstationconnection.xml";
+    private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
 
@@ -28,9 +29,9 @@ public class WindowStationConnectionModule extends AbstractModuleWindow
      */
     protected ScrollingList connectionDisplayList;
 
-    public WindowStationConnectionModule(IBuildingView buildingView)
+    public WindowStationConnectionModule(IBuildingView buildingView, StationConnectionModuleView moduleView)
     {
-        super(buildingView, MCTradePostMod.MODID + STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX);
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX));
         this.buildingView = buildingView;
         stations = ((StationView) buildingView).getStations();
 

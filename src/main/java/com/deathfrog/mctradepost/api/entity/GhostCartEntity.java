@@ -1,11 +1,15 @@
 package com.deathfrog.mctradepost.api.entity;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateConstants;
@@ -14,14 +18,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -42,6 +43,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
+
 public class GhostCartEntity extends AbstractMinecart implements IEntityWithComplexSpawn
 {
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -53,6 +56,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         TicketType.create("ghost_cart_follow", Comparator.comparingInt(System::identityHashCode), 3);
 
     private ChunkPos lastTicketPos;
+    private boolean spawnPosFixed = false;
 
     private ImmutableList<BlockPos> path;
     private int startIdx = 0;     // start node index for the *current stride span*
@@ -73,6 +77,9 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     private int lastEdgeB = -1;   // = lastEdgeA + 1
     private double lastEdgeT = 0.0;  // 0..1 along that edge
 
+    int ticksWithNoPath = 0;
+    private static final int MAX_TICKS_WITH_NO_PATH = 100;
+
     private static final EntityDataAccessor<ItemStack> TRADE_ITEM =
         SynchedEntityData.defineId(GhostCartEntity.class, EntityDataSerializers.ITEM_STACK);
 
@@ -82,6 +89,8 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         this.noPhysics = true;   // no collision resolution or gravity
         this.setInvulnerable(true);
         this.setSilent(true);
+        
+        logConstructionTrace();
     }
 
     public void setPath(List<BlockPos> path)
@@ -108,6 +117,19 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         this.lastEdgeT = 0.0;
     }
 
+
+    /**
+     * Returns true if the cart has a valid path set.
+     * This path might not be currently traversable, but it is not null or empty.
+     * @return true if the cart has a valid path set, false otherwise
+     */
+
+    public boolean hasPath()
+    {
+        return this.path != null && !this.path.isEmpty();
+    }
+
+
     public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path)
     {
         return spawn(level, path, false);
@@ -118,13 +140,15 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         GhostCartEntity e = MCTradePostMod.GHOST_CART.get().create(level, null, path.get(0), MobSpawnType.EVENT, false, false);
         if (e == null)
         {
-            LOGGER.error("Failed to spawn GhostCartEntity");
+            LOGGER.error("Failed to spawn GhostCartEntity.");
             return null;
         }
 
         e.setPath(path, reverse);
         e.setPos(Vec3.atCenterOf(path.get(0)));
         e.setRot(0, 0);
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart spawn helper called with first path point: {}", e.getId(), path.get(0)));
 
         level.addFreshEntity(e);
         return e;
@@ -174,9 +198,14 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
         if (path == null || path.isEmpty())
         {
-            discard();
+            if (ticksWithNoPath++ > MAX_TICKS_WITH_NO_PATH)
+            {   
+                discard();
+            }
             return;
         }
+
+        ticksWithNoPath = 0;
 
         // We only finish when we've arrived *and* no further desire remains.
         if (startIdx >= path.size() - 1 && startIdx >= desiredIdx && startT >= 1.0 - 1e-6)
@@ -375,6 +404,13 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     }
 
     @Override
+    public boolean shouldBeSaved() 
+    {
+        // Ghost carts are transient and should never be chunk-saved
+        return false;
+    }
+
+    @Override
     public boolean isPushable()
     {
         return false;
@@ -463,6 +499,53 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     public void recreateFromPacket(@Nonnull ClientboundAddEntityPacket pkt)
     {
         super.recreateFromPacket(pkt);
+        if (level().isClientSide)
+        {
+            // Align previous and current so first-frame interpolation is valid
+            this.xo = this.getX();
+            this.yo = this.getY();
+            this.zo = this.getZ();
+            this.xRotO = this.getXRot();
+            this.yRotO = this.getYRot();
+        }
+    }
+
+    @Override
+    public void onAddedToLevel()
+    {
+        super.onAddedToLevel();
+        if (!level().isClientSide && !spawnPosFixed)
+        {
+            // If we somehow came in with a bad Y, snap to the first path node now.
+            if (path != null && !path.isEmpty())
+            {
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart added to level with first path point: {}", this.getId(), path.get(0)));
+
+                setPos(Vec3.atCenterOf(path.get(0)));
+                setRot(0, 0);
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart added to level with no path!", this.getId()));
+            }
+            spawnPosFixed = true;
+        }
+
+        // Client nicety (prevents first-frame interpolation glitches)
+        if (level().isClientSide)
+        {
+            this.xo = getX();
+            this.yo = getY();
+            this.zo = getZ();
+            this.xRotO = getXRot();
+            this.yRotO = getYRot();
+        }
+    }
+
+    @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() 
+    {
+        return super.getBoundingBoxForCulling().inflate(0.25);
     }
 
     @Override
@@ -496,5 +579,62 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
 
         this.desiredIdx = buf.readVarInt();
+    }
+
+    @Override
+    public void remove(@Nonnull RemovalReason reason)
+    {
+        if (reason == RemovalReason.DISCARDED)
+        {
+            logDiscardTrace(reason);
+        }
+        super.remove(reason);
+    }
+
+    private void logDiscardTrace(RemovalReason reason)
+    {
+        String stack = Arrays.stream(Thread.currentThread().getStackTrace())
+            .skip(2) // skip current frames
+            .map(ste -> "    at " + ste)
+            .collect(Collectors.joining("\n"));
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+            "[GhostCart {}] DISCARD at dim={} pos=({}, {}, {}) " +
+                "reason={} startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
+            this.getId(),
+            level().dimension().location(),
+            String.format("%.2f", getX()),
+            String.format("%.2f", getY()),
+            String.format("%.2f", getZ()),
+            reason,
+            startIdx,
+            targetIdx,
+            desiredIdx,
+            (path == null ? -1 : path.size()),
+            level().getGameTime(),
+            stack));
+    }
+
+    private void logConstructionTrace()
+    {
+        String stack = Arrays.stream(Thread.currentThread().getStackTrace())
+            .skip(2) // skip current frames
+            .map(ste -> "    at " + ste)
+            .collect(Collectors.joining("\n"));
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+            "[GhostCart {}] CREATE at dim={} pos=({}, {}, {}) " +
+                "startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
+            this.getId(),
+            level().dimension().location(),
+            String.format("%.2f", getX()),
+            String.format("%.2f", getY()),
+            String.format("%.2f", getZ()),
+            startIdx,
+            targetIdx,
+            desiredIdx,
+            (path == null ? -1 : path.size()),
+            level().getGameTime(),
+            stack));
     }
 }

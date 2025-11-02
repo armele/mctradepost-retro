@@ -22,6 +22,7 @@ public class TraceUtils {
     public static final String TRACE_ANIMALTRAINER =    "animaltrainer";
     public static final String TRACE_PETGOALS =         "petgoals";
     public static final String TRACE_OUTPOST =          "outpost";
+    public static final String TRACE_CART =             "cart";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();
@@ -82,6 +83,7 @@ public class TraceUtils {
         keys.add(TRACE_ANIMALTRAINER);
         keys.add(TRACE_PETGOALS);
         keys.add(TRACE_OUTPOST);
+        keys.add(TRACE_CART);
 
         return keys;
     }

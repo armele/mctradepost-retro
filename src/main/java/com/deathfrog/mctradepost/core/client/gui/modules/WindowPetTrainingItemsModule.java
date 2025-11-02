@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingItemsModuleView;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.ldtteam.blockui.Color;
 import com.ldtteam.blockui.Pane;
@@ -10,12 +11,12 @@ import com.ldtteam.blockui.controls.EntityIcon;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
-public class WindowPetTrainingItemsModule extends AbstractModuleWindow
+public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTrainingItemsModuleView>
 {
     @SuppressWarnings("unused")
     private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
@@ -31,7 +32,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow
     /**
      * The resource string.
      */
-    private static final String RESOURCE_STRING = ":gui/layouthuts/layoutpettrainingitems.xml";
+    private static final String RESOURCE_STRING = "gui/layouthuts/layoutpettrainingitems.xml";
 
     private static final String LABEL_PETLIST = "petlist";
     private static final String LABEL_TYPE = "pettype";
@@ -50,9 +51,9 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow
      * @param building   class extending
      * @param moduleView the module view.
      */
-    public WindowPetTrainingItemsModule(final IBuildingView building)
+    public WindowPetTrainingItemsModule(final PetTrainingItemsModuleView moduleView)
     {
-        super(building, MCTradePostMod.MODID + RESOURCE_STRING);
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
 
         petList = this.window.findPaneOfTypeByID(LABEL_PETLIST, ScrollingList.class);
 

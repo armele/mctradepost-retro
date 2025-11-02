@@ -10,20 +10,18 @@ import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.ldtteam.blockui.views.Box;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
-public class WindowRecyclerProgressModule extends AbstractModuleWindow
+public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerProgressView>
 {
-    private static final String RECYCPROGRESSWINDOW_RESOURCE_SUFFIX = ":gui/layouthuts/layoutrecyclerprogress.xml";
+    private static final String RECYCPROGRESSWINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutrecyclerprogress.xml";
 
     private static final int MAX_OUTPUT_SHOWN = 10;     // How many stacks of output items will we display?
-
-    private RecyclerProgressView moduleView = null;
 
     /**
      * Scrollinglist of the resources.
@@ -33,10 +31,10 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow
     protected Text capacityPane;
     protected int maxProcessors;
 
-    public WindowRecyclerProgressModule(IBuildingView buildingView, RecyclerProgressView moduleView, int maxProcessors)
+    public WindowRecyclerProgressModule(RecyclerProgressView moduleView, int maxProcessors)
     {
-        super(buildingView, MCTradePostMod.MODID + RECYCPROGRESSWINDOW_RESOURCE_SUFFIX);
-        this.moduleView = moduleView;
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RECYCPROGRESSWINDOW_RESOURCE_SUFFIX));
+
         processorDisplayList = findPaneOfTypeByID(WindowConstants.WINDOW_ID_LIST_REQUESTS, ScrollingList.class);
         capacityPane = findPaneOfTypeByID("capacity", Text.class);
         this.maxProcessors = maxProcessors;

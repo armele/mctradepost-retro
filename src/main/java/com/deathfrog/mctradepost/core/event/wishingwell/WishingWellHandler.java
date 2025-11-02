@@ -638,6 +638,11 @@ public class WishingWellHandler
 
             for (ICitizenData citizen : citizens) 
             {
+                if (!citizen.getEntity().isPresent()) 
+                {
+                    continue;
+                }
+
                 AbstractEntityCitizen entity = citizen.getEntity().get();
 
                 if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get())) 

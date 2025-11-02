@@ -139,6 +139,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     private int noVisitorTime = 10000;
 
+    /**
+     * List of requests that have been removed from the queue.
+     */
+    protected final List<IToken<?>> removedRequestList = new ArrayList<>();
+
     public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
     public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
 
@@ -721,11 +726,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     @Override
     public void onShipmentDelivered(ExportData shipmentSent)
     {
-        if (!getAllAssignedCitizen().isEmpty())
+        for (ICitizenData citizen : getAllAssignedCitizen())
         {
-            ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentSent.getCost());
+            if (!citizen.getEntity().isEmpty())
+            {
+                citizen.getEntity().get().getCitizenExperienceHandler().addExperience(1);
+            }
         }
+
     }
 
     /**
@@ -818,139 +826,203 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         ICitizenData stationmaster = getStationmaster();
 
-        if (stationmaster == null || module.getMutableRequestList().isEmpty())
+        if (stationmaster == null)
         {
-            // Cannot do work (no station master) or no requests to handle
+            // Cannot do work (no station master)
             return;
         }
 
         final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
         IRequestResolver<?> currentlyAssignedResolver = null;
  
-        for (BuildingOutpost outpost : findConnectedOutposts())
-        {
-            /*
-            final Collection<IRequest<?>> openRequests = outpost.getOutpostRequests();
+        final List<IToken<?>> openTaskList = module.getMutableRequestList();
+        final List<IToken<?>> reqsToRemove = new ArrayList<>();
 
-            if (openRequests == null || openRequests.isEmpty())
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} tasks for station: {} in colony {}.", openTaskList.size(), this.getBuildingDisplayName(), this.getColony().getID()));
+
+        int car = 1;
+
+        // Cycle through open task list, see if we have something that can
+        // be shipped, and ship it if so. Remove it from the task list once shipped.
+        for (final IToken<?> requestToken : openTaskList)
+        {   
+            final IRequest<?> request = requestManager.getRequestForToken(requestToken);
+
+            if (request == null || !(request.getRequest() instanceof Delivery delivery))
             {
-                
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No open requests for outpost: {}", outpost.getBuildingDisplayName()));
+                reqsToRemove.add(requestToken);
                 continue;
             }
-            */
 
-            final List<IToken<?>> openRequests = module.getMutableRequestList();
-            final List<IToken<?>> reqsToRemove = new ArrayList<>();
+            try
+            {
+                currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+            } catch (IllegalArgumentException e)
+            {
+                // Repair request if it is not registered with the request manager.
+                // requestManager.getRequestHandler().registerRequest(request);
+                // requestManager.assignRequest(request.getId());
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
+                continue;
+            }
+            
+            IBuilding destinationBuilding = this.getColony().getBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
 
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} requests for outpost: {}", openRequests.size(), outpost.getBuildingDisplayName()));
+            if (destinationBuilding == null || !(destinationBuilding instanceof BuildingOutpost outpost))
+            {
+                // Our destination outpost is no longer valid.
+                reqsToRemove.add(requestToken);
+                continue;
+            }
 
-            int car = 1;
+            OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
 
-            for (final IToken<?> requestToken : openRequests)
-            {   
-                final IRequest<?> request = requestManager.getRequestForToken(requestToken);
-
-                if (request == null || !(request.getRequest() instanceof Delivery delivery))
+            if (tracking.getState() == OutpostOrderState.NEEDED 
+                || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
+                || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP)
+            {
+                boolean satisfied = trySatistfyRequest(request, outpost, car++);
+                
+                if (satisfied)
                 {
+                    tracking.setState(OutpostOrderState.SHIPMENT_INITIATED);
                     reqsToRemove.add(requestToken);
                     continue;
                 }
+            }
+        }
 
-                try
+        module.getMutableRequestList().removeAll(reqsToRemove);
+        module.markDirty();
+        removedRequestList.addAll(reqsToRemove);
+
+        // Cycle through any still outstanding outpost requests (even if not in our task list)
+        // and see if we have something they need. Add a delivery for it, if so.
+        for (BuildingOutpost outpost : findConnectedOutposts())
+        {
+            final Collection<IRequest<?>> remainingRequests = outpost.getOutpostRequests();
+
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.", remainingRequests.size(), outpost.getBuildingDisplayName(), this.getColony().getID()));
+
+            if (remainingRequests == null || remainingRequests.isEmpty())
+            {
+                continue;
+            }
+
+            for (IRequest<?> request : remainingRequests)
+            {
+                if (removedRequestList.contains(request.getId()))
                 {
-                    currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
-                } catch (IllegalArgumentException e)
-                {
-                    // Repair request if it is not registered with the request manager.
-                    // requestManager.getRequestHandler().registerRequest(request);
-                    // requestManager.assignRequest(request.getId());
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Delivery Request {} - {} was already shipped - skipping.", request.getId(), request.getLongDisplayString()));
                     continue;
                 }
-                
-                // Make sure we're sending to the right destination outpost
-                if (delivery.getTarget().getInDimensionLocation().equals(outpost.getLocation().getInDimensionLocation()))
+
+                // Set up a delivery in our task list for this request if it is missing.
+                boolean addedDelivery = addRequestForDeliveryIfMissing(request, outpost);
+
+                // If we didn't add a task to deliver this request, see if we can satisfy it with our inventory.
+                if (!addedDelivery)
                 {
-                    OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
+                    ItemStorage satisfier = inventorySatisfiesRequest(request, true);
 
-                    if (tracking.getState() == OutpostOrderState.NEEDED 
-                        || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
-                        || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP)
+                    if (satisfier != null)
                     {
-                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking if satisfiable: {}", request));
-                        // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
-                        ItemStorage satisfier = inventorySatisfiesRequest(request, true);
-
-                        if (satisfier != null)
-                        {
-                            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Station has something to ship: {}", satisfier));
-                            initiateShipment(satisfier, request, outpost, car++);
-                            reqsToRemove.add(requestToken);
-                            // requestManager.updateRequestState(request.getId(), RequestState.RESOLVED);
-                            // request.setState(requestManager, RequestState.RESOLVED);
-                            continue;
-                        }
-                        else
-                        {
-                            ItemStack desiredShipment = delivery.getStack().copy();
-
-                            if (desiredShipment.isEmpty())
-                            {
-                                reqsToRemove.add(requestToken);
-                                continue;
-                            }
-
-                            // We need something to deliver!
-                            IDeliverable deliverableCopy = new Stack(desiredShipment);
-                            tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
-                            this.createRequest(deliverableCopy, true);
-
-                        }
+                        // Attempting to use the request system to generate the delivery request (which will populate our work queue).
+                        // If this doesn't work, we'll have to ship it and let the cancellation logic at the outpost handle it.
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Outstanding Request {} - {} has a satisfier: {}", request.getId(), request.getLongDisplayString(), satisfier));
+                        Delivery delivery = new Delivery(this.getLocation(), outpost.getLocation(), satisfier.getItemStack().copy(), 0);
+                        IToken<?> deliveryRequestToken = outpost.createRequest(delivery, true);
+                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
+                        deliveryRequest.setParent(request.getId());
+                        request.addChild(deliveryRequestToken);
                     }
-                    
-                    /*
-                    // Echo the request if nothing satisfies the requirements and we haven't already echoed.
-                    if (tracking.getState() == OutpostOrderState.NEEDED)
+                    else
                     {
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Handling request {} assigned to Outpost.", request.getLongDisplayString()));
-
-                        IRequestable clonedRequestable = OutpostRequestResolver.cloneRequestable(requestManager, request.getRequest());
-                        IToken<?> echoToken = null;
-
-                        if (clonedRequestable != null)
-                        {
-                            echoToken = this.createRequest(stationmaster, clonedRequestable, true);
-
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Adding echoed request of {} to request list.", request.getLongDisplayString()));
-
-                            request.addChild(echoToken);
-                            
-                            tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
-                        }
-                        else
-                        {
-                            LOGGER.warn("Unable to clone requestable for request: {}", request.getLongDisplayString());
-                        }
-
-                        continue;
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Outstanding Request {} - {} has no satisfier.", request.getId(), request.getLongDisplayString()));
                     }
-                    */
-                }
-                else
-                {
-                    final IRequestResolver<?> resovlerForTrace = currentlyAssignedResolver;
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} is not handled by an OutpostRequestResolver (It is handled by {}), or isn't for this outpost: {}", 
-                        request.getLongDisplayString(), 
-                        resovlerForTrace != null ? resovlerForTrace.getLocation() : "null",
-                        outpost.getBuildingDisplayName()));
                 }
             }
 
-            module.getMutableRequestList().removeAll(reqsToRemove);
-            module.markDirty();
         }
+    }
+
+    /**
+     * Adds a delivery request to the station's work queue if it is not already present, and if the request is a delivery
+     * from this station to the given outpost.
+     * @param request The request to check for adding to the work queue.
+     * @param outpost The outpost to check for delivery requests to.
+     * @return True if the request was added to the work queue, false otherwise.
+     */
+    protected boolean addRequestForDeliveryIfMissing(@Nonnull IRequest<?> request, BuildingOutpost outpost)
+    {
+        boolean addedDelivery = false;
+        final WarehouseRequestQueueModule module = this.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
+        if (module == null)
+        {
+            LOGGER.error("No request queue module found on station: {}", this.getBuildingDisplayName());
+            return false;
+        }
+
+        if (request.getRequest() instanceof Delivery delivery)
+        {
+            // If this is a delivery to the outpost in question from this station, add it to our work queue.
+            if (delivery.getTarget().getInDimensionLocation().equals(outpost.getPosition())
+                && delivery.getStart().getInDimensionLocation().equals(this.getPosition())
+                && !module.getMutableRequestList().contains(request.getId())) 
+            {
+                module.addRequest(request.getId());
+                addedDelivery = true;
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Delivery Request {} - {} added to station queue.", request.getId(), request.getLongDisplayString()));
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Delivery Request {} - {} from {} to {} is not a station {} to outpost {} request.", 
+                    request.getId(), 
+                    request.getLongDisplayString(), 
+                    delivery.getStart().getInDimensionLocation().toShortString(), 
+                    delivery.getTarget().getInDimensionLocation().toShortString(), 
+                    this.getPosition().toShortString(), 
+                    outpost.getPosition().toShortString()));
+            }
+        } 
+        else 
+        {
+            for (IToken<?> childRequest : request.getChildren())
+            {
+                addedDelivery = addedDelivery || addRequestForDeliveryIfMissing(this.getColony().getRequestManager().getRequestForToken(childRequest), outpost) || addedDelivery;
+            }
+        }
+
+        return addedDelivery;
+    }
+
+    /**
+     * Check if we can satisfy the given request from an outpost. If so, initiate a shipment and mark the request as resolved.
+     * If not, check if we need an item to be delivered in order to satisfy the request. If so,
+     * request that item and mark the request as needing an item for shipping.
+     * @param request The request to check for satisfaction.
+     * @param outpost The outpost to check for satisfaction.
+     * @param car The car to use for the shipment.
+     * @return A list of request tokens to remove from the outpost's request list.
+     */
+    protected boolean trySatistfyRequest(@Nonnull IRequest<?> request, @Nonnull BuildingOutpost outpost, int car)
+    {
+        
+        boolean satisfied = false;
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking if satisfiable: {} - {}", request.getId(), request.getLongDisplayString()));
+        // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
+        ItemStorage satisfier = inventorySatisfiesRequest(request, true);
+
+        if (satisfier != null)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Station has something to ship: {}", satisfier));
+            initiateShipment(satisfier, request, outpost, car);
+            satisfied = true;
+        }
+
+        return satisfied;
     }
 
 

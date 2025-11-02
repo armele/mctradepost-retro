@@ -17,6 +17,8 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
+
 import com.google.common.collect.Lists;
 import com.minecolonies.api.util.Log;
 import org.jetbrains.annotations.NotNull;
@@ -28,13 +30,14 @@ import net.neoforged.api.distmarker.Dist;
 
 
 @OnlyIn(Dist.CLIENT)
-public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
+public class AdvancedWindowClipBoard extends AbstractWindowRequestTree 
+{
     public static final String ADVANCED_CLIPBOARD_TOGGLE = "playeronly";
 
     /**
      * Resource suffix.
      */
-    private static final String BUILD_TOOL_RESOURCE_SUFFIX = ":gui/advancedwindowclipboard.xml";
+    private static final String BUILD_TOOL_RESOURCE_SUFFIX = "gui/advancedwindowclipboard.xml";
 
     /**
      * List of async request tokens.
@@ -56,7 +59,7 @@ public class AdvancedWindowClipBoard extends AbstractWindowRequestTree {
 
     public AdvancedWindowClipBoard(IColonyView colony)
     {
-        super(null, MCTradePostMod.MODID + BUILD_TOOL_RESOURCE_SUFFIX, colony);
+        super(colony, null, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, BUILD_TOOL_RESOURCE_SUFFIX));
         this.colony = colony;
         for (final ICitizenDataView view : this.colony.getCitizens().values())
         {

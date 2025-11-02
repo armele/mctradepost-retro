@@ -6,6 +6,8 @@ import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
 import com.deathfrog.mctradepost.gui.OutpostWindowHutLiving;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.core.colony.buildings.moduleviews.LivingBuildingModuleView;
+
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 public class OutpostLivingBuildingModuleView extends LivingBuildingModuleView
@@ -24,9 +26,9 @@ public class OutpostLivingBuildingModuleView extends LivingBuildingModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.mctradepost.core.gui.modules.outpost.residents";
+        return Component.translatable("com.mctradepost.core.gui.modules.outpost.residents");
     }
 
     /**
