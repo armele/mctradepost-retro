@@ -104,22 +104,22 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
         {
             for (BlockPos outpostSpot : outpost.getWorkBuildings())
             {
-                IBuilding outpostBuilding = colony.getBuildingManager().getBuilding(outpostSpot);
+                IBuilding outpostMemberBuilding = colony.getBuildingManager().getBuilding(outpostSpot);
 
-                if (outpostBuilding != null)
+                if (outpostMemberBuilding != null)
                 {
                     IItemHandler itemHandler = null;
                     
-                    if (outpostBuilding.getBuildingLevel() > 0)
+                    if (outpost.getOutpostLevel() > 0 && outpostMemberBuilding.getBuildingLevel() > 0)
                     {
                         // Safeguard against Minecolonies bug for buildings that don't include racks.
                         try
                         {
-                            itemHandler = outpostBuilding.getItemHandlerCap();
+                            itemHandler = outpostMemberBuilding.getItemHandlerCap();
                         }
                         catch (Exception e)
                         {
-                            LOGGER.error("Failed to get outpost item handler capability for {}: {}", outpostBuilding.getBuildingDisplayName(), e);
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.error("Failed to get outpost item handler capability for {}: {}", outpostMemberBuilding.getBuildingDisplayName(), e));
                         }
                     }
                     

@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.gui;
 
 import org.jetbrains.annotations.NotNull;
 import com.ldtteam.blockui.views.ScrollingList;
-import com.ldtteam.domumornamentum.util.Constants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 import com.minecolonies.core.network.messages.server.colony.building.RecallCitizenHutMessage;
@@ -11,6 +10,8 @@ import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Text;
 import com.minecolonies.api.colony.ICitizenDataView;
+import com.minecolonies.api.util.constant.Constants;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 

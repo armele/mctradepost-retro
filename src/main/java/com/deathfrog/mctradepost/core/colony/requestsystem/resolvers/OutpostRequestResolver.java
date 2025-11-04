@@ -164,21 +164,24 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
 
         if (requestingBuilding == null)
         {
-            return Lists.newArrayList();
+            return null;
         }
 
         IBuilding outpostBuilding = BuildingOutpost.toOutpostBuilding(requestingBuilding);
 
         if (outpostBuilding == null)
         {
-            return Lists.newArrayList();
+            return null;
         }
 
         IBuilding connectedStation = ((BuildingOutpost) outpostBuilding).getConnectedStation();
 
         if (connectedStation == null)
         {
-            return null;
+            // If we have an outpost request while the outpost is disconnected from the station for some reason, 
+            // we can't propagate the request chain - but we do want to hold the request with the outpost request
+            // resolver to prevent a warehouse request from being attempted.
+            return Lists.newArrayList();
         }
 
         OutpostShipmentTracking tracking = ((BuildingOutpost) outpostBuilding).trackingForRequest(requestToCheck);

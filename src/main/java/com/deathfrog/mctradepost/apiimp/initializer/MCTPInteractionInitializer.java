@@ -41,16 +41,5 @@ public class MCTPInteractionInitializer
             )
         );
 
-        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(MISSING_OUTPOST_BUILDINGS),
-            citizen -> citizen.getColony() != null 
-            && citizen.getEntity().isPresent()
-            && citizen.getWorkBuilding() != null 
-            && ((citizen.getWorkBuilding() instanceof BuildingOutpost workOutpost && workOutpost.isMissingChildBuildings())
-                || (citizen.getWorkBuilding().getParent() != null 
-                    && citizen.getWorkBuilding().getColony().getBuildingManager().getBuilding(citizen.getWorkBuilding().getParent()) instanceof BuildingOutpost workOutpostParent
-                    && workOutpostParent.isMissingChildBuildings())
-            )
-        );
-
     }
 }

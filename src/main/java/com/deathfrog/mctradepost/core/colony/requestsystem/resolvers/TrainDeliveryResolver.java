@@ -81,7 +81,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
     @Override
     public @Nullable List<IToken<?>> attemptResolveRequest(@NotNull IRequestManager manager, @NotNull IRequest<? extends Delivery> request)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Attempting TrainDeliveryResolver resolution {} - {} cancelled.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Attempting TrainDeliveryResolver resolution {} - {}.", request.getId(), request.getLongDisplayString()));
         return Lists.newArrayList();
     }
 

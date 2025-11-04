@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.blocks.huts;
 
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.mojang.logging.LogUtils;
 
@@ -179,10 +182,29 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     }
 
 
+    /**
+     * Determines if the outpost hut can be placed at the given position.
+     * The outpost hut must be within 16 blocks of the outpost marker and
+     * the outpost marker must be within 800 blocks of the colony center.
+     * @param pos the BlockPos to check
+     * @param player the Player to check
+     * @return true if the outpost hut can be placed, false otherwise
+     */
     @Override
     public boolean canPlaceAt(final BlockPos pos, final Player player)
     {
-        // Creative mode always allowed
+
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(player.level(), pos);
+        if (colony == null) return false;
+
+        if (colony.getCenter().distSqr(pos) > (800 * 800))
+        {
+            MessageUtils.format("The outpost hut block must be within 800 blocks of your colony center.").sendTo(player);
+            return false;
+        } 
+
+
+        // Creative mode always allowed (within distance)
         if (player.isCreative())
         {
             return true;
@@ -194,7 +216,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         // Define search radius
         final int radius = 16;
 
-        // Search for an Outpost Marker block within radius
+        // Search for an Outpost Marker block within radius 
         BlockPos.MutableBlockPos checkPos = new BlockPos.MutableBlockPos();
         for (int x = -radius; x <= radius; x++)
         {

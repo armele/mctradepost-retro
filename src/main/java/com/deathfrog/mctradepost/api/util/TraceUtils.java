@@ -45,9 +45,9 @@ public class TraceUtils {
             {
                 loggingStatement.run();
             } 
-            catch (Exception e) 
+            catch (Throwable t) 
             {
-                e.printStackTrace();
+                LOGGER.warn("Trace '{}' threw while logging; swallowing.", traceKey, t);
             }
         }
     }

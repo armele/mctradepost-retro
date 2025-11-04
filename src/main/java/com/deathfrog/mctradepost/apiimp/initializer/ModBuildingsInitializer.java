@@ -78,8 +78,8 @@ public final class ModBuildingsInitializer
             resortBuilder.setBuildingViewProducer(() -> ResortView::new);
             resortBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID));
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
-            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_WORK);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_CRAFT);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
@@ -146,8 +146,8 @@ public final class ModBuildingsInitializer
             outpostBuilder.setBuildingProducer((colony, blockPos) -> new BuildingOutpost(colony, blockPos, ModBuildings.OUTPOST_ID, 5));
             outpostBuilder.setBuildingViewProducer(() -> OutpostView::new);
             outpostBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.OUTPOST_ID));
-            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.SCOUT_WORK);
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_EXPORTS);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDING_RESOURCES);

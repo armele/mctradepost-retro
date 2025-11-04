@@ -30,7 +30,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
 import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
-import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
@@ -48,9 +47,6 @@ import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
-import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
-import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -71,7 +67,6 @@ import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
-import com.minecolonies.core.entity.ai.minimal.EntityAISleep;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -142,7 +137,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     /**
      * List of requests that have been removed from the queue.
      */
-    protected final List<IToken<?>> removedRequestList = new ArrayList<>();
+    protected final List<IToken<?>> handledRequestList = new ArrayList<>();
 
     public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
     public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
@@ -678,8 +673,16 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             exportData.setShipmentCountdown(shipmentCountdown);
         }
 
-        StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
-        StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        if (!exportData.isReverse())
+        {
+            StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        }
+        else
+        {
+            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(this, IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        }
 
         ITradeCapable remoteStation = exportData.getDestinationStationData().getStation();
 
@@ -895,13 +898,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         module.getMutableRequestList().removeAll(reqsToRemove);
         module.markDirty();
-        removedRequestList.addAll(reqsToRemove);
+        handledRequestList.addAll(reqsToRemove);
 
         // Cycle through any still outstanding outpost requests (even if not in our task list)
         // and see if we have something they need. Add a delivery for it, if so.
         for (BuildingOutpost outpost : findConnectedOutposts())
         {
-            final Collection<IRequest<?>> remainingRequests = outpost.getOutpostRequests();
+            final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests();
 
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.", remainingRequests.size(), outpost.getBuildingDisplayName(), this.getColony().getID()));
 
@@ -912,14 +915,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             for (IRequest<?> request : remainingRequests)
             {
-                if (removedRequestList.contains(request.getId()))
+                if (handledRequestList.contains(request.getId()))
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Delivery Request {} - {} was already shipped - skipping.", request.getId(), request.getLongDisplayString()));
                     continue;
                 }
 
                 // Set up a delivery in our task list for this request if it is missing.
-                boolean addedDelivery = addRequestForDeliveryIfMissing(request, outpost);
+                boolean addedDelivery = addTaskForDeliveryIfMissing(request, outpost);
 
                 // If we didn't add a task to deliver this request, see if we can satisfy it with our inventory.
                 if (!addedDelivery)
@@ -936,6 +939,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                         IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
                         deliveryRequest.setParent(request.getId());
                         request.addChild(deliveryRequestToken);
+                        handledRequestList.add(deliveryRequestToken);
                     }
                     else
                     {
@@ -954,7 +958,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param outpost The outpost to check for delivery requests to.
      * @return True if the request was added to the work queue, false otherwise.
      */
-    protected boolean addRequestForDeliveryIfMissing(@Nonnull IRequest<?> request, BuildingOutpost outpost)
+    protected boolean addTaskForDeliveryIfMissing(@Nonnull IRequest<?> request, BuildingOutpost outpost)
     {
         boolean addedDelivery = false;
         final WarehouseRequestQueueModule module = this.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
@@ -990,7 +994,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             for (IToken<?> childRequest : request.getChildren())
             {
-                addedDelivery = addedDelivery || addRequestForDeliveryIfMissing(this.getColony().getRequestManager().getRequestForToken(childRequest), outpost) || addedDelivery;
+                addedDelivery = addedDelivery || addTaskForDeliveryIfMissing(this.getColony().getRequestManager().getRequestForToken(childRequest), outpost) || addedDelivery;
             }
         }
 

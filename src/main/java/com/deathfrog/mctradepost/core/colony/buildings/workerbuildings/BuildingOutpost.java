@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
@@ -56,8 +55,6 @@ import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
-import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
-import com.minecolonies.core.colony.buildings.workerbuildings.BuildingFarmer;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class BuildingOutpost extends AbstractBuildingStructureBuilder implements ITradeCapable, IRequestSatisfaction
@@ -162,25 +159,6 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
     public boolean isDisconnected()
     {
         return connectedStation == null;
-    }
-
-    /**
-     * Checks if the outpost has any missing child buildings, i.e. if outpostFarm or outpostBuilder is null.
-     * @return true if any child buildings are missing, false otherwise.
-     */
-    public boolean isMissingChildBuildings()
-    {
-        boolean missing = false;
-
-        BuildingFarmer outpostFarm = getOutpostFarmer();
-        BuildingBuilder outpostBuilder = getOutpostBuilder();
-
-        if (outpostFarm == null || outpostBuilder == null)
-        {
-            missing = true;
-        }
-
-        return missing;
     }
 
     /**
@@ -601,66 +579,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Found connected station at {} with rail start position of {}.", connectedStation.getPosition(), connectedStation.getRailStartPosition()));
         }
     }
-
-    /**
-     * Retrieves the BuildingBuilder object that is a child of this outpost.
-     * This is the builder that constructs new buildings for the outpost.
-     * 
-     * @return the BuildingBuilder object that is a child of this outpost, or null if none is found.
-     */
-    public BuildingBuilder getOutpostBuilder()
-    {
-        BuildingBuilder outpostBuilder = null;
-
-        if (getChildren().isEmpty())
-        {
-            LOGGER.error("The outpost building requires a Farm and Builder child buildings.");
-            return null;
-        }
-
-        for (BlockPos childSpot : this.getChildren())
-        {
-            IBuilding building = this.getColony().getBuildingManager().getBuilding(childSpot);
-
-            if (building instanceof BuildingBuilder)
-            {
-                outpostBuilder = (BuildingBuilder) building;
-            } 
-        }
-
-        return outpostBuilder;
-    }
-
-    /**
-     * Retrieves the BuildingFarmer object that is a child of this outpost.
-     * This is the farm that provides resources to the outpost.
-     * 
-     * @return the BuildingFarmer object that is a child of this outpost, or null if none is found.
-     */
-    public BuildingFarmer getOutpostFarmer()
-    {
-        BuildingFarmer outpostFarm = null;
-
-        if (getChildren().isEmpty())
-        {
-            LOGGER.error("The outpost building requires a Farm and Builder child buildings.");
-            return null;
-        }
-
-        for (BlockPos childSpot : this.getChildren())
-        {
-            IBuilding building = this.getColony().getBuildingManager().getBuilding(childSpot);
-
-            if (building instanceof BuildingFarmer)
-            {
-                outpostFarm = (BuildingFarmer) building;
-                return outpostFarm;
-            }
-        }
-
-        return outpostFarm;
-    }
-
+    
     @Override
     public void onUpgradeComplete(int buildingLevel) 
     {
@@ -877,33 +796,48 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * This will include all requests from this outpost itself, as well as all requests from all its children.
      * @return A list of all open requests in this outpost.
      */
-    public Set<IRequest<?>> getOutpostRequests()
-    {        
-        Set<IRequest<?>> outpostRequests = new HashSet<>();
+    public Set<IRequest<?>> getOutstandingOutpostRequests()
+    {
+        final Set<IRequest<?>> outpostRequests = new HashSet<>();
 
         for (BlockPos child : this.getWorkBuildings())
         {
-            IBuilding outpostBuilding = this.getColony().getBuildingManager().getBuilding(child);
+            final IBuilding outpostBuilding = this.getColony().getBuildingManager().getBuilding(child);
+            if (outpostBuilding == null) continue;
 
-            // LOGGER.info("Checking requests in building {}", childBuilding.getBuildingDisplayName());
+            // Citizen-scoped open requests
+            final Set<ICitizenData> citizens = outpostBuilding.getAllAssignedCitizen();
 
-            for (ICitizenData citizen : outpostBuilding.getAllAssignedCitizen())
+            if (citizens != null && !citizens.isEmpty())
             {
-                // LOGGER.info("Checking requests for citizen {}", citizen.getName());
-                final Collection<IRequest<?>> openRequests = outpostBuilding.getOpenRequests(citizen.getId());
-
-                if (openRequests != null)
+                for (ICitizenData citizen : citizens)
                 {
-                    outpostRequests.addAll(openRequests);
+                    final Collection<IRequest<?>> openRequests = outpostBuilding.getOpenRequests(citizen.getId());
+                    if (openRequests == null || openRequests.isEmpty()) continue;
+
+                    for (IRequest<?> r : openRequests)
+                    {
+                        final RequestState s = r.getState();
+                        if (s != RequestState.CANCELLED && s != RequestState.COMPLETED)
+                        {
+                            outpostRequests.add(r);
+                        }
+                    }
                 }
             }
 
-            // Gather requests not associated with the specific citizen, too.
+            // Building-scoped open requests (often already filtered by MineColonies)
             final Collection<IRequest<?>> buildingRequests = outpostBuilding.getOpenRequests(-1);
-
-            if (buildingRequests != null)
+            if (buildingRequests != null && !buildingRequests.isEmpty())
             {
-                outpostRequests.addAll(buildingRequests);
+                for (IRequest<?> r : buildingRequests)
+                {
+                    final RequestState s = r.getState();
+                    if (s != RequestState.CANCELLED && s != RequestState.COMPLETED)
+                    {
+                        outpostRequests.add(r);
+                    }
+                }
             }
         }
 

@@ -378,6 +378,8 @@
     "jei.mctradepost.tooltip.wishingwell": "Wishing Well: 2x2 water surrounded by Mixed Stone",
     "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
     "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",
+    "com.mctradepost.gui.visiblestatus.scouting": "Scouting",
+    "com.mctradepost.gui.visiblestatus.building": "Building",
     "com.mctradepost.resort.great_vacation": "I am having a great vacation rejuvenating my %s! %s would make it complete.",
     "com.mctradepost.resort.burnout": "All Work and No Play",
 

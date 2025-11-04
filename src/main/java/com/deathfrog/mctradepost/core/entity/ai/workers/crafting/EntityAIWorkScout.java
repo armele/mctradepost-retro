@@ -2,6 +2,10 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.crafting;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+
+import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -32,6 +36,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
+import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.FoodUtils;
 import com.minecolonies.api.util.InventoryUtils;
@@ -60,6 +65,7 @@ import com.minecolonies.core.tileentities.TileEntityDecorationController;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -69,6 +75,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.requestable.Tool;
+
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import java.util.Collection;
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
@@ -89,6 +97,14 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     protected long lastFoodCheck = 0;
     protected long lastReturnProductsCheck = 0;
     protected int exceptionTimer = 1;
+
+    private final static VisibleCitizenStatus SCOUTING = new VisibleCitizenStatus(
+        ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_scouting.png"),
+        "com.mctradepost.gui.visiblestatus.scouting");
+
+    private final static VisibleCitizenStatus BUILDING = new VisibleCitizenStatus(
+        ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_building.png"),
+        "com.mctradepost.gui.visiblestatus.building");
 
     public enum ScoutStates implements IAIState
     {
@@ -157,6 +173,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
         if (currentDeliverableSatisfier != null)
         {
+            worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.MAKE_DELIVERY;
         }
 
@@ -172,6 +189,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         if (outpostCooldown-- <= 0)
         {
             outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+            worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.HANDLE_OUTPOST_REQUESTS;
         }
 
@@ -188,6 +206,8 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                     today,
                     lastFoodCheck,
                     building.getColony().getName()));
+
+            worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.ORDER_FOOD;
         }
 
@@ -200,11 +220,13 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                     building.getColony().getName()));
             lastReturnProductsCheck = building.getColony().getDay();
 
+            worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.RETURN_PRODUCTS;
         }
 
         if (checkForWorkOrder())
         {
+            worker.getCitizenData().setVisibleStatus(BUILDING);
             return ScoutStates.BUILD;
         }
 
@@ -385,7 +407,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         final IStandardRequestManager requestManager = (IStandardRequestManager) building.getColony().getRequestManager();
         IRequestResolver<?> currentlyAssignedResolver = null;
 
-        final Collection<IRequest<?>> openRequests = building.getOutpostRequests();
+        final Collection<IRequest<?>> openRequests = building.getOutstandingOutpostRequests();
 
         if (openRequests == null || openRequests.isEmpty())
         {
@@ -649,7 +671,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         {
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
                 () -> LOGGER
-                    .info("No target building for request can be found - no request location is associated with this request."));
+                    .info("No target building for request {} - {} can be found - no request location is associated with this request.", request.getId(), request.getLongDisplayString()));
             return null;
         }
 
@@ -677,7 +699,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         if (restaurant == null)
         {
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("Unable to find a restaurant at position {}in the colony for food ordering.", restaurantPos));
+                () -> LOGGER.info("Unable to find a restaurant at position {} in the colony for food ordering.", restaurantPos));
             return false;
         }
 
@@ -710,7 +732,11 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                     {
                         ItemStorage toOrder = new ItemStorage(foodAvailable.getItem(), FOOD_ORDERING_SIZE);
                         Stack requestStack = new Stack(toOrder);
-                        outpostWorksite.createRequest(citizen, requestStack, true);
+                        
+                        if (citizen.getJob() != null)
+                        {
+                            outpostWorksite.createRequest(citizen, requestStack, true);
+                        }
                         didOrder = true;
                     }
                     else
@@ -812,7 +838,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         }
         catch (IllegalArgumentException e)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while mining block at {}", blockToMine, e));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while mining block at {}: {}", blockToMine, e));
         }
 
 
@@ -848,80 +874,131 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     protected IAIState waitForRequests()
     {
         boolean pickedUpNeededItems = false;
+        boolean needsTool = false;
         BuildingOutpost outpostBuilding = (BuildingOutpost) building;
 
-        Collection<IRequest<?>> requests = outpostBuilding.getOutpostRequests();
+        Collection<IRequest<?>> requests = outpostBuilding.getOutstandingOutpostRequests();
 
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("In waitForRequests considering {} requests.", requests.size()));
 
+        if (requests == null || requests.isEmpty())
+        {
+            return DECIDE;
+        }
+
         for (IRequest<?> request : requests)
         {
+            final IToken<?> tokenForLogging = request.getId();
+            boolean pickedUpThisRequest = false;
+
             if (!request.getRequester()
                 .getLocation()
                 .getInDimensionLocation()
                 .equals(outpostBuilding.getLocation().getInDimensionLocation()))
             {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Skipping  request {} - not for the main outpost building.", (Object) request.getId()));
                 continue;
             }
 
-            ItemStorage satisfier = outpostBuilding.inventorySatisfiesRequest(request, true);
-
-            if (satisfier != null)
+            if (request.getRequest() instanceof Tool)
             {
-                // If we have an outstanding request at this point and that item is in our building inventory, pick it up.
-                // We might need it to build with!
-                int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(outpostBuilding,
-                    stack -> ItemStack.matches(stack, satisfier.getItemStack()));
-
-                if (slot >= 0)
-                {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item that satisfies open request {} found in slot {}.", request.getId(), slot));
-
-                    boolean moved = InventoryUtils
-                        .transferItemStackIntoNextFreeSlotFromProvider(outpostBuilding, slot, worker.getInventoryCitizen());
-
-                    if (moved)
-                    {
-                        int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                            s -> ItemStack.matches(s, satisfier.getItemStack()));
-
-                        if (held >= 0)
-                        {
-                            final IStandardRequestManager requestManager = (IStandardRequestManager) outpostBuilding.getColony().getRequestManager();
-
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Cancelling request {}", request.getId()));
-
-                            requestManager.updateRequestState(request.getId(), RequestState.CANCELLED);
-
-                            worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(held));
-
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                                () -> LOGGER.info("Grabbed {} from inventory.", worker.getInventoryCitizen().getStackInSlot(held)));
-                        }
-                        else
-                        {
-                            worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                        }
-
-                        pickedUpNeededItems = true;
-                    }
-                }
-                else
-                {
-                    // LOGGER.info("Item that satisfies open request not found.");
-                }
+                needsTool = true;
             }
+
+            final boolean foundInInventory = tryGetNeededItem(request, worker.getInventoryCitizen());
+
+            if (foundInInventory)
+            {
+                pickedUpThisRequest = true;
+            }
+            else
+            {
+                pickedUpThisRequest = tryGetNeededItem(request, building.getItemHandlerCap());
+            }
+
+            if (pickedUpThisRequest)
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item that satisfies open request {} found in {}. Cancelling request.", request.getId(), foundInInventory ? "citizen inventory" : "building inventory"));
+
+
+                try
+                {
+                    final IStandardRequestManager requestManager = (IStandardRequestManager) building.getColony().getRequestManager();
+                    requestManager.getRequestHandler().processDirectCancellationOf(request);
+                }
+                catch (IllegalArgumentException e)
+                {
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Request {} already cancelled.", tokenForLogging));
+                }
+                
+            }
+
+            pickedUpNeededItems = pickedUpNeededItems || pickedUpThisRequest;
         }
 
-        if (pickedUpNeededItems)
+        if (pickedUpNeededItems || !needsTool)
         {
             return ScoutStates.BUILD;
         }
 
-        // LOGGER.info("Found nothing we needed.");
-
         return super.waitForRequests();
     }
+
+    /**
+     * Tries to find an item in the given inventory that satisfies the given request and picks it up if found.
+     * @param request the request to check for satisfaction
+     * @param inventory the inventory to search
+     * @return true if an item that satisfies the request is found and picked up, false otherwise.
+     */
+    protected boolean tryGetNeededItem(IRequest<?> request, IItemHandler inventory)
+    {
+        ItemStorage satisfier = ItemHandlerHelpers.inventorySatisfiesRequest(request, inventory, true);
+        
+        boolean pickedUpNeededItems = false;
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking inventory {} for request {} ({}).", inventory, request.getLongDisplayString(), request.getId()));
+
+        if (satisfier != null)
+        {
+            // If we have an outstanding request at this point and that item is in our building inventory, pick it up.
+            // We might need it to build with!
+            int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(inventory,
+                stack -> ItemStack.matches(stack, satisfier.getItemStack()));
+
+            if (slot >= 0)
+            {
+                boolean moved = InventoryUtils
+                    .transferItemStackIntoNextFreeSlotInItemHandler(inventory, slot, (IItemHandler) worker.getInventoryCitizen());
+
+                if (moved)
+                {
+                    int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
+                        s -> ItemStack.matches(s, satisfier.getItemStack()));
+
+                    if (held >= 0)
+                    {
+                        worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(held));
+
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                            () -> LOGGER.info("Grabbed {} from inventory.", worker.getInventoryCitizen().getStackInSlot(held)));
+                    }
+                    else
+                    {
+                        worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    }
+
+                    pickedUpNeededItems = true;
+                }
+            }
+            else
+            {
+                // LOGGER.info("Item that satisfies open request not found.");
+            }
+        }
+
+        return pickedUpNeededItems;
+    }
+
 
     /**
      * Note that this reproduces EntityAIStructureBuilder.walkToConstructionSite
@@ -1116,7 +1193,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
         TraceUtils.dynamicTrace(TRACE_OUTPOST,
             () -> LOGGER.info(
-                "Attempting special clear. Outpost level: {}, is cleared: {}, building work order {}, structurePlacer {}",
+                "Attempting special clear. Outpost level: {}, is cleared: {}, building work order {}, blueprint: {}, structurePlacer {}",
                 building.getOutpostLevel(),
                 workOrder.isCleared(),
                 building.getWorkOrder(),
@@ -1211,6 +1288,9 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         {
             return getState();
         }
+
+        worker.getCitizenData().setVisibleStatus(BUILDING);
+
         return LOAD_STRUCTURE;
     }
 
