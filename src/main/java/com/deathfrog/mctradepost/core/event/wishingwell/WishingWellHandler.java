@@ -757,6 +757,17 @@ public class WishingWellHandler
 
             boolean connected = false;
             Colony colony = (Colony) marketplace.getColony();
+
+            BlockPos colonyCenter = colony.getCenter();
+            int maxDistance = MCTPConfig.maxDistance.get();
+
+            if (colonyCenter.distSqr(claimLocation) > (maxDistance * maxDistance))
+            {
+                LOGGER.warn("Outpost ritual called distance greater than max distance.");
+                MessageUtils.format("Outpost distance is too large - the maximum is " + maxDistance + ".").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+
             List<BuildingStation> stations  = new ArrayList<>();
 
             Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();

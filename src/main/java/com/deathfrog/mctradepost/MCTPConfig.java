@@ -58,6 +58,7 @@ public class MCTPConfig
 
     // Outpost Settings
     public static final ConfigValue<Boolean>  outpostEnabled;
+    public static final ConfigValue<Integer>  maxDistance;
 
     static {
         BUILDER.push("marketplace");
@@ -169,7 +170,10 @@ public class MCTPConfig
         outpostEnabled = BUILDER
             .comment("Allow use of the Outpost.")
             .define("outpostEnabled", true);
-        
+        maxDistance = BUILDER
+            .comment("Maximum distance the outpost can be from the colony center. Note that large values will cause pathing exceptions.")
+            .define("maxDistance", 800);
+
         BUILDER.pop();
 
         SPEC = BUILDER.build(); // Last

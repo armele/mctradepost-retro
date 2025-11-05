@@ -197,9 +197,11 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(player.level(), pos);
         if (colony == null) return false;
 
-        if (colony.getCenter().distSqr(pos) > (800 * 800))
+        int maxDistance = MCTPConfig.maxDistance.get();
+
+        if (colony.getCenter().distSqr(pos) > (maxDistance * maxDistance))
         {
-            MessageUtils.format("The outpost hut block must be within 800 blocks of your colony center.").sendTo(player);
+            MessageUtils.format("The outpost hut block must be within " + maxDistance + " blocks of your colony center.").sendTo(player);
             return false;
         } 
 

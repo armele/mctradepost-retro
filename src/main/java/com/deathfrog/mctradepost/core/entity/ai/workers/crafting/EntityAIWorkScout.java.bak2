@@ -868,9 +868,178 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         return ScoutStates.RETURN_PRODUCTS;
     }
 
+    @Override
+    public IAIState structureStep()
+    {
+        IAIState nextState = null;
+        
+        try
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Structure Step info is there a structure to build : {}, stage {};", 
+                this.isThereAStructureToBuild(),
+                structurePlacer == null ? "null" : ((BuildingStructureHandler)this.structurePlacer.getB()).getStage()));
+            
+            nextState = super.structureStep();
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while considering structure step: {}", e));
+            nextState = DECIDE;
+        }
+
+        return nextState;
+    }
+
+    /**
+     * Check if there are any outstanding requests that can be satisfied with items in the building inventory. If any items are found,
+     * the AI will pick them up and return to the build state. If no items are found, the AI will return to the decide state.
+     * 
+     * @return true if an item was picked up, false otherwise.
+     */
+    @Override
+    protected IAIState waitForRequests()
+    {
+        boolean pickedUpNeededItems = false;
+        boolean needsTool = false;
+        BuildingOutpost outpostBuilding = (BuildingOutpost) building;
+
+        Collection<IRequest<?>> requests = outpostBuilding.getOutstandingOutpostRequests(true);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("In waitForRequests considering {} requests.", requests.size()));
+
+        if (requests == null || requests.isEmpty())
+        {
+            if (needsCurrently != null)
+            {
+                return GATHERING_REQUIRED_MATERIALS;
+            }
+
+            return startBuilding();
+        }
+
+        for (IRequest<?> request : requests)
+        {
+            final IToken<?> tokenForLogging = request.getId();
+            boolean pickedUpThisRequest = false;
+
+            if (!request.getRequester()
+                .getLocation()
+                .getInDimensionLocation()
+                .equals(outpostBuilding.getLocation().getInDimensionLocation()))
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Skipping  request {} - not for the main outpost building.", (Object) request.getId()));
+                continue;
+            }
+
+            if (request.getRequest() instanceof Tool)
+            {
+                needsTool = true;
+            }
+
+            final boolean foundInInventory = tryGetNeededItem(request, worker.getInventoryCitizen());
+
+            if (foundInInventory)
+            {
+                pickedUpThisRequest = true;
+            }
+            else
+            {
+                pickedUpThisRequest = tryGetNeededItem(request, building.getItemHandlerCap());
+            }
+
+            if (pickedUpThisRequest)
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item that satisfies open request {} found in {}. Accepting request.", 
+                    request.getId(), foundInInventory ? "citizen inventory" : "building inventory"));
+
+
+                try
+                {
+                    // final IStandardRequestManager requestManager = (IStandardRequestManager) building.getColony().getRequestManager();
+                    // requestManager.getRequestHandler().processDirectCancellationOf(request);
+                    building.markRequestAsAccepted(worker.getCitizenData(), request.getId());
+                }
+                catch (IllegalArgumentException e)
+                {
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Request {} no longer registered with request manager.", tokenForLogging));
+                }
+
+                worker.markDirty(0);
+                
+            }
+
+            pickedUpNeededItems = pickedUpNeededItems || pickedUpThisRequest;
+        }
+
+        if (pickedUpNeededItems || !needsTool)
+        {
+            return BUILDING_STEP;
+        }
+
+        return super.waitForRequests();
+    }
+
+    /**
+     * Tries to find an item in the given inventory that satisfies the given request and picks it up if found.
+     * @param request the request to check for satisfaction
+     * @param inventory the inventory to search
+     * @return true if an item that satisfies the request is found and picked up, false otherwise.
+     */
+    protected boolean tryGetNeededItem(IRequest<?> request, IItemHandler inventory)
+    {
+        ItemStorage satisfier = ItemHandlerHelpers.inventorySatisfiesRequest(request, inventory, true);
+        
+        boolean pickedUpNeededItems = false;
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Checking inventory {} for request {} ({}).", inventory, request.getLongDisplayString(), request.getId()));
+
+        if (satisfier != null)
+        {
+            int neededAmount = ItemHandlerHelpers.requiredCountFor(request.getRequest());
+
+            // If we have an outstanding request at this point and that item is in our building inventory, pick it up.
+            // We might need it to build with!
+            int slot = InventoryUtils.findFirstSlotInItemHandlerNotEmptyWith(inventory,
+                stack -> ItemStack.matches(stack, satisfier.getItemStack()));
+
+            if (slot >= 0)
+            {
+                if (inventory.getStackInSlot(slot).getCount() > neededAmount)
+                {
+                    ItemStack split = inventory.getStackInSlot(slot).split(neededAmount);
+                    InventoryUtils.addItemStackToItemHandler(worker.getInventoryCitizen(), split);
+
+
+                    pickedUpNeededItems = true;
+                }
+                else
+                {
+                    boolean moved = InventoryUtils
+                        .transferItemStackIntoNextFreeSlotInItemHandler(inventory, slot, (IItemHandler) worker.getInventoryCitizen());
+
+                    if (moved)
+                    {
+                        pickedUpNeededItems = true;
+                    }
+                    else
+                    {
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Could not move satisfying item into inventory."));
+                    }
+                }
+
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item that satisfies open request not found."));
+            }
+        }
+
+        return pickedUpNeededItems;
+    }
+
+
     /**
      * Note that this reproduces EntityAIStructureBuilder.walkToConstructionSite
-     * Copied here to satisfy the required abstract method.
      * 
      * @param currentBlock the current block position of the worker
      * @return true if the worker can continue navigating to the construction site, false otherwise
@@ -947,7 +1116,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
     /**
      * Loads the structure given the name, rotation and position.
-     * Adapted from EntityAIStructureBuilder.loadStructure to work with the Outpost "fake level" workaround
      *
      * @param workOrder the work order.
      * @param position  the position to set it.
@@ -1038,8 +1206,8 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
     /**
      * Takes the existing workorder, loads the structure and tests the worker order if it is valid. Note that this adapts
-     * EntityAIStructureBuilder.loadRequirements only in minor situations. 
-     * TODO: PR for base Minecolonies code that removes this kludgey workaround requiring double-maintenance.
+     * EntityAIStructureBuilder.loadRequirements only in minor situations. TODO: PR for base Minecolonies code that removes this
+     * kludgey workaround requiring double-maintenance.
      */
     @Override
     public IAIState loadRequirements()

@@ -796,7 +796,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * This will include all requests from this outpost itself, as well as all requests from all its children.
      * @return A list of all open requests in this outpost.
      */
-    public Set<IRequest<?>> getOutstandingOutpostRequests()
+    public Set<IRequest<?>> getOutstandingOutpostRequests(boolean includeReceived)
     {
         final Set<IRequest<?>> outpostRequests = new HashSet<>();
 
@@ -818,7 +818,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
                     for (IRequest<?> r : openRequests)
                     {
                         final RequestState s = r.getState();
-                        if (s != RequestState.CANCELLED && s != RequestState.COMPLETED)
+                        if (s != RequestState.CANCELLED && (s != RequestState.RECEIVED || includeReceived))
                         {
                             outpostRequests.add(r);
                         }
@@ -833,7 +833,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
                 for (IRequest<?> r : buildingRequests)
                 {
                     final RequestState s = r.getState();
-                    if (s != RequestState.CANCELLED && s != RequestState.COMPLETED)
+                    if (s != RequestState.CANCELLED && (s != RequestState.RECEIVED || includeReceived))
                     {
                         outpostRequests.add(r);
                     }

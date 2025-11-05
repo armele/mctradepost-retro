@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.requestsystem.resolvers;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST_REQUESTS;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +47,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
     @Override
     public boolean canResolveRequest(final IRequestManager manager, final IRequest<? extends Delivery> requestToCheck)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking TrainDeliveryResolver for Request {} - {} from {} to {}.", 
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking TrainDeliveryResolver for Request {} - {} from {} to {}.", 
             requestToCheck.getId(),
             requestToCheck.getLongDisplayString(), 
             requestToCheck.getRequest().getStart(), 
@@ -62,7 +62,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
         {
             if (outpost.getConnectedStation() != null && outpost.getConnectedStation().getPosition().equals(start.getInDimensionLocation()))
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} - {} can be resolved by TrainDeliveryResolver", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} - {} can be resolved by TrainDeliveryResolver", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
                 return true;
             }
         }
@@ -81,7 +81,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
     @Override
     public @Nullable List<IToken<?>> attemptResolveRequest(@NotNull IRequestManager manager, @NotNull IRequest<? extends Delivery> request)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Attempting TrainDeliveryResolver resolution {} - {}.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Attempting TrainDeliveryResolver resolution {} - {}.", request.getId(), request.getLongDisplayString()));
         return Lists.newArrayList();
     }
 
@@ -111,14 +111,14 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
 
             final WarehouseRequestQueueModule module = station.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
             module.getMutableRequestList().remove(request.getId());
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} - {} cancelled.", request.getId(), request.getLongDisplayString()));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} - {} cancelled.", request.getId(), request.getLongDisplayString()));
         }
     }
 
     @Override
     public void resolveRequest(@NotNull IRequestManager manager, @NotNull IRequest<? extends Delivery> request)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} - {} resolved by TrainDeliveryResolver.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} - {} resolved by TrainDeliveryResolver.", request.getId(), request.getLongDisplayString()));
         final Colony colony = (Colony) manager.getColony();
 
         final IBuilding station = colony.getBuildingManager().getBuilding(request.getRequest().getStart().getInDimensionLocation());
@@ -129,7 +129,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
 
         final WarehouseRequestQueueModule module = station.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
         module.addRequest(request.getId());
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Request {} - {} added to station queue.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} - {} added to station queue.", request.getId(), request.getLongDisplayString()));
     }
 
     @Override
@@ -147,7 +147,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
     @Override
     public int getSuitabilityMetric(@NotNull IRequestManager manager, @NotNull IRequest<? extends Delivery> request)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Checking TrainDeliveryResolver suitability metric for request {} - {}.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking TrainDeliveryResolver suitability metric for request {} - {}.", request.getId(), request.getLongDisplayString()));
         return -2;
     }
 

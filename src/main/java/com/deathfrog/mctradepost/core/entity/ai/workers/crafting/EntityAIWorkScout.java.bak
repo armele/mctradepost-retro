@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.api.util.BuildingUtil;
-import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -17,14 +15,17 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostSh
 import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.google.common.collect.Lists;
 import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.placement.structure.IStructureHandler;
 import com.ldtteam.structurize.util.BlueprintPositionInfo;
+import com.ldtteam.structurize.util.WorldRenderMacros.RenderTypes.NeverDepthTestStateShard;
 import com.minecolonies.api.blocks.AbstractBlockHut;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
@@ -39,10 +40,14 @@ import com.minecolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.FoodUtils;
+import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.Utils;
+import com.minecolonies.api.util.WorldUtil;
+import com.minecolonies.api.util.constant.CitizenConstants;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
@@ -51,11 +56,10 @@ import com.minecolonies.core.colony.buildings.modules.RestaurantMenuModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BuilderModeSetting;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
-import com.minecolonies.core.colony.jobs.AbstractJobStructure;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
+import com.minecolonies.core.colony.requestsystem.resolvers.StationRequestResolver;
 import com.minecolonies.core.colony.workorders.WorkOrderBuilding;
 import com.minecolonies.core.colony.workorders.WorkOrderMiner;
-import com.minecolonies.core.entity.ai.workers.AbstractEntityAIStructure;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIStructureWithWorkOrder;
 import com.minecolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import com.minecolonies.core.entity.ai.workers.util.BuildingStructureHandler;
@@ -77,13 +81,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.requestable.Tool;
-
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_INVENTORY_FULL;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<JobScout, BuildingOutpost>
@@ -411,7 +417,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         final IStandardRequestManager requestManager = (IStandardRequestManager) building.getColony().getRequestManager();
         IRequestResolver<?> currentlyAssignedResolver = null;
 
-        final Collection<IRequest<?>> openRequests = building.getOutstandingOutpostRequests(true);
+        final Collection<IRequest<?>> openRequests = building.getOutstandingOutpostRequests();
 
         if (openRequests == null || openRequests.isEmpty())
         {
@@ -719,6 +725,11 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         {
             IBuilding outpostWorksite = building.getColony().getBuildingManager().getBuilding(outpostWorkPos);
 
+            if (outpostWorksite == null)
+            {
+                continue;
+            }
+
             for (ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
             {
                 int foodCount = 0;
@@ -739,6 +750,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                         
                         if (citizen.getJob() != null)
                         {
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Ordered food for {}.", citizen.getName()));
                             outpostWorksite.createRequest(citizen, requestStack, true);
                         }
                         didOrder = true;
@@ -868,9 +880,28 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         return ScoutStates.RETURN_PRODUCTS;
     }
 
+    @Override
+    protected boolean inventoryNeedsDump()
+    {
+
+        // We can never call for deliverymen to unload our building,
+        // But if it is full, we can still complain to the player.
+        if (InventoryUtils.isBuildingFull(building))
+        {
+            final ICitizenData citizenData = worker.getCitizenData();
+            if (citizenData != null)
+            {
+                citizenData
+                  .triggerInteraction(new StandardInteraction(Component.translatable(OUTPOST_INVENTORY_FULL),
+                    ChatPriority.IMPORTANT));
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Note that this reproduces EntityAIStructureBuilder.walkToConstructionSite
-     * Copied here to satisfy the required abstract method.
      * 
      * @param currentBlock the current block position of the worker
      * @return true if the worker can continue navigating to the construction site, false otherwise
@@ -947,7 +978,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
     /**
      * Loads the structure given the name, rotation and position.
-     * Adapted from EntityAIStructureBuilder.loadStructure to work with the Outpost "fake level" workaround
      *
      * @param workOrder the work order.
      * @param position  the position to set it.
@@ -1038,8 +1068,8 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
     /**
      * Takes the existing workorder, loads the structure and tests the worker order if it is valid. Note that this adapts
-     * EntityAIStructureBuilder.loadRequirements only in minor situations. 
-     * TODO: PR for base Minecolonies code that removes this kludgey workaround requiring double-maintenance.
+     * EntityAIStructureBuilder.loadRequirements only in minor situations. TODO: PR for base Minecolonies code that removes this
+     * kludgey workaround requiring double-maintenance.
      */
     @Override
     public IAIState loadRequirements()
@@ -1182,4 +1212,171 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         // Work at the outpost is never done...
         return false;
     }
+
+
+    /**
+     * If the worker has open requests their results will be queried until they all are completed Also waits for DELAY_RECHECK.
+     * Adaptation of AbstractEntityAIBasic
+     *
+     * @return NEEDS_ITEM
+     */
+    @NotNull
+    protected IAIState waitForRequests()
+    {
+        boolean unmetNeeds = false;
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("In waitForRequests... looking for needed items."));
+
+        this.setDelay(CitizenConstants.DELAY_RECHECK);
+        BuildingOutpost outpost = (BuildingOutpost) building;
+
+        // Look in every child building for something we need.
+        for (BlockPos workSpot : outpost.getWorkBuildings())
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("About to check building at {} for completed requests.", workSpot.toShortString()));
+
+            final IBuilding outpostBuilding = building.getColony().getBuildingManager().getBuilding(workSpot);
+            if (outpostBuilding == null) 
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No building at {}.", workSpot.toShortString()));
+                continue;
+            }
+            boolean thisBuildingsNeeds = lookForRequestsInBuilding(outpostBuilding);
+
+            if (thisBuildingsNeeds) 
+            {
+                unmetNeeds = true;
+            }
+        }
+
+        if (unmetNeeds) 
+        {
+            return NEEDS_ITEM;    
+        }
+
+        return afterRequestPickUp();
+    }
+
+    /**
+     * Utility method to search for items currently needed. Poll this until all items are there.
+     * Adaptation of AbstractEntityAIBasic.lookForRequests
+     *
+     * @return whether there are outstanding needs unmet
+     */
+    @NotNull
+    protected boolean lookForRequestsInBuilding(IBuilding checkBuilding)
+    {
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST,
+            () -> LOGGER.info("Checking building at {} for completed requests.", checkBuilding.getPosition()));
+
+        if (!checkBuilding.hasOpenSyncRequest(worker.getCitizenData())
+              && !checkBuilding.hasCitizenCompletedRequests(worker.getCitizenData()))
+        {
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("No unmet needs in building at {}.", checkBuilding.getPosition()));
+
+            return false;
+        }
+        if (checkBuilding.hasCitizenCompletedRequests(worker.getCitizenData()))
+        {
+            final Collection<IRequest<?>> completedRequests = checkBuilding.getCompletedRequestsOfCitizenOrBuilding(worker.getCitizenData());
+            final List<IRequest<?>> deliverableRequests = new ArrayList<>();
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("We have {} completed requests of which {} are deliverable.", completedRequests.size(), deliverableRequests.size()));
+
+            for (final IRequest<?> req : completedRequests)
+            {
+                if (!req.canBeDelivered())
+                {
+                    checkBuilding.markRequestAsAccepted(worker.getCitizenData(), req.getId());
+                }
+                else
+                {
+                    deliverableRequests.add(req);
+                }
+            }
+
+            if (!deliverableRequests.isEmpty())
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                    () -> LOGGER.info("We have {} deliverable requests.", deliverableRequests.size()));
+
+                final IRequest<?> firstDeliverableRequest = deliverableRequests.get(0);
+                IRequestResolver<?> resolver = null;
+                try
+                {
+                    resolver = checkBuilding.getColony().getRequestManager().getResolverForRequest(firstDeliverableRequest.getId());
+                }
+                catch (final Exception ex)
+                {
+                    LOGGER.warn("Resolver died for finished request. Oopsy. " + worker.getCitizenData().getName() + " witnessed it.");
+                }
+                final ILocation pickupLocation = resolver instanceof StationRequestResolver ? resolver.getLocation() : checkBuilding.getLocation();
+
+                if (!walkToWorkPos(pickupLocation.getInDimensionLocation()) || !WorldUtil.isBlockLoaded(world, pickupLocation.getInDimensionLocation()))
+                {
+                    return true;
+                }
+                final BlockEntity blockEntity = world.getBlockEntity(pickupLocation.getInDimensionLocation());
+                if (blockEntity == null)
+                {
+                    return true;
+                }
+
+                boolean async = false;
+                if (worker.getCitizenData().isRequestAsync(firstDeliverableRequest.getId()))
+                {
+                    async = true;
+                    job.getAsyncRequests().remove(firstDeliverableRequest.getId());
+                }
+
+                checkBuilding.markRequestAsAccepted(worker.getCitizenData(), firstDeliverableRequest.getId());
+
+                final IItemHandlerCapProvider wrappedBlockEntity = IItemHandlerCapProvider.wrap(blockEntity);
+                final List<IItemHandler> validHandlers = Lists.newArrayList();
+                validHandlers.add(worker.getItemHandlerCitizen());
+                validHandlers.addAll(InventoryUtils.getItemHandlersFromProvider(wrappedBlockEntity));
+
+                //Check if we either have the requested Items in our inventory or if they are in the building.
+                if (InventoryUtils.areAllItemsInItemHandlerList(firstDeliverableRequest.getDeliveries(), validHandlers))
+                {
+                    final List<ItemStorage> niceToHave = itemsNiceToHave();
+                    final List<ItemStack> contained = InventoryUtils.getContainedFromItemHandler(firstDeliverableRequest.getDeliveries(), worker.getItemHandlerCitizen());
+
+                    InventoryUtils.moveItemStacksWithPossibleSwap(
+                      worker.getItemHandlerCitizen(),
+                      InventoryUtils.getItemHandlersFromProvider(wrappedBlockEntity),
+                      firstDeliverableRequest.getDeliveries(),
+                      itemStack ->
+                        contained.stream().anyMatch(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, stack)) ||
+                          niceToHave.stream().anyMatch(storage -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, storage.getItemStack()))
+                    );
+                    return true;
+                }
+                else
+                {
+                    //Seems like somebody else picked up our stack.
+                    //Lets try this again.
+                    if (async)
+                    {
+                        worker.getCitizenData().createRequestAsync(firstDeliverableRequest.getRequest());
+                    }
+                    else
+                    {
+                        worker.getCitizenData().createRequest(firstDeliverableRequest.getRequest());
+                    }
+                }
+            }
+        }
+        else
+        {
+            walkToBuilding();
+        }
+
+        return true;
+    }
+
 }

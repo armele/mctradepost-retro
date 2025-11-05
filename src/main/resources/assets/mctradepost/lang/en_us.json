@@ -350,6 +350,8 @@
     "mctradepost.configuration.outpost": "Outpost",
     "mctradepost.configuration.outpostEnabled": "Outpost Enabled",
     "mctradepost.configuration.outpostEnabled.tooltip": "Enable the Outpost building.",
+    "mctradepost.configuration.maxDistance": "Max. Distance",
+    "mctradepost.configuration.maxDistance.tooltip": "Maximum distance the outpost can be from the colony center. Note that large values will cause pathing exceptions.",
 
     "com.mctradepost.research.effects.blockhutmarketplace.description": "Allows building of the Marketplace.",
     "com.mctradepost.research.effects.blockhutrecycling.description": "Allows building of the Recycling Center.",
@@ -377,6 +379,7 @@
     "jei.mctradepost.rituals": "Wishing Well Rituals",
     "jei.mctradepost.tooltip.wishingwell": "Wishing Well: 2x2 water surrounded by Mixed Stone",
     "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
+    "com.mctradepost.outpost.full_inventory": "Outpost inventory is full. Help me empty it, or mark some items to be shipped back to the Colony station.",
     "com.mctradepost.gui.visiblestatus.needvacation": "Need Vacation",
     "com.mctradepost.gui.visiblestatus.scouting": "Scouting",
     "com.mctradepost.gui.visiblestatus.building": "Building",

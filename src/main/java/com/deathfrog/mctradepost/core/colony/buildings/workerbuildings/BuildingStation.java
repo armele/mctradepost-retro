@@ -52,11 +52,13 @@ import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
+import com.minecolonies.api.util.constant.CitizenConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
@@ -647,7 +649,6 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         return paymentRequests.poll();
     }
 
-
     /**
      * Completes a shipment of goods from this station to another station specified by the export data.
      * This method will add the goods to the remote station's inventory or drop them on the ground if the inventory is full.
@@ -881,15 +882,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
 
-            if (tracking.getState() == OutpostOrderState.NEEDED 
+            if ((tracking.getState() == OutpostOrderState.NEEDED 
                 || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
-                || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP)
-            {
-                boolean satisfied = trySatistfyRequest(request, outpost, car++);
+                || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP
+                )
+                && !handledRequestList.contains(request.getId())
+            ) {
+                boolean satisfied = trySatisfyRequest(request, outpost, car++);
                 
                 if (satisfied)
                 {
                     tracking.setState(OutpostOrderState.SHIPMENT_INITIATED);
+                    outpost.markRequestAsAccepted(outpost.getScout(),request.getId()); // Mark the request as accepted by the outpost (this will effectively remove it from the outposts request list unless desired)
                     reqsToRemove.add(requestToken);
                     continue;
                 }
@@ -904,7 +908,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         // and see if we have something they need. Add a delivery for it, if so.
         for (BuildingOutpost outpost : findConnectedOutposts())
         {
-            final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests();
+            final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests(false);
 
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.", remainingRequests.size(), outpost.getBuildingDisplayName(), this.getColony().getID()));
 
@@ -939,7 +943,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                         IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
                         deliveryRequest.setParent(request.getId());
                         request.addChild(deliveryRequestToken);
-                        handledRequestList.add(deliveryRequestToken);
+                        handledRequestList.add(request.getId());
                     }
                     else
                     {
@@ -1010,7 +1014,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param car The car to use for the shipment.
      * @return A list of request tokens to remove from the outpost's request list.
      */
-    protected boolean trySatistfyRequest(@Nonnull IRequest<?> request, @Nonnull BuildingOutpost outpost, int car)
+    protected boolean trySatisfyRequest(@Nonnull IRequest<?> request, @Nonnull BuildingOutpost outpost, int car)
     {
         
         boolean satisfied = false;

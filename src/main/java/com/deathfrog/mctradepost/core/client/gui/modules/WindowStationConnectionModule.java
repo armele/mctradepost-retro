@@ -104,7 +104,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
                 }
                 else
                 {
-                    location.setText(Component.literal("Unknown Colony (ID: " + station.getColonyId() + ", Dimension: " + station.getDimension() + ")"));
+                    location.setText(Component.literal("Unknown Colony (ID: " + station.getColonyId() + ")"));
                 }
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);

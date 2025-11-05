@@ -108,7 +108,7 @@ public final class ItemHandlerHelpers
 
         if (matcher == null)
         {
-            LOGGER.info("Unknown requestable type {}.", payload.getClass().getName());
+            // LOGGER.info("Unknown requestable type {}.", payload.getClass().getName());
             return null;
         }
 
@@ -116,7 +116,7 @@ public final class ItemHandlerHelpers
 
         int have = 0;
 
-        LOGGER.info("Looking for {} across {} slots.", required, inv.getSlots());
+        // LOGGER.info("Looking for {} across {} slots.", required, inv.getSlots());
         List<ItemStack> matchingStacks = new ArrayList<>();
 
         for (int slot = 0; slot < inv.getSlots(); slot++)
@@ -129,7 +129,7 @@ public final class ItemHandlerHelpers
                 have += stack.getCount();
                 if (have >= required) 
                 {
-                    LOGGER.info("Found enough matching items: {}", have);
+                    // LOGGER.info("Found enough matching items: {}", have);
                     return new ItemStorage(stack.copy(), required);
                 }
             }
@@ -143,7 +143,7 @@ public final class ItemHandlerHelpers
                 .orElse(ItemStack.EMPTY);
             return new ItemStorage(biggestStack.copy(), have); 
         }
-        LOGGER.info("Not enough matching items: {}", have);
+        // LOGGER.info("Not enough matching items: {}", have);
 
         return null;
     }
@@ -153,7 +153,7 @@ public final class ItemHandlerHelpers
      * Builds a predicate that tells whether an inventory ItemStack qualifies for the requestable. Extend this as you introduce new
      * requestable types.
      */
-    static Predicate<ItemStack> matcherFor(IRequestable req)
+    public static Predicate<ItemStack> matcherFor(IRequestable req)
     {
         // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
         if (req instanceof Stack)
@@ -226,7 +226,7 @@ public final class ItemHandlerHelpers
     }
 
 
-    static Predicate<ItemStack> predicateForHolderSet(HolderSet<Item> set)
+    public static Predicate<ItemStack> predicateForHolderSet(HolderSet<Item> set)
     {
         if (set instanceof HolderSet.Named<Item> named)
         {
@@ -256,7 +256,7 @@ public final class ItemHandlerHelpers
     /**
      * How many items must we have to consider the request satisfied?
      */
-    static int requiredCountFor(IRequestable req)
+    public static int requiredCountFor(IRequestable req)
     {
         if (req instanceof Stack s)
         {
