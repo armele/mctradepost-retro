@@ -8,6 +8,7 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -88,8 +89,8 @@ public class BuildingStationImportModuleView extends AbstractBuildingModuleView
      * @return The description of the module.
      */
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.minecolonies.coremod.gui.station.imports";
+        return Component.translatable("com.minecolonies.coremod.gui.station.imports");
     }
 }

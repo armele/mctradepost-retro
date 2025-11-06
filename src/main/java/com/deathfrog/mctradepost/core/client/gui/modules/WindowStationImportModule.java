@@ -21,14 +21,14 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
 
 import java.util.logging.Logger;
 
-public class WindowStationImportModule extends AbstractModuleWindow
+public class WindowStationImportModule extends AbstractModuleWindow<BuildingStationImportModuleView>
 {
     private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
     
     /**
      * The resource string.
      */
-    private static final String RESOURCE_STRING = ":gui/layouthuts/layoutstationimport.xml";
+    private static final String RESOURCE_STRING = "gui/layouthuts/layoutstationimport.xml";
 
     /**
      * Limit reached label.
@@ -53,7 +53,7 @@ public class WindowStationImportModule extends AbstractModuleWindow
     /**
      * The matching module view to the window.
      */
-    private final BuildingStationImportModuleView moduleView;
+    private final IBuildingView buildingView;
 
     /**
      * Constructor for the minimum stock window view.
@@ -61,12 +61,11 @@ public class WindowStationImportModule extends AbstractModuleWindow
      * @param building   class extending
      * @param moduleView the module view.
      */
-    public WindowStationImportModule(final IBuildingView building, final BuildingStationImportModuleView moduleView)
+    public WindowStationImportModule(final IBuildingView buildingView, final BuildingStationImportModuleView moduleView)
     {
-        super(building, MCTradePostMod.MODID + RESOURCE_STRING);
-
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
+        this.buildingView = buildingView;
         resourceList = this.window.findPaneOfTypeByID("resourcesstock", ScrollingList.class);
-        this.moduleView = moduleView;
 
         registerButton(STOCK_ADD, this::addStock);
         if (moduleView.hasReachedLimit())

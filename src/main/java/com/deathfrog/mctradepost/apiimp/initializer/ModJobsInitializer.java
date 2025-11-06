@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobBartender;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.colony.jobs.JobRecyclingEngineer;
+import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
@@ -64,6 +65,12 @@ public final class ModJobsInitializer
           .setJobProducer(JobAnimalTrainer::new)
           .setJobViewProducer(() -> CrafterJobView::new)
           .setRegistryName(MCTPModJobs.ANIMALTRAINER_ID)
+          .createJobEntry());
+
+        MCTPModJobs.scout = register(DEFERRED_REGISTER, MCTPModJobs.SCOUT_ID.getPath(), () -> new JobEntry.Builder()
+          .setJobProducer(JobScout::new)
+          .setJobViewProducer(() -> DefaultJobView::new)
+          .setRegistryName(MCTPModJobs.SCOUT_ID)
           .createJobEntry());
 
     }

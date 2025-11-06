@@ -197,6 +197,10 @@ public class RitualDefinitionHelper
                 text = "Colony community benefit: " + benefit;
                 break;
 
+            case RitualManager.RITUAL_EFFECT_OUTPOST:
+                text = "Claims an outpost at the location marked by an Outpost Claim Marker.";
+                break;
+
             default:
                 text = "Broken ritual! Ritual type not recognized: " + ritualDefinition.effect();
                 break;

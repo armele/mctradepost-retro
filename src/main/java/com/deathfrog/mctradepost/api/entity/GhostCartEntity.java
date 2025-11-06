@@ -1,24 +1,28 @@
 package com.deathfrog.mctradepost.api.entity;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateConstants;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerEntity;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -37,25 +41,44 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 
-public class GhostCartEntity extends AbstractMinecart
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
+
+public class GhostCartEntity extends AbstractMinecart implements IEntityWithComplexSpawn
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     private static final int PARTICLE_PERIOD = 3;   // every 3 game-ticks
-    private static final int SOUND_PERIOD    = 40;  // once every 2 seconds
+    private static final int SOUND_PERIOD = 40;  // once every 2 seconds
 
     private static final TicketType<GhostCartEntity> CART_TICKET =
-            TicketType.create("ghost_cart_follow", Comparator.comparingInt(System::identityHashCode), 3);
+        TicketType.create("ghost_cart_follow", Comparator.comparingInt(System::identityHashCode), 3);
 
     private ChunkPos lastTicketPos;
+    private boolean spawnPosFixed = false;
 
     private ImmutableList<BlockPos> path;
-    private int startIdx     = 0;    // node where current stride begins
-    private int targetIdx    = 1;    // node we must reach this colony-tick
-    private long strideStartTick;    // gameTime when stride began
-    private double strideLength;     // sum of block distances for start..target
-    private final int COLONY_T = TickRateConstants.MAX_TICKRATE;
+    private int startIdx = 0;     // start node index for the *current stride span*
+    private int targetIdx = 0;     // target node index for the *current stride span*
+    private int desiredIdx = 0;     // latest segment requested by the driver
+    private long strideStartTick;       // gameTime when current stride began
+    private double strideLength;         // total polyline length for this stride (blocks)
+    private final int COLONY_T = TickRateConstants.MAX_TICKRATE; // e.g. 500 ticks
+    protected boolean reversed = false;
+
+    // --- NEW: fractional start support (smooth mid-stride retiming) ---
+    // We may start a stride partway along the edge startIdx -> startIdx+1.
+    // startT is 0..1 measuring how far from startIdx toward startIdx+1.
+    private double startT = 0.0;
+
+    // These cache the last computed edge position so setSegment() can rebase mid-stride
+    private int lastEdgeA = -1;   // index of edge start we were on last tick
+    private int lastEdgeB = -1;   // = lastEdgeA + 1
+    private double lastEdgeT = 0.0;  // 0..1 along that edge
+
+    int ticksWithNoPath = 0;
+    private static final int MAX_TICKS_WITH_NO_PATH = 100;
 
     private static final EntityDataAccessor<ItemStack> TRADE_ITEM =
         SynchedEntityData.defineId(GhostCartEntity.class, EntityDataSerializers.ITEM_STACK);
@@ -66,219 +89,324 @@ public class GhostCartEntity extends AbstractMinecart
         this.noPhysics = true;   // no collision resolution or gravity
         this.setInvulnerable(true);
         this.setSilent(true);
+        
+        logConstructionTrace();
     }
 
     public void setPath(List<BlockPos> path)
     {
-        this.path = ImmutableList.copyOf(path);
+        setPath(path, false);
     }
 
+    /** Direction-aware setter */
+    public void setPath(List<BlockPos> path, boolean reverse)
+    {
+        this.reversed = reverse;
+        List<BlockPos> effective = reverse ? Lists.reverse(path) : path;
+        this.path = ImmutableList.copyOf(effective);
+
+        // Reset run state
+        this.startIdx = 0;
+        this.targetIdx = 0;
+        this.desiredIdx = 0;
+        this.startT = 0.0;
+        this.strideStartTick = level().getGameTime();
+        this.strideLength = 0.0;
+        this.lastEdgeA = -1;
+        this.lastEdgeB = -1;
+        this.lastEdgeT = 0.0;
+    }
+
+
     /**
-     * Spawns a GhostCartEntity on the given level at the position of the first BlockPos in the path.
-     * The entity is set to be invulnerable and silent and is added to the level as a fresh entity.
-     * The stride values are initialized so the first tick doesn’t jump.
-     * @param level The ServerLevel to spawn the entity in.
-     * @param path The list of BlockPos that the entity should follow.
-     * @return The spawned GhostCartEntity.
+     * Returns true if the cart has a valid path set.
+     * This path might not be currently traversable, but it is not null or empty.
+     * @return true if the cart has a valid path set, false otherwise
      */
-    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path) {
-        GhostCartEntity e = MCTradePostMod.GHOST_CART.get()
-                            .create(level, null, path.get(0),
-                                    MobSpawnType.EVENT, false, false);
-        if (e == null) 
-        { 
-            LOGGER.error("Failed to spawn GhostCartEntity");
-            return null; 
+
+    public boolean hasPath()
+    {
+        return this.path != null && !this.path.isEmpty();
+    }
+
+
+    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path)
+    {
+        return spawn(level, path, false);
+    }
+
+    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path, boolean reverse)
+    {
+        GhostCartEntity e = MCTradePostMod.GHOST_CART.get().create(level, null, path.get(0), MobSpawnType.EVENT, false, false);
+        if (e == null)
+        {
+            LOGGER.error("Failed to spawn GhostCartEntity.");
+            return null;
         }
 
-        e.setPath(path);
+        e.setPath(path, reverse);
         e.setPos(Vec3.atCenterOf(path.get(0)));
         e.setRot(0, 0);
 
-        /* ❷ initialise stride so first tick doesn’t jump */
-        e.startIdx        = 0;
-        e.targetIdx       = 0;
-        e.strideStartTick = level.getGameTime();
-        e.strideLength    = 0;
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart spawn helper called with first path point: {}", e.getId(), path.get(0)));
 
         level.addFreshEntity(e);
         return e;
     }
 
     /**
-     * Sets the segment that the ghost cart should move to. The segment is the index
-     * of the node on the path that the ghost cart should move to. If the segment is
-     * less than or equal to the current startIdx, the method does nothing. Otherwise,
-     * the targetIdx is set to the given segment, the strideStartTick is set to the
-     * current game time, and the strideLength is set to the length of the path
-     * between the current startIdx and the new targetIdx.
-     * @param segment the index of the node on the path that the ghost cart should move to
+     * Request movement toward a segment. The distance from the cart's *current* fractional position to the requested segment will be
+     * traversed over exactly one COLONY_T (e.g., 500 ticks) with smooth speed.
      */
     public void setSegment(int segment)
     {
-        if (segment <= startIdx) return;              // ignore stale commands
+        if (path == null || path.isEmpty()) return;
 
-        this.startIdx        = targetIdx;
-        this.targetIdx       = Math.min(segment, path.size() - 1);
+        int clamped = Mth.clamp(segment, 0, path.size() - 1);
+        if (clamped <= desiredIdx && targetIdx >= desiredIdx)
+        {
+            return; // nothing new to do
+        }
+
+        desiredIdx = clamped;
+
+        // --- Rebase the stride to our *current* fractional position ---
+        // If we have a valid last-edge cache (from tick), start from there.
+        // Otherwise, start from the current integer node without fraction.
+        int newStartIdx = startIdx;
+        double newStartT = startT;
+
+        if (lastEdgeA >= 0 && lastEdgeB == lastEdgeA + 1)
+        {
+            newStartIdx = lastEdgeA;
+            newStartT = lastEdgeT;
+        }
+
+        this.startIdx = newStartIdx;
+        this.startT = Mth.clamp(newStartT, 0.0, 1.0);
+        this.targetIdx = desiredIdx;
         this.strideStartTick = level().getGameTime();
-        this.strideLength    = lengthBetween(startIdx, targetIdx);  // helper below
+        this.strideLength = lengthBetweenFractional(startIdx, startT, targetIdx);
     }
 
     @Override
-    public void tick() {
+    public void tick()
+    {
         super.tick();
-
 
         if (level().isClientSide) return;
 
-        if (path == null || path.isEmpty()) {
-            // We no longer have a valid path, so we can safely discard
-            discard();
+        if (path == null || path.isEmpty())
+        {
+            if (ticksWithNoPath++ > MAX_TICKS_WITH_NO_PATH)
+            {   
+                discard();
+            }
             return;
         }
 
-        if (targetIdx >= path.size() - 1) {  // reached final node
+        ticksWithNoPath = 0;
+
+        // We only finish when we've arrived *and* no further desire remains.
+        if (startIdx >= path.size() - 1 && startIdx >= desiredIdx && startT >= 1.0 - 1e-6)
+        {
             endingEffects();
             discard();
             return;
         }
 
-        if (startIdx >= targetIdx) return;            // waiting for next stride
+        // If there's nothing to do yet
+        if (startIdx >= targetIdx && startIdx >= desiredIdx)
+        {
+            keepChunkLoaded();
+            return; // idle until first setSegment
+        }
 
-        /* 0-1 progress inside this colony-tick stride */
+        // Ensure we have an active stride
+        if (startIdx >= targetIdx && startIdx < desiredIdx)
+        {
+            this.targetIdx = desiredIdx;
+            this.strideStartTick = level().getGameTime();
+            this.strideLength = lengthBetweenFractional(startIdx, startT, targetIdx);
+        }
+
+        if (strideLength <= 1e-9)
+        {
+            // Degenerate: snap to target and await further requests
+            setPos(Vec3.atCenterOf(path.get(targetIdx)));
+            startIdx = targetIdx;
+            startT = 0.0;
+            keepChunkLoaded();
+            return;
+        }
+
+        // --- Smooth pacing: always COLONY_T ticks per stride ---
         long dt = level().getGameTime() - strideStartTick;
         double u = Mth.clamp(dt / (double) COLONY_T, 0.0, 1.0);
-
-        /* convert u into “blocks travelled”, then find where that lands */
         double travelled = u * strideLength;
-        BlockPos a = path.get(startIdx);
-        for (int i = startIdx; i < targetIdx; i++) {
-            BlockPos b = path.get(i + 1);
-            double seg = Vec3.atCenterOf(a).distanceTo(Vec3.atCenterOf(b));
-            if (travelled <= seg) {
-                /* we are somewhere inside this edge */
-                Vec3 pos = Vec3.atCenterOf(a).lerp(Vec3.atCenterOf(b), travelled / seg);
-                setPos(pos);
-                Vec3 dir = Vec3.atCenterOf(b).subtract(Vec3.atCenterOf(a)).normalize();
-                setYRot((float)(Math.atan2(dir.z, dir.x) * 180 / Math.PI) - 90);
 
-                /* ➜ move the ticket window every tick the cart moves */
+        // Walk along the polyline from (startIdx + startT) toward targetIdx
+        int i = startIdx;
+        double t = startT;
+
+        // distance from current fractional point to end of edge i -> i+1
+        while (i < targetIdx)
+        {
+            Vec3 pa = Vec3.atCenterOf(path.get(i));
+            Vec3 pb = Vec3.atCenterOf(path.get(i + 1));
+
+            Vec3 edgeStart = pa.lerp(pb, t);
+            double edgeLen = edgeStart.distanceTo(pb);
+
+            if (travelled <= edgeLen + 1e-9)
+            {
+                // We're inside this edge at fraction t' = t + (travelled / fullEdgeLen)*(1 - t)
+                double fullEdgeLen = pa.distanceTo(pb);
+                double tPrime;
+                if (fullEdgeLen <= 1e-9)
+                {
+                    tPrime = 1.0;
+                }
+                else
+                {
+                    // portion along this edge, accounting for starting at t
+                    double alongThisEdge = (travelled / fullEdgeLen);
+                    tPrime = Mth.clamp(t + alongThisEdge, 0.0, 1.0);
+                }
+
+                Vec3 pos = pa.lerp(pb, tPrime);
+                setPos(pos);
+
+                Vec3 dir = pb.subtract(pa).normalize();
+                setYRot((float) (Math.atan2(dir.z, dir.x) * 180 / Math.PI) - 90);
+                setDeltaMovement(dir.scale(strideLength / Math.max(1.0, COLONY_T))); // interpolation hint
+
+                // cache fractional edge for mid-stride rebasing
+                lastEdgeA = i;
+                lastEdgeB = i + 1;
+                lastEdgeT = tPrime;
+
                 keepChunkLoaded();
 
                 long gameTime = level().getGameTime();
                 if ((gameTime % PARTICLE_PERIOD) == 0) spawnTrailParticle();
-                if ((gameTime % SOUND_PERIOD)    == 0) playRollingSound();
+                if ((gameTime % SOUND_PERIOD) == 0) playRollingSound();
                 return;
             }
-            travelled -= seg;
-            a = b;                                     // step to next edge
+
+            // Consume this edge remainder and move to the next
+            travelled -= edgeLen;
+            i += 1;
+            t = 0.0;
         }
 
-        /* If we fell through the loop, clamp to final node */
+        // If we fell through, we've completed the stride: snap to target node
         setPos(Vec3.atCenterOf(path.get(targetIdx)));
-        startIdx = targetIdx;                          // ready for next colony-tick
+        startIdx = targetIdx;
+        startT = 0.0;
+
+        lastEdgeA = Math.max(0, targetIdx - 1);
+        lastEdgeB = targetIdx;
+        lastEdgeT = 1.0;
 
         keepChunkLoaded();
+
+        // If there's already a newer desiredIdx, immediately kick next stride (no gap).
+        if (startIdx < desiredIdx)
+        {
+            this.targetIdx = desiredIdx;
+            this.strideStartTick = level().getGameTime();
+            this.strideLength = lengthBetweenFractional(startIdx, startT, targetIdx);
+        }
     }
 
     /**
-     * Sum of Euclidean distances for the consecutive edges
-     * path[a]-->path[a+1] … path[b-1]-->path[b].
-     *
-     * @param a inclusive start index  (must be ≥0 and < path.size())
-     * @param b inclusive end   index  (must be ≥a and < path.size())
-     * @return total distance in blocks along the path segment
+     * Length from a fractional point (a, tA) to node b along the path. a must be <= b, and tA in [0,1]. If a == b, returns 0.
      */
-    private double lengthBetween(int a, int b) {
-        if (a >= b) return 0.0;                // zero or invalid span
+    private double lengthBetweenFractional(int a, double tA, int b)
+    {
+        if (a >= b) return 0.0;
 
         double sum = 0.0;
-        for (int i = a; i < b; i++) {
-            Vec3 p  = Vec3.atCenterOf(path.get(i));
-            Vec3 q  = Vec3.atCenterOf(path.get(i + 1));
-            sum += p.distanceTo(q);            // Euclidean length of this rail
+
+        // partial first edge: from lerp(a->a+1, tA) to (a+1)
+        {
+            Vec3 pa = Vec3.atCenterOf(path.get(a));
+            Vec3 pb = Vec3.atCenterOf(path.get(a + 1));
+            Vec3 p0 = pa.lerp(pb, Mth.clamp(tA, 0.0, 1.0));
+            sum += p0.distanceTo(pb);
         }
-        return sum;                            // keep it as double for precision
+
+        // full edges in between
+        for (int i = a + 1; i < b; i++)
+        {
+            Vec3 p = Vec3.atCenterOf(path.get(i));
+            Vec3 q = Vec3.atCenterOf(path.get(i + 1));
+            sum += p.distanceTo(q);
+        }
+
+        return sum;
     }
 
-
-    /**
-     * Spawns a small cloud particle at a position slightly behind and
-     * below the ghost cart's position, to give the illusion of it leaving
-     * a trail. The particle is spawned on the server and distributed to
-     * all players tracking this entity.
-     */
-    private void spawnTrailParticle() {
+    private void spawnTrailParticle()
+    {
         Vec3 behind = position().subtract(getForward().scale(0.9));  // small offset
-        ((ServerLevel) level()).sendParticles(
-                ParticleTypes.CAMPFIRE_COSY_SMOKE,
-                behind.x(), behind.y() + 0.1, behind.z(),
-                1,                           // count
-                0.1, 0.1, 0.1,               // x,y,z scatter
-                0.0);                        // speed
+        ((ServerLevel) level())
+            .sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, behind.x(), behind.y() + 0.1, behind.z(), 1, 0.1, 0.1, 0.1, 0.0);
     }
 
-
-    /**
-     * Plays a sound at the ghost cart's position that is audible to all
-     * players currently tracking this entity. The sound is a loopable
-     * vanilla sound effect that is suitable for a moving minecart.
-     */
-    private void playRollingSound() {
-        level().playSound(
-                null,                         // null = all players tracking this entity
-                getX(), getY(), getZ(),
-                SoundEvents.MINECART_RIDING,  // loopable vanilla clack-clack
-                net.minecraft.sounds.SoundSource.NEUTRAL,
-                0.3F,                         // volume
-                1.0F);                        // pitch
+    private void playRollingSound()
+    {
+        level().playSound(null,
+            getX(),
+            getY(),
+            getZ(),
+            SoundEvents.MINECART_RIDING,
+            net.minecraft.sounds.SoundSource.NEUTRAL,
+            0.3F,
+            1.0F);
     }
 
-
-    /**
-     * Called when the trade is completed. Plays a sound and spawns some
-     * particles to make it look like the ghost cart is disappearing.
-     */
     private void endingEffects()
     {
-        level().playSound(
-                null,                         // null = all players tracking this entity
-                getX(), getY(), getZ(),
-                MCTPModSoundEvents.CASH_REGISTER,  // loopable vanilla clack-clack
-                net.minecraft.sounds.SoundSource.NEUTRAL,
-                0.3F,                         // volume
-                1.0F);                        // pitch
+        level().playSound(null,
+            getX(),
+            getY(),
+            getZ(),
+            MCTPModSoundEvents.CASH_REGISTER,
+            net.minecraft.sounds.SoundSource.NEUTRAL,
+            0.3F,
+            1.0F);
 
-        ((ServerLevel) level()).sendParticles(
-                ParticleTypes.HAPPY_VILLAGER,
-                getX(), getY(), getZ(),
-                4,                           // count
-                0.3, 0.3, 0.3,               // x,y,z scatter
-                0.0);                        // speed
+        ((ServerLevel) level()).sendParticles(ParticleTypes.HAPPY_VILLAGER, getX(), getY(), getZ(), 4, 0.3, 0.3, 0.3, 0.0);
     }
 
-
-    private void keepChunkLoaded() {
+    private void keepChunkLoaded()
+    {
         ChunkPos here = new ChunkPos(blockPosition());
-        if (!here.equals(lastTicketPos)) {
-            if (lastTicketPos != null) {
-                ((ServerLevel) level()).getChunkSource()
-                    .removeRegionTicket(CART_TICKET, lastTicketPos, 3, this);
+        if (!here.equals(lastTicketPos))
+        {
+            if (lastTicketPos != null)
+            {
+                ((ServerLevel) level()).getChunkSource().removeRegionTicket(CART_TICKET, lastTicketPos, 3, this);
             }
-            ((ServerLevel) level()).getChunkSource()
-                .addRegionTicket(CART_TICKET, here, 3, this); // radius 3 chunks
+            ((ServerLevel) level()).getChunkSource().addRegionTicket(CART_TICKET, here, 3, this); // radius 3 chunks
             lastTicketPos = here;
         }
     }
 
-    /**
-     * Determines if the ghost cart entity can be picked up or interacted with by players.
-     *
-     * @return false, as this entity is not intended to be pickable.
-     */
+    // --- Vanilla/boilerplate below ---
+
     @Override
     public boolean isPickable()
     {
+        return false;
+    }
+
+    @Override
+    public boolean shouldBeSaved() 
+    {
+        // Ghost carts are transient and should never be chunk-saved
         return false;
     }
 
@@ -316,7 +444,6 @@ public class GhostCartEntity extends AbstractMinecart
         return InteractionResult.FAIL;
     }
 
-    /* Minecart type just tells the renderer which model to use */
     @Override
     public Type getMinecartType()
     {
@@ -330,7 +457,7 @@ public class GhostCartEntity extends AbstractMinecart
     }
 
     public void setTradeItem(ItemStack stack)
-    {     // call on server only
+    {
         entityData.set(TRADE_ITEM, stack.copyWithCount(1));
     }
 
@@ -339,54 +466,175 @@ public class GhostCartEntity extends AbstractMinecart
         return entityData.get(TRADE_ITEM);
     }
 
-    /**
-     * This method is called from the constructor of the entity class to define the data that this entity will sync from the server to
-     * the client. The data is used to represent the trade item that the ghost cart is carrying.
-     * 
-     * @param builder The builder to use to define the data.
-     */
     @Override
     protected void defineSynchedData(@Nonnull SynchedEntityData.Builder builder)
     {
-        super.defineSynchedData(builder);  
+        super.defineSynchedData(builder);
         builder.define(TRADE_ITEM, ItemStack.EMPTY);
     }
 
-
-    /**
-     * Gets the packet that should be sent to the client when this entity is spawned.
-     * This packet is used to inform the client of the entity's existence and initial state.
-     * The packet is sent to all clients tracking this entity.
-     * 
-     * @param serverEntity The entity that is being spawned.
-     * @return The packet that should be sent to the client.
-     */
+    /*
     @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket(@Nonnull ServerEntity serverEntity) 
+    public Packet<ClientGamePacketListener> getAddEntityPacket(@Nonnull ServerEntity serverEntity)
     {
         int data = this.getMinecartType().ordinal();
         BlockPos pos = this.blockPosition();
         return new ClientboundAddEntityPacket(this, data, pos);
     }
+    */
 
     @Override
-    public void startSeenByPlayer(@Nonnull ServerPlayer player) 
+    public void startSeenByPlayer(@Nonnull ServerPlayer player)
     {
         super.startSeenByPlayer(player);
-        // LOGGER.info("[GhostCart {}] startSeenByPlayer: {}", getId(), player.getGameProfile().getName());
     }
 
     @Override
-    public void stopSeenByPlayer(@Nonnull ServerPlayer player) 
+    public void stopSeenByPlayer(@Nonnull ServerPlayer player)
     {
         super.stopSeenByPlayer(player);
-        // LOGGER.info("[GhostCart {}] stopSeenByPlayer: {}", getId(), player.getGameProfile().getName());
     }
 
     @Override
-    public void recreateFromPacket(@Nonnull ClientboundAddEntityPacket pkt) 
+    public void recreateFromPacket(@Nonnull ClientboundAddEntityPacket pkt)
     {
         super.recreateFromPacket(pkt);
-        // LOGGER.info("[GhostCart CLIENT {}] recreateFromPacket at {}", getId(), position());
+        if (level().isClientSide)
+        {
+            // Align previous and current so first-frame interpolation is valid
+            this.xo = this.getX();
+            this.yo = this.getY();
+            this.zo = this.getZ();
+            this.xRotO = this.getXRot();
+            this.yRotO = this.getYRot();
+        }
+    }
+
+    @Override
+    public void onAddedToLevel()
+    {
+        super.onAddedToLevel();
+        if (!level().isClientSide && !spawnPosFixed)
+        {
+            // If we somehow came in with a bad Y, snap to the first path node now.
+            if (path != null && !path.isEmpty())
+            {
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart added to level with first path point: {}", this.getId(), path.get(0)));
+
+                setPos(Vec3.atCenterOf(path.get(0)));
+                setRot(0, 0);
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart added to level with no path!", this.getId()));
+            }
+            spawnPosFixed = true;
+        }
+
+        // Client nicety (prevents first-frame interpolation glitches)
+        if (level().isClientSide)
+        {
+            this.xo = getX();
+            this.yo = getY();
+            this.zo = getZ();
+            this.xRotO = getXRot();
+            this.yRotO = getYRot();
+        }
+    }
+
+    @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() 
+    {
+        return super.getBoundingBoxForCulling().inflate(0.25);
+    }
+
+    @Override
+    public void writeSpawnData(@Nonnull RegistryFriendlyByteBuf buf)
+    {
+        // Write the registry name of the carried item (e.g., "minecraft:iron_ingot")
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(getTradeItem().getItem());
+        buf.writeUtf(id == null ? "" : id.toString());
+        buf.writeVarInt(this.desiredIdx);
+    }
+
+    @Override
+    public void readSpawnData(@Nonnull RegistryFriendlyByteBuf buf)
+    {
+        String id = buf.readUtf();
+        if (!id.isEmpty())
+        {
+            ResourceLocation rl = ResourceLocation.tryParse(id);
+            if (rl != null && BuiltInRegistries.ITEM.containsKey(rl))
+            {
+                this.setTradeItem(new ItemStack(BuiltInRegistries.ITEM.get(rl)));
+            }
+            else
+            {
+                this.setTradeItem(ItemStack.EMPTY);
+            }
+        }
+        else
+        {
+            this.setTradeItem(ItemStack.EMPTY);
+        }
+
+        this.desiredIdx = buf.readVarInt();
+    }
+
+    @Override
+    public void remove(@Nonnull RemovalReason reason)
+    {
+        if (reason == RemovalReason.DISCARDED)
+        {
+            logDiscardTrace(reason);
+        }
+        super.remove(reason);
+    }
+
+    private void logDiscardTrace(RemovalReason reason)
+    {
+        String stack = Arrays.stream(Thread.currentThread().getStackTrace())
+            .skip(2) // skip current frames
+            .map(ste -> "    at " + ste)
+            .collect(Collectors.joining("\n"));
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+            "[GhostCart {}] DISCARD at dim={} pos=({}, {}, {}) " +
+                "reason={} startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
+            this.getId(),
+            level().dimension().location(),
+            String.format("%.2f", getX()),
+            String.format("%.2f", getY()),
+            String.format("%.2f", getZ()),
+            reason,
+            startIdx,
+            targetIdx,
+            desiredIdx,
+            (path == null ? -1 : path.size()),
+            level().getGameTime(),
+            stack));
+    }
+
+    private void logConstructionTrace()
+    {
+        String stack = Arrays.stream(Thread.currentThread().getStackTrace())
+            .skip(2) // skip current frames
+            .map(ste -> "    at " + ste)
+            .collect(Collectors.joining("\n"));
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+            "[GhostCart {}] CREATE at dim={} pos=({}, {}, {}) " +
+                "startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
+            this.getId(),
+            level().dimension().location(),
+            String.format("%.2f", getX()),
+            String.format("%.2f", getY()),
+            String.format("%.2f", getZ()),
+            startIdx,
+            targetIdx,
+            desiredIdx,
+            (path == null ? -1 : path.size()),
+            level().getGameTime(),
+            stack));
     }
 }

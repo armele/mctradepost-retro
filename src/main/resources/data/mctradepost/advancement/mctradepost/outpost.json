@@ -1,0 +1,30 @@
+{
+  "parent": "mctradepost:mctradepost/station",
+  "criteria": {
+    "building": {
+      "conditions": {
+        "hut_name": "outpost",
+        "level": 1
+      },
+      "trigger": "minecolonies:complete_build_request"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.build.outpost.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:blockhutoutpost"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.build.outpost.title"
+    }
+  },
+  "requirements": [
+    [
+      "building"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

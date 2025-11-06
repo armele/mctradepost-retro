@@ -51,7 +51,7 @@ public class CoinEntity extends ItemEntity
 
             if (closestMarketplace != null)
             {
-                MCTradePostMod.LOGGER.info("Nearest Marketplace to coin at {} is at {}", pos, closestMarketplace.getLocation());
+                // MCTradePostMod.LOGGER.info("Nearest Marketplace to coin at {} is at {}", pos, closestMarketplace.getLocation());
 
                 // We're inside a colony and found a marketplace, now proceed with the well logic
                 WishingWellHandler.downInAWell(level(), closestMarketplace, pos);

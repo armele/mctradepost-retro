@@ -11,9 +11,11 @@ import com.minecolonies.api.util.BlockPosUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -94,7 +96,7 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {
-        return new WindowPetAssignmentModule(buildingView, this);
+        return new WindowPetAssignmentModule(this);
     }
 
     /**
@@ -114,9 +116,9 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
      * @return The description of the module.
      */
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.minecolonies.coremod.gui.petstore.assignment";
+        return Component.translatable("com.minecolonies.coremod.gui.petstore.assignment");
     }
 
     /**

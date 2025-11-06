@@ -17,11 +17,12 @@ public class CommandStationsClear extends AbstractCommands
         super(name);
     }
     
+
     /**
-     * Outputs the status of all display shelves in the marketplace building nearest to the player.
+     * Clears all connected stations from the nearest station building to the player.
      * If the player is not in a colony, outputs a message saying so.
      * 
-     * @return 0 if the player is not in a colony, 1 if the player is in a colony
+     * @return 0 if the player is not in a colony, 1 if the player is in a colony and the command is successful.
      */
     @Override
     public int onExecute(CommandContext<CommandSourceStack> context)
@@ -52,7 +53,7 @@ public class CommandStationsClear extends AbstractCommands
             station.clearConnectedStations();
 
             source.sendSuccess(() -> 
-                net.minecraft.network.chat.Component.literal("All conencted stations have been cleared from the nearest station."),
+                net.minecraft.network.chat.Component.literal("All connected stations have been cleared from the nearest station."),
                 false);
 
             return 1;

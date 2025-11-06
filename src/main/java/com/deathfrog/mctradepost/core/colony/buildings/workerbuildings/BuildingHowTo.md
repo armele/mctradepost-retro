@@ -70,3 +70,9 @@ Client-side module capabilities are implemented at src\main\java\com\deathfrog\m
 
 ## Module Window (Client)
 The Module View will almost certainly implement a Window class (src\main\java\com\deathfrog\mctradepost\core\client\gui\modules) extending AbstractModuleWindow and using an xml-based template with BlockUI to create a screen. See examples at src\main\resources\assets\mctradepost\gui\layouthuts.
+
+# Troubleshooting
+The most common (and difficult) errors are mismatches between server and client view serialization.  Here are some pointers:
+* A CitizenData.View for #X has thrown an exception during loading - Check the pairing between the Job and the JobView in ModJobsInitializer. The view must extend the correct abstract class that corresponds to the job.
+
+Similarly, the hierarchy of the Building and BuildingView must match, as must each module on the building.

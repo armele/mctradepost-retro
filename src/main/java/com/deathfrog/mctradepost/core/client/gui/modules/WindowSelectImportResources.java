@@ -16,6 +16,7 @@ import com.minecolonies.core.client.gui.AbstractWindowSkeleton;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.apache.commons.lang3.StringUtils;
@@ -82,7 +83,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
      */
     public WindowSelectImportResources(final BOWindow origin, final Predicate<ItemStack> test, final TriConsumer<ItemStack, Integer, Integer> consumer)
     {
-        super(MCTradePostMod.MODID + ":gui/windowselectresfortrade.xml", origin);
+        super(origin, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/windowselectresfortrade.xml"));
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
         registerButton(BUTTON_DONE, this::doneClicked);
         registerButton(BUTTON_CANCEL, this::cancelClicked);

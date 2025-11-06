@@ -8,6 +8,7 @@ import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -32,16 +33,21 @@ public class StationConnectionModuleView extends AbstractBuildingModuleView
         return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/modules/connections.png");
     }
 
+    /**
+     * Gets the translation key for the description of the module.
+     * 
+     * @return the translation key.
+     */
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.mctradepost.core.gui.modules.stationconnections";
+        return Component.translatable("com.mctradepost.core.gui.modules.stationconnections");
     }
 
     @Override
     public BOWindow getWindow()
     {
-        return new WindowStationConnectionModule(getBuildingView());
+        return new WindowStationConnectionModule(getBuildingView(), this);
     }
 
     @Override

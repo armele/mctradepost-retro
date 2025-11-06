@@ -83,12 +83,14 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
     {
         importMap.remove(new ItemStorage(itemStack));
 
+        /* With the addition of outposts, this screws up the request system. Allow stale requests - negligable impact.
         final Collection<IToken<?>> list = building.getOpenRequestsByRequestableType().getOrDefault(TypeToken.of(Stack.class), new ArrayList<>());
         final IToken<?> token = getMatchingRequest(itemStack, list);
         if (token != null)
         {
             building.getColony().getRequestManager().updateRequestState(token, RequestState.CANCELLED);
         }
+        */
 
         if (building instanceof BuildingStation station)
         {

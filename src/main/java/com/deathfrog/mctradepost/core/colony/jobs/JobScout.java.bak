@@ -1,0 +1,147 @@
+package com.deathfrog.mctradepost.core.colony.jobs;
+
+import java.util.Set;
+
+import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkScout;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBuilder;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingFarmer;
+import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
+import com.minecolonies.core.colony.jobs.JobBuilder;
+import com.minecolonies.core.colony.jobs.JobFarmer;
+
+import net.minecraft.core.BlockPos;
+
+public class JobScout extends AbstractJobCrafter<EntityAIWorkScout, JobScout>
+{
+    public enum ScoutRoles
+    {
+        NONE,
+        FARMER,
+        BUILDER,
+        SCOUT
+    }
+
+    // private JobFarmer farmer = null;
+    // private JobBuilder builder = null;
+    private ScoutRoles currentRole = ScoutRoles.SCOUT;
+
+    public JobScout(ICitizenData entity)
+    {
+        super(entity);
+    }
+
+
+    @Override
+    public IBuilding getWorkBuilding()
+    {
+        IBuilding mainBuilding = super.getWorkBuilding();
+        IBuilding currentWorkBuilding = null;
+
+        if (mainBuilding != null)
+        {
+            Set<BlockPos> children = mainBuilding.getChildren();
+
+            for (BlockPos child : children)
+            {
+                IBuilding childBuilding = mainBuilding.getColony().getBuildingManager().getBuilding(child);
+
+                if (childBuilding instanceof BuildingFarmer && currentRole == ScoutRoles.FARMER)
+                {
+                    currentWorkBuilding = childBuilding;
+                    break;
+                }
+                else if (childBuilding instanceof BuildingBuilder && currentRole == ScoutRoles.BUILDER)
+                {
+                    currentWorkBuilding = childBuilding;
+                    break;
+                } 
+            }
+        }
+
+        if (currentWorkBuilding == null)
+        {
+            // TODO: Warnings if no appropriate child buildings found.
+
+            currentWorkBuilding = mainBuilding;
+        }
+
+        return currentWorkBuilding;
+    }
+
+    public ScoutRoles getRole() 
+    {
+        return currentRole;
+    }
+
+    public void setRole(ScoutRoles role) 
+    {
+        /*
+        if (currentRole != role)
+        {
+            farmer = null;
+            builder = null;
+        }
+
+        currentRole = role;
+
+        switch (role) 
+        {
+            case FARMER:
+                if (farmer == null)
+                {
+                    farmer = new JobFarmer(getCitizen());
+                }
+                break;
+
+            case BUILDER:
+                if (builder == null)
+                {
+                    builder = new JobBuilder(getCitizen());
+                }
+                break;
+
+            case SCOUT:
+                break;
+
+            case NONE:
+                break;
+        }
+        */
+    }
+
+    /**
+     * Generates a new instance of the AI associated with this job.
+     *
+     * @return a new instance of the AI associated with this job.
+     */
+    @Override
+    public EntityAIWorkScout generateAI()
+    {
+        return new EntityAIWorkScout(this);
+    }
+    
+
+    /**
+     * Gets the farmer associated with this scout.
+     * 
+     * @return the farmer associated with this scout.
+     */
+    public JobFarmer getFarmer()
+    {
+        return null;
+    }
+
+
+    /**
+     * Gets the station master AI associated with this scout.
+     * 
+     * @return the station master associated with this scout.
+     */
+    public JobBuilder getBuilder()
+    {
+        return null;
+    }
+
+}

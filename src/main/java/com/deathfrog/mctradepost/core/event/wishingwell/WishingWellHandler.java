@@ -1,28 +1,45 @@
 // Part 1: WishingWellHandler to manage fountain rituals
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
+import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
+import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.minecolonies.api.colony.ICitizenData;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
+import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
+import com.minecolonies.api.colony.colonyEvents.IColonyRaidEvent;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
+import com.minecolonies.api.entity.citizen.happiness.ExpirationBasedHappinessModifier;
+import com.minecolonies.api.entity.citizen.happiness.StaticHappinessSupplier;
 import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
-import com.minecolonies.core.colony.events.raid.HordeRaidEvent;
+import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.constant.HappinessConstants;
+import com.minecolonies.core.colony.Colony;
 import com.minecolonies.core.datalistener.model.Disease;
-import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
 import com.minecolonies.core.util.AdvancementUtils;
+import com.minecolonies.core.util.ChunkDataHelper;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -47,8 +64,13 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import java.util.*;
 import javax.annotation.Nonnull;
 
+import org.slf4j.Logger;
+
 @EventBusSubscriber(modid = MCTradePostMod.MODID)
-public class WishingWellHandler {
+public class WishingWellHandler 
+{
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     private static final int MAX_WISHINGWELL_COOLDOWN = 100;
     private static int wishingWellCooldown = MAX_WISHINGWELL_COOLDOWN;
 
@@ -157,10 +179,6 @@ public class WishingWellHandler {
                         .filter(e -> e.getItem().getItem() == companionType)
                         .toList();
 
-                int totalCompanionCount = sameTypeCompanions.stream()
-                        .mapToInt(e -> e.getItem().getCount())
-                        .sum();
-
                 BlockPos center = pos.immutable();
 
                 RitualState state = rituals.computeIfAbsent(center, k -> new RitualState());
@@ -168,7 +186,7 @@ public class WishingWellHandler {
                 state.baseCoins = baseCoinItems;
                 state.goldCoins = goldCoinItems;
                 state.diamondCoins = diamondCoinItems;
-                state.companionCount = totalCompanionCount;
+                state.companionItems = sameTypeCompanions;
                 state.lastUsed = System.currentTimeMillis();
 
                 RitualResult result = triggerRitual(marketplace, state, center, companionType);
@@ -183,7 +201,7 @@ public class WishingWellHandler {
                         break;
 
                     case COMPLETED:
-                        MCTradePostMod.LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
+                        LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
                         sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         rituals.remove(pos);  
 
@@ -195,7 +213,7 @@ public class WishingWellHandler {
                     case UNRECOGNIZED:
                         // An unrecognized companion item has been used, or something else caused the ritual to fail.
                         // Discard the companion item, but leave the ritual active for a valid companion item to be added.
-                        MCTradePostMod.LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionType);
+                        LOGGER.warn("Wishing well activated with unknown ritual at {} with companion item {}", center, companionType);
                         ejectItems(level, sameTypeCompanions, center);
                         break;
 
@@ -252,7 +270,7 @@ public class WishingWellHandler {
             20, 0.5, 0.5, 0.5, 0.1);
         level.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0f, 1.0f);
 
-        MCTradePostMod.LOGGER.info("Registered wishing well at {}", pos);
+        LOGGER.info("Registered wishing well at {}", pos);
     }
 
     /**
@@ -268,11 +286,11 @@ public class WishingWellHandler {
         if (wells.contains(pos)) 
         {
             wells.remove(pos);
-            MCTradePostMod.LOGGER.info("Removed invalid wishing well at {}", pos);
+            LOGGER.info("Removed invalid wishing well at {}", pos);
         } 
         else 
         {
-            MCTradePostMod.LOGGER.info("No valid wishing well discovered at {}", pos);
+            LOGGER.info("No valid wishing well discovered at {}", pos);
         }
     }
 
@@ -287,7 +305,7 @@ public class WishingWellHandler {
         boolean discovery = false;
 
         if (marketplace == null) {
-            MCTradePostMod.LOGGER.warn("Attempting to evaluate a wishing well without a Marketplace at {}", pos);
+            LOGGER.warn("Attempting to evaluate a wishing well without a Marketplace at {}", pos);
             return;
         }
 
@@ -327,7 +345,7 @@ public class WishingWellHandler {
 
                 if (!(state.getBlock() instanceof LiquidBlock) || !state.getFluidState().is(FluidTags.WATER)) 
                 {
-                    // MCTradePostMod.LOGGER.info("This is not water at {} during well structure identification.", base);
+                    // LOGGER.info("This is not water at {} during well structure identification.", base);
                     return false;
                 }
             }
@@ -342,7 +360,7 @@ public class WishingWellHandler {
                 BlockPos ring = center.offset(dx, 0, dz);
                 if (!level.getBlockState(ring).is(MCTradePostMod.MIXED_STONE.get())) 
                 {
-                    // MCTradePostMod.LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
+                    // LOGGER.info("This is not stone brick at {} during well structure identification. Instead it is {}", ring, level.getBlockState(ring));
                     return false;
                 }
             }
@@ -377,7 +395,7 @@ public class WishingWellHandler {
         
         targets.forEach(Entity::discard);
 
-        MCTradePostMod.LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}", ritual.target(), pos, ritual.radius(), targets.size());
+        LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}", ritual.target(), pos, ritual.radius(), targets.size());
         showRitualEffect(level, pos);
 
         return true;
@@ -406,11 +424,11 @@ public class WishingWellHandler {
 
 
         String weather = ritual.target();
-        // MCTradePostMod.LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
+        // LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
 
         if (weather == null) 
         {
-            MCTradePostMod.LOGGER.info("No weather target provided during Weather ritual.");
+            LOGGER.info("No weather target provided during Weather ritual.");
             return false;
         } 
         else if (weather.equals("clear")) 
@@ -436,13 +454,13 @@ public class WishingWellHandler {
         } 
         else 
         {
-            MCTradePostMod.LOGGER.info("Unknown weather ritual of {} ignored at {} ", weather, pos);
+            LOGGER.info("Unknown weather ritual of {} ignored at {} ", weather, pos);
             return false;
         }
         
         level.setWeatherParameters(clearTime, weatherTime, isRaining, isThundering);
 
-        MCTradePostMod.LOGGER.info("Weather ritual of {} completed at {} ", weather, pos);
+        LOGGER.info("Weather ritual of {} completed at {} ", weather, pos);
         showRitualEffect(level, pos);
 
         return true;
@@ -462,9 +480,9 @@ public class WishingWellHandler {
         // IRaiderManager raidManager = colony.getRaiderManager();
         for (IColonyEvent event : colony.getEventManager().getEvents().values()) 
         {
-            if (event instanceof HordeRaidEvent) 
+            if (event instanceof IColonyRaidEvent) 
             {
-                targets = ((HordeRaidEvent) event).getEntities();
+                targets = ((IColonyRaidEvent) event).getEntities();
                 break;
             }
         }
@@ -485,7 +503,7 @@ public class WishingWellHandler {
         EntityType<?> entityType = ritual.getTargetAsEntityType();
 
         if (entityType == null) {
-            MCTradePostMod.LOGGER.warn("No entity type found for {} during Slay ritual.", ritual.target());
+            LOGGER.warn("No entity type found for {} during Slay ritual.", ritual.target());
             return targets;
         }
 
@@ -523,7 +541,7 @@ public class WishingWellHandler {
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
         if (colony == null) 
         {
-            MCTradePostMod.LOGGER.warn("No colony found at {} where this ritual was attempted: {}", pos, ritual.describe());
+            LOGGER.warn("No colony found at {} where this ritual was attempted: {}", pos, ritual.describe());
             return false;
         }
 
@@ -534,7 +552,7 @@ public class WishingWellHandler {
             targets = gatherRaidTargets(colony);
             if (targets.size() == 0) 
             {
-                MCTradePostMod.LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
+                LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
             }
         } 
         else 
@@ -557,7 +575,7 @@ public class WishingWellHandler {
             }
         }
 
-        MCTradePostMod.LOGGER.info("Summoning ritual completed at {}, bringing {} entities.", pos, targets.size());
+        LOGGER.info("Summoning ritual completed at {}, bringing {} entities.", pos, targets.size());
         showRitualEffect(level, pos);
 
         return true;
@@ -578,7 +596,7 @@ public class WishingWellHandler {
      */
     public static RitualResult processRitualTransform(ServerLevel level, BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
     {
-        if (state.companionCount < ritual.companionItemCount()) 
+        if (state.getCompanionCount() < ritual.companionItemCount()) 
         {
             return RitualResult.NEEDS_INGREDIENTS;
         }
@@ -596,7 +614,7 @@ public class WishingWellHandler {
         }
         catch (Exception e)
         {
-            MCTradePostMod.LOGGER.error("Failed to drop items for ritual", e);
+            LOGGER.error("Failed to drop items for ritual", e);
             return RitualResult.FAILED;
         }
         showRitualEffect(level, pos);
@@ -608,7 +626,7 @@ public class WishingWellHandler {
     {
         ServerLevel currentLevel = (ServerLevel) marketplace.getColony().getWorld();
 
-        if (state.companionCount < ritual.companionItemCount()) 
+        if (state.getCompanionCount() < ritual.companionItemCount()) 
         {
             return RitualResult.NEEDS_INGREDIENTS;
         }
@@ -620,6 +638,11 @@ public class WishingWellHandler {
 
             for (ICitizenData citizen : citizens) 
             {
+                if (!citizen.getEntity().isPresent()) 
+                {
+                    continue;
+                }
+
                 AbstractEntityCitizen entity = citizen.getEntity().get();
 
                 if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get())) 
@@ -628,6 +651,7 @@ public class WishingWellHandler {
                     {
                         entity.setHealth(entity.getMaxHealth());
                         citizen.setSaturation(ICitizenData.MAX_SATURATION);
+                        citizen.getCitizenHappinessHandler().addModifier(new ExpirationBasedHappinessModifier(HappinessConstants.HADGREATFOOD, 2.0, new StaticHappinessSupplier(2.0), 5));
 
                         entity.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),
                             (float) SoundUtils.BASIC_VOLUME,
@@ -652,10 +676,160 @@ public class WishingWellHandler {
         }
         catch (Exception e)
         {
-            MCTradePostMod.LOGGER.error("Failed to process community ritual.", e);
+            LOGGER.error("Failed to process community ritual.", e);
             return RitualResult.FAILED;
         }
         showRitualEffect(currentLevel, pos);
+        return RitualResult.COMPLETED;
+    }
+
+
+    /**
+     * Processes an outpost ritual at the specified BlockPos within the ServerLevel.
+     * This ritual sets up an outpost claim marker at the specified BlockPos and connects it to the nearest station.
+     * It handles all validations to ensure outposts are in valid locations.
+     * @param level the ServerLevel where the ritual is taking place
+     * @param pos the BlockPos of the wishing well structure
+     * @param ritual the ritual definition containing the target item and companion item count
+     * @param state the current state of the ritual, including companion item count
+     * @param marketplace the BuildingMarketplace containing the Colony and its buildings
+     * @return RitualResult indicating whether the ritual was completed, needed ingredients,
+     * or failed due to an error
+     **/
+   public static RitualResult processRitualOutpost(BuildingMarketplace marketplace, BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
+    {
+        
+        if (state.getCompanionCount() < ritual.companionItemCount()) 
+        {
+            return RitualResult.NEEDS_INGREDIENTS;
+        }
+
+        if (!MCTPConfig.outpostEnabled.get())
+        {
+            LOGGER.warn("The Outpost is disabled on this server.", state.getCompanionCount());
+            MessageUtils.format("The Outpost is disabled on this server.").sendTo(marketplace.getColony()).forAllPlayers();
+            return RitualResult.FAILED;
+        }
+
+        IBuilding outpostBuilding = marketplace.getColony().getBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.outpost);
+        if (outpostBuilding != null)
+        {
+            LOGGER.warn("Only one outpost may be claimed per colony.", state.getCompanionCount());
+            MessageUtils.format("Only one outpost may be claimed per colony.").sendTo(marketplace.getColony()).forAllPlayers();
+            return RitualResult.FAILED;
+        }
+
+
+        double outpostClaimLevel = marketplace.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.OUTPOST_CLAIM);  
+
+        if (outpostClaimLevel == 0) 
+        {
+            MessageUtils.format("To wish for an outpost claim you must first complete the research.").sendTo(marketplace.getColony()).forAllPlayers();
+            return RitualResult.FAILED;
+        }
+
+        try
+        {
+            if (state.getCompanionCount() != 1) 
+            {
+                LOGGER.warn("Outpost ritual called with incorrect number of companion items ({}). One and only one outpost claim marker is required.", state.getCompanionCount());
+                MessageUtils.format("One and only one outpost claim marker is required.").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+            
+            ItemStack companionItem = state.companionItems.get(0).getItem();
+
+            if (!(companionItem.getItem() instanceof OutpostClaimMarkerItem))
+            {
+                LOGGER.warn("Outpost ritual called with unrecognized companion item.");
+                MessageUtils.format("Outpost ritual called with unrecognized companion item.").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }   
+
+            BlockPos claimLocation = OutpostClaimMarkerItem.getLinkedBlockPos(companionItem);
+
+            if (claimLocation == null || BlockPos.ZERO.equals(claimLocation))
+            {
+                LOGGER.warn("Outpost ritual called with unset claim location.");
+                MessageUtils.format("Outpost ritual called with unset claim location.").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+
+            boolean connected = false;
+            Colony colony = (Colony) marketplace.getColony();
+
+            BlockPos colonyCenter = colony.getCenter();
+            int maxDistance = MCTPConfig.maxDistance.get();
+
+            if (colonyCenter.distSqr(claimLocation) > (maxDistance * maxDistance))
+            {
+                LOGGER.warn("Outpost ritual called distance greater than max distance.");
+                MessageUtils.format("Outpost distance is too large - the maximum is " + maxDistance + ".").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+
+            List<BuildingStation> stations  = new ArrayList<>();
+
+            Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
+            for (IBuilding building : buildings)
+            {
+                if (building instanceof BuildingStation station)
+                {
+                    stations.add(station);
+                    TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) marketplace.getColony().getWorld(), claimLocation, station.getRailStartPosition(), true);
+
+                    if (result.isConnected())
+                    {
+                        connected = true;
+                        break;
+                    }
+                }
+            }
+
+            if (stations.isEmpty())
+            {
+                LOGGER.warn("A station is required for the outpost ritual.");
+                MessageUtils.format("A station is required for the outpost ritual.").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+
+            if (connected)
+            {
+                final int range = 1;
+                boolean canClaim = ChunkDataHelper.canClaimChunksInRange(colony.getWorld(), claimLocation, range + 1);
+
+                if (canClaim)
+                {
+
+                    ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, range, (ServerLevel) colony.getWorld(), false); 
+                    BlockOutpostMarker.placeOutpostMarker((ServerLevel) marketplace.getColony().getWorld(), claimLocation, null);
+                }
+                else
+                {
+                    LOGGER.warn("The attempted claim is too close to another colony.");
+                    MessageUtils.format("The attempted claim is too close to another colony.").sendTo(marketplace.getColony()).forAllPlayers();
+                    return RitualResult.FAILED;
+                }
+
+            }
+            else
+            {
+                LOGGER.warn("The outpost claim at {} must be connected to one of these train stations {} via track.", claimLocation, stations);
+                MessageUtils.format("The outpost claim location must be connected to a train station via track.").sendTo(marketplace.getColony()).forAllPlayers();
+                return RitualResult.FAILED;
+            }
+
+
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to drop items for ritual", e);
+            return RitualResult.FAILED;
+        }
+
+        showRitualEffect((ServerLevel) marketplace.getColony().getWorld(), pos);
+        MessageUtils.format("An outpost has been claimed at " + pos.toShortString()).sendTo(marketplace.getColony()).forAllPlayers();
+        
         return RitualResult.COMPLETED;
     }
 
@@ -674,7 +848,7 @@ public class WishingWellHandler {
      */
     private static RitualResult triggerRitual(BuildingMarketplace marketplace, RitualState state, BlockPos pos, Item companionItem) 
     {
-        MCTradePostMod.LOGGER.info("Processing rituals at {} with companion item {} and {} base coins, {} gold coins and {} diamond coins.", 
+        LOGGER.info("Processing rituals at {} with companion item {} and {} base coins, {} gold coins and {} diamond coins.", 
             pos, companionItem, state.entityCount(state.baseCoins), state.entityCount(state.goldCoins), state.entityCount(state.diamondCoins));    
         
         Collection<RitualDefinitionHelper> rituals = RitualManager.getAllRituals().values();
@@ -735,8 +909,12 @@ public class WishingWellHandler {
                         result =  processRitualCommunity(marketplace, pos, ritual, state);
                         break;
 
+                    case RitualManager.RITUAL_EFFECT_OUTPOST:
+                        result =  processRitualOutpost(marketplace, pos, ritual, state);
+                        break;
+
                     default:
-                        MCTradePostMod.LOGGER.warn("Unknown ritual effect: {}", ritual.effect());
+                        LOGGER.warn("Unknown ritual effect: {}", ritual.effect());
                         break;
                 }
                 
@@ -788,126 +966,4 @@ public class WishingWellHandler {
         }
     }
 
-    public enum RitualResult 
-    {
-        UNRECOGNIZED,
-        NEEDS_INGREDIENTS,
-        FAILED,
-        COMPLETED
-    }
-
-    static public class RitualState 
-    {
-        public List<ItemEntity> baseCoins = null;
-        public List<ItemEntity> goldCoins = null;
-        public List<ItemEntity> diamondCoins = null;
-        public int companionCount = 0;
-        public long lastUsed = 0L;
-
-        // Transient caches used only until we’ve rebuilt from world
-        public int cachedBaseCount = 0;
-        public int cachedGoldCount = 0;
-        public int cachedDiamondCount = 0;
-
-        /**
-         * Returns the total number of items in the given list of ItemEntities
-         * @param list the list of ItemEntities to count
-         * @return the total number of items
-         */
-        public int entityCount(List<ItemEntity> list)
-        {
-            int count = 0;
-            for (ItemEntity entity : list) 
-            {
-                count += entity.getItem().getCount();
-            }
-            return count;
-        }
-
-
-        /** Count with fallback to cached values if pools not yet rebuilt */
-        private int countWithFallback(List<ItemEntity> list, int cached)
-        {
-            return (list != null) ? entityCount(list) : cached;
-        }
-
-        /**
-         * Returns true if the given requirementStack can be fulfilled by the
-         * contents of the wishing well's inventory.
-         * 
-         * @param requirementStack the stack of items required by the ritual
-         * @return whether the well has enough items to fulfill the requirement
-         */
-        public boolean meetsRequirements(ItemStorage requirementStack)
-        {
-            if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_ITEM.get()))
-            {
-                return countWithFallback(baseCoins, cachedBaseCount) >= requirementStack.getItemStack().getCount();
-            }
-            else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_GOLD.get()))
-            {
-                return countWithFallback(goldCoins, cachedGoldCount) >= requirementStack.getItemStack().getCount();
-            }
-            else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_DIAMOND.get()))
-            {
-                return countWithFallback(diamondCoins, cachedDiamondCount) >= requirementStack.getItemStack().getCount();
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        /**
-         * Removes the given number of coins from the wishing well's inventory.
-         * 
-         * @param requirementStack the stack of items to remove from the well
-         */
-        public void burnCoins(ItemStorage requirementStack)
-        {
-            int toBurn = requirementStack.getItemStack().getCount();
-            if (toBurn <= 0) return;
-
-            // Select the correct coin pool based on item type
-            final Item reqItem = requirementStack.getItemStack().getItem();
-            List<ItemEntity> pool = null;
-            if (reqItem == MCTradePostMod.MCTP_COIN_ITEM.get())
-            {
-                pool = this.baseCoins;
-            }
-            else if (reqItem == MCTradePostMod.MCTP_COIN_GOLD.get())
-            {
-                pool = this.goldCoins;
-            }
-            else if (reqItem == MCTradePostMod.MCTP_COIN_DIAMOND.get())
-            {
-                pool = this.diamondCoins;
-            }
-            if (pool == null || pool.isEmpty()) return;
-
-            // Consume from only the selected pool
-            for (Iterator<ItemEntity> it = pool.iterator(); it.hasNext() && toBurn > 0;)
-            {
-                ItemEntity entity = it.next();
-                ItemStack stack = entity.getItem();
-                int inStack = stack.getCount();
-
-                if (inStack > toBurn)
-                {
-                    // Burn part of the stack
-                    stack.shrink(toBurn);
-                    toBurn = 0;
-                    // entity remains with reduced count
-                }
-                else
-                {
-                    // Burn the whole stack
-                    toBurn -= inStack;
-                    entity.discard();   // remove from world
-                    it.remove();        // keep your cached list in sync
-                }
-            }
-        }
-
-    }
 } 

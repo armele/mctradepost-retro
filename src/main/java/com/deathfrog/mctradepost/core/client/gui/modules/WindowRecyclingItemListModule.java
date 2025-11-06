@@ -1,15 +1,16 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.minecolonies.api.colony.buildings.modules.IItemListModuleView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.modules.ItemListModuleWindow;
+
+import net.minecraft.resources.ResourceLocation;
 
 public class WindowRecyclingItemListModule extends ItemListModuleWindow
 {
 
-    public WindowRecyclingItemListModule(String res, IBuildingView building, IItemListModuleView moduleView)
+    public WindowRecyclingItemListModule(IItemListModuleView moduleView, ResourceLocation resource)
     {
-        super(res, building, moduleView);
+        super(moduleView, resource);
     }
 
    protected void updateResourceList() {

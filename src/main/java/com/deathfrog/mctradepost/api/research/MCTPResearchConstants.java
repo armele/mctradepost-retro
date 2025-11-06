@@ -12,6 +12,7 @@ public class MCTPResearchConstants {
     public static final ResourceLocation TRADECAPACITY = getResearchEffectID("tradecapacity");
     public static final ResourceLocation ADVERTISING = getResearchEffectID("advertising");
     public static final ResourceLocation FIVE_STAR_SERVICE = getResearchEffectID("fivestarservice");
+    public static final ResourceLocation OUTPOST_CLAIM = getResearchEffectID("outpost_claim");
 
     public static ResourceLocation getResearchEffectID(String researchName) {
         return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "effects/" + researchName);

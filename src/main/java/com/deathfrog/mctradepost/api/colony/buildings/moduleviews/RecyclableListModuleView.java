@@ -10,6 +10,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.api.util.Utils;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 public class RecyclableListModuleView extends ItemListModuleView
@@ -17,7 +18,7 @@ public class RecyclableListModuleView extends ItemListModuleView
     // protected Function<IBuildingView, Set<ItemStorage>> whItems;
     private final List<ItemStorage> pendingItems = new ArrayList<>();
 
-    public RecyclableListModuleView(String id, String desc, boolean inverted)
+    public RecyclableListModuleView(String id, Component desc, boolean inverted)
     {
         super(id, desc, inverted, building -> ((RecyclingView) building).getRecyclableItems());
     }
@@ -39,9 +40,9 @@ public class RecyclableListModuleView extends ItemListModuleView
      * @return The description of the module.
      */
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables";
+        return Component.translatable("com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables");
     }
 
     /**

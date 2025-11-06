@@ -2,10 +2,12 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 import java.util.Queue;
 
@@ -26,9 +28,15 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationEx
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
+import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
+import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolver;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -37,19 +45,34 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
+import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
+import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
+import com.minecolonies.api.util.constant.CitizenConstants;
+import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
+import com.minecolonies.core.colony.buildings.modules.WarehouseRequestQueueModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.eventhooks.citizenEvents.VisitorSpawnedEvent;
 import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
+import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
+import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -67,16 +90,21 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-
 import static com.minecolonies.api.util.constant.Constants.MAX_STORY;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST_REQUESTS;
 
-public class BuildingStation extends AbstractBuilding 
+public class BuildingStation extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static String EXPORTS_SHIPPED = "exports_shipped";
     public static String IMPORTS_RECEIVED = "imports_received";
+    public static String NBT_TDR_TOKEN = "tdr_token";
+
+    protected TrainDeliveryResolver trainDeliveryResolver;
+    protected IToken<?> trainDeliveryResolverToken = null;
 
     /**
      * List of additional citizens (visitors)
@@ -91,15 +119,15 @@ public class BuildingStation extends AbstractBuilding
     /**
      * Structurize position tag for the start of the rail network in this station.
      */
-    private final String STATION_START = "station_start";
+    public static final String STATION_START = "station_start";
 
     /**
      * Map of station data for other stations (by station block position).
      */
-    private Map<BlockPos, StationData> stations = new HashMap<>();
+    private Map<BlockPos, StationData> stations = new ConcurrentHashMap<>();
 
     /**
-     * Map of track connection results for other stations (by station data).
+     * Map of track connection results for other trade capable buildings (by station data).
      */
     private Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
 
@@ -112,6 +140,11 @@ public class BuildingStation extends AbstractBuilding
      * Delay for spawning more visitors when a spot opens up.
      */
     private int noVisitorTime = 10000;
+
+    /**
+     * List of requests that have been removed from the queue.
+     */
+    protected final List<IToken<?>> handledRequestList = new ArrayList<>();
 
     public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
     public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
@@ -152,6 +185,21 @@ public class BuildingStation extends AbstractBuilding
     public void clearConnectedStations() 
     {
         stations.clear();
+    }
+
+    /**
+     * Clears the list of exports for this station.
+     * This will remove all export data from the station, and mark the module as dirty so that it will be saved to disk.
+     * This is useful when the user changes the trade settings, so that the client can receive the updated trade data.
+     */
+    public void clearExports()
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+
+        if (exports != null)
+        {
+            exports.clearExports();
+        }
     }
 
     /**
@@ -278,7 +326,7 @@ public class BuildingStation extends AbstractBuilding
 
             IBuilding building = stationColony.getBuildingManager().getBuilding(remoteStation.getBuildingPosition());
 
-            if (building == null || !(building instanceof BuildingStation)) {
+            if (building == null || !(building instanceof ITradeCapable)) {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
                 markTradesDirty();
@@ -429,27 +477,43 @@ public class BuildingStation extends AbstractBuilding
     }
 
     /**
+     * Gets the stationmaster (worker) assigned to this building.
+     *
+     * @return the stationmaster, or null if none is found.
+     */
+    public ICitizenData getStationmaster()
+    {
+        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get()).getAssignedCitizen();
+        
+        if (employees.isEmpty()) {
+            return null;
+        }
+    
+        return employees.get(0);
+    }
+
+    /**
      * Returns true if the station is open for business, i.e. if it has a
      * stationmaster assigned and they are working.
      * @return true if the station is open for business, false otherwise.
      */
     public boolean isOpenForBusiness() 
     {
-        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get()).getAssignedCitizen();
-        
-        if (employees.isEmpty()) {
+        ICitizenData stationmaster = getStationmaster();
+
+        if (stationmaster == null) {
             return false;
         }
     
-        final Optional<AbstractEntityCitizen> optionalEntityCitizen = employees.get(0).getEntity();
+        final Optional<AbstractEntityCitizen> optionalEntityCitizen = stationmaster.getEntity();
 
         if (!optionalEntityCitizen.isPresent()) {
             return false;
         }
         
-        AbstractEntityCitizen stationmaster = optionalEntityCitizen.get();
+        AbstractEntityCitizen stationmasterEntity = optionalEntityCitizen.get();
 
-        IState workState = ((EntityCitizen) stationmaster).getCitizenAI().getState();
+        IState workState = ((EntityCitizen) stationmasterEntity).getCitizenAI().getState();
 
         return CitizenAIState.WORKING.equals(workState);
     }
@@ -463,10 +527,20 @@ public class BuildingStation extends AbstractBuilding
 
         for (Map.Entry<BlockPos, StationData> entry : stations.entrySet())
         {
-            stationTagList.add(entry.getValue().toNBT());
+            if (entry.getValue() != null && !BlockPos.ZERO.equals(entry.getValue().getBuildingPosition()) &&
+                !BlockPos.ZERO.equals(entry.getValue().getRailStartPosition()))
+            {
+                stationTagList.add(entry.getValue().toNBT());
+            }
         }
 
         compound.put(TAG_STATIONS, stationTagList);
+
+        if (trainDeliveryResolverToken != null)
+        {
+            CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, trainDeliveryResolverToken);
+            compound.put(NBT_TDR_TOKEN, outpostToken);
+        }
 
         return compound;
     }
@@ -497,6 +571,11 @@ public class BuildingStation extends AbstractBuilding
             }
         }
 
+        if (compound.contains(NBT_TDR_TOKEN)) 
+        {
+            trainDeliveryResolverToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_TDR_TOKEN));
+        }
+
     }
 
     /**
@@ -514,6 +593,14 @@ public class BuildingStation extends AbstractBuilding
         for (final Entry<BlockPos, StationData> station : stations.entrySet())
         {
             buf.writeNbt(station.getValue().toNBT());
+        }
+
+
+        buf.writeInt(connectionresults.size());
+        for (final Map.Entry<StationData, TrackConnectionResult> e : connectionresults.entrySet()) 
+        {
+            buf.writeNbt(e.getKey().toNBT());       // key
+            buf.writeBoolean(e.getValue().connected);     // value
         }
     }
 
@@ -582,7 +669,6 @@ public class BuildingStation extends AbstractBuilding
         return paymentRequests.poll();
     }
 
-
     /**
      * Completes a shipment of goods from this station to another station specified by the export data.
      * This method will add the goods to the remote station's inventory or drop them on the ground if the inventory is full.
@@ -594,12 +680,32 @@ public class BuildingStation extends AbstractBuilding
     {
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
 
-        ItemStack finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+        ItemStack finalPayment = ItemStack.EMPTY;
+        
+        if (exportData.getCost() > 0) 
+        {
+            finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+        }
 
-        StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
-        StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        int shipmentCountdown = exportData.getShipmentCountdown();
+        if (shipmentCountdown > 0) 
+        {
+            shipmentCountdown -= 1;
+            exportData.setShipmentCountdown(shipmentCountdown);
+        }
 
-        BuildingStation remoteStation = exportData.getDestinationStationData().getStation();
+        if (!exportData.isReverse())
+        {
+            StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        }
+        else
+        {
+            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(this, IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+        }
+
+        ITradeCapable remoteStation = exportData.getDestinationStationData().getStation();
 
         if (remoteStation == null)
         {
@@ -621,55 +727,14 @@ public class BuildingStation extends AbstractBuilding
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
         if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
         {
-            boolean calledForPickup = false;
-            int pickupAmount = exportData.getQuantity();
-            while (pickupAmount > 0)
-            {
-                int thisPickup = 0;
-                if (pickupAmount > exportData.getTradeItem().getItemStack().getMaxStackSize())
-                {
-                    thisPickup = exportData.getTradeItem().getItemStack().getMaxStackSize();
-                }
-                else
-                {
-                    thisPickup = pickupAmount;
-                }
-                pickupAmount -= thisPickup;
-                IToken<?> token = BuildingUtil.bringThisToTheWarehouse(remoteStation, new ItemStack(exportData.getTradeItem().getItemStack().getItem(), thisPickup));
-
-                if (token != null)
-                {
-                    calledForPickup = true;
-                }
-            }
-
-            if (calledForPickup)
-            {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", remoteStation.getBuildingDisplayName(), remoteStation.getPosition()));
-            }
-
+            remoteStation.onShipmentReceived(exportData);
         }
         else
         {
             MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
         }
     
-        
-        if (!getAllAssignedCitizen().isEmpty())
-        {
-            ICitizenData exportWorker = getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-            exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
-        }
-        
-        if (!remoteStation.getAllAssignedCitizen().isEmpty())
-        {
-            ICitizenData remoteWorker = remoteStation.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
-            
-            if (remoteWorker != null && !remoteWorker.getEntity().isEmpty())
-            {
-                remoteWorker.getEntity().get().getCitizenExperienceHandler().addExperience(exportData.getCost());
-            }
-        }
+        this.onShipmentDelivered(exportData);
         
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Resetting export."));
         
@@ -681,4 +746,542 @@ public class BuildingStation extends AbstractBuilding
             exportData.setCart(null);
         }
     }
+
+    /**
+     * Called when a shipment is delivered to this station.
+     * If the shipment has an associated request token, the request is resolved.
+     * Additionally, all assigned citizens at this station receive 1 experience point.
+     * @param shipmentSent the export data containing the shipment that was delivered.
+     */
+    @Override
+    public void onShipmentDelivered(ExportData shipmentSent)
+    {
+
+        if (shipmentSent.getRequestToken() != null)
+        {
+            IRequest<?> associatedRequest = null;
+            
+            try 
+            {
+                IRequestManager requestManager = this.getColony().getRequestManager();
+                associatedRequest = requestManager.getRequestForToken(shipmentSent.getRequestToken());
+                
+                if (associatedRequest != null)
+                {
+                    resolveRequest(associatedRequest, true);
+                }
+            }
+            catch (Exception e)
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request for token {} no longer valid (possibly cancelled while shipping).", shipmentSent.getRequestToken(), e));
+            }
+
+        }
+
+
+        for (ICitizenData citizen : getAllAssignedCitizen())
+        {
+            if (!citizen.getEntity().isEmpty())
+            {
+                citizen.getEntity().get().getCitizenExperienceHandler().addExperience(1);
+            }
+        }
+
+    }
+
+    /**
+     * Called when a shipment has been received at this building. This method is used to call for a pickup for the received items.
+     * If the building is an outpost, it will call for a pickup for the full amount of the shipment. If the building is not an outpost, it will call for a pickup for each stack of the shipment, up to the max stack size of the item.
+     * 
+     * @param itemShipped the shipment that was received
+     */
+    @Override
+    public void onShipmentReceived(ExportData shipmentReceived)
+    {
+        boolean calledForPickup = false;
+        int pickupAmount = shipmentReceived.getQuantity();
+        while (pickupAmount > 0)
+        {
+            int thisPickup = 0;
+            if (pickupAmount > shipmentReceived.getTradeItem().getItemStack().getMaxStackSize())
+            {
+                thisPickup = shipmentReceived.getTradeItem().getItemStack().getMaxStackSize();
+            }
+            else
+            {
+                thisPickup = pickupAmount;
+            }
+            pickupAmount -= thisPickup;
+            IToken<?> token = BuildingUtil.bringThisToTheWarehouse(this, new ItemStack(shipmentReceived.getTradeItem().getItemStack().getItem(), thisPickup));
+
+            if (token != null)
+            {
+                calledForPickup = true;
+            }
+        }
+
+        if (calledForPickup)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", this.getBuildingDisplayName(), this.getPosition()));
+        }
+
+        if (!this.getAllAssignedCitizen().isEmpty())
+        {
+            ICitizenData worker = this.getStationmaster();
+            
+            if (worker != null && !worker.getEntity().isEmpty())
+            {
+                worker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentReceived.getCost());
+            }
+        }
+    }
+
+
+    /**
+     * Returns a list of connected outpost buildings.
+     * A connected outpost is defined as one which is connected to this station by a track,
+     * and is part of the same colony as this station.
+     * @return a list of connected outpost buildings
+     */
+    public List<BuildingOutpost> findConnectedOutposts()
+    {
+        List<BuildingOutpost> outposts = new ArrayList<>(); 
+        for (StationData stationData : connectionresults.keySet())
+        {
+            TrackConnectionResult connectionResult = connectionresults.get(stationData);
+
+            if (connectionResult.isConnected() 
+                && stationData.getStation() instanceof BuildingOutpost outpost
+                && this.getColony().getID() == outpost.getColony().getID())
+            {
+                outposts.add(outpost);
+            }
+        }
+        return outposts;
+    }
+
+    /**
+     * Analyzes all requests from connected outposts and attempts to resolve them.
+     * If a request is in the CREATED or ASSIGNED state, it checks if the outpost has a qualifying item to ship.
+     * If so, it initiates a shipment and sets the request state to RESOLVED.
+     * If no qualifying item is found, it echoes the request to the stationmaster and sets the request state to ASSIGNED.
+     * If the request is already in progress, it does nothing.
+     * This method is called as needed by the worker's AI.
+     */
+    public void handleOutpostRequests()
+    {
+        final WarehouseRequestQueueModule module = this.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
+        if (module == null)
+        {
+            LOGGER.error("No request queue module found on station: {}", this.getBuildingDisplayName());
+            return;
+        }
+
+        ICitizenData stationmaster = getStationmaster();
+
+        if (stationmaster == null)
+        {
+            // Cannot do work (no station master)
+            return;
+        }
+
+        final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
+        IRequestResolver<?> currentlyAssignedResolver = null;
+ 
+        final List<IToken<?>> openTaskList = module.getMutableRequestList();
+        final List<IToken<?>> reqsToRemove = new ArrayList<>();
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} tasks for station: {} in colony {}.", openTaskList.size(), this.getBuildingDisplayName(), this.getColony().getID()));
+
+        int car = 1;
+
+        // Cycle through open task list, see if we have something that can
+        // be shipped, and ship it if so. Remove it from the task list once shipped.
+        for (final IToken<?> requestToken : openTaskList)
+        {   
+            final IRequest<?> request = requestManager.getRequestForToken(requestToken);
+
+            if (request == null || !(request.getRequest() instanceof Delivery delivery))
+            {
+                reqsToRemove.add(requestToken);
+                continue;
+            }
+
+            try
+            {
+                currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+            } catch (IllegalArgumentException e)
+            {
+                // Repair request if it is not registered with the request manager.
+                // requestManager.getRequestHandler().registerRequest(request);
+                // requestManager.assignRequest(request.getId());
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
+                continue;
+            }
+            
+            IBuilding destinationBuilding = this.getColony().getBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
+
+            if (destinationBuilding == null || !(destinationBuilding instanceof BuildingOutpost outpost))
+            {
+                // Our destination outpost is no longer valid.
+                reqsToRemove.add(requestToken);
+                continue;
+            }
+
+            OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
+
+            if (
+                (
+                        tracking.getState() == OutpostOrderState.NEEDED 
+                    || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
+                    || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP
+                )
+                    && !handledRequestList.contains(request.getId())
+                    && !reqsToRemove.contains(request.getId())
+            ) {
+                boolean satisfied = trySatisfyRequest(request, outpost, car++);
+                
+                if (satisfied)
+                {
+                    tracking.setState(OutpostOrderState.SHIPMENT_INITIATED);
+                    reqsToRemove.add(requestToken);
+                    continue;
+                }
+            }
+        }
+
+        module.getMutableRequestList().removeAll(reqsToRemove);
+        module.markDirty();
+        handledRequestList.addAll(reqsToRemove);
+
+        // Cycle through any still outstanding outpost requests (even if not in our task list)
+        // and see if we have something they need. Add a delivery for it, if so.
+        for (BuildingOutpost outpost : findConnectedOutposts())
+        {
+            final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests(false);
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.", remainingRequests.size(), outpost.getBuildingDisplayName(), this.getColony().getID()));
+
+            if (remainingRequests == null || remainingRequests.isEmpty())
+            {
+                continue;
+            }
+
+            for (IRequest<?> request : remainingRequests)
+            {
+                if (handledRequestList.contains(request.getId()) || request.hasChildren())
+                {
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} was already shipped or is scheduled to be shipped - skipping.", request.getId(), request.getState(),request.getLongDisplayString()));
+                    continue;
+                }
+
+                // Set up a delivery in our task list for this request if it is missing.
+                boolean addedDelivery = addTaskForDeliveryIfMissing(request, outpost);
+
+                // If we didn't add a task to deliver this request, see if we can satisfy it with our inventory.
+                if (!addedDelivery)
+                {
+                    ItemStorage satisfier = inventorySatisfiesRequest(request, true);
+
+                    if (satisfier != null)
+                    {
+                        // Attempting to use the request system to generate the delivery request (which will populate our work queue).
+                        // If this doesn't work, we'll have to ship it and let the cancellation logic at the outpost handle it.
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has a satisfier: {}", request.getId(), request.getState(), request.getLongDisplayString(), satisfier));
+                        Delivery delivery = new Delivery(this.getLocation(), outpost.getLocation(), satisfier.getItemStack().copyWithCount(satisfier.getAmount()), 0);
+                        IToken<?> deliveryRequestToken = outpost.createRequest(delivery, true);
+                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
+                        deliveryRequest.setParent(request.getId());
+                        request.addChild(deliveryRequestToken);
+
+                        requestManager.updateRequestState(request.getId(), RequestState.IN_PROGRESS);
+
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} had a delivery created: {} (state {})", 
+                            request.getId(), request.getState(), request.getLongDisplayString(), deliveryRequestToken, deliveryRequest.getState()));
+
+                        handledRequestList.add(request.getId());
+                    }
+                    else
+                    {
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no satisfier.", request.getId(), request.getState(), request.getLongDisplayString()));
+
+                        if (!request.hasChildren() && request instanceof IDeliverable outstandingNeed)
+                        {
+                            IDeliverable deliverableCopy = ((IDeliverable) request.getRequest()).copyWithCount(outstandingNeed.getCount());
+                            IToken<?> copyToken = this.createRequest(deliverableCopy, false);
+
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no child steps and is a deliverable - creating a new request for the station: {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
+
+                        }
+                        else if (!request.hasChildren() && request instanceof ItemStackRequest stackrequest)
+                        {
+                            IToken<?> copyToken = this.createRequest(stackrequest.getRequest(), false);
+
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is echoed to {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
+                        }
+                        else
+                        {
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is not being echoed. Children: {}, Instance: {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), request.getChildren().size(), request.getClass().getSimpleName()));
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    /**
+     * Handles the completion of a request in the task queue. If the request was successful, marks it as resolved; otherwise, marks it as failed.
+     * If the request was a delivery, attempts to resolve any dependent requests (i.e. other deliveries to the same outpost) and updates the state of those requests accordingly.
+     * 
+     * Adapted from JobDeliveryman
+     * 
+     * @param request the request to finish
+     * @param successful whether the request was successful or not
+     */
+    public void resolveRequest(IRequest<?> request, final boolean successful)
+    {
+        if (request == null)
+        {
+            return;
+        }
+
+        if (request.getRequest() instanceof Delivery)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} - {} (state {}) about to be marked as resolved.", request.getId(), request.getLongDisplayString(), request.getState()));
+
+            if (request.getState() == RequestState.IN_PROGRESS)
+            {
+                getColony().getRequestManager().updateRequestState(request.getId(), successful ? RequestState.RESOLVED : RequestState.FAILED);
+
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} - {} (state {}) post-update.", request.getId(), request.getLongDisplayString(), request.getState()));
+
+                if (request.getParent() != null)
+                {
+                    IRequest<?> parent = getColony().getRequestManager().getRequestForToken(request.getParent());
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Parent Request {} - {} (state {}) post-update.", parent.getId(), parent.getLongDisplayString(), parent.getState()));
+                }
+            }
+        }
+    }
+
+    /**
+     * Adds a delivery request to the station's work queue if it is not already present, and if the request is a delivery
+     * from this station to the given outpost.
+     * @param request The request to check for adding to the work queue.
+     * @param outpost The outpost to check for delivery requests to.
+     * @return True if the request was added to the work queue, false otherwise.
+     */
+    protected boolean addTaskForDeliveryIfMissing(@Nonnull IRequest<?> request, BuildingOutpost outpost)
+    {
+        boolean addedDelivery = false;
+        final WarehouseRequestQueueModule module = this.getModule(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
+        if (module == null)
+        {
+            LOGGER.error("No request queue module found on station: {}", this.getBuildingDisplayName());
+            return false;
+        }
+
+        if (request.getRequest() instanceof Delivery delivery)
+        {
+            BlockPos deliveryTargetPos = delivery.getTarget().getInDimensionLocation();
+            IBuilding deliveryTargetBuilding = getColony().getBuildingManager().getBuilding(deliveryTargetPos);
+
+            if (deliveryTargetBuilding == null)
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} - {} from {} to {} is missing a target building at that location.", 
+                    request.getId(), 
+                    request.getLongDisplayString(), 
+                    delivery.getStart().getInDimensionLocation().toShortString(), 
+                    delivery.getTarget().getInDimensionLocation().toShortString()));
+                return false;
+            }
+
+            IBuilding outpostDeliveryTarget = BuildingOutpost.toOutpostBuilding(deliveryTargetBuilding);
+
+            // If this is a delivery to the outpost in question from this station, add it to our work queue.
+            if (outpostDeliveryTarget != null && outpostDeliveryTarget.equals(outpost)
+                && delivery.getStart().getInDimensionLocation().equals(this.getPosition())
+                && !module.getMutableRequestList().contains(request.getId())) 
+            {
+                module.addRequest(request.getId());
+                addedDelivery = true;
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} added to station queue.", request.getId(), request.getState(), request.getLongDisplayString()));
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} - {} from {} to {} is not a station {} to outpost {} request.", 
+                    request.getId(), 
+                    request.getLongDisplayString(), 
+                    delivery.getStart().getInDimensionLocation().toShortString(), 
+                    delivery.getTarget().getInDimensionLocation().toShortString(), 
+                    this.getPosition().toShortString(), 
+                    outpost.getPosition().toShortString()));
+            }
+        } 
+        else 
+        {
+            for (IToken<?> childRequest : request.getChildren())
+            {
+                addedDelivery = addedDelivery || addTaskForDeliveryIfMissing(this.getColony().getRequestManager().getRequestForToken(childRequest), outpost) || addedDelivery;
+            }
+        }
+
+        return addedDelivery;
+    }
+
+    /**
+     * Check if we can satisfy the given request from an outpost. If so, initiate a shipment and mark the request as resolved.
+     * If not, check if we need an item to be delivered in order to satisfy the request. If so,
+     * request that item and mark the request as needing an item for shipping.
+     * @param request The request to check for satisfaction.
+     * @param outpost The outpost to check for satisfaction.
+     * @param car The car to use for the shipment.
+     * @return A list of request tokens to remove from the outpost's request list.
+     */
+    protected boolean trySatisfyRequest(@Nonnull IRequest<?> request, @Nonnull BuildingOutpost outpost, int car)
+    {
+        
+        boolean satisfied = false;
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking if satisfiable: {} (state {}) - {}", request.getId(), request.getState(), request.getLongDisplayString()));
+        // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
+        ItemStorage satisfier = inventorySatisfiesRequest(request, true);
+
+        if (satisfier != null)
+        {
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Station has something to ship: {}", satisfier));
+            initiateShipment(satisfier, request, outpost, car);
+            satisfied = true;
+        }
+
+        return satisfied;
+    }
+
+
+    /**
+     * Initiates a shipment of goods from this station to an outpost.
+     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
+     * The shipment data is added to the outpost's expected shipments.
+     * 
+     * @param thingsToDeliver the items to ship
+     * @param associatedRequest the request associated with the shipment
+     * @param outpostDestination the outpost to ship to
+     * @param car When called multiple times in short succession use different car numbers to space them out on the track.
+     */
+    public void initiateShipment(ItemStorage thingsToDeliver, IRequest<?> associatedRequest, BuildingOutpost outpostDestination, int car)
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+        
+        if (exports == null)
+        {
+            LOGGER.error("No export module on connected station - cannot place order.");
+            return;
+        }
+
+        if (thingsToDeliver == null || thingsToDeliver.isEmpty())
+        {
+            LOGGER.error("Shipments should not be initiated with nothing to deliver. Associated request: {} (State {}) - {}", associatedRequest.getId(), associatedRequest.getState(), associatedRequest.getLongDisplayString());
+            return;
+        }
+
+        int cost = 0;
+
+        StationData destinationStation = new StationData(outpostDestination);
+        ExportData export = exports.addExport(destinationStation, thingsToDeliver, cost);
+        export.setRequestToken(associatedRequest.getId());
+        export.setShipmentCountdown(car);
+
+        OutpostShipmentTracking shipment = outpostDestination.trackingForRequest(associatedRequest);
+        shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
+        exports.markDirty();
+        this.markDirty();
+
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Set up export order for {} to {} for request {} - {}.", 
+            thingsToDeliver, 
+            outpostDestination.getBuildingDisplayName(), 
+            associatedRequest == null ? "null" : associatedRequest.getId(), 
+            associatedRequest == null ? "null" : associatedRequest.getLongDisplayString()));
+    }
+
+
+    /**
+     * Initiates a return shipment of goods to this station.
+     * It is the caller's responsibility to eliminate the items from the source inventory.
+     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
+     * 
+     * @param thingsToDeliver the items to ship
+     * @param carNumber the carNumber is used to space out cars when many are being sent in a short time frame.
+     */
+    public void initiateReturn(StationData returningFrom, ItemStorage thingsToDeliver, int carNumber)
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+        
+        if (exports == null)
+        {
+            LOGGER.error("No export module - cannot place return order.");
+            return;
+        }
+
+        if (thingsToDeliver == null || thingsToDeliver.isEmpty())
+        {
+            LOGGER.error("Shipments should not be initiated with nothing to deliver. Item being returned is null.");
+            return;
+        }
+
+        int trackDistance = 0;
+
+        ExportData export = exports.addReturn(returningFrom.getStation(), thingsToDeliver);
+        export.setShipmentCountdown(1);
+        export.setShipDistance(carNumber);
+            
+        TrackConnectionResult tcr = getTrackConnectionResult(returningFrom);
+        if (tcr != null)
+        {
+            trackDistance = tcr.path.size();
+        }
+        else
+        {
+            // Fallback: This should only be needed if the connection got broken between the two stations between checks.
+            // If the connection got broken between the two stations, just use the block positions of the rail start locations.
+            trackDistance = (int) BlockPosUtil.dist(returningFrom.getRailStartPosition(), this.getRailStartPosition());
+        }
+
+        export.setTrackDistance(trackDistance);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
+    }
+
+    /**
+     * Creates a collection of request resolvers for this outpost.
+     * This collection contains all request resolvers from the superclass, as well as an additional resolver for outpost requests.
+     * The outpost request resolver is responsible for resolving requests for the outpost.
+     * @return A collection of request resolvers for this outpost.
+     */
+    @Override
+    public ImmutableCollection<IRequestResolver<?>> createResolvers()
+    {
+        final ImmutableCollection<IRequestResolver<?>> supers = super.createResolvers();
+        final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
+
+        if (trainDeliveryResolverToken != null)
+        {
+            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), trainDeliveryResolverToken);
+        }
+        else
+        {
+            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), colony.getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN));
+            trainDeliveryResolverToken = trainDeliveryResolver.getId();
+        }
+
+        builder.addAll(supers);
+        builder.add(trainDeliveryResolver);
+
+        return builder.build();
+    }
+
 }

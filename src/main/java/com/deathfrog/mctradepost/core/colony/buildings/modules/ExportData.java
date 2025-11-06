@@ -1,22 +1,33 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
 public class ExportData
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     public static final String TAG_COST = "cost";
     public static final String TAG_QUANTITY = "quantity";
 
@@ -24,34 +35,50 @@ public class ExportData
     {
     };
 
-    private final BuildingStation sourceStation;
+    private final ITradeCapable sourceStation;
     private final StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
-    private final int quantity;
+
+    // By default, ship infinitely. If set >0, the export will only be shipped shipmentCountdown number of times.
+    private int shipmentCountdown = -1;
+    protected boolean reverse = false;
     private int shipDistance = -1;
     private int trackDistance = -1;
     private int lastShipDay = -1;
     private boolean insufficientFunds = false;
+    private IToken<?> requestToken = null;
     private GhostCartEntity cart = null;
 
 
-    public ExportData(BuildingStation sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, int quantity)
+
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
         this.tradeItem = tradeItem;
         this.cost = cost;
-        this.quantity = quantity;
         this.shipDistance = -1;
         this.trackDistance = -1;
         this.lastShipDay = -1;
+        this.shipmentCountdown = -1;
         this.insufficientFunds = false;
+        this.reverse = reverse;
+    }
+
+    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
+    {
+        this(sourceStation, destinationStationData, tradeItem, cost, false);
     }
 
     public StationData getDestinationStationData()
     {
         return destinationStationData;
+    }
+
+    public ITradeCapable getSourceStation()
+    {
+        return sourceStation;
     }
 
     public int getCost()
@@ -61,12 +88,37 @@ public class ExportData
 
     public int getQuantity()
     {
-        return quantity;
+        return tradeItem.getAmount();
     }
 
     public int getShipDistance()
     {
         return shipDistance;
+    }
+
+    public int getShipmentCountdown()
+    {
+        return shipmentCountdown;
+    }
+
+    public void setShipmentCountdown(int shipmentCountdown) 
+    { 
+        this.shipmentCountdown = shipmentCountdown; 
+    }
+
+    public boolean isReverse() 
+    { 
+        return reverse; 
+    } 
+
+    public void setRequestToken(IToken<?> requestToken) 
+    { 
+        this.requestToken = requestToken; 
+    }
+
+    public IToken<?> getRequestToken() 
+    {
+        return requestToken;
     }
 
     /**
@@ -85,11 +137,11 @@ public class ExportData
         ChunkUtil.ensureChunkLoaded(level, path.getFirst());
 
         GhostCartEntity cart =
-            GhostCartEntity.spawn(level, ImmutableList.copyOf(path));
+            GhostCartEntity.spawn(level, ImmutableList.copyOf(path), isReverse());
 
         if (cart == null) return null;
 
-        cart.setTradeItem(this.getTradeItem().getItemStack());
+        cart.setTradeItem(this.getTradeItem().getItemStack().copy());
         this.setCart(cart);
 
         ChunkUtil.releaseChunkTicket(level, path.getFirst(), 1);
@@ -105,17 +157,41 @@ public class ExportData
      */
     public GhostCartEntity spawnCartForTrade()
     {
-        if (cart != null) return cart;
+        if (this.cart != null && this.cart.hasPath()) return cart;
 
         if (sourceStation == null) return null;
 
-        TrackConnectionResult tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
-        if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
+        TrackConnectionResult tcr = null;
+        
+        if (!isReverse())
         {
-            cart = spawnCartForTrade(tcr.path);
+            tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
         }
         else
         {
+            StationData returningLocation = new StationData(this.getSourceStation());
+            ITradeCapable destinationStation = this.getDestinationStationData().getStation();
+
+            if (destinationStation != null)
+            {
+                tcr = destinationStationData.getStation().getTrackConnectionResult(returningLocation);
+            }
+        }
+
+        if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
+        {
+            if (this.cart == null)
+            {
+                this.cart = spawnCartForTrade(tcr.path);
+            }
+            else
+            {
+                this.cart.setPath(tcr.path, isReverse());
+            }
+        }
+        else
+        { 
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Deferring cart spawn for trade - no path information for export: {}", this));
             return null;
         }
 
@@ -191,7 +267,7 @@ public class ExportData
     }
 
     /**
-     * Check if the given item is a cure item.
+     * Check if the given item is an export item item.
      *
      * @param stack      the input stack.
      * @param exportItem the export item.
@@ -239,5 +315,14 @@ public class ExportData
     public boolean isInsufficientFunds()
     {
         return insufficientFunds;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ExportData{" + "sourceStation={" + sourceStation.getLocation().getInDimensionLocation().toShortString()
+        + "}, destinationStation={" + destinationStationData.toString() 
+        + "}, tradeItem=" + tradeItem 
+        + ", reverse=" + reverse +'}';
     }
 }

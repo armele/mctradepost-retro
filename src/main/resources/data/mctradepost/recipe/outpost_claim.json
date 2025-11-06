@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "S": { "item": "minecraft:stick" },
+      "W": { "tag": "minecraft:wool" },
+      "I": { "item": "minecraft:iron_nugget" }
+    },
+    "pattern": [
+      "WS ",
+      " S ",
+      " I "
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:outpost_claim"
+    }
+}
+  

@@ -53,8 +53,12 @@ public class MCTPConfig
     public static final ConfigValue<Integer>  baseTradeSpeed;
     public static final ConfigValue<Integer>  importsPerLevel;
 
-    // Animal Trainier Settings
+    // Animal Trainer Settings
     public static final ConfigValue<Integer>  petsPerLevel;
+
+    // Outpost Settings
+    public static final ConfigValue<Boolean>  outpostEnabled;
+    public static final ConfigValue<Integer>  maxDistance;
 
     static {
         BUILDER.push("marketplace");
@@ -145,7 +149,7 @@ public class MCTPConfig
 
         baseTradeSpeed = BUILDER
             .comment("Base trade speed per building level.")
-            .define("baseTradeSpeed", 3);
+            .define("baseTradeSpeed", 4);
 
         importsPerLevel = BUILDER
             .comment("Number of imports allowed per Station level.")
@@ -159,6 +163,17 @@ public class MCTPConfig
             .comment("Number of pets per building level.")
             .define("petsPerLevel", 2);
         
+        BUILDER.pop();
+
+        // Outpost Settings
+        BUILDER.push("outpost");
+        outpostEnabled = BUILDER
+            .comment("Allow use of the Outpost.")
+            .define("outpostEnabled", true);
+        maxDistance = BUILDER
+            .comment("Maximum distance the outpost can be from the colony center. Note that large values will cause pathing exceptions.")
+            .define("maxDistance", 800);
+
         BUILDER.pop();
 
         SPEC = BUILDER.build(); // Last

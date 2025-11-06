@@ -14,7 +14,8 @@ import com.minecolonies.api.colony.requestsystem.resolver.retrying.IRetryingRequ
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.util.Log;
 
-public class RequestUtil {
+public class RequestUtil 
+{
     public static ImmutableList<IRequest<?>> getOpenRequestsFromBuilding(final IBuilding building, boolean originatorOnly)
     {
         final ArrayList<IRequest<?>> requests = Lists.newArrayList();

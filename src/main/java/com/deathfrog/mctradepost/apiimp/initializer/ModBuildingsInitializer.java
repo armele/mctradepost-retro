@@ -11,16 +11,19 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.views.MarketplaceView;
+import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.PetshopView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.RecyclingView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.ResortView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
 public final class ModBuildingsInitializer
@@ -75,8 +78,8 @@ public final class ModBuildingsInitializer
             resortBuilder.setBuildingViewProducer(() -> ResortView::new);
             resortBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.RESORT_ID));
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUESTSERVICES_WORK);
-            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_WORK);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_CRAFT);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
@@ -113,6 +116,7 @@ public final class ModBuildingsInitializer
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.STATION_CONNECTION);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.IMPORTS);
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.EXPORTS);
+            stationBuilder.addBuildingModuleProducer(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
             stationBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
 
             ModBuildings.station = stationBuilder.createBuildingEntry();
@@ -135,6 +139,26 @@ public final class ModBuildingsInitializer
 
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
                 registry.register(ModBuildings.petshop.getRegistryName(), ModBuildings.petshop);
+            });
+
+            BuildingEntry.Builder outpostBuilder = new BuildingEntry.Builder();
+            outpostBuilder.setBuildingBlock(MCTradePostMod.blockHutOutpost.get());
+            outpostBuilder.setBuildingProducer((colony, blockPos) -> new BuildingOutpost(colony, blockPos, ModBuildings.OUTPOST_ID, 5));
+            outpostBuilder.setBuildingViewProducer(() -> OutpostView::new);
+            outpostBuilder.setRegistryName(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ModBuildings.OUTPOST_ID));
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.SCOUT_WORK);
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
+            outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_EXPORTS);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDING_RESOURCES);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDER_SETTINGS);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
+            outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
+
+            ModBuildings.outpost = outpostBuilder.createBuildingEntry();
+
+            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
+                registry.register(ModBuildings.outpost.getRegistryName(), ModBuildings.outpost);
             });
         }
         

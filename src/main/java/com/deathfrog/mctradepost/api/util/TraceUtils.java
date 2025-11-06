@@ -21,6 +21,9 @@ public class TraceUtils {
     public static final String TRACE_GUESTSERVICES =    "guestservices";
     public static final String TRACE_ANIMALTRAINER =    "animaltrainer";
     public static final String TRACE_PETGOALS =         "petgoals";
+    public static final String TRACE_OUTPOST =          "outpost";
+    public static final String TRACE_CART =             "cart";
+    public static final String TRACE_OUTPOST_REQUESTS = "outpostrequests";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();
@@ -43,9 +46,9 @@ public class TraceUtils {
             {
                 loggingStatement.run();
             } 
-            catch (Exception e) 
+            catch (Throwable t) 
             {
-                e.printStackTrace();
+                LOGGER.warn("Trace '{}' threw while logging; swallowing.", traceKey, t);
             }
         }
     }
@@ -80,6 +83,9 @@ public class TraceUtils {
         keys.add(TRACE_GUESTSERVICES);
         keys.add(TRACE_ANIMALTRAINER);
         keys.add(TRACE_PETGOALS);
+        keys.add(TRACE_OUTPOST);
+        keys.add(TRACE_CART);
+        keys.add(TRACE_OUTPOST_REQUESTS);
 
         return keys;
     }

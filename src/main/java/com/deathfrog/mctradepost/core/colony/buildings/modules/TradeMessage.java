@@ -3,12 +3,14 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
@@ -135,7 +137,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                     else
                     {
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
-                        building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, itemStack, cost, quantity);
+                        building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, new ItemStorage(itemStack, quantity), cost);
                     }
                     notifyConnectedStations(building, player);
                 }
@@ -159,7 +161,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                 break;
 
             case QUERY:
-                notifyConnectedStations(building, player);
+                // notifyConnectedStations(building, player);
                 break;
 
         }
@@ -177,9 +179,9 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 
             for (StationData remoteStationData : station.getStations().values())
             {
-                if (remoteStationData.getStation() != null && remoteStationData.getTrackConnectionStatus() == TrackConnectionStatus.CONNECTED)
+                if (remoteStationData.getStation() != null && station.getTrackConnectionResult(remoteStationData).connected)
                 {
-                    BuildingStation remoteStation = remoteStationData.getStation();
+                    ITradeCapable remoteStation = remoteStationData.getStation();
                     remoteStation.markTradesDirty();
                     IColony colony = remoteStation.getColony();
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));

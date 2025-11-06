@@ -15,13 +15,13 @@ import com.ldtteam.blockui.controls.EntityIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -32,7 +32,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
-public class WindowPetAssignmentModule extends AbstractModuleWindow
+public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmentModuleView>
 {
     @SuppressWarnings("unused")
     private Logger LOGGER = Logger.getLogger(MCTradePostMod.MODID);
@@ -40,7 +40,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
     /**
      * The resource string.
      */
-    private static final String RESOURCE_STRING = ":gui/layouthuts/layoutpetassignment.xml";
+    private static final String RESOURCE_STRING = "gui/layouthuts/layoutpetassignment.xml";
     private static final String LABEL_HOWTO = "howto";
     private static final String LABEL_TYPE = "pettype";
     private static final String LABEL_OOR = "entityoor";
@@ -53,22 +53,16 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow
     private final ScrollingList petList;
 
     /**
-     * The matching module view to the window.
-     */
-    private final PetAssignmentModuleView moduleView;
-
-    /**
      * Constructor for the minimum stock window view.
      *
      * @param building   class extending
      * @param moduleView the module view.
      */
-    public WindowPetAssignmentModule(final IBuildingView building, final PetAssignmentModuleView moduleView)
+    public WindowPetAssignmentModule(final PetAssignmentModuleView moduleView)
     {
-        super(building, MCTradePostMod.MODID + RESOURCE_STRING);
+        super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
 
         petList = this.window.findPaneOfTypeByID("petlist", ScrollingList.class);
-        this.moduleView = moduleView;
 
     }
 

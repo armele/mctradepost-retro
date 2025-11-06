@@ -11,13 +11,15 @@ public class ModBuildings
     public static final String RESORT_ID        = "resort";
     public static final String RECYCLING_ID     = "recycling";
     public static final String STATION_ID       = "station";
-    public static final String PETSHOP_ID      = "petshop";
+    public static final String PETSHOP_ID       = "petshop";
+    public static final String OUTPOST_ID       = "outpost";
 
     public static BuildingEntry marketplace;
     public static BuildingEntry resort;
     public static BuildingEntry recycling;
     public static BuildingEntry station;
     public static BuildingEntry petshop;
+    public static BuildingEntry outpost;
 
     private ModBuildings()
     {
@@ -33,7 +35,8 @@ public class ModBuildings
             MCTradePostMod.blockHutResort.get(),
             MCTradePostMod.blockHutRecycling.get(),
             MCTradePostMod.blockHutStation.get(),
-            MCTradePostMod.blockHutPetShop.get()
+            MCTradePostMod.blockHutPetShop.get(),
+            MCTradePostMod.blockHutOutpost.get()
         };
     }
 }

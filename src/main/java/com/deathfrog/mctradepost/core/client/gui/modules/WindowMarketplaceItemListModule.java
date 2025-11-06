@@ -9,10 +9,10 @@ import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.buildings.modules.IItemListModuleView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.client.gui.modules.ItemListModuleWindow;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 import static org.jline.utils.AttributedStyle.WHITE;
@@ -21,12 +21,9 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
 {
     public static final String RESOURCE_VALUE = "resourceValue";
 
-    protected MarketplaceItemListModuleView moduleView = null;
-
-    public WindowMarketplaceItemListModule(String res, IBuildingView building, IItemListModuleView moduleView)
+    public WindowMarketplaceItemListModule(IItemListModuleView moduleView, ResourceLocation res)
     {
-        super(res, building, moduleView);
-        this.moduleView = (MarketplaceItemListModuleView) moduleView;
+        super(moduleView, res);
     }
 
     /**
@@ -63,13 +60,13 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                 resourceLabel.setText(resource.getHoverName());
                 resourceLabel.setColors(WHITE);
 
-                
+                MarketplaceItemListModuleView marketItemModuleView = (MarketplaceItemListModuleView) WindowMarketplaceItemListModule.this.moduleView;
                 final Text resourceValue = rowPane.findPaneOfTypeByID(RESOURCE_VALUE, Text.class);
-                resourceValue.setText(Component.literal(moduleView.getValueForItem(resource.getItem()) + ""));
+                resourceValue.setText(Component.literal(marketItemModuleView.getValueForItem(resource.getItem()) + ""));
                 resourceValue.setColors(WHITE);
 
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);
-                final boolean isAllowedItem  = building.getModuleViewMatching(MarketplaceItemListModuleView.class, view -> view.getId().equals(id)).isAllowedItem(new ItemStorage(resource));
+                final boolean isAllowedItem  = moduleView.isAllowedItem(new ItemStorage(resource));
                 final Button switchButton = rowPane.findPaneOfTypeByID(BUTTON_SWITCH, Button.class);
 
                 if ((isInverted && !isAllowedItem) || (!isInverted && isAllowedItem))

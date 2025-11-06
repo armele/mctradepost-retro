@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.core.colony.buildings.moduleviews.BuildingStatisticsModuleView;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -24,14 +25,14 @@ public class EconModuleView extends BuildingStatisticsModuleView
     }
 
     @Override
-    public String getDesc()
+    public Component getDesc()
     {
-        return "com.mctradepost.core.gui.modules.econ";
+        return Component.translatable("com.mctradepost.core.gui.modules.econ");
     }
 
     @Override
     public BOWindow getWindow()
     {
-        return new WindowEconModule(getBuildingView(), this.getBuildingStatisticsManager());
+        return new WindowEconModule(this, this.getBuildingStatisticsManager());
     }
 }
