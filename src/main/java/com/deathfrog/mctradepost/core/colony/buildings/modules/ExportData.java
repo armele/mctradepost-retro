@@ -16,6 +16,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.mojang.logging.LogUtils;
 
@@ -46,6 +47,7 @@ public class ExportData
     private int trackDistance = -1;
     private int lastShipDay = -1;
     private boolean insufficientFunds = false;
+    private IToken<?> requestToken = null;
     private GhostCartEntity cart = null;
 
 
@@ -108,6 +110,16 @@ public class ExportData
     { 
         return reverse; 
     } 
+
+    public void setRequestToken(IToken<?> requestToken) 
+    { 
+        this.requestToken = requestToken; 
+    }
+
+    public IToken<?> getRequestToken() 
+    {
+        return requestToken;
+    }
 
     /**
      * Spawns a GhostCartEntity for trade if one does not already exist. The cart is initialized with the current export's trade item

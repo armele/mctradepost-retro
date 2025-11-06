@@ -20,6 +20,8 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IAltersRequiredItems;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
+import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Utils;
@@ -73,6 +75,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     private static final String TAG_LAST_SHIP_DAY = "lastShipDay";
 
     /**
+     * Tag for the request token
+     */
+    private static final String TAG_REQUEST_TOKEN = "requestToken";
+
+    /**
      * Tag for the flag of insufficient funds
      */
     private static final String TAG_NSF = "nsf";
@@ -113,6 +120,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             int shipmentCountdown = compoundNBT.getInt(TAG_SHIPMENT_COUNTDOWN);
             boolean nsf = compoundNBT.getBoolean(TAG_NSF);
             boolean reverse = compoundNBT.getBoolean(TAG_REVERSE);
+            IToken<?> requestToken = null;
+
+            if (compound.contains(TAG_REQUEST_TOKEN)) 
+            {
+                requestToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(TAG_REQUEST_TOKEN));
+            }
+
 
             if (station != null)
             {
@@ -123,6 +137,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 exportData.setShipDistance(shipDistance);
                 exportData.setInsufficientFunds(nsf);
                 exportData.setShipmentCountdown(shipmentCountdown);
+                exportData.setRequestToken(requestToken);
                 exportList.add(exportData);
             }
         }
@@ -153,6 +168,17 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             compoundNBT.putBoolean(TAG_NSF, exportData.isInsufficientFunds());
             compoundNBT.putInt(TAG_SHIPMENT_COUNTDOWN, exportData.getShipmentCountdown());
             compoundNBT.putBoolean(TAG_REVERSE, exportData.isReverse());
+
+            if (exportData.getRequestToken() != null)
+            {
+                CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, exportData.getRequestToken());
+
+                if (outpostToken != null)
+                {
+                    compound.put(TAG_REQUEST_TOKEN, outpostToken);
+                }
+            }
+
             exportListTag.add(compoundNBT);
         }
         compound.put(TAG_EXPORTS, exportListTag);

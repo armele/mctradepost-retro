@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -56,7 +57,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     @Override
     public int getSuitabilityMetric(@NotNull IRequestManager manager, @NotNull IRequest<? extends IDeliverable> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking OutpostRequestResolver suitability metric for request {} - {}.", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking OutpostRequestResolver suitability metric for request {} - {}  (state {}) .", request.getId(), request.getLongDisplayString(), request.getState()));
         return -1;
     }
 
@@ -82,7 +83,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
      */
     public void onRequestAssigned(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request, boolean simulation)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("This request {} has been assigned to the outpost: {}", request.getId(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("This request {}  (state {})  has been assigned to the outpost: {}", request.getId(), request.getState(), request.getLongDisplayString()));
     }
 
     @Override
@@ -94,25 +95,25 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     @Override
     public void onAssignedRequestBeingCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IDeliverable> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outpost assigned request being cancelled: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outpost assigned request {} (state {}) is being cancelled: {}", request.getId(), request.getState(), request.getLongDisplayString()));
     }
 
     @Override
     public void onAssignedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<? extends IDeliverable> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outpost assigned request cancelled: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outpost assigned request {} (state {}) cancelled: {}", request.getId(), request.getState(), request.getLongDisplayString()));
     }
 
     @Override
     public void onRequestedRequestCancelled(@NotNull IRequestManager arg0, @NotNull IRequest<?> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request cancelled: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request {} (state {}) cancelled: {}", request.getId(), request.getState(), request.getLongDisplayString()));
     }
 
     @Override
     public void onRequestedRequestComplete(@NotNull IRequestManager arg0, @NotNull IRequest<?> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request complete: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request {} (state {}) complete: {}", request.getId(), request.getState(), request.getLongDisplayString()));
     }
 
     @Override
@@ -135,7 +136,14 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     {
         if (!manager.getColony().getWorld().isClientSide)
         {
-            return Optional.ofNullable(manager.getColony().getRequesterBuildingForPosition(getLocation().getInDimensionLocation()));
+            IRequest<?> request = manager.getRequestForToken(token);
+
+            if (request == null)
+            {
+                return Optional.empty();
+            }
+
+            return Optional.ofNullable(manager.getColony().getRequesterBuildingForPosition(request.getRequester().getLocation().getInDimensionLocation()));
         }
 
         return Optional.empty();
@@ -160,7 +168,8 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             return null;
         }
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Attempting to resolve outpost request: {} - {}", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Attempting to resolve outpost request from building {}: {} (state {}) - {}", 
+            requestingBuilding.getPosition(), requestToCheck.getId(), requestToCheck.getState(), requestToCheck.getLongDisplayString()));
 
         if (requestingBuilding == null)
         {
@@ -184,11 +193,16 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             return Lists.newArrayList();
         }
 
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("requesting building {} has an associated outpost building {} connected to {}", 
+            requestingBuilding.getBuildingDisplayName(), outpostBuilding.getBuildingDisplayName(), connectedStation.getBuildingDisplayName()));
+
         OutpostShipmentTracking tracking = ((BuildingOutpost) outpostBuilding).trackingForRequest(requestToCheck);
         List<IToken<?>> prerequisiteRequests = new ArrayList<>();
 
+
         if (requestToCheck.getRequest() instanceof IDeliverable deliverable)
         {
+            IRequestManager requestManager = outpostBuilding.getColony().getRequestManager();
             final int totalRequested = deliverable.getCount();
 
             /*
@@ -220,7 +234,8 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
                         Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), stack.getA().copy(), 0);
                         IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
                         prerequisiteRequests.add(deliveryRequestToken);
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created partial delivery request {}.", deliveryRequestToken));
+                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created satisfied delivery request {} (state {}) - {}.", deliveryRequestToken, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
                     }
                     else
                     {
@@ -228,7 +243,8 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
                         Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), partialShipment, 0);
                         IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
                         prerequisiteRequests.add(deliveryRequestToken);
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created satisfied delivery request {}.", deliveryRequestToken));
+                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created partial delivery request {} (state {}) - {}.", deliveryRequestToken, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
                         break;
                     }
                 }
@@ -237,8 +253,9 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             final int totalRemainingRequired = Math.max(totalRequested - totalInStation, 0);
 
             final int stationCountForLog = totalInStation;
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("This is deliverable request {} of type {} with {} items in the station, and {} items remaining to be collected for shipment: {}", 
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("This is deliverable request {} (state {}) of type {} with {} items in the station, and {} items remaining to be collected for shipment: {}", 
                 requestToCheck.getId(),
+                requestToCheck.getState(),
                 deliverable.getClass().getName(),    
                 stationCountForLog, 
                 totalRemainingRequired,
@@ -249,20 +266,65 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
                 IDeliverable deliverableCopy = ((IDeliverable) requestToCheck.getRequest()).copyWithCount(totalRemainingRequired);
                 tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
                 IToken<?> finalShipmentToken = connectedStation.createRequest(deliverableCopy, true);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created final shipment request for {} as {} for: {}", requestToCheck.getId(), finalShipmentToken, deliverableCopy.toString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created final shipment request for {} (state {}) as {} for: {}", requestToCheck.getId(), requestToCheck.getState(), finalShipmentToken, deliverableCopy.toString()));
                 prerequisiteRequests.add(finalShipmentToken);
             }
             else
             {
                 // We have everything we need, but the station master still needs to make the shipment(s).
                 tracking.setState(OutpostOrderState.ITEM_READY_TO_SHIP);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Station has everything needed to fulfil request {}: {}", requestToCheck.getId(), requestToCheck.getLongDisplayString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Station has everything needed to fulfil request {} (state {}): {}", requestToCheck.getId(), requestToCheck.getState(), requestToCheck.getLongDisplayString()));
             }
         }
 
         return prerequisiteRequests;
     }
 
+
+   @Override
+   public boolean canResolveRequest(@NotNull IRequestManager manager, IRequest<? extends IDeliverable> requestToCheck) 
+   {
+        final AbstractBuilding requestingBuilding =
+            getBuilding(manager, requestToCheck.getId())
+                .filter(AbstractBuilding.class::isInstance)
+                .map(AbstractBuilding.class::cast)
+                .orElse(null);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () ->LOGGER.info("Checking if outpost can resolve for requesting building {} at {} for {} (state {}).", 
+            requestingBuilding == null ? "null" : requestingBuilding.getBuildingDisplayName(), 
+            requestingBuilding == null ? "null" : requestingBuilding.getLocation(), 
+            requestToCheck.getId(), 
+            requestToCheck.getState()));
+
+        ILocation requesterLocation = requestToCheck.getRequester().getLocation();
+
+        if (requesterLocation == null || requestingBuilding == null)
+        {
+            return false;
+        }
+
+        IBuilding outpostBuilding = BuildingOutpost.toOutpostBuilding(requestingBuilding);
+
+        if (outpostBuilding == null)
+        {
+            return false;
+        }
+
+        // We can't handle deliveries from the station - that's for the TrainRequestResolver to take.
+        if (requestToCheck.getRequest() instanceof Delivery delivery)
+        {
+            BlockPos deliveryStartPos = delivery.getStart().getInDimensionLocation();
+            IBuilding deliveryStartBuilding = outpostBuilding.getColony().getBuildingManager().getBuilding(deliveryStartPos);
+
+            if (deliveryStartBuilding instanceof BuildingStation)
+            {
+                return false;
+            }
+
+        }
+
+        return (outpostBuilding.getLocation().equals(this.getLocation()));
+   }
 
     /**
      * Checks if this resolver can resolve the given request for the given building.
@@ -297,7 +359,12 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             return false;
         }
 
-        return BuildingOutpost.isOutpostBuilding(requestingBuilding);
+        boolean isOutpostBuilding = BuildingOutpost.isOutpostBuilding(requestingBuilding);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requesting building {} at {} for {} (state {}) - is outpost? {}", 
+            requestingBuilding.getBuildingDisplayName(), requestingBuilding.getLocation(), requestToCheck.getId(), requestToCheck.getState(), isOutpostBuilding));
+
+        return isOutpostBuilding;
     }
 
     @Override
@@ -305,7 +372,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
         @NotNull IRequest<? extends IDeliverable> request,
         @NotNull AbstractBuilding building)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request resolved: {}", request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request {} (state {}) resolved: {}", request.getId(), request.getState(), request.getLongDisplayString()));
         manager.updateRequestState(request.getId(), RequestState.RESOLVED);
     }
 }

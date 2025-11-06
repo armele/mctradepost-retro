@@ -149,7 +149,7 @@ public class MCTPConfig
 
         baseTradeSpeed = BUILDER
             .comment("Base trade speed per building level.")
-            .define("baseTradeSpeed", 3);
+            .define("baseTradeSpeed", 4);
 
         importsPerLevel = BUILDER
             .comment("Number of imports allowed per Station level.")

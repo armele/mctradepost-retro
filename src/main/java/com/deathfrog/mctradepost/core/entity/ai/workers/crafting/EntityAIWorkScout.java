@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.api.util.BuildingUtil;
-import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -37,9 +35,12 @@ import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
+import com.minecolonies.api.equipment.ModEquipmentTypes;
+import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.FoodUtils;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.Utils;
@@ -51,11 +52,9 @@ import com.minecolonies.core.colony.buildings.modules.RestaurantMenuModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BuilderModeSetting;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
-import com.minecolonies.core.colony.jobs.AbstractJobStructure;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import com.minecolonies.core.colony.workorders.WorkOrderBuilding;
 import com.minecolonies.core.colony.workorders.WorkOrderMiner;
-import com.minecolonies.core.entity.ai.workers.AbstractEntityAIStructure;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIStructureWithWorkOrder;
 import com.minecolonies.core.entity.ai.workers.util.BuildingProgressStage;
 import com.minecolonies.core.entity.ai.workers.util.BuildingStructureHandler;
@@ -64,6 +63,7 @@ import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedP
 import com.minecolonies.core.entity.pathfinding.pathjobs.PathJobMoveCloseToXNearY;
 import com.minecolonies.core.entity.pathfinding.pathresults.PathResult;
 import com.minecolonies.core.tileentities.TileEntityDecorationController;
+import com.minecolonies.core.util.WorkerUtil;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -77,12 +77,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.requestable.Tool;
-
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
-import java.util.Collection;
-import java.util.List;
 
+import java.util.Collection;
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
@@ -849,6 +846,64 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         return canmine;
     }
 
+    @Override
+    protected int getMostEfficientTool(@NotNull BlockState target, BlockPos pos)
+    {
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Finding most efficient tool for block {} at {}", target, pos.toShortString()));
+
+        int slot =  super.getMostEfficientTool(target, pos);
+
+        // If we found a tool, use it
+        if (slot >= 0)
+        {
+            return slot;
+        }
+
+        // Otherwise, try to magic one out of the outpost inventory - and then use it.
+        for (BlockPos outpostWorkPos : building.getWorkBuildings())
+        {
+            IBuilding outpostWorksite = building.getColony().getBuildingManager().getBuilding(outpostWorkPos);
+
+            if (outpostWorksite != null)
+            {
+                final EquipmentTypeEntry toolType = WorkerUtil.getBestToolForBlock(target, target.getDestroySpeed(world, pos), building, world, pos);
+                final int required = WorkerUtil.getCorrectHarvestLevelForBlock(target);
+
+                if (toolType == ModEquipmentTypes.none.get())
+                {
+                    return NO_TOOL;
+                }
+
+                int bestSlot = -1;
+                int bestLevel = Integer.MAX_VALUE;
+                @NotNull final IItemHandler inventory = outpostWorksite.getItemHandlerCap();
+                final int maxToolLevel = worker.getCitizenColonyHandler().getWorkBuilding().getMaxEquipmentLevel();
+
+                for (int i = 0; i < inventory.getSlots(); i++)
+                {
+                    final ItemStack item = inventory.getStackInSlot(i);
+                    final int level = toolType.getMiningLevel(item);
+
+                    if (level > -1 && level >= required && level < bestLevel && ItemStackUtils.verifyEquipmentLevel(item, level, required, maxToolLevel))
+                    {
+                        bestSlot = i;
+                        bestLevel = level;
+                    }
+                }
+
+                if (bestSlot >= 0)
+                {
+                    boolean canhold = InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(inventory, bestSlot, worker.getInventoryCitizen());
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Took one from outpost inventory at {} ({})", outpostWorkPos, outpostWorksite.getBuildingDisplayName()));
+
+                    break;
+                }
+            }   
+        }
+
+        return super.getMostEfficientTool(target, pos);
+    }
+
     /**
      * After a request to pick up items, checks if there are any outstanding requests that can be satisfied with items in the building
      * inventory. If any items are found, the AI will pick them up and return to the build state. If no items are found, the AI will
@@ -865,8 +920,45 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     @Override
     public IAIState afterDump()
     {
-        return ScoutStates.RETURN_PRODUCTS;
+        return ScoutStates.RETURN_PRODUCTS; 
     }
+
+    /**
+     * Guard to prevent timing issues in Outpost-delivered requests from killing our building loop.
+     * Calls super.structureStep and catches any exceptions that may occur in the process, returning DECIDE if an exception is caught.
+     * 
+     * @return The next AI state to transition to.
+     */
+    @Override
+    public IAIState structureStep()
+    {
+        IAIState nextState = DECIDE;
+
+        // Guard to prevent timing issues in Outpost-delivered requests from
+        // killing our building loop.
+        try
+        {
+            nextState = super.structureStep();
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while considering structure step: {}", e));
+            nextState = DECIDE;
+        }
+
+        return nextState;
+    }
+
+    @Override
+    public IAIState pickUpMaterial()
+    {
+        IAIState nextState = super.pickUpMaterial();
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Picking up required material - next state: {}", nextState ));
+
+        return nextState;
+    }
+
 
     /**
      * Note that this reproduces EntityAIStructureBuilder.walkToConstructionSite

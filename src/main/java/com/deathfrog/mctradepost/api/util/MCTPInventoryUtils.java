@@ -20,6 +20,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.tileentities.TileEntityRack;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;

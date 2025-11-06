@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
@@ -54,7 +56,10 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
+import com.minecolonies.core.colony.buildings.modules.BuildingResourcesModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
+import com.minecolonies.core.colony.buildings.utils.BuilderBucket;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class BuildingOutpost extends AbstractBuildingStructureBuilder implements ITradeCapable, IRequestSatisfaction
@@ -658,6 +663,27 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             return;
         }
 
+        if (shipmentReceived.getRequestToken() != null)
+        {
+            IRequest<?> request = null;
+            
+            try 
+            {
+                IRequestManager requestManager = this.getColony().getRequestManager();
+                request = requestManager.getRequestForToken(shipmentReceived.getRequestToken());
+                
+                requestManager.updateRequestState(request.getId(), RequestState.COMPLETED);
+                OutpostShipmentTracking tracking = trackingForRequest(request);
+                tracking.setState(OutpostOrderState.RECEIVED);
+
+            }
+            catch (Exception e)
+            {
+                LOGGER.warn("Request for token {} no longer valid.", shipmentReceived.getRequestToken(), e);
+            }
+
+        }
+
         exports.removeExport(shipmentReceived);
 
         if (!getAllAssignedCitizen().isEmpty())
@@ -665,6 +691,8 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             ICitizenData exportWorker = getScout();
             exportWorker.getEntity().get().getCitizenExperienceHandler().addExperience(1);
         }
+
+        markDirty();
     }
 
     
@@ -769,9 +797,11 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      */
     public static IBuilding toOutpostBuilding(@Nonnull IBuilding checkBuilding)
     {
+        IBuilding returnBuilding = null;
+
         if (checkBuilding instanceof BuildingOutpost)
         {
-            return checkBuilding;
+            returnBuilding = checkBuilding;
         }
         else
         {
@@ -783,12 +813,12 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
                 
                 if (parentBuilding instanceof BuildingOutpost)
                 {
-                    return parentBuilding;
+                    returnBuilding = parentBuilding;
                 }
             }
-        } 
-
-        return null;
+        }
+        
+        return returnBuilding;
     }
 
     /**
@@ -833,7 +863,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
                 for (IRequest<?> r : buildingRequests)
                 {
                     final RequestState s = r.getState();
-                    if (s != RequestState.CANCELLED && (s != RequestState.RECEIVED || includeReceived))
+                    if (s != RequestState.CANCELLED && (s != RequestState.RESOLVED || includeReceived))
                     {
                         outpostRequests.add(r);
                     }
@@ -871,6 +901,13 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         }
     
         return employees.get(0);
+    }
+
+    @Override
+    public void checkOrRequestBucket(@Nullable final BuilderBucket requiredResources, final ICitizenData worker)
+    {
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("BuildingOutpost.checkOrRequestBucket in {}.", this.getColony().getName()));
+        super.checkOrRequestBucket(requiredResources, worker);
     }
 
 }
