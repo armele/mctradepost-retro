@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.core.commands.CommandPendingRecycling;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopDismiss;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopStatus;
 import com.deathfrog.mctradepost.core.commands.CommandSetTrace;
+import com.deathfrog.mctradepost.core.commands.CommandStationExports;
 import com.deathfrog.mctradepost.core.commands.CommandStationStatus;
 import com.deathfrog.mctradepost.core.commands.CommandStationsClear;
 
@@ -26,6 +27,7 @@ public class MCTPCommands
     public static final String CMD_ANIMALTRAINER_PETDATA = "petdata";  
     public static final String CMD_ANIMALTRAINER_DISMISS = "dismiss";   
     public static final String CMD_STATION_CLEARCONNECTIONS = "clearconnections";
+    public static final String CMD_STATION_CLEAREXPORTS = "clearexports";
     public static final String CMD_MARKETPLACE_FRAMESTATUS = "framestatus";
     public static final String CMD_RECYCLING_PENDING = "pending";
     public static final String CMD_RESORT_VACATIONSTATUS = "vacationstatus";
@@ -46,9 +48,10 @@ public class MCTPCommands
 
         final CommandTree mctpStationCommands = new CommandTree("station")
             .addNode(new CommandStationStatus(CMD_STATION_STATIONDATA).build())
-            .addNode(new CommandStationsClear(CMD_STATION_CLEARCONNECTIONS).build());
+            .addNode(new CommandStationsClear(CMD_STATION_CLEARCONNECTIONS).build())
+            .addNode(new CommandStationExports(CMD_STATION_CLEAREXPORTS).build());
 
-        final CommandTree mctpRecyclingCommands = new CommandTree("recycling")
+            final CommandTree mctpRecyclingCommands = new CommandTree("recycling")
             .addNode(new CommandPendingRecycling(CMD_RECYCLING_PENDING).build());
 
         final CommandTree mctpMarketplaceCommands = new CommandTree("marketplace")

@@ -82,6 +82,7 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*
 import java.util.Collection;
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST_REQUESTS;
 
 public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<JobScout, BuildingOutpost>
 {
@@ -154,9 +155,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
             new AITarget<IAIState>(ScoutStates.RETURN_PRODUCTS, this::returnProducts, 10),
             new AITarget<IAIState>(ScoutStates.BUILD, this::startWorkingAtOwnBuilding, 20),
             new AITarget<IAIState>(WANDER, this::wander, 10)
-
-        // TODO: Order Food
-        // TODO: Find child delivery requests and turn them into station requests.
         );
         worker.setCanPickUpLoot(true);
     }
@@ -934,6 +932,20 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     {
         IAIState nextState = DECIDE;
 
+        // Giant kludge to the problem of builder not seeing rack contents!
+        /*
+        if (building.getOutpostLevel() == 0)
+        {
+            for (int i = 0; i < outpost.getItemHandlerCap().getSlots(); i++)
+            {
+                if (!InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(outpost.getItemHandlerCap(), i, worker.getInventoryCitizen()))
+                {
+                    break;
+                }
+            }
+        }
+        */
+
         // Guard to prevent timing issues in Outpost-delivered requests from
         // killing our building loop.
         try
@@ -942,7 +954,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         }
         catch (IllegalArgumentException e)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while considering structure step: {}", e));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.warn("MineColonies request system error while considering structure step: {}", e));
             nextState = DECIDE;
         }
 
@@ -952,9 +964,16 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     @Override
     public IAIState pickUpMaterial()
     {
-        IAIState nextState = super.pickUpMaterial();
-
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Picking up required material - next state: {}", nextState ));
+        IAIState nextState = null;
+        
+        try 
+        {
+            nextState = super.pickUpMaterial();
+        } 
+        catch (IllegalArgumentException e) {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request system error while considering pickUpMaterial - request may have been cancelled while shipping. {}", e ));
+            nextState = DECIDE;
+        }
 
         return nextState;
     }

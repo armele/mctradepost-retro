@@ -298,8 +298,10 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      *
      * @param itemStack The ItemStack representing the trade to be removed.
      */
-    public void removeExport(StationData station, final ItemStack itemStack)
+    public boolean removeExport(StationData station, final ItemStack itemStack)
     {
+        int removalCount = 0;
+
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Pre-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
         // exportList.removeIf(exportData -> exportData.getDestinationStationData().equals(station) && exportData.getTradeItem().getItemStack().is(itemStack.getItem()));
@@ -308,13 +310,20 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         {
             if (exportData.getDestinationStationData().equals(station) && exportData.getTradeItem().getItemStack().is(itemStack.getItem())) 
             {
-                removeExport(exportData);
+                boolean removed = removeExport(exportData);
+
+                if (removed) 
+                {
+                    removalCount += 1;
+                }
             }
         }
 
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Removing export {} from {}. Post-removal size: {}", itemStack, station.getBuildingPosition(), exportList.size()));
 
         markDirty();
+
+        return removalCount > 0;
     }
 
     /**
@@ -335,6 +344,17 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     public Set<ExportData> getExports() 
     {
         return exportList;
+    }
+
+    /**
+     * Clears the list of configured exports in this module.
+     * This method also marks the module as dirty, which will cause the module to be saved to disk
+     * and will also cause the module to be re-loaded from disk next time it is accessed.
+     */
+    public void clearExports() 
+    {
+        exportList.clear();
+        markDirty();
     }
 
     /**

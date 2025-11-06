@@ -25,6 +25,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
@@ -51,7 +52,9 @@ import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.colony.workorders.WorkOrderType;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
@@ -909,5 +912,31 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("BuildingOutpost.checkOrRequestBucket in {}.", this.getColony().getName()));
         super.checkOrRequestBucket(requiredResources, worker);
     }
+
+    /**
+     * Check if the resources are in the bucket, and 
+     * move them to the worker inventory for use.
+     *
+     * @param stack the stack to check.
+     * @return true if so.
+     */
+    public boolean hasResourceInBucket(final ItemStack stack)
+    {
+        final int hashCode = stack.getComponentsPatch().hashCode();
+        final String key = stack.getDescriptionId() + "-" + hashCode;
+        boolean hasit = getRequiredResources() != null && getRequiredResources().getResourceMap().containsKey(key);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("BuildingOutpost.hasResourceInBucket in {} looking for {}. Found? {}", this.getColony().getName(), stack.getHoverName(), hasit));
+
+        if (getScout() != null && hasit)
+        { 
+            ItemStorage toTransfer = new ItemStorage(stack.copy());
+
+            InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(this, toTransfer, getScout().getInventory());
+        }
+
+        return hasit;
+    }
+
 
 }

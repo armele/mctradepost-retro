@@ -10,9 +10,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
-public class CommandStationsClear extends AbstractCommands 
+public class CommandStationExports extends AbstractCommands 
 {
-    public CommandStationsClear(String name) 
+    public CommandStationExports(String name) 
     {
         super(name);
     }
@@ -50,10 +50,10 @@ public class CommandStationsClear extends AbstractCommands
             colony.getBuildingManager().getBestBuilding(pos, BuildingStation.class));
 
         if (station != null) {
-            station.clearConnectedStations();
+            station.clearExports();
 
             source.sendSuccess(() -> 
-                net.minecraft.network.chat.Component.literal("All connected stations have been cleared from the nearest station."),
+                net.minecraft.network.chat.Component.literal("All exports have been cleared from the nearest station."),
                 false);
 
             return 1;

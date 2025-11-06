@@ -290,12 +290,6 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
                 .map(AbstractBuilding.class::cast)
                 .orElse(null);
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () ->LOGGER.info("Checking if outpost can resolve for requesting building {} at {} for {} (state {}).", 
-            requestingBuilding == null ? "null" : requestingBuilding.getBuildingDisplayName(), 
-            requestingBuilding == null ? "null" : requestingBuilding.getLocation(), 
-            requestToCheck.getId(), 
-            requestToCheck.getState()));
-
         ILocation requesterLocation = requestToCheck.getRequester().getLocation();
 
         if (requesterLocation == null || requestingBuilding == null)
@@ -322,6 +316,12 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             }
 
         }
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () ->LOGGER.info("Outpost can resolve for requesting building {} at {} for {} (state {}).", 
+            requestingBuilding == null ? "null" : requestingBuilding.getBuildingDisplayName(), 
+            requestingBuilding == null ? "null" : requestingBuilding.getLocation(), 
+            requestToCheck.getId(), 
+            requestToCheck.getState()));
 
         return (outpostBuilding.getLocation().equals(this.getLocation()));
    }

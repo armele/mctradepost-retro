@@ -181,13 +181,24 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (currentExport != null)
         {
-            building.getModule(MCTPBuildingModules.EXPORTS).removeExport(currentExport.getDestinationStationData(), currentExport.getTradeItem().getItemStack());
-            building.markTradesDirty();
-            currentExport = null;
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Eliminating export for {}.", currentExport));
+
+            boolean removed = building.getModule(MCTPBuildingModules.EXPORTS).removeExport(currentExport.getDestinationStationData(), currentExport.getTradeItem().getItemStack());
+            if (removed)
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Successfully eliminated export for {}.", currentExport));
+                building.markTradesDirty();
+                currentExport = null;  
+            }
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.warn("Failed to eliminate export for {}.", currentExport));
+            }
+
         }
         else
         {
-            LOGGER.warn("Asked to eliminate shipment with no curren export identified.");
+            LOGGER.warn("Asked to eliminate shipment with no current export identified.");
             currentExport = null;
         }
 
@@ -752,6 +763,24 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         {
 
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing need for {}.", exportData.getTradeItem().getItemStack().getHoverName()));
+
+            if (exportData.isReverse())
+            {
+                // No need to request reverse exports
+                continue;
+            }
+
+            if (exportData.getQuantity() == 0)
+            {
+                // No need to request zero quantity exports
+                continue;
+            }
+
+            if (exportData.getDestinationStationData().isOutpost())
+            {
+                // Requests for outpost exports are set up by the request resolver system; don't duplicate them here.
+                continue;
+            }
 
             if (building.isItemStackInRequest(exportData.getTradeItem().getItemStack()))
             {

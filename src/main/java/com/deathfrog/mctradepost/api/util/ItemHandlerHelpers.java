@@ -130,10 +130,9 @@ public final class ItemHandlerHelpers
                 if (have >= required) 
                 {
                     // LOGGER.info("Found enough matching items: {}", have);
-                    return new ItemStorage(stack.copy(), required);
+                    return new ItemStorage(stack.getItem(), required);
                 }
             }
-
         }
         
         if (allowPartial && !matchingStacks.isEmpty()) 
@@ -141,7 +140,7 @@ public final class ItemHandlerHelpers
             ItemStack biggestStack = matchingStacks.stream()
                 .max(Comparator.comparingInt(ItemStack::getCount))
                 .orElse(ItemStack.EMPTY);
-            return new ItemStorage(biggestStack.copy(), have); 
+            return new ItemStorage(biggestStack.getItem(), have); 
         }
         // LOGGER.info("Not enough matching items: {}", have);
 

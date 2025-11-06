@@ -267,7 +267,7 @@ public class ExportData
     }
 
     /**
-     * Check if the given item is a cure item.
+     * Check if the given item is an export item item.
      *
      * @param stack      the input stack.
      * @param exportItem the export item.

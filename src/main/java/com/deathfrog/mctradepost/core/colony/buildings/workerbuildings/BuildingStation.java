@@ -49,6 +49,7 @@ import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -71,6 +72,7 @@ import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
+import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 
@@ -183,6 +185,21 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     public void clearConnectedStations() 
     {
         stations.clear();
+    }
+
+    /**
+     * Clears the list of exports for this station.
+     * This will remove all export data from the station, and mark the module as dirty so that it will be saved to disk.
+     * This is useful when the user changes the trade settings, so that the client can receive the updated trade data.
+     */
+    public void clearExports()
+    {
+        BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
+
+        if (exports != null)
+        {
+            exports.clearExports();
+        }
     }
 
     /**
@@ -914,11 +931,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
             TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
 
-            if ((tracking.getState() == OutpostOrderState.NEEDED 
-                || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
-                || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP
+            if (
+                (
+                        tracking.getState() == OutpostOrderState.NEEDED 
+                    || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
+                    || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP
                 )
-                && !handledRequestList.contains(request.getId())
+                    && !handledRequestList.contains(request.getId())
+                    && !reqsToRemove.contains(request.getId())
             ) {
                 boolean satisfied = trySatisfyRequest(request, outpost, car++);
                 
@@ -950,9 +970,9 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             for (IRequest<?> request : remainingRequests)
             {
-                if (handledRequestList.contains(request.getId()))
+                if (handledRequestList.contains(request.getId()) || request.hasChildren())
                 {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} was already shipped - skipping.", request.getId(), request.getState(),request.getLongDisplayString()));
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} was already shipped or is scheduled to be shipped - skipping.", request.getId(), request.getState(),request.getLongDisplayString()));
                     continue;
                 }
 
@@ -969,7 +989,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                         // Attempting to use the request system to generate the delivery request (which will populate our work queue).
                         // If this doesn't work, we'll have to ship it and let the cancellation logic at the outpost handle it.
                         TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has a satisfier: {}", request.getId(), request.getState(), request.getLongDisplayString(), satisfier));
-                        Delivery delivery = new Delivery(this.getLocation(), outpost.getLocation(), satisfier.getItemStack().copy(), 0);
+                        Delivery delivery = new Delivery(this.getLocation(), outpost.getLocation(), satisfier.getItemStack().copyWithCount(satisfier.getAmount()), 0);
                         IToken<?> deliveryRequestToken = outpost.createRequest(delivery, true);
                         IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
                         deliveryRequest.setParent(request.getId());
@@ -985,6 +1005,28 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     else
                     {
                         TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no satisfier.", request.getId(), request.getState(), request.getLongDisplayString()));
+
+                        if (!request.hasChildren() && request instanceof IDeliverable outstandingNeed)
+                        {
+                            IDeliverable deliverableCopy = ((IDeliverable) request.getRequest()).copyWithCount(outstandingNeed.getCount());
+                            IToken<?> copyToken = this.createRequest(deliverableCopy, false);
+
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no child steps and is a deliverable - creating a new request for the station: {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
+
+                        }
+                        else if (!request.hasChildren() && request instanceof ItemStackRequest stackrequest)
+                        {
+                            IToken<?> copyToken = this.createRequest(stackrequest.getRequest(), false);
+
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is echoed to {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
+                        }
+                        else
+                        {
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is not being echoed. Children: {}, Instance: {}", 
+                                request.getId(), request.getState(), request.getLongDisplayString(), request.getChildren().size(), request.getClass().getSimpleName()));
+                        }
                     }
                 }
             }
@@ -1156,8 +1198,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         OutpostShipmentTracking shipment = outpostDestination.trackingForRequest(associatedRequest);
         shipment.setState(OutpostOrderState.SHIPMENT_INITIATED);
+        exports.markDirty();
+        this.markDirty();
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Set up export order for {} to {}.", thingsToDeliver, outpostDestination.getBuildingDisplayName()));
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Set up export order for {} to {} for request {} - {}.", 
+            thingsToDeliver, 
+            outpostDestination.getBuildingDisplayName(), 
+            associatedRequest == null ? "null" : associatedRequest.getId(), 
+            associatedRequest == null ? "null" : associatedRequest.getLongDisplayString()));
     }
 
 
