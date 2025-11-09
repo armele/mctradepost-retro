@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -17,11 +18,13 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import java.util.*;
 
 public class PetAssignmentModuleView extends AbstractBuildingModuleView
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
     
     public class PetWorkingLocationData
     {
@@ -74,7 +77,7 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
             }
             else
             {
-                MCTradePostMod.LOGGER.warn("View did not get work location from NBT: {}", compound);
+                LOGGER.warn("View did not get work location from NBT: {}", compound);
             }
         }
 
