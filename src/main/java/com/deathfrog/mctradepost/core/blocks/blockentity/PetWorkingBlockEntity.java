@@ -19,12 +19,12 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -33,7 +33,27 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    public static final String TAG_PWB_CUSTOM_NAME = "PWBCustomName";
+
+    // Stores a player-set name (in an anvil, for example)
     private Component customName;
+
+    // Stores the derived name, recomputed as needed.
+    private Component derivedName; 
+
+    private boolean needsBuildingName = true;
+
+    // Next game time at which we’re allowed to re-check.
+    private long nextNameCheckGameTime = 0L;
+
+    // Adaptive or fixed interval between checks:
+    private int currentCheckIntervalTicks = 20 * 10; // start with 10s
+    private static final int MAX_CHECK_INTERVAL_TICKS = 20 * 60 * 10; // cap at 10 min
+
+    // Optional: soft cap on attempts; set 0 or negative to mean "no cap".
+    private int nameLookupAttempts = 0;
+    private static final int MAX_NAME_LOOKUPS = 0; // 0 = unlimited
+
 
     public static final int SLOT_COUNT = 27;
     private NonNullList<ItemStack> items = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY);
@@ -61,25 +81,36 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         return SLOT_COUNT;
     }
 
+
+    /**
+     * Sets the custom name of the PetWorkingBlockEntity, which is used when generating the block's display name.
+     * Note that this name is only used for display purposes, and does not affect the block's actual name or
+     * item ID.
+     * @param name the custom name to set
+     */
     public void setCustomName(Component name)
     {
+        // LOGGER.info("Setting the custom name to {} at {}: {}", name, this.getBlockPos().toShortString(), Thread.currentThread().getStackTrace());
+
         this.customName = name;
     }
 
     @Nullable
     public Component getCustomName()
     {
+        // LOGGER.info("Getting the custom name {} at {}: {}", this.customName, this.getBlockPos().toShortString(), Thread.currentThread().getStackTrace());
         return this.customName;
     }
 
     public boolean hasCustomName()
     {
+        // LOGGER.info("Checking if there is a custom name {} at {}.", this.customName, this.getBlockPos().toShortString());
         return this.customName != null;
     }
 
     /**
      * Saves additional data to the given CompoundTag, including the custom name of the TE and its inventory.
-     * If the TE has a custom name, it is stored in the tag under the key "CustomName".
+     * If the TE has a custom name, it is stored in the tag under the key TAG_PWB_CUSTOM_NAME.
      * If the TE has a loot table, it is saved in the tag under the key "LootTable"; otherwise, the inventory is
      * saved in the tag under the key "Items".
      * @param tag the CompoundTag to save the data to.
@@ -98,14 +129,15 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
 
         if (this.hasCustomName())
         {
-            tag.putString("CustomName", Component.Serializer.toJson(this.customName, registries));
+            // LOGGER.info("[PWB] saveAdditional: WRITING CustomName={} for block at {} from {}", this.customName, this.getBlockPos().toShortString(), Thread.currentThread().getStackTrace());
+            tag.putString(TAG_PWB_CUSTOM_NAME, Component.Serializer.toJson(this.customName, registries));
         }
     }
 
     /**
      * Loads additional data from the given CompoundTag, including the custom name of the TE and its inventory.
      * If the TE has a loot table, it is loaded in the tag under the key "LootTable"; otherwise, the inventory is
-     * loaded in the tag under the key "Items". The custom name is loaded from the tag under the key "CustomName".
+     * loaded in the tag under the key "Items". The custom name is loaded from the tag under the key TAG_PWB_CUSTOM_NAME.
      * @param tag the CompoundTag to load the data from.
      * @param registries the HolderLookup.Provider containing the registries of items and blocks.
      */
@@ -123,10 +155,23 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             ContainerHelper.loadAllItems(tag, this.items, registries);
         }
 
-        if (tag.contains("CustomName"))
+        if (tag.contains(TAG_PWB_CUSTOM_NAME))
         {
-            this.customName = Component.Serializer.fromJson(tag.getString("CustomName"), registries);
+            Component raw = Component.Serializer.fromJson(tag.getString(TAG_PWB_CUSTOM_NAME), registries);
+            setCustomName(raw);
         }
+
+        if (this.customName != null)
+        {
+            // LOGGER.info("in loadAdditional - Custom name: {} at {}", this.customName, this.getBlockPos().toShortString());
+            needsBuildingName = false;
+        }
+        else
+        {
+            // LOGGER.info("No custom name at {}: ", this.getBlockPos().toShortString());
+            needsBuildingName = true;
+        }
+
     }
 
     @Override
@@ -138,12 +183,20 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     @Override
     public Component getDefaultName()
     {
+        // First prefer custom names
         if (this.hasCustomName())
         {
-            // LOGGER.info("Custom name: " + this.getCustomName());
+            // LOGGER.info("In getDefaultName - Custom name {} at {} ", this.getCustomName(), this.getBlockPos().toShortString());
             return this.getCustomName();
         }
 
+        // Then try derived names
+        if (this.derivedName != null)
+        {
+            return this.derivedName;
+        }
+
+        // Fall back to true defaults.
         Block block = this.getBlockState().getBlock();
         String key = block.getDescriptionId();
 
@@ -160,22 +213,79 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
      * and registered as working locations.
      */
     @Override
-    public void onLoad() {
+    public void onLoad() 
+    {
         super.onLoad();
+        if (level == null || level.isClientSide) return;
 
-        if (this.getLevel() == null) {
+        // Still register the work location:
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        if (colony != null) 
+        {
+            PetRegistryUtil.registerWorkLocation(colony, worldPosition);
+        }
+
+        if (this.hasCustomName()) 
+        {
+            needsBuildingName = false;
+        } 
+        else 
+        {
+            needsBuildingName = true;
+            // First check soon after load to catch already-finished builds:
+            nextNameCheckGameTime = level.getGameTime() + 20; // 1s after load
+        }
+    }
+
+    /**
+     * Called every tick on the server for every PetWorkingBlockEntity. This is responsible for resolving the name of the block entity
+     * from the building at its position if it does not have a custom name.
+     * @param level the level the block entity is in
+     * @param pos the position of the block entity
+     * @param state the block state of the block entity
+     * @param be the block entity to resolve the name of
+     */
+    public static void serverTick(Level level, BlockPos pos, BlockState state, PetWorkingBlockEntity be) 
+    {
+        if (level.isClientSide) return;
+        if (!be.needsBuildingName || be.hasCustomName() || be.derivedName != null) return;
+
+        long now = level.getGameTime();
+
+        // Initialize if needed
+        if (be.nextNameCheckGameTime == 0L) 
+        {
+            be.nextNameCheckGameTime = now + be.currentCheckIntervalTicks;
             return;
         }
 
-        if (!this.getLevel().isClientSide) {
-            IColony colony = IColonyManager.getInstance().getClosestColony(this.getLevel(), this.getBlockPos());
-            if (colony != null) {
-                PetRegistryUtil.registerWorkLocation(colony, this.getBlockPos());
-            }
+        // Not time yet
+        if (now < be.nextNameCheckGameTime) 
+        {
+            return;
+        }
 
-            adjustName();
+        be.nameLookupAttempts++;
+
+        boolean success = be.tryResolveNameFromBuilding();
+
+        if (success) 
+        {
+            // LOGGER.info("Got derived name {} at {} " + be.getCustomName(), be.getBlockPos().toShortString());
+            be.needsBuildingName = false;
+            be.setChanged();
+        } 
+        else 
+        {
+            // LOGGER.info("No derived name yet {} at {} " + be.getCustomName(), be.getBlockPos().toShortString());
+
+            // Backoff: space attempts further apart over time.
+            be.currentCheckIntervalTicks = Math.min(be.currentCheckIntervalTicks * 2, MAX_CHECK_INTERVAL_TICKS);
+            be.nextNameCheckGameTime = now + be.currentCheckIntervalTicks;
         }
     }
+
+
 
     /**
      * Attempts to derive the name of this block entity from the MineColonies building at its position.
@@ -184,53 +294,71 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
      * string of the form "Herd: <building display name>" and marks the block entity as changed.
      * If no building is found, the name of this block entity is not changed.
      */
-    public void adjustName()
+    private boolean tryResolveNameFromBuilding()
     {
-        if (!this.hasCustomName())
+        if (this.derivedName != null)
         {
-            // Try to derive the name from the MineColonies building at this position
-            final BlockPos pos = getBlockPos();
-            final ServerLevel sLevel = (ServerLevel) level;
+            return true;
+        }
 
-            IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(sLevel, pos);
+        Level level = getLevel();
+        if (level == null || level.isClientSide)
+        {
+            // LOGGER.info("No client side resolution allowed.", worldPosition.toShortString());
+            return false;
+        }
 
-            if (colony != null)
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        if (colony == null)
+        {
+            // LOGGER.info("Couldn't get the colony from the manager for position {} ", worldPosition.toShortString());
+            return false;
+        }
+
+        // LOGGER.info("Testing {} buildings at {} ", colony.getBuildingManager().getBuildings().size(), worldPosition.toShortString());
+        IBuilding selected = null;
+
+        for (IBuilding candidate : colony.getBuildingManager().getBuildings().values())
+        {
+            Tuple<BlockPos, BlockPos> corners = candidate.getCorners();
+            if (corners == null) continue;
+
+            BlockPos a = corners.getA();
+            BlockPos b = corners.getB();
+
+            int minX = Math.min(a.getX(), b.getX());
+            int minY = Math.min(a.getY(), b.getY());
+            int minZ = Math.min(a.getZ(), b.getZ());
+            int maxX = Math.max(a.getX(), b.getX());
+            int maxY = Math.max(a.getY(), b.getY());
+            int maxZ = Math.max(a.getZ(), b.getZ());
+
+            if (worldPosition.getX() >= minX && worldPosition.getX() <= maxX &&
+                worldPosition.getY() >= minY &&
+                worldPosition.getY() <= maxY &&
+                worldPosition.getZ() >= minZ &&
+                worldPosition.getZ() <= maxZ)
             {
-                IBuilding selectedBuilding = null;
-
-                for (IBuilding candidate : colony.getBuildingManager().getBuildings().values())
-                {
-                    Tuple<BlockPos, BlockPos> corners = candidate.getCorners();
-                    
-                    BlockPos min = new BlockPos(Math.min(corners.getA().getX(), corners.getB().getX()),
-                        Math.min(corners.getA().getY(), corners.getB().getY()),
-                        Math.min(corners.getA().getZ(), corners.getB().getZ()));
-                    
-                    BlockPos max = new BlockPos(Math.max(corners.getA().getX(), corners.getB().getX()),
-                        Math.max(corners.getA().getY(), corners.getB().getY()),
-                        Math.max(corners.getA().getZ(), corners.getB().getZ()));
-
-                    if (pos.getX() >= min.getX() && 
-                        pos.getX() <= max.getX() &&
-                        pos.getY() >= min.getY() &&
-                        pos.getY() <= max.getY() &&
-                        pos.getZ() >= min.getZ() &&
-                        pos.getZ() <= max.getZ())
-                    {
-                        selectedBuilding = candidate;
-                        break;
-                    }
-                }
-
-                if (selectedBuilding != null)
-                {
-                    Component name = Component.literal("Herd: " + Component.translatable(selectedBuilding.getBuildingDisplayName()).getString());
-                    this.setCustomName(name);
-                    this.setChanged();
-                    level.sendBlockUpdated(pos, getBlockState(), getBlockState(), 3);
-                }
+                selected = candidate;
+                break;
             }
         }
+
+        if (selected == null)
+        {
+            // LOGGER.info("No building found for position {} ", worldPosition.toShortString());
+            return false;
+        }
+
+        Component name = Component.literal("Herd: " + Component.translatable(selected.getBuildingDisplayName()).getString());
+
+        // LOGGER.info("Setting derived name {} at position {} ", name, worldPosition.toShortString());
+
+        this.derivedName = name;
+        this.setChanged();
+        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+
+        return true;
     }
 
 }

@@ -1,0 +1,8 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": { "item": "minecraft:diamond_horse_armor" },
+  "results": [
+    { "item": { "id": "minecraft:diamond", "count": 6 }, "chance": 1.0 },
+    { "item": { "id": "minecraft:iron_nugget", "count": 1 }, "chance": 1.0 }
+  ]
+}

@@ -6,9 +6,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -30,6 +33,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -39,6 +44,8 @@ import net.minecraft.world.entity.player.Player;
 
 public class AbstractBlockPetWorkingLocation extends Block implements EntityBlock
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final String TOOLTIP_BASE = "item.mctradepost.petworkinglocation.";
     public static final String TOOLTIP_EXPANDED_BASE = "item.mctradepost.petworkinglocation.expanded.";
@@ -110,12 +117,16 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         super.setPlacedBy(level, pos, state, placer, stack);
         if (level.isClientSide) return;
 
+        // LOGGER.info("In setPlacedBy checking for custom name at {}", pos.toShortString());
+
         // Only set a custom name if the placing stack actually has one (e.g. renamed in an anvil)
         Component custom = stack.get(DataComponents.CUSTOM_NAME); // 1.21.1 way
         if (custom == null) return;
 
         BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof PetWorkingBlockEntity petBE) {
+        if (be instanceof PetWorkingBlockEntity petBE) 
+        {
+            // LOGGER.info("In setPlacedBy using custom name {} at {}", custom.getString(), pos.toShortString());
             petBE.setCustomName(custom);
             petBE.setChanged();
             level.sendBlockUpdated(pos, state, state, 3);
@@ -236,5 +247,14 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
             tooltip.add(Component.literal("<shift> for more info")
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
+    }
+
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(@Nonnull Level level, @Nonnull BlockState state, @Nonnull BlockEntityType<T> type)
+    {
+        return level.isClientSide ? null :
+            (type == MCTradePostTileEntities.PET_WORK_LOCATION.get() ?
+                (lvl, pos, st, be) -> PetWorkingBlockEntity.serverTick(lvl, pos, st, (PetWorkingBlockEntity) be) :
+                null);
     }
 }

@@ -651,6 +651,7 @@ public class WishingWellHandler
                     {
                         entity.setHealth(entity.getMaxHealth());
                         citizen.setSaturation(ICitizenData.MAX_SATURATION);
+                        citizen.setJustAte(true);
                         citizen.getCitizenHappinessHandler().addModifier(new ExpirationBasedHappinessModifier(HappinessConstants.HADGREATFOOD, 2.0, new StaticHappinessSupplier(2.0), 5));
 
                         entity.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),

@@ -63,6 +63,7 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
  */
 public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeeper, BuildingMarketplace>
 {
+    public static final String ENTITY_SHOPKEEPER_NO_SALEABLE_ITEMS = "entity.shopkeeper.noitems";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final String ITEM_SOLD = "items_sold";
@@ -252,7 +253,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         if (sortedList.isEmpty())
         {
-            complain("entity.shopkeeper.noitems");
+            complain();
             return getState();
         }
 
@@ -751,12 +752,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * If the list of allowed items is empty, the AI will message all the officers of the colony asking for them to set the list.
      * Happens more or less once a day if the list is not filled
      */
-    private void complain(String complaint)
+    private void complain()
     {
         if (ticksToComplain <= 0)
         {
             ticksToComplain = TICKS_UNTIL_COMPLAIN;
-            MessageUtils.format(complaint).sendTo(building.getColony()).forAllPlayers();
+            MessageUtils.format(ENTITY_SHOPKEEPER_NO_SALEABLE_ITEMS, building.getColony().getName()).sendTo(building.getColony()).forAllPlayers();
         }
         else
         {
