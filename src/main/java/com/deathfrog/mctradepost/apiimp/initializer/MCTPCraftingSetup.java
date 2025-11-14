@@ -42,13 +42,14 @@ public class MCTPCraftingSetup
     private static final String DO_INGREDIENT = "_do_ingredient";
 
     /**
-     * Injects Minecolonies crafting rules for the Bartender (Marketplace).
+     * Injects Minecolonies crafting rules for the Trade Post crafters.
      * This method is called by the mod's DeferredRegister callback.
      */
     public static void injectCraftingRules() 
     { 
         initCrafterRules(MCTPModJobs.BARTENDER_TAG);
         initCrafterRules(MCTPModJobs.SHOPKEEPER_TAG);
+        initCrafterRules(MCTPModJobs.DAIRYWORKER_TAG);
     }
 
     /**

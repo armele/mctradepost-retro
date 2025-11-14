@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "minecolonies:butter",
+    "minecolonies:cheddar_cheese",
+    "minecolonies:feta_cheese",
+    "minecolonies:creamcheese",
+    "minecolonies:yogurt"
+  ]
+}

@@ -16,6 +16,7 @@ import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModBlocksInitializer;
+import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
@@ -865,6 +866,9 @@ public class MCTradePostMod
         
         MCTradePostMod.LOGGER.info("Injecting interaction handlers.");
         MCTPInteractionInitializer.injectInteractionHandlers();
+
+        MCTradePostMod.LOGGER.info("Injecting building modules.");
+        ModBuildingsInitializer.injectBuildingModules();
     }
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)

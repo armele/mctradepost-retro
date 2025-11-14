@@ -478,8 +478,12 @@
     "advancement.mctradepost.bling.description": "Acquired a diamond Trade Coin (‡).",
     "item.mctradepost.tooltip.souvenir_of": "Souvenir: %s",
     "item.mctradepost.tooltip.souvenir_value": "Value: %s",
-
-    "item.apotheosis.gem": "Apotheosis Gem"
-
+    "item.apotheosis.gem": "Apotheosis Gem",
+    "com.minecolonies.coremod.jei.dairyworker": "Diligently milks a herd of cows, and can use it to make dairy products.",
+    "entity.dairyworker.nocows": "I can't find any cows to milk!",
+    "com.mctradepost.job.dairyworker": "Dairyworker",
+    "mctradepost:dairyworker.job.desc": "Milks cows and makes dairy products.",
+    "mctradepost:dairy": "Dairy",
+    "mctradepost:dairyworker_product": "Dairy Products"
 }
   
