@@ -1,12 +1,16 @@
 package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
+import com.minecolonies.api.colony.buildings.registry.BuildingEntry.ModuleProducer;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.RegisterEvent;
+
+import java.util.List;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
@@ -160,9 +164,53 @@ public final class ModBuildingsInitializer
             event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
                 registry.register(ModBuildings.outpost.getRegistryName(), ModBuildings.outpost);
             });
-        }
-        
 
+
+        }
     }
 
+    /**
+     * Extends the existing buildings with Trade Post specific modules
+     * if they are not already present
+     */
+    public static void injectBuildingModules()
+    {
+        // Get the existing entry you want to extend
+        final DeferredHolder<BuildingEntry,BuildingEntry> cowboy = com.minecolonies.api.colony.buildings.ModBuildings.cowboy;
+
+        injectModuleToBuilding(MCTPBuildingModules.DAIRYWORKER_WORK, cowboy);
+        injectModuleToBuilding(MCTPBuildingModules.DAIRYWORKER_CRAFT, cowboy, 2);
+    }
+
+
+    protected static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder) 
+    {
+        injectModuleToBuilding(producer, buildingEntryHolder, -1);
+    }
+
+    /**
+     * Injects a module into an existing building entry if it is not already present
+     *
+     * @param producer the module to inject
+     * @param buildingEntry the building to inject into
+     */
+    protected static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder, int position) 
+    {
+        if (buildingEntryHolder == null || !buildingEntryHolder.isBound()) return;
+        BuildingEntry buildingEntry = buildingEntryHolder.get();
+
+        final List<ModuleProducer> modules = buildingEntry.getModuleProducers();
+
+        if (modules.stream().noneMatch(mp -> mp.key.equals(producer.key))) 
+        {
+            if (position == -1 || position >= modules.size())
+            {    
+                modules.add(producer);
+            }
+            else
+            {
+                modules.add(position, producer);
+            }
+        }
+    }
 }

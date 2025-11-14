@@ -1,5 +1,10 @@
 {
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "minecolonies" }
+  ],
   "replace": false,
-  "values": [
+  "values": [],
+  "remove": [
+    "minecolonies:large_milk_bottle"
   ]
 }

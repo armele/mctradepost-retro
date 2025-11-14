@@ -544,6 +544,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         IBuilding workBuilding = this.getBuildingContainingWorkLocation(level);
 
+        if (workBuilding == null) return animals;
+
         for (final AnimalHerdingModule module : workBuilding.getModulesByType(AnimalHerdingModule.class))
         {
             animals.addAll(workBuilding.getColony()

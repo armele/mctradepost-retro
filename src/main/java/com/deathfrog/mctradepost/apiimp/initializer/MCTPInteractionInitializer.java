@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.interactionhandling.InteractionValidatorRegistry;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCowboy;
 
 import net.minecraft.network.chat.Component;
 
@@ -9,6 +10,7 @@ import static com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIB
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 
@@ -17,6 +19,7 @@ public class MCTPInteractionInitializer
     public static final String DISCONNECTED_OUTPOST         = "com.mctradepost.outpost.disconnected";
     public static final String MISSING_OUTPOST_BUILDINGS    = "com.mctradepost.outpost.missing";
     public static final String OUTPOST_INVENTORY_FULL       = "com.mctradepost.outpost.full_inventory";
+    public static final String NO_COWS                      = "entity.dairyworker.nocows";
 
     public static void injectInteractionHandlers() 
     {
@@ -48,6 +51,10 @@ public class MCTPInteractionInitializer
             && citizen.getWorkBuilding() != null 
             && (citizen.getWorkBuilding() instanceof BuildingOutpost workOutpost && InventoryUtils.isBuildingFull(workOutpost))
         );
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_COWS),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingCowboy && citizen.getJob(JobDairyworker.class).checkForCowInteraction());
+
 
     }
 }

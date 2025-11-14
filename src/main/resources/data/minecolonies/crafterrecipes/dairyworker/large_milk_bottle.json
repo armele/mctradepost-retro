@@ -1,0 +1,21 @@
+{
+    "type": "recipe",
+    "count": 1,
+    "crafter": "dairyworker_crafting",
+    "inputs": [
+        {
+            "count": 1,
+            "id": "minecolonies:large_empty_bottle"
+        }
+    ],
+    "intermediate": "minecraft:air",
+    "additional-output": [
+        {
+        }
+    ],
+    "result": {
+        "count": 1,
+        "id": "minecolonies:large_milk_bottle"
+    },
+    "show-tooltip": true
+}
