@@ -54,6 +54,17 @@ public class TraceUtils {
     }
 
     /**
+     * Returns whether the given trace key is currently set to true in the TRACE_MAP.
+     * This can be used to check whether tracing is currently enabled for a given key.
+     * @param traceKey the key to check in the TRACE_MAP
+     * @return true if the trace key is set to true, false otherwise
+    */
+    public static boolean isTracing(String traceKey) 
+    {
+        return Boolean.TRUE.equals(TRACE_MAP.get(traceKey));
+    }
+
+    /**
      * Allows for dynamic tracing control at runtime.
      * Sets the trace key to either true or false in the TRACE_MAP.
      * @param traceKey the key to set in the TRACE_MAP

@@ -469,12 +469,17 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         stuckCount = 0;
     }
 
+
     /**
-     * Finds a suitable location for scavenging water resources. This method iterates 20 times, checking for a suitable location based
-     * on the following criteria: - The block at the candidate position is shallow water (Blocks.WATER) and the block above it is air.
-     * - The block at the candidate position or any of its neighboring blocks is a scavengable water material.
-     *
-     * @return the suitable location for scavenging water resources, or null if no suitable location is found.
+     * Finds a suitable location for the pet to scavenge for water resources within the given search radius.
+     * A suitable location is one that is either:
+     * 1) A solid non-water floor with a 1-2 deep column of water/ice above it.
+     * 2) A single ice block with open/air above it.
+     * <p>
+     * The search is done by randomly offsetting from the pet's work location within the search radius,
+     * and checking if the resulting location satisfies the above conditions. This is done up to 20 times.
+     * If no suitable location is found, null is returned.
+     * @return a suitable location for scavenging water resources, or null if no suitable location is found.
      */
     private BlockPos findWaterScavengeLocation()
     {
@@ -520,7 +525,8 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
                 level.getBlockState(candidate.north()),
                 level.getBlockState(candidate.south()),
                 level.getBlockState(candidate.east()),
-                level.getBlockState(candidate.west())
+                level.getBlockState(candidate.west()),
+                level.getBlockState(candidate.above())
             };
 
             boolean hasScavengeMaterials = false;

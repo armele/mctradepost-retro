@@ -3,12 +3,14 @@ package com.deathfrog.mctradepost.api.entity.pets.goals;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Random;
 
 import org.slf4j.Logger;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
@@ -17,10 +19,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
+import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.mojang.logging.LogUtils;
 
@@ -105,11 +111,20 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      */
     protected boolean needsUnload()
     {
+        ItemStackHandler petInventory = pet.getInventory();
+
+        if (petInventory == null) return false;
+        
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} inventory handler: {} (hash={})", pet.getUUID(), petInventory.getClass().getName(), System.identityHashCode(petInventory)));
+
         int fullSlots = 0;
-        int totalSlots = pet.getInventory().getSlots();
+        int totalSlots = petInventory.getSlots();
         for (int i = 0; i < totalSlots; i++)
         {
-            if (!pet.getInventory().getStackInSlot(i).isEmpty())
+            ItemStack s = petInventory.getStackInSlot(i);
+            // LOGGER.info("  Pet {} slot {}: {} x {}", pet.getUUID(),i, s.getCount(), s.getItem());
+
+            if (!s.isEmpty())
             {
                 fullSlots++;
             }
@@ -117,7 +132,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         float fillPct = ((float) fullSlots / totalSlots);
 
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, total slots: {}", pet.getId(), unloadThreshold, fillPct, totalSlots));
+        final int fullSlotsForLogging = fullSlots;
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, full slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, fullSlotsForLogging, totalSlots));
 
         return (totalSlots > 0) && (fillPct >= unloadThreshold);
     }
@@ -411,8 +427,24 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             return;
         }
 
-        // LOGGER.info("Trying unload for pet {}.", pet.getId());
+         TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Trying unload for pet {}.", pet.getUUID()));
+        
+        // Use your shared helper to find a target inventory at this position
+        Optional<IItemHandler> optHandler =
+            ItemHandlerHelpers.getHandler(serverLevel, pos, null); // side = null: any side / non-sided
 
+        if (optHandler.isEmpty())
+        {
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () ->
+                LOGGER.info("Pet {}: no inventory (cap or container) found at {}. Aborting unload.",
+                    pet.getUUID(), pos.toShortString()));
+
+            cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
+            stop();
+            return;
+        }
+
+        IItemHandler targetHandler = optHandler.get();
         boolean changed = false;
 
         for (int i = 0; i < pet.getInventory().getSlots(); i++)
@@ -423,10 +455,10 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             int preMergeCount = stack.getCount();
 
             // Insert into any slots we can: first try merges, then empties.
-            stack = tryMergeIntoContainer(stack, pet.getInventory());
+            stack = tryMergeIntoContainer(stack, targetHandler);
             if (!stack.isEmpty())
             {
-                stack = tryPlaceIntoEmptySlot(stack, pet.getInventory());
+                stack = tryPlaceIntoEmptySlot(stack, targetHandler);
             }
 
             // Check if anything changed

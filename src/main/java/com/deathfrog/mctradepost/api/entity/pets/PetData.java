@@ -37,6 +37,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
@@ -88,6 +89,9 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     private ResourceKey<Level> dimension = null;
     private final ItemStackHandler inventory = new ItemStackHandler(9);
     public PetTypes petType = null;
+    
+    private Component originalName = null;
+    private String lastActiveGoal = null;
 
     public PetData(P animal)
     {
@@ -97,7 +101,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             this.petType = PetTypes.fromPetClass(animal.getClass());
             this.entityUuid = animal.getUUID();
             this.entityId = animal.getId();
-            animal.setPersistenceRequired(); // prevent natural despawn
+            animal.setPersistenceRequired();
+            this.originalName = this.getAnimal().getName();
         }
 
     }
@@ -122,6 +127,16 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public String getAnimalType()
     {
         return petType.getTypeName();
+    }
+
+    public Component getOriginalName()
+    {
+        return originalName;
+    }
+
+    public void setOriginalName(Component name)
+    {
+        this.originalName = name;
     }
 
     /**
@@ -234,6 +249,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     {
         if (!level.isClientSide) 
         {
+            if (animal != null)
+            {
+                this.updateDebugNameTag();
+            }
+            
             tryApplyPendingInventory(level);
         }
     }
@@ -314,7 +334,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void workLocationChanged()
     {
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Work location changed to: {}" + this.workLocation));
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Pet {}: Work location changed to: {}", this.animal.getUUID(), this.workLocation));
         
         if (this.animal != null || this.animal.isAlive())
         {
@@ -693,7 +713,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             Goal goal = wrapped.getGoal();
             if (wrapped.isRunning())
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal for pet {}: {} ", getEntityId(), goal.getClass().getSimpleName()));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal for pet {}: {} ", this.getAnimal().getUUID(), goal.getClass().getSimpleName()));
             }
         }
 
@@ -703,7 +723,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             if (wrapped.isRunning())
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS,
-                    () -> LOGGER.info("Active Target Goal for pet {}: {}" , getEntityId(), goal.getClass().getSimpleName()));
+                    () -> LOGGER.info("Active Target Goal for pet {}: {}" , this.getAnimal().getUUID(), goal.getClass().getSimpleName()));
             }
         }
     }
@@ -746,5 +766,51 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             }
 
         pendingInv = null; // applied successfully
+    }
+
+    /**
+     * Updates the custom name tag of the associated animal, based on whether or not pet goal tracing is enabled.
+     * If tracing is enabled, the name will be updated to include the animal's ID and original name.
+     * If tracing is disabled, the name will be restored to the original name (if any).
+     */
+    public void updateDebugNameTag()
+    {
+
+        if (getAnimal() == null) return;
+
+        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+
+        if (debugging)
+        {
+            String idText = this.getAnimal().getUUID().toString();
+            String baseName = this.originalName != null ? this.originalName.getString() : "<unnamed>";
+
+            Goal goal = getActiveGoal();
+            String goalName = null;
+
+            if (goal != null)
+            {
+                lastActiveGoal = goal.getClass().getSimpleName();
+                goalName = " - " + lastActiveGoal;
+            }
+
+            if (this.lastActiveGoal != null)
+            {
+                goalName = " - " + this.lastActiveGoal;
+            }
+            else
+            {
+                goalName = "";
+            }
+
+            this.getAnimal().setCustomName(Component.literal(idText + " (" + baseName + goalName + ")"));
+            this.getAnimal().setCustomNameVisible(true);
+        }
+        else
+        {
+            // In normal gameplay: restore the true saved name
+            this.getAnimal().setCustomName(this.originalName);
+            this.getAnimal().setCustomNameVisible(false); // or false, depending on your preference
+        }
     }
 }

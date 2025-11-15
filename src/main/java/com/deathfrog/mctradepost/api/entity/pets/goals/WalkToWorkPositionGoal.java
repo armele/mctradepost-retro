@@ -90,7 +90,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         emergencyThisRun = mob.getHealth() < mob.getMaxHealth();
         if (emergencyThisRun)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.canUse: Emergency run to: {}", targetPos));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.canUse: Emergency run to: {}", mob.getUUID(), targetPos));
 
             return true;
         }
@@ -187,7 +187,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
                 return;
             }
 
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Looking for food in the work location."));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", mob.getUUID()));
 
             // Pick up food from the working location if there is any
             Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(mob.level(), targetPos, null);
@@ -203,7 +203,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             if (foodslot >= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Picking up some food."));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Picking up some food.", mob.getUUID()));
                 boolean gotFood = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, foodslot, mob.getInventory());
 
                 if (gotFood)
@@ -245,7 +245,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     @Override
     public void stop()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.stop: {}, {}, {}, {}, {}", mob, emergencyThisRun, feedingTries, pathTries, retryCooldown));
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.stop: {}, {}, {}, {}, {}", mob.getUUID(), emergencyThisRun, feedingTries, pathTries, retryCooldown));
 
         emergencyThisRun = false;
         feedingTries = 0;

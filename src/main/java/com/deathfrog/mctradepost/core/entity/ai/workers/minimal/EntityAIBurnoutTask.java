@@ -348,6 +348,13 @@ public class EntityAIBurnoutTask
             return false;
         }
 
+        if (citizenData.isChild())
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No vacations for children: {}", citizen));
+            reset();
+            return false;
+        }
+
         if (citizenData.getCitizenDiseaseHandler().isSick())
         {
             TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("No vacations while sick: {}", citizen));
@@ -371,7 +378,7 @@ public class EntityAIBurnoutTask
                 || workBuilding instanceof BuildingOutpost
                 || (parentBuilding != null && parentBuilding instanceof BuildingOutpost))
             {
-                TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers don't take vacations: {}", citizen));
+                TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Resort workers and outpost residents don't take vacations: {}", citizen));
                 reset();
                 return false;
             }

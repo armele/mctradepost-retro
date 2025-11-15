@@ -1,16 +1,20 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToWaterGoal;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -415,6 +419,28 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
                 net.minecraft.world.Containers.dropItemStack(level, getX(), getY(), getZ(), stack.copy());
                 inv.setStackInSlot(i, ItemStack.EMPTY); // prevent dupes
             }
+        }
+    }
+
+
+    /**
+     * Sets the custom name of this pet. This will update the pet's display name,
+     * and if not in debug mode, will also update the pet's original name,
+     * which is not persisted between game sessions.
+     * 
+     * @param newName the new custom name to set, or null to clear the custom name
+     */
+
+    @Override
+    public void setCustomName(@Nullable Component newName) 
+    {
+        super.setCustomName(newName);
+
+        // Only update originalName if we are NOT in debug mode
+        // (i.e., a real in-game name/tag or command)
+        if (this.getPetData() != null && !TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS)) 
+        {
+            this.getPetData().setOriginalName(newName);
         }
     }
 }
