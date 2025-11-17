@@ -1,0 +1,32 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "irons_spellbooks:keeper_flamberge"
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "irons_spellbooks"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "irons_spellbooks:keeper_flamberge"
+    }
+  ],
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:netherite_scrap",
+        "count": 2
+      },
+      "chance": 1.0
+    },
+    {
+      "item": {
+        "id": "minecraft:stick",
+        "count": 1
+      },
+      "chance": 0.85
+    }
+  ]
+}

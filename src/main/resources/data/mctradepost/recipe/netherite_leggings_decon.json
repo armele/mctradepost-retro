@@ -1,0 +1,29 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "minecraft:netherite_chestplate"
+  },
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:diamond",
+        "count": 7
+      },
+      "chance": 1.0
+    },
+    {
+      "item": {
+        "id": "minecraft:netherite_scrap",
+        "count": 4
+      },
+      "chance": 1.0
+    },
+    {
+      "item": {
+        "id": "minecraft:gold_ingot",
+        "count": 4
+      },
+      "chance": 1.0
+    }
+  ]
+}

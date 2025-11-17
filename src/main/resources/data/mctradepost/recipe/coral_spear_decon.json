@@ -1,0 +1,32 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "cataclysm:coral_spear"
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "cataclysm"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "cataclysm:coral_spear"
+    }
+  ],
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:dead_horn_coral",
+        "count": 1
+      },
+      "chance": 1.0
+    },
+    {
+      "item": {
+        "id": "minecraft:stick",
+        "count": 2
+      },
+      "chance": 0.85
+    }
+  ]
+}

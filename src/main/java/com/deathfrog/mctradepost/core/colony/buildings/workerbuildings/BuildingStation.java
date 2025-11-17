@@ -701,7 +701,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
         else
         {
-            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(exportData.getSourceStation(), EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
             StatsUtil.trackStatByName(this, IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
         }
 

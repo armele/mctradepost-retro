@@ -871,7 +871,7 @@ public class BuildingRecycling extends AbstractBuilding
         {
             final Recipe<?> selectedRecipeForLogging = deconRecipe.get().value();
             TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE,
-                () -> LOGGER.info("Found deconstruction recipe {} for item {}.", selectedRecipeForLogging, inputStack));
+                () -> LOGGER.info("Found deconstruction recipe {} for item {} (max damage {}).", selectedRecipeForLogging, inputStack, inputStack.getMaxDamage()));
             candidateMaterialsOutput = outputsFromDeconstructionRecipe(level, deconRecipe.get().value());
 
             // Deconstruction recipes by definition apply to only a single item being deconstructed, so a 1:1 reference result is correct.
@@ -892,6 +892,7 @@ public class BuildingRecycling extends AbstractBuilding
 
         if (candidateMaterialsOutput == null)
         {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("No candidate outpout materials found for item {}.", inputStack));
             return null;
         }
 
@@ -915,6 +916,12 @@ public class BuildingRecycling extends AbstractBuilding
 
             int maxStackSize = baseStack.getMaxStackSize();
 
+            /*
+            final double recyclingOutputEfficiencyForLogging = recyclingEfficiency;
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("Analyzing candidate output materials {} found for item {}. Damage factor: {}, recycling efficiency: {}, recycling output count: {}, max stack size: {}."
+                , baseStack, inputStack, damageFactor, recyclingEfficiency, recyclingOutputEfficiencyForLogging, maxStackSize));
+            */
+            
             while (recyclingOutputCount > 0)
             {
                 int thisStackCount = Math.min(maxStackSize, recyclingOutputCount);
@@ -930,7 +937,7 @@ public class BuildingRecycling extends AbstractBuilding
                     int successes = 0;
                     for (int i = 0; i < thisStackCount; i++)
                     {
-                        if (level.random.nextDouble() < (damageFactor * recyclingEfficiency))
+                        if (level.random.nextDouble() < ((1 - damageFactor) * recyclingEfficiency))
                         {
                             successes++;
                         }
