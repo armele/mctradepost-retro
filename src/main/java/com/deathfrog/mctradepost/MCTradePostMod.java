@@ -46,6 +46,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.MCTPSettingsFactory;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolverFactory;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolverFactory;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
@@ -845,6 +846,7 @@ public class MCTradePostMod
 
         StandardFactoryController.getInstance().registerNewFactory(new OutpostRequestResolverFactory());
         StandardFactoryController.getInstance().registerNewFactory(new TrainDeliveryResolverFactory());
+        StandardFactoryController.getInstance().registerNewFactory(new MCTPSettingsFactory.SortSettingFactory());
 
         ItemValueRegistry.loadInitialValuesFromJson();  
 

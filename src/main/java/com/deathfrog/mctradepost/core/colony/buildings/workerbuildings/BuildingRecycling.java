@@ -21,6 +21,7 @@ import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe.Output;
@@ -78,6 +79,9 @@ public class BuildingRecycling extends AbstractBuilding
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
     public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING =
         new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "iterative_processing"));
+
+    public static final ISettingKey<SortSetting> ALLOW_SORT =
+        new SettingKey<SortSetting>(SortSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "allow_sort"));
 
     public static final String REQUESTS_TYPE_RECYCLABLE = "com.mctradepost.coremod.request.recyclable";
     public static final String RECYCLER_NO_INPUT_BOX = "com.mctradepost.recycler.no_input_box";
@@ -1126,5 +1130,16 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         return stackToCheck;
+    }
+    
+    /**
+     * Returns true if this building can sort items in its inventory.
+     * 
+     * @return true if the building can sort items, false otherwise.
+     */
+    @Override 
+    public boolean canSort()
+    {
+        return true;
     }
 }

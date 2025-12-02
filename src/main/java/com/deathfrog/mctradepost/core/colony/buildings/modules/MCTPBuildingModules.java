@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingIte
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -78,7 +79,7 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> RECYCLING_SETTINGS    =
       new BuildingEntry.ModuleProducer<>("recycling_settings", () -> new SettingsModule()
-        .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false)), () -> SettingsModuleView::new);
+        .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false)).with(BuildingRecycling.ALLOW_SORT, new SortSetting()), () -> SettingsModuleView::new);
 
     public static final BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView> RECYCLING_PROGRESS     =
       new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", () -> new BuildingRecyclerProgressModule(), () -> RecyclerProgressView::new);
