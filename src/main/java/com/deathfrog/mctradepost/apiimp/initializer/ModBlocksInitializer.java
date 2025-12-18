@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.minecolonies.api.blocks.ModBlocks;
 
 import net.minecraft.core.Registry;
@@ -92,7 +93,7 @@ public final class ModBlocksInitializer
     {
         if (event.getRegistryKey().equals(Registries.BLOCK))
         {
-            ModBlocksInitializer.init(event.getRegistry(Registries.BLOCK));
+            ModBlocksInitializer.init(event.getRegistry(NullnessBridge.assumeNonnull(Registries.BLOCK)));
         }
     }
 
@@ -112,7 +113,7 @@ public final class ModBlocksInitializer
     {
         if (event.getRegistryKey().equals(Registries.ITEM))
         {
-            ModBlocksInitializer.registerBlockItem(event.getRegistry(Registries.ITEM));
+            ModBlocksInitializer.registerBlockItem(event.getRegistry(NullnessBridge.assumeNonnull(Registries.ITEM)));
         }
     }
 

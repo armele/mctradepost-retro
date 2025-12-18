@@ -28,6 +28,7 @@ public class ModModelTypeInitializer
      * 
      * @param context The context for the entity renderer provider.
      */
+    @SuppressWarnings("null")
     @OnlyIn(Dist.CLIENT)
     public static void init(final EntityRendererProvider.Context context)
     {

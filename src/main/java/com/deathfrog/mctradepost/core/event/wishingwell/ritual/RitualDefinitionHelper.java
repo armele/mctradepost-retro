@@ -231,6 +231,11 @@ public class RitualDefinitionHelper
         return this.ritualDefinition.effect();
     }
 
+    public String coinType() 
+    {
+        return this.ritualDefinition.coinType();
+    }
+
     public String target() 
     {
         return this.ritualDefinition.target();

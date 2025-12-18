@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost.compat.jei;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import mezz.jei.api.IModPlugin;
@@ -12,7 +14,6 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-
 import java.util.List;
 import javax.annotation.Nonnull;
 
@@ -20,17 +21,27 @@ import javax.annotation.Nonnull;
 public class JEIMCTPPlugin implements IModPlugin
 {
     public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "jei_plugin");
-    public static final RecipeType<RitualDefinitionHelper> RITUAL_TYPE = new RecipeType<>(ID, RitualDefinitionHelper.class);
+    public static final RecipeType<RitualDefinitionHelper> RITUAL_TYPE = new RecipeType<>(NullnessBridge.assumeNonnull(ID), RitualDefinitionHelper.class);
 
     public static IRecipeManager RECIPE_MANAGER = null;
 
+    /**
+     * Returns the unique identifier for the JEI plugin for MCTradePost.
+     * 
+     * @return The unique identifier for the JEI plugin for MCTradePost.
+     */
     @Nonnull
     @Override
     public ResourceLocation getPluginUid()
     {
-        return ID;
+        return NullnessBridge.assumeNonnull(ID);
     }
 
+    /**
+     * Registers the Ritual category with JEI.
+     * 
+     * @param registration the registration for JEI categories
+     */
     @Override
     public void registerCategories(@Nonnull IRecipeCategoryRegistration registration)
     {
@@ -42,7 +53,14 @@ public class JEIMCTPPlugin implements IModPlugin
     {
         MCTradePostMod.LOGGER.info("Registering JEI recipes");
         List<RitualDefinitionHelper> allRituals = RitualManager.getAllRituals().values().stream().toList();
-        registration.addRecipes(RITUAL_TYPE, allRituals);
+
+        if (allRituals == null || allRituals.isEmpty())
+        {
+            MCTradePostMod.LOGGER.info("No rituals found; skipping JEI registration");
+            return;
+        }
+
+        registration.addRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), allRituals);
     }
 
     /**
@@ -58,24 +76,46 @@ public class JEIMCTPPlugin implements IModPlugin
         RECIPE_MANAGER = jeiRuntime.getRecipeManager();
     }
 
-    public static void refreshRitualRecipes() 
+    /**
+     * Reloads the list of registered rituals in JEI.
+     * This can be used to refresh the list of rituals after a change to the data files.
+     * If the JEI runtime is not yet available, this method does nothing.
+     */
+    public static void refreshRitualRecipes()
     {
-        if (RECIPE_MANAGER == null) {
+        if (RECIPE_MANAGER == null)
+        {
             MCTradePostMod.LOGGER.warn("JEI runtime not ready; cannot refresh rituals");
             return;
         }
 
         List<RitualDefinitionHelper> allRituals = RitualManager.getAllRituals().values().stream().toList();
-        RECIPE_MANAGER.addRecipes(RITUAL_TYPE, allRituals);
+
+        if (allRituals == null || allRituals.isEmpty())
+        {
+            MCTradePostMod.LOGGER.info("No rituals found; skipping JEI registration");
+            return;
+        }
+
+        RECIPE_MANAGER.addRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), allRituals);
 
         MCTradePostMod.LOGGER.info("JEI ritual list reloaded");
     }
 
     /**
      * Registers the mixed stone as a catalyst for all rituals.
-     */ 
+     */
     @Override
-    public void registerRecipeCatalysts(@Nonnull IRecipeCatalystRegistration reg) {
-        reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.MIXED_STONE.get()), RITUAL_TYPE);
+    public void registerRecipeCatalysts(@Nonnull IRecipeCatalystRegistration reg)
+    {
+        BlockMixedStone mixedStone = MCTradePostMod.MIXED_STONE.get();
+        
+        if (mixedStone == null)
+        {
+            MCTradePostMod.LOGGER.warn("Mixed stone block not found; skipping catalyst registration");
+            return;
+        }
+
+        reg.addRecipeCatalyst(new ItemStack(mixedStone), RITUAL_TYPE);
     }
 }

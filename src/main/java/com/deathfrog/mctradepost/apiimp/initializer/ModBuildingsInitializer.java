@@ -4,11 +4,15 @@ import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry.ModuleProducer;
 import com.minecolonies.apiimp.CommonMinecoloniesAPIImpl;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
+
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.RegisterEvent;
+
 
 import java.util.List;
 
@@ -70,10 +74,7 @@ public final class ModBuildingsInitializer
             marketBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
             ModBuildings.marketplace = marketBuilder.createBuildingEntry();
 
-
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.marketplace.getRegistryName(), ModBuildings.marketplace);
-            });
+            registerBuilding(event, ModBuildings.marketplace);
     
 
             BuildingEntry.Builder resortBuilder = new BuildingEntry.Builder();
@@ -88,9 +89,7 @@ public final class ModBuildingsInitializer
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.resort.getRegistryName(), ModBuildings.resort);
-            });
+            registerBuilding(event, ModBuildings.resort);
 
 
             BuildingEntry.Builder recyclingBuilder = new BuildingEntry.Builder();
@@ -103,12 +102,10 @@ public final class ModBuildingsInitializer
             recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLING_PROGRESS);
             recyclingBuilder.addBuildingModuleProducer(MCTPBuildingModules.RECYCLING_SETTINGS);
             recyclingBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
-
             ModBuildings.recycling = recyclingBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.recycling.getRegistryName(), ModBuildings.recycling);
-            });
+            registerBuilding(event, ModBuildings.recycling);
+
 
             BuildingEntry.Builder stationBuilder = new BuildingEntry.Builder();
             stationBuilder.setBuildingBlock(MCTradePostMod.blockHutStation.get());
@@ -122,12 +119,10 @@ public final class ModBuildingsInitializer
             stationBuilder.addBuildingModuleProducer(MCTPBuildingModules.EXPORTS);
             stationBuilder.addBuildingModuleProducer(BuildingModules.WAREHOUSE_REQUEST_QUEUE);
             stationBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
-
             ModBuildings.station = stationBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.station.getRegistryName(), ModBuildings.station);
-            });
+            registerBuilding(event, ModBuildings.station);
+
 
             BuildingEntry.Builder petShopBuilder = new BuildingEntry.Builder();
             petShopBuilder.setBuildingBlock(MCTradePostMod.blockHutPetShop.get());
@@ -138,12 +133,10 @@ public final class ModBuildingsInitializer
             petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.PET_TRAINING);
             petShopBuilder.addBuildingModuleProducer(MCTPBuildingModules.PET_ASSIGNMENT);
             petShopBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);
-
             ModBuildings.petshop = petShopBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.petshop.getRegistryName(), ModBuildings.petshop);
-            });
+            registerBuilding(event, ModBuildings.petshop);
+
 
             BuildingEntry.Builder outpostBuilder = new BuildingEntry.Builder();
             outpostBuilder.setBuildingBlock(MCTradePostMod.blockHutOutpost.get());
@@ -158,15 +151,38 @@ public final class ModBuildingsInitializer
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDER_SETTINGS);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
-
             ModBuildings.outpost = outpostBuilder.createBuildingEntry();
 
-            event.register(CommonMinecoloniesAPIImpl.BUILDINGS, registry -> {
-                registry.register(ModBuildings.outpost.getRegistryName(), ModBuildings.outpost);
-            });
-
+            registerBuilding(event, ModBuildings.outpost);
 
         }
+    }
+
+    /**
+     * Registers a building with the given building entry to the given RegisterEvent.
+     *
+     * @param event The event to register the building with.
+     * @param buildingEntry The building entry to register.
+     */
+    protected static void registerBuilding(RegisterEvent event, BuildingEntry buildingEntry)
+    {
+            ResourceKey<Registry<BuildingEntry>> buildingsRegistry = CommonMinecoloniesAPIImpl.BUILDINGS;
+
+            if (buildingsRegistry == null)
+            {
+                throw new IllegalStateException("Building registry is null while attempting to register Trade Post buildings.");
+            }
+
+            ResourceLocation registryName = buildingEntry.getRegistryName();
+
+            if (registryName == null)
+            {
+                throw new IllegalStateException("Attempting to register a building with no registry name.");
+            }
+
+            event.register(buildingsRegistry, registry -> {
+                registry.register(registryName, buildingEntry);
+            });
     }
 
     /**
@@ -182,7 +198,15 @@ public final class ModBuildingsInitializer
         injectModuleToBuilding(MCTPBuildingModules.DAIRYWORKER_CRAFT, cowboy, 2);
     }
 
-
+    /**
+     * Injects a module into an existing building entry if it is not already present.
+     * 
+     * @param producer the module to inject
+     * @param buildingEntry the building to inject into
+     * If the module is not already present, it will be added to the end of the module list.
+     * If the module is already present, it will not be injected again.
+     * If the buildingEntry is not bound, this method does nothing.
+     */
     protected static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder) 
     {
         injectModuleToBuilding(producer, buildingEntryHolder, -1);
@@ -199,6 +223,7 @@ public final class ModBuildingsInitializer
         if (buildingEntryHolder == null || !buildingEntryHolder.isBound()) return;
         BuildingEntry buildingEntry = buildingEntryHolder.get();
 
+        @SuppressWarnings("rawtypes")
         final List<ModuleProducer> modules = buildingEntry.getModuleProducers();
 
         if (modules.stream().noneMatch(mp -> mp.key.equals(producer.key))) 

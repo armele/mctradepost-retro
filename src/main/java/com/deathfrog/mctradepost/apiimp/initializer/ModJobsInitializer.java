@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobBartender;
 import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
@@ -21,9 +22,11 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+
 public final class ModJobsInitializer
 {
-    public final static DeferredRegister<JobEntry> DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.JOBS, MCTradePostMod.MODID);
+    public final static DeferredRegister<JobEntry> DEFERRED_REGISTER = DeferredRegister.create(NullnessBridge.assumeNonnull(CommonMinecoloniesAPIImpl.JOBS), MCTradePostMod.MODID);
 
     private ModJobsInitializer()
     {
@@ -89,17 +92,27 @@ public final class ModJobsInitializer
      * @param supplier the supplier of the entry.
      * @return the registry object.
      */
-    private static DeferredHolder<JobEntry, JobEntry> register(final DeferredRegister<JobEntry> deferredRegister, final String path, final Supplier<JobEntry> supplier)
+    private static DeferredHolder<JobEntry, JobEntry> register(final DeferredRegister<JobEntry> deferredRegister, final String path, final @Nonnull Supplier<JobEntry> supplier)
     {
+        if (path == null) return null;
+
         MCTradePostMod.LOGGER.info("Registering job: " + path);
         return deferredRegister.register(path, supplier);
     }
         
-    public static void logRegisteredJobEntries(ServerLevel level) {
-        Registry<JobEntry> jobRegistry = level.registryAccess().registryOrThrow(CommonMinecoloniesAPIImpl.JOBS);
+/**
+ * Logs all registered job entries in MineColonies.
+ * This method is used to debug which job entries are registered in MineColonies.
+ * @param level the server level.
+ */
+    public static void logRegisteredJobEntries(ServerLevel level) 
+    {
+        Registry<JobEntry> jobRegistry = level.registryAccess().registryOrThrow(NullnessBridge.assumeNonnull(CommonMinecoloniesAPIImpl.JOBS));
 
         MCTradePostMod.LOGGER.info("=== Registered JobEntry objects in MineColonies ===");
-        for (JobEntry entry : jobRegistry) {
+        for (JobEntry entry : jobRegistry) 
+        {
+            if (entry == null) continue;
             MCTradePostMod.LOGGER.info("JobEntry ID: {}", jobRegistry.getKey(entry));
         }
     }
