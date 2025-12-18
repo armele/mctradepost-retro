@@ -12,13 +12,14 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class BlockTrough extends AbstractBlockPetWorkingLocation
 {
 
-    public BlockTrough(Properties properties)
+    public BlockTrough(@Nonnull Properties properties)
     {
         super(properties);
     }
 
     @Override
-    public VoxelShape getShape(@Nonnull BlockState state, @Nonnull BlockGetter level, @Nonnull BlockPos pos, @Nonnull CollisionContext context) {
+    public VoxelShape getShape(@Nonnull BlockState state, @Nonnull BlockGetter level, @Nonnull BlockPos pos, @Nonnull CollisionContext context) 
+    {
         VoxelShape SHAPE = Block.box(0, 2, 2, 14, 8, 16);
         return SHAPE;
     }

@@ -12,7 +12,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class BlockScavenge extends AbstractBlockPetWorkingLocation
 {
 
-    public BlockScavenge(Properties properties)
+    public BlockScavenge(@Nonnull Properties properties)
     {
         super(properties);
     }

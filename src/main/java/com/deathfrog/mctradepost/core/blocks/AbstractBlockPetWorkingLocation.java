@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
 import com.mojang.logging.LogUtils;
 
@@ -50,15 +51,27 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
     public static final String TOOLTIP_BASE = "item.mctradepost.petworkinglocation.";
     public static final String TOOLTIP_EXPANDED_BASE = "item.mctradepost.petworkinglocation.expanded.";
 
-    public AbstractBlockPetWorkingLocation(Properties properties)
+    public AbstractBlockPetWorkingLocation(@Nonnull Properties properties)
     {
         super(properties);
-        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
+        BlockState state = this.stateDefinition.any().setValue(NullnessBridge.assumeNonnull(FACING), Direction.NORTH);
+        this.registerDefaultState(NullnessBridge.assumeNonnull(state));
     }
 
+
+    /**
+     * Creates a new block entity for the given block position and state.
+     * This method will create a new instance of a PetWorkingBlockEntity and set its registry name to the name of the
+     * building entry associated with this block hut.
+     *
+     * @param pos   the block position
+     * @param state the block state
+     * @return the new block entity, or null if the building entry is not found
+     */
     @Override
     @Nullable
-    public BlockEntity newBlockEntity(@Nonnull BlockPos pos, @Nonnull BlockState state) {
+    public BlockEntity newBlockEntity(@Nonnull BlockPos pos, @Nonnull BlockState state) 
+    {
         return new PetWorkingBlockEntity(pos, state);
     }
 
@@ -83,7 +96,8 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context)
     {
         // Rotate the block to face *opposite* the player's horizontal facing direction
-        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        Direction facing = context.getHorizontalDirection().getOpposite();
+        return this.defaultBlockState().setValue(NullnessBridge.assumeNonnull(FACING), NullnessBridge.assumeNonnull(facing));
     }
 
     @Override
@@ -120,7 +134,7 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         // LOGGER.info("In setPlacedBy checking for custom name at {}", pos.toShortString());
 
         // Only set a custom name if the placing stack actually has one (e.g. renamed in an anvil)
-        Component custom = stack.get(DataComponents.CUSTOM_NAME); // 1.21.1 way
+        Component custom = stack.get(NullnessBridge.assumeNonnull(DataComponents.CUSTOM_NAME));
         if (custom == null) return;
 
         BlockEntity be = level.getBlockEntity(pos);
@@ -200,7 +214,7 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
      * @param player the player interacting with the block
      * @return the result of the interaction
      */
-    private ItemInteractionResult handleInteraction(Level level, BlockPos pos, Player player)
+    private ItemInteractionResult handleInteraction(Level level, @Nonnull BlockPos pos, Player player)
     {
         if (level.isClientSide)
         {

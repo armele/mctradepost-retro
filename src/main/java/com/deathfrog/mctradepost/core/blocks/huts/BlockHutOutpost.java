@@ -11,6 +11,8 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.minecolonies.api.colony.IColony;
@@ -21,6 +23,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
@@ -62,7 +65,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     {
         if (!stack.isEmpty() && pos != null)
         {
-            stack.set(MCTPModDataComponents.LINKED_BLOCK_POS.get(), pos);
+            stack.set(LINKED_BLOCK_POS(), pos);
         }
     }
 
@@ -76,7 +79,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     @Nullable
     public static BlockPos getLinkedBlockPos(ItemStack stack)
     {
-        return stack.getOrDefault(MCTPModDataComponents.LINKED_BLOCK_POS.get(), BlockPos.ZERO);
+        return stack.getOrDefault(LINKED_BLOCK_POS(), NullnessBridge.assumeNonnull(BlockPos.ZERO));
     }
 
 
@@ -88,7 +91,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
      */
     public static boolean hasLinkedBlockPos(ItemStack stack)
     {
-        return !stack.isEmpty() && stack.has(MCTPModDataComponents.LINKED_BLOCK_POS.get());
+        return !stack.isEmpty() && stack.has(LINKED_BLOCK_POS());
     }
 
     /**
@@ -100,11 +103,25 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     {
         if (!stack.isEmpty())
         {
-            stack.remove(MCTPModDataComponents.LINKED_BLOCK_POS.get());
+            stack.remove(LINKED_BLOCK_POS());
         }
     }
 
 
+    /**
+     * A special outpost placer that requires the presence of an outpost marker at the same position
+     * unless the player is in creative mode.
+     *
+     * @param player The player placing the outpost (may be null if not applicable)
+     * @param world The world the outpost is being placed in
+     * @param pos The position the outpost is being placed at
+     * @param blueprint The blueprint of the outpost being placed
+     * @param rotationMirror The rotation mirror of the outpost being placed
+     * @param fancyPlacement Whether fancy placement is enabled
+     * @param pack The name of the blueprint pack
+     * @param path The path to the blueprint
+     * @return True if the outpost was successfully placed, false otherwise
+     */
     @Override
     public boolean setup(ServerPlayer player,
         Level world,
@@ -122,14 +139,15 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         {
             if (player != null) 
             {
-                player.displayClientMessage(
-                    Component.translatable("com.mctradepost.outpost.disallowed"),
+                player.displayClientMessage(NullnessBridge.assumeNonnull(
+                    Component.translatable("com.mctradepost.outpost.disallowed")),
                     true
                 );
             }
             return false;
         }
 
+        if (pos == null) return false;
 
         // Make sure the chunk is present (defensive)
         if (!world.isAreaLoaded(pos, 1)) return false;
@@ -142,7 +160,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
 
 
         // Require the Outpost Marker at this exact position unless we're in creative mode.
-        if (world.getBlockState(pos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get())) 
+        if (world.getBlockState(pos).is(outpostMarker())) 
         {
             Log.getLogger().info("Outpost marker found.");
             allowPlacement = true;
@@ -156,11 +174,12 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
 
         if (player != null) 
         {
-            player.displayClientMessage(
-                Component.translatable("com.mctradepost.outpost.buildfailure"),
+            player.displayClientMessage(NullnessBridge.assumeNonnull(
+                Component.translatable("com.mctradepost.outpost.buildfailure")),
                 true
             );
         }
+        
         Log.getLogger().info("Outpost placement not allowed here.");
 
         return false;
@@ -195,7 +214,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     {
 
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(player.level(), pos);
-        if (colony == null) return false;
+        if (colony == null || pos == null) return false;
 
         int maxDistance = MCTPConfig.maxDistance.get();
 
@@ -227,7 +246,7 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
                 for (int z = -radius; z <= radius; z++)
                 {
                     checkPos.set(pos.getX() + x, pos.getY() + y, pos.getZ() + z);
-                    if (level.getBlockState(checkPos).is(MCTradePostMod.BLOCK_OUTPOST_MARKER.get()))
+                    if (level.getBlockState(checkPos).is(outpostMarker()))
                     {
                         // Found a marker nearby — allow placement
                         return true;
@@ -240,4 +259,25 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         return false;
     }
 
+
+    /**
+     * Gets the outpost marker block.
+     *
+     * @return the outpost marker block, never null
+     */
+    @Nonnull static BlockOutpostMarker outpostMarker()
+    {   
+        BlockOutpostMarker outpostMarker = MCTradePostMod.BLOCK_OUTPOST_MARKER.get();
+        return NullnessBridge.assumeNonnull(outpostMarker);
+    }
+
+    /**
+     * A data component type which stores a BlockPos indicating the location of a linked outpost marker block.
+     *
+     * @return the data component type for the linked outpost marker block position
+     */
+    @Nonnull static DataComponentType<BlockPos> LINKED_BLOCK_POS()
+    {
+        return NullnessBridge.assumeNonnull(MCTPModDataComponents.LINKED_BLOCK_POS.get());
+    }
 }

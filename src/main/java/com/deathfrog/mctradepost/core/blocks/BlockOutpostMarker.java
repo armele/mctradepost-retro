@@ -1,4 +1,5 @@
 package com.deathfrog.mctradepost.core.blocks;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -31,9 +32,14 @@ public class BlockOutpostMarker extends Block
      * @param placer the ServerPlayer who is placing the outpost flag, or null if not applicable
      * @return true if the outpost flag was placed, false otherwise
      */
-    public static boolean placeOutpostMarker(ServerLevel level, BlockPos pos, @Nullable ServerPlayer placer)
+    @SuppressWarnings("null")
+    public static boolean placeOutpostMarker(@Nonnull ServerLevel level, @Nonnull BlockPos pos, @Nullable ServerPlayer placer)
     {
+        if (level.isClientSide) return false;
+
         BlockPos target = pos.above();
+
+        if (target == null) return false;
 
         // Make sure the chunk is loaded and spot is replaceable
         if (!level.isAreaLoaded(target, 1)) return false;

@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.domumornamentum.block.AbstractBlock;
 import com.ldtteam.domumornamentum.block.ICachedItemGroupBlock;
@@ -51,7 +52,7 @@ public abstract class ExtendedTimberFrameBlock extends AbstractBlock<ExtendedTim
     implements IMateriallyTexturedBlock, ICachedItemGroupBlock, EntityBlock
 {
     public static final List<IMateriallyTexturedBlockComponent> COMPONENTS;
-    public static final DirectionProperty FACING;
+    public static final @Nonnull DirectionProperty FACING;
     private final List<ItemStack> fillItemGroupCache = new ArrayList<ItemStack>();
     
     // MateriallyTexturedBlockRecipeProvider recipeProvider = new MateriallyTexturedBlockRecipeProvider();
@@ -59,7 +60,7 @@ public abstract class ExtendedTimberFrameBlock extends AbstractBlock<ExtendedTim
 
     public ExtendedTimberFrameBlock()
     {
-        super(Properties.of().mapColor(MapColor.WOOD).pushReaction(PushReaction.PUSH_ONLY).strength(3.0F, 1.0F).noOcclusion());
+        super(Properties.of().mapColor(NullnessBridge.assumeNonnull(MapColor.WOOD)).pushReaction(PushReaction.PUSH_ONLY).strength(3.0F, 1.0F).noOcclusion());
     }
 
     public boolean shouldDisplayFluidOverlay(@Nonnull BlockState state, @Nonnull BlockAndTintGetter level, @Nonnull BlockPos pos, @Nonnull FluidState fluidState)
@@ -67,6 +68,16 @@ public abstract class ExtendedTimberFrameBlock extends AbstractBlock<ExtendedTim
         return true;
     }
 
+    /**
+     * Defines the block state properties for this block.
+     * <p>This method is called by the constructor of the block to define the properties of the block, and is used by the game to
+     * manage the state of the block in the world. The properties defined by this method are stored in the block's block state, and can
+     * be accessed by other parts of the game to determine the block's behavior and appearance.
+     * <p>This method adds the FACING property to the block state definition, which is a DirectionProperty that indicates which
+     * direction the block is facing.
+     * <p>
+     * @param builder the block state definition builder
+     */
     @Override
     protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder)
     {
@@ -74,19 +85,40 @@ public abstract class ExtendedTimberFrameBlock extends AbstractBlock<ExtendedTim
         builder.add(new Property[] {FACING});
     }
 
+    /**
+     * Rotates the given block state by the given rotation.
+     *
+     * @param state the block state to rotate
+     * @param rot the rotation to apply
+     * @return the rotated block state
+     */
     public @NotNull BlockState rotate(@Nonnull BlockState state, @Nonnull Rotation rot)
     {
-        return (BlockState) state.setValue(FACING, rot.rotate((Direction) state.getValue(FACING)));
+        Direction dir = (Direction) state.getValue(FACING);
+        Direction rotation = rot.rotate(NullnessBridge.assumeNonnull(dir));
+        return (BlockState) state.setValue(FACING, NullnessBridge.assumeNonnull(rotation));
     }
 
+    /**
+     * Mirrors the given block state by the given mirror.
+     *
+     * The block state is rotated by the rotation given by the mirror, which is applied to the block state's facing direction.
+     *
+     * @param state the block state to mirror
+     * @param mirrorIn the mirror to apply
+     * @return the mirrored block state
+     */
     public @NotNull BlockState mirror(@Nonnull BlockState state, @Nonnull Mirror mirrorIn)
-    {
-        return state.rotate(mirrorIn.getRotation((Direction) state.getValue(FACING)));
+    {   
+        Direction direction = (Direction) state.getValue(FACING);
+        Rotation rotation = mirrorIn.getRotation(NullnessBridge.assumeNonnull(direction));
+        return this.rotate(state, NullnessBridge.assumeNonnull(rotation));
     }
 
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context)
     {
-        return (BlockState) this.defaultBlockState().setValue(FACING, context.getNearestLookingDirection().getOpposite());
+        Direction direction = context.getNearestLookingDirection().getOpposite();
+        return (BlockState) this.defaultBlockState().setValue(FACING, NullnessBridge.assumeNonnull(direction));
     }
 
     public @NotNull List<IMateriallyTexturedBlockComponent> getComponents()
@@ -165,6 +197,6 @@ public abstract class ExtendedTimberFrameBlock extends AbstractBlock<ExtendedTim
             .add(frame)
             .build();
 
-        FACING = BlockStateProperties.FACING;
+        FACING = NullnessBridge.assumeNonnull(BlockStateProperties.FACING);
     }
 }

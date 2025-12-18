@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -49,14 +50,8 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     // Adaptive or fixed interval between checks:
     private int currentCheckIntervalTicks = 20 * 10; // start with 10s
     private static final int MAX_CHECK_INTERVAL_TICKS = 20 * 60 * 10; // cap at 10 min
-
-    // Optional: soft cap on attempts; set 0 or negative to mean "no cap".
-    private int nameLookupAttempts = 0;
-    private static final int MAX_NAME_LOOKUPS = 0; // 0 = unlimited
-
-
     public static final int SLOT_COUNT = 27;
-    private NonNullList<ItemStack> items = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY);
+    private NonNullList<ItemStack> items = NonNullList.withSize(SLOT_COUNT, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
     public PetWorkingBlockEntity(BlockPos pos, BlockState state)
     {
@@ -122,15 +117,18 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         super.saveAdditional(tag, registries);
 
         // Save inventory unless a loot table is in use
-        if (!this.trySaveLootTable(tag))
+        if (!this.trySaveLootTable(tag) && this.items != null)
         {
             ContainerHelper.saveAllItems(tag, this.items, registries);
         }
 
-        if (this.hasCustomName())
+        if (this.customName != null)
         {
-            // LOGGER.info("[PWB] saveAdditional: WRITING CustomName={} for block at {} from {}", this.customName, this.getBlockPos().toShortString(), Thread.currentThread().getStackTrace());
-            tag.putString(TAG_PWB_CUSTOM_NAME, Component.Serializer.toJson(this.customName, registries));
+            String customString = Component.Serializer.toJson(this.customName, registries);
+            if (customString != null)
+            {
+                tag.putString(TAG_PWB_CUSTOM_NAME, customString);
+            }
         }
     }
 
@@ -147,17 +145,18 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         super.loadAdditional(tag, registries);
 
         // Ensure list has the correct size before loading
-        this.items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
+        this.items = NonNullList.withSize(getContainerSize(), NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
         // Load inventory unless a loot table is in use
-        if (!this.tryLoadLootTable(tag))
+        if (!this.tryLoadLootTable(tag) && this.items != null)
         {
             ContainerHelper.loadAllItems(tag, this.items, registries);
         }
 
         if (tag.contains(TAG_PWB_CUSTOM_NAME))
         {
-            Component raw = Component.Serializer.fromJson(tag.getString(TAG_PWB_CUSTOM_NAME), registries);
+            String customString = tag.getString(TAG_PWB_CUSTOM_NAME);
+            Component raw = Component.Serializer.fromJson(NullnessBridge.assumeNonnull(customString), registries);
             setCustomName(raw);
         }
 
@@ -216,10 +215,12 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     public void onLoad() 
     {
         super.onLoad();
-        if (level == null || level.isClientSide) return;
+
+        Level localLevel = level;
+        if (localLevel == null || localLevel.isClientSide) return;
 
         // Still register the work location:
-        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(localLevel, worldPosition);
         if (colony != null) 
         {
             PetRegistryUtil.registerWorkLocation(colony, worldPosition);
@@ -233,7 +234,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         {
             needsBuildingName = true;
             // First check soon after load to catch already-finished builds:
-            nextNameCheckGameTime = level.getGameTime() + 20; // 1s after load
+            nextNameCheckGameTime = localLevel.getGameTime() + 20; // 1s after load
         }
     }
 
@@ -264,9 +265,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         {
             return;
         }
-
-        be.nameLookupAttempts++;
-
+        
         boolean success = be.tryResolveNameFromBuilding();
 
         if (success) 
@@ -304,11 +303,17 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         Level level = getLevel();
         if (level == null || level.isClientSide)
         {
-            // LOGGER.info("No client side resolution allowed.", worldPosition.toShortString());
             return false;
         }
 
-        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        BlockPos localWorldPosition = worldPosition;
+
+        if (localWorldPosition == null)
+        {
+            return false;
+        }
+
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, localWorldPosition);
         if (colony == null)
         {
             // LOGGER.info("Couldn't get the colony from the manager for position {} ", worldPosition.toShortString());
@@ -333,11 +338,11 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             int maxY = Math.max(a.getY(), b.getY());
             int maxZ = Math.max(a.getZ(), b.getZ());
 
-            if (worldPosition.getX() >= minX && worldPosition.getX() <= maxX &&
-                worldPosition.getY() >= minY &&
-                worldPosition.getY() <= maxY &&
-                worldPosition.getZ() >= minZ &&
-                worldPosition.getZ() <= maxZ)
+            if (localWorldPosition.getX() >= minX && localWorldPosition.getX() <= maxX &&
+                localWorldPosition.getY() >= minY &&
+                localWorldPosition.getY() <= maxY &&
+                localWorldPosition.getZ() >= minZ &&
+                localWorldPosition.getZ() <= maxZ)
             {
                 selected = candidate;
                 break;
@@ -350,13 +355,22 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             return false;
         }
 
-        Component name = Component.literal("Herd: " + Component.translatable(selected.getBuildingDisplayName()).getString());
+        String dispName = selected.getBuildingDisplayName();
+        Component name = Component.literal("Herd: " + Component.translatable(dispName + "").getString());
 
         // LOGGER.info("Setting derived name {} at position {} ", name, worldPosition.toShortString());
 
         this.derivedName = name;
         this.setChanged();
-        level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        
+        BlockState state = getBlockState();
+
+        if (state == null)
+        {
+            return false;
+        }
+
+        level.sendBlockUpdated(localWorldPosition, state, state, 3);
 
         return true;
     }
