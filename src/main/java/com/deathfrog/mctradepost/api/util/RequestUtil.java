@@ -16,11 +16,19 @@ import com.minecolonies.api.util.Log;
 
 public class RequestUtil 
 {
+    /**
+     * Retrieves all open requests from a given building.
+     * 
+     * @param building The building to retrieve the requests from.
+     * @param originatorOnly Whether to only retrieve requests that were originally requested from this building, or to
+     *          also retrieve requests that were propagated to this building.
+     * @return A list of all open requests in the given building.
+     */
     public static ImmutableList<IRequest<?>> getOpenRequestsFromBuilding(final IBuilding building, boolean originatorOnly)
     {
         final ArrayList<IRequest<?>> requests = Lists.newArrayList();
 
-        if (building == null || building.getColony() == null)
+        if (building == null || building.getColony() == null || requests == null)
         {
             return ImmutableList.of();
         }

@@ -3,8 +3,9 @@ package com.deathfrog.mctradepost.api.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
+import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 
 public class PathingUtil {
+    @SuppressWarnings("null")
     public static final TagKey<Block> ICY =
         TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "icy"));
 
@@ -32,6 +34,7 @@ public class PathingUtil {
      * @param pos the starting position to search from
      * @return the top of the water column
      */
+    @SuppressWarnings("null")
     public static BlockPos findTopOfWaterColumn(Level lvl, BlockPos pos)
     {
         // Quick reject
@@ -53,42 +56,76 @@ public class PathingUtil {
         return null;
     }
 
+
+    /**
+     * Checks if a given block state is an icy block.
+     * 
+     * @param s the block state to check
+     * @return true if the block state is an icy block, false otherwise
+     */
+    @SuppressWarnings("null")
     public static boolean isIce(BlockState s)
     {
         return s.is(TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("mctradepost", "icy")));
     }
 
-    public static boolean isOpenOrIce(BlockState s) {
-        return s.isAir() || s.is(ICY);
+    /**
+     * Checks if a given block state is either air or an icy block.
+     * 
+     * @param s the block state to check
+     * @return true if the block state is air or an icy block, false otherwise
+     */
+    public static boolean isOpenOrIce(BlockState s) 
+    {
+        return s.isAir() || s.is(NullnessBridge.assumeNonnull(ICY));
     }
 
-    public static boolean isWaterOrIce(BlockState s) {
-        return s.getFluidState().is(net.minecraft.tags.FluidTags.WATER) || s.is(ICY);
+    /**
+     * Checks if a given block state is either water or an icy block.
+     * 
+     * @param s the block state to check
+     * @return true if the block state is either water or an icy block, false otherwise
+     */
+    public static boolean isWaterOrIce(BlockState s) 
+    {
+        return s.getFluidState().is(NullnessBridge.assumeNonnull(FluidTags.WATER)) || s.is(NullnessBridge.assumeNonnull(ICY));
     }
 
-    public static boolean isWater(Level level, BlockPos pos)
+    public static boolean isWater(@Nonnull Level level, @Nonnull BlockPos pos)
     {
         BlockState state = level.getBlockState(pos);
-        return state.getFluidState().is(FluidTags.WATER);
+        return state.getFluidState().is(NullnessBridge.assumeNonnull(FluidTags.WATER));
     }
 
-    public static boolean isSwimmableWater(Level level, BlockPos pos)
+    public static boolean isSwimmableWater(@Nonnull Level level, @Nonnull BlockPos pos)
     {
         BlockState s = level.getBlockState(pos);
-        if (!s.getFluidState().is(FluidTags.WATER)) return false;          // includes waterlogged
-        // 1.21.1 API: no level/pos params
-        if (!s.isPathfindable(PathComputationType.WATER)) return false;    // navigable for water pathing
+        
+        // includes waterlogged
+        if (!s.getFluidState().is(NullnessBridge.assumeNonnull(FluidTags.WATER))) return false;
+        
+        if (!s.isPathfindable(PathComputationType.WATER)) return false;
+
         // Headroom: either water above or air to fit the axolotl
-        BlockState above = level.getBlockState(pos.above());
-        return above.getFluidState().is(FluidTags.WATER) || above.isAir();
+        BlockState above = level.getBlockState(NullnessBridge.assumeNonnull(pos.above()));
+        return above.getFluidState().is(NullnessBridge.assumeNonnull(FluidTags.WATER)) || above.isAir();
     }
 
-    public static boolean isStandableBank(Level level, BlockPos pos)
+    /**
+     * Checks if a given block position is a standable bank for an axolotl.
+     * A standable bank is a block that the axolotl can step onto, which means that the block itself must be either air or empty fluid,
+     * and the block below it must be solid and sturdy.
+     * 
+     * @param level the level to check the block in
+     * @param pos   the block position to check
+     * @return true if the block is a standable bank, false otherwise
+     */
+    public static boolean isStandableBank(@Nonnull Level level, @Nonnull BlockPos pos)
     {
         // We want a tile the axolotl can step onto: empty headroom and solid floor.
         BlockState here = level.getBlockState(pos);
         if (!(here.isAir() || here.getFluidState().isEmpty())) return false; // not blocked by solids/fluids
-        BlockPos below = pos.below();
+        @Nonnull BlockPos below = NullnessBridge.assumeNonnull(pos.below());
         BlockState floor = level.getBlockState(below);
         return floor.isFaceSturdy(level, below, Direction.UP);
     }
@@ -97,7 +134,7 @@ public class PathingUtil {
      * Prefer the anchor, then a small ring around it (N/E/S/W + diagonals). If the anchor is ice and the block above is walkable,
      * include that surface too.
      */
-    public static List<BlockPos> buildNavCandidates(Level level, BlockPos anchor)
+    public static List<BlockPos> buildNavCandidates(@Nonnull Level level, @Nonnull BlockPos anchor)
     {
         List<BlockPos> list = new ArrayList<BlockPos>(10);
 
@@ -105,7 +142,7 @@ public class PathingUtil {
         list.add(anchor);
 
         // If anchor is ice/water with a solid/flat surface just above, try standing there
-        BlockPos stand = anchor.above();
+        BlockPos stand = NullnessBridge.assumeNonnull(anchor.above());
         BlockState above = level.getBlockState(stand);
         BlockState below = level.getBlockState(anchor);
         boolean surfaceWalkable = above.isAir() || above.getCollisionShape(level, stand).isEmpty();
@@ -126,6 +163,9 @@ public class PathingUtil {
                 {
                     if (dx == 0 && dz == 0 && dy == 0) continue;
                     BlockPos p = anchor.offset(dx, dy, dz);
+
+                    if (p == null) continue;
+
                     if (level.isInWorldBounds(p) && level.isLoaded(p))
                     {
                         list.add(p);
@@ -146,14 +186,21 @@ public class PathingUtil {
      * @param pos the target position
      * @return true if the animal was moved, false otherwise
      */
-    public static boolean flexiblePathing(Animal pet, BlockPos pos, double speed) {
+    public static boolean flexiblePathing(@Nonnull Animal pet, @Nonnull BlockPos pos, double speed) 
+    {
         boolean moved = false;
-        List<BlockPos> candidates = PathingUtil.buildNavCandidates(pet.level(), pos);
+        
+        Level level = pet.level();
+        if (level == null) return false;
+
+        List<BlockPos> candidates = PathingUtil.buildNavCandidates(level, pos);
 
         // 1) Try exact & tolerant paths to each candidate
         outer:
         for (BlockPos c : candidates)
         {
+            if (c == null) continue;
+
             for (int tol = 0; tol <= 2; tol++)
             { // tolerance 0..2
                 Path path = pet.getNavigation().createPath(c, tol);

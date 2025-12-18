@@ -9,9 +9,11 @@ import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickRateConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -53,7 +55,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     private static final int SOUND_PERIOD = 40;  // once every 2 seconds
 
     private static final TicketType<GhostCartEntity> CART_TICKET =
-        TicketType.create("ghost_cart_follow", Comparator.comparingInt(System::identityHashCode), 3);
+        TicketType.create("ghost_cart_follow", NullnessBridge.assumeNonnull(Comparator.comparingInt(System::identityHashCode)), 3);
 
     private ChunkPos lastTicketPos;
     private boolean spawnPosFixed = false;
@@ -81,7 +83,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     private static final int MAX_TICKS_WITH_NO_PATH = 100;
 
     private static final EntityDataAccessor<ItemStack> TRADE_ITEM =
-        SynchedEntityData.defineId(GhostCartEntity.class, EntityDataSerializers.ITEM_STACK);
+        SynchedEntityData.defineId(GhostCartEntity.class, NullnessBridge.assumeNonnull(EntityDataSerializers.ITEM_STACK));
 
     public GhostCartEntity(EntityType<? extends GhostCartEntity> type, Level level)
     {
@@ -93,6 +95,17 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         logConstructionTrace();
     }
 
+
+    /**
+     * Set the path of the ghost cart. The path is a list of BlockPos that
+     * represent the positions of the blocks the ghost cart should follow.
+     * The path is treated as a directed path, so the order of the blocks matters.
+     * If the path is empty or null, the ghost cart will stop moving and wait
+     * for further instructions.
+     * 
+     * @param path the path to follow
+     * @see #setPath(List, boolean)
+     */
     public void setPath(List<BlockPos> path)
     {
         setPath(path, false);
@@ -101,9 +114,15 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     /** Direction-aware setter */
     public void setPath(List<BlockPos> path, boolean reverse)
     {
+        if (path == null || path.isEmpty())
+        {
+            this.path = null;
+            return;
+        }
+
         this.reversed = reverse;
         List<BlockPos> effective = reverse ? Lists.reverse(path) : path;
-        this.path = ImmutableList.copyOf(effective);
+        this.path = ImmutableList.copyOf(NullnessBridge.assumeNonnull(effective));
 
         // Reset run state
         this.startIdx = 0;
@@ -130,25 +149,63 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     }
 
 
-    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path)
+    /**
+     * Spawns a GhostCartEntity at the given level and path.
+     * This is a convenience wrapper around the full spawn method that
+     * sets the "reverse" flag to false.
+     * If the path is null or empty, this method will log an error and return null.
+     * If the starting position of the path is null, this method will log an error and return null.
+     * If the entity cannot be spawned, this method will log an error and return null.
+     * @param level the level to spawn the entity at
+     * @param path the path to follow
+     * @return the spawned entity, or null if spawning failed
+     */
+    public static GhostCartEntity spawn(@Nonnull ServerLevel level, @Nonnull List<BlockPos> path)
     {
         return spawn(level, path, false);
     }
 
-    public static GhostCartEntity spawn(ServerLevel level, List<BlockPos> path, boolean reverse)
+    /**
+     * Spawns a GhostCartEntity at the given level and path.
+     * If the path is null or empty, this method will log an error and return null.
+     * If the starting position of the path is null, this method will log an error and return null.
+     * If the entity cannot be spawned, this method will log an error and return null.
+     * 
+     * @param level the level to spawn the entity at
+     * @param path the path to follow
+     * @param reverse whether the path should be followed in reverse order
+     * @return the spawned entity, or null if spawning failed
+     */
+    public static GhostCartEntity spawn(@Nonnull ServerLevel level, @Nonnull List<BlockPos> path, boolean reverse)
     {
-        GhostCartEntity e = MCTradePostMod.GHOST_CART.get().create(level, null, path.get(0), MobSpawnType.EVENT, false, false);
+        if (path == null || path.isEmpty())
+        {
+            LOGGER.error("Invalid path for GhostCartEntity - no path or empty path provided.");
+            return null;
+        }
+
+        BlockPos start = path.get(0);
+
+        if (start == null)
+        {
+            LOGGER.error("Invalid path for GhostCartEntity - null starting position.");
+            return null;
+        }
+        
+        GhostCartEntity e = MCTradePostMod.GHOST_CART.get().create(level, null, start, MobSpawnType.EVENT, false, false);
         if (e == null)
         {
             LOGGER.error("Failed to spawn GhostCartEntity.");
             return null;
         }
 
+        @Nonnull Vec3 centerOfStart = NullnessBridge.assumeNonnull(Vec3.atCenterOf(start));
+
         e.setPath(path, reverse);
-        e.setPos(Vec3.atCenterOf(path.get(0)));
+        e.setPos(centerOfStart);
         e.setRot(0, 0);
 
-        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart spawn helper called with first path point: {}", e.getId(), path.get(0)));
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart spawn helper called with first path point: {}", e.getId(), start));
 
         level.addFreshEntity(e);
         return e;
@@ -189,6 +246,17 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         this.strideLength = lengthBetweenFractional(startIdx, startT, targetIdx);
     }
 
+    /**
+     * Ticks the GhostCartEntity, updating its position and velocity based on its currently desired path segment.
+     * If the path is null or empty, this method will not do anything until a valid path is set.
+     * If the entity has arrived at the end of its path and has no further desires, it will discard itself.
+     * If the entity has no active stride (i.e., its start and target indices are equal), it will idle until its desired index is updated.
+     * If the entity has an active stride, it will smoothly move along the polyline from its current fractional position toward its target index.
+     * Each tick, the entity will walk along the polyline by a fraction of the remaining distance equal to the fraction of COLONY_T ticks that have passed since the stride began.
+     * At the end of each stride, the entity will snap to the target node and await further requests.
+     * If the entity has already completed its current stride and a newer desired index has been set, it will immediately kick off the next stride with no gap.
+     */
+    @SuppressWarnings("null")
     @Override
     public void tick()
     {
@@ -230,10 +298,13 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             this.strideLength = lengthBetweenFractional(startIdx, startT, targetIdx);
         }
 
+        BlockPos targetPos = path.get(targetIdx);
+        Vec3 centerTarget = Vec3.atCenterOf(targetPos);
+
         if (strideLength <= 1e-9)
         {
             // Degenerate: snap to target and await further requests
-            setPos(Vec3.atCenterOf(path.get(targetIdx)));
+            setPos(centerTarget);
             startIdx = targetIdx;
             startT = 0.0;
             keepChunkLoaded();
@@ -301,7 +372,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
 
         // If we fell through, we've completed the stride: snap to target node
-        setPos(Vec3.atCenterOf(path.get(targetIdx)));
+        setPos(centerTarget);
         startIdx = targetIdx;
         startT = 0.0;
 
@@ -323,6 +394,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     /**
      * Length from a fractional point (a, tA) to node b along the path. a must be <= b, and tA in [0,1]. If a == b, returns 0.
      */
+    @SuppressWarnings("null")
     private double lengthBetweenFractional(int a, double tA, int b)
     {
         if (a >= b) return 0.0;
@@ -348,49 +420,86 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         return sum;
     }
 
+    /**
+     * Spawns a single campfire smoke particle at the position of the cart minus a small offset in the direction of
+     * travel. This is used to create a trail of smoke particles when the cart is rolling.
+     */
     private void spawnTrailParticle()
     {
-        Vec3 behind = position().subtract(getForward().scale(0.9));  // small offset
+        if (level() == null) return;
+
+        Vec3 offset = NullnessBridge.assumeNonnull(getForward().scale(0.9));
+        Vec3 behind = position().subtract(offset);
         ((ServerLevel) level())
-            .sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, behind.x(), behind.y() + 0.1, behind.z(), 1, 0.1, 0.1, 0.1, 0.0);
+            .sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.CAMPFIRE_COSY_SMOKE), behind.x(), behind.y() + 0.1, behind.z(), 1, 0.1, 0.1, 0.1, 0.0);
     }
 
+    /**
+     * Play a rolling sound effect at the position of the cart.
+     * This is used to create the sound of the cart rolling along the path.
+     */
     private void playRollingSound()
     {
         level().playSound(null,
             getX(),
             getY(),
             getZ(),
-            SoundEvents.MINECART_RIDING,
+            NullnessBridge.assumeNonnull(SoundEvents.MINECART_RIDING),
             net.minecraft.sounds.SoundSource.NEUTRAL,
             0.3F,
             1.0F);
     }
 
+    /**
+     * Called when the ghost cart stops rolling. Plays a cash register sound effect and spawns happy villager particles.
+     */
     private void endingEffects()
     {
         level().playSound(null,
             getX(),
             getY(),
             getZ(),
-            MCTPModSoundEvents.CASH_REGISTER,
+            NullnessBridge.assumeNonnull(MCTPModSoundEvents.CASH_REGISTER),
             net.minecraft.sounds.SoundSource.NEUTRAL,
             0.3F,
             1.0F);
 
-        ((ServerLevel) level()).sendParticles(ParticleTypes.HAPPY_VILLAGER, getX(), getY(), getZ(), 4, 0.3, 0.3, 0.3, 0.0);
+        ((ServerLevel) level()).sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.HAPPY_VILLAGER), getX(), getY(), getZ(), 4, 0.3, 0.3, 0.3, 0.0);
     }
 
+    /**
+     * Keep the chunk that this ghost cart is currently in loaded.
+     * This is done by adding a region ticket to the chunk source of the level.
+     * The ticket is removed when the ghost cart moves to a different chunk.
+     * This is necessary because the ghost cart is not a normal entity and would not
+     * otherwise keep the chunk loaded.
+     */
     private void keepChunkLoaded()
     {
-        ChunkPos here = new ChunkPos(blockPosition());
+        if (level() == null) return;
+
+        BlockPos pos = blockPosition();
+
+        if (pos == null) return;
+
+        ChunkPos here = new ChunkPos(pos);
+        TicketType<GhostCartEntity> ticket = CART_TICKET;
+
+        if (ticket == null) 
+        {
+            Log.getLogger().error("Cart ticket is null! This shoudn't happen. Report to devs.");
+            return;
+        }
+
         if (!here.equals(lastTicketPos))
         {
-            if (lastTicketPos != null)
+            ChunkPos localLastTicketPos = lastTicketPos;
+
+            if (localLastTicketPos != null)
             {
-                ((ServerLevel) level()).getChunkSource().removeRegionTicket(CART_TICKET, lastTicketPos, 3, this);
+                ((ServerLevel) level()).getChunkSource().removeRegionTicket(ticket, localLastTicketPos, 3, this);
             }
-            ((ServerLevel) level()).getChunkSource().addRegionTicket(CART_TICKET, here, 3, this); // radius 3 chunks
+            ((ServerLevel) level()).getChunkSource().addRegionTicket(ticket, here, 3, this); // radius 3 chunks
             lastTicketPos = here;
         }
     }
@@ -456,21 +565,38 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         return null;
     }
 
-    public void setTradeItem(ItemStack stack)
+    /**
+     * Set the item to be traded with the wishing well.
+     * @param stack The item to be traded, copied with a count of 1.
+     */
+    public void setTradeItem(@Nonnull ItemStack stack)
     {
-        entityData.set(TRADE_ITEM, stack.copyWithCount(1));
+        ItemStack displayStack = stack.copyWithCount(1);
+        entityData.set(NullnessBridge.assumeNonnull(TRADE_ITEM), displayStack == null ? NullnessBridge.assumeNonnull(ItemStack.EMPTY) : displayStack);
     }
 
+    /**
+     * Get the item which is currently being traded with the wishing well.
+     * @return The item being traded, or an empty ItemStack if no item is being traded.
+     */
     public ItemStack getTradeItem()
     {
-        return entityData.get(TRADE_ITEM);
+        return entityData.get(NullnessBridge.assumeNonnull(TRADE_ITEM));
     }
 
+    /**
+     * Define the synced data for this entity.
+     * <p>
+     * In this case, it only defines the trade item which is synced from the server to the client.
+     * <p>
+     * This is used to update the client on changes to the entity's data.
+     * @param builder The builder to define the synced data on.
+     */
     @Override
     protected void defineSynchedData(@Nonnull SynchedEntityData.Builder builder)
     {
         super.defineSynchedData(builder);
-        builder.define(TRADE_ITEM, ItemStack.EMPTY);
+        builder.define(NullnessBridge.assumeNonnull(TRADE_ITEM), NullnessBridge.assumeNonnull(ItemStack.EMPTY));
     }
 
     /*
@@ -510,6 +636,15 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
     }
 
+    /**
+     * Called when the entity is added to the level.
+     * <p>
+     * This is responsible for two things:
+     * <ul>
+     *     <li>On the server side, it fixes the cart's position to the first path node if it was initialized with a bad position.</li>
+     *     <li>On the client side, it sets up previous and current positions so that first-frame interpolation is valid.</li>
+     * </ul>
+     */
     @Override
     public void onAddedToLevel()
     {
@@ -521,8 +656,15 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             {
                 TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info("[GhostCart {}] Cart added to level with first path point: {}", this.getId(), path.get(0)));
 
-                setPos(Vec3.atCenterOf(path.get(0)));
-                setRot(0, 0);
+                BlockPos startPos = path.get(0);
+
+                if (startPos != null)
+                {
+                    Vec3 startVec = Vec3.atCenterOf(startPos);
+
+                    setPos(NullnessBridge.assumeNonnull(startVec));
+                    setRot(0, 0);
+                }
             }
             else
             {
@@ -542,21 +684,56 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
     }
 
+
     @Override
     public net.minecraft.world.phys.AABB getBoundingBoxForCulling() 
     {
         return super.getBoundingBoxForCulling().inflate(0.25);
     }
 
+    /**
+     * Writes the spawn data of this entity to the given buffer.
+     * <p>
+     * This includes the registry name of the carried item (e.g., "minecraft:iron_ingot")
+     * and the desired index of the item in the carried item list.
+     * @param buf The buffer to write the spawn data to.
+     */
     @Override
     public void writeSpawnData(@Nonnull RegistryFriendlyByteBuf buf)
     {
-        // Write the registry name of the carried item (e.g., "minecraft:iron_ingot")
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(getTradeItem().getItem());
-        buf.writeUtf(id == null ? "" : id.toString());
+        final ItemStack trade = getTradeItem();
+        final Item item = (trade == null || trade.isEmpty()) ? null : trade.getItem();
+
+        if (item == null)
+        {
+            writeNoTradeItem(buf);
+            return;
+        }
+
+        final ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        buf.writeUtf(NullnessBridge.assumeNonnull(id.toString()));
         buf.writeVarInt(this.desiredIdx);
     }
 
+    /**
+     * Writes a "no trade item" to the given buffer.
+     * <p>
+     * This writes "minecraft:air" as the registry name of the carried item and 0 as the desired index of the item in the carried item list.
+     * @param buf The buffer to write the "no trade item" to.
+     */
+    private static void writeNoTradeItem(@Nonnull RegistryFriendlyByteBuf buf)
+    {
+        buf.writeUtf("minecraft:air");
+        buf.writeVarInt(0);
+    }
+
+    /**
+     * Reads the spawn data of this entity from the given buffer.
+     * <p>
+     * This includes the registry name of the carried item (e.g., "minecraft:iron_ingot")
+     * and the desired index of the item in the carried item list.
+     * @param buf The buffer to read the spawn data from.
+     */
     @Override
     public void readSpawnData(@Nonnull RegistryFriendlyByteBuf buf)
     {
@@ -570,12 +747,12 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             }
             else
             {
-                this.setTradeItem(ItemStack.EMPTY);
+                this.setTradeItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));
             }
         }
         else
         {
-            this.setTradeItem(ItemStack.EMPTY);
+            this.setTradeItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         }
 
         this.desiredIdx = buf.readVarInt();

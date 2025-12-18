@@ -2,15 +2,10 @@ package com.deathfrog.mctradepost.api.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
@@ -22,43 +17,29 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
-import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.requestable.StackList;
-import com.minecolonies.api.colony.requestsystem.requestable.Tool;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
-import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.colony.requestsystem.requesters.BuildingBasedRequester;
 import com.minecolonies.core.tileentities.TileEntityRack;
-import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.HolderSet;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.items.IItemHandler;
 
-public class BuildingUtil {
+public class BuildingUtil 
+{
     public static final String TAG_DIMENSION = "dimension";
     public static final String TAG_POSITION = "position";
     public static final String TAG_BUILDING_ID = "building_id";
@@ -66,18 +47,37 @@ public class BuildingUtil {
 
     public static final int PICKUP_PRIORITY = 14;
 
+    /**
+     * Returns a unique CompoundTag representing the given building. The tag contains the following information:
+     * <ul>
+     * <li>The dimension of the building (TAG_DIMENSION)</li>
+     * <li>The colony ID of the building (TAG_COLONY_ID)</li>
+     * <li>The building ID of the building (TAG_BUILDING_ID)</li>
+     * <li>The position of the building (TAG_POSITION)</li>
+     * </ul>
+     *
+     * @param building the building to represent as a CompoundTag
+     * @return a unique CompoundTag representing the given building
+     */
     public static CompoundTag uniqueBuildingNBT(@Nonnull IBuilding building)
     { 
         CompoundTag tag = new CompoundTag();
-
-        if (building != null)
-        {
-            tag.putString(TAG_DIMENSION, building.getColony().getDimension().location().toString());
-            tag.putInt(TAG_COLONY_ID, building.getColony().getID());
-            BlockPosUtil.write(tag, TAG_BUILDING_ID, building.getID());
-            BlockPosUtil.write(tag, TAG_POSITION, building.getPosition());
-        }
         
+        ResourceKey<Level> dimensionKey = building.getColony().getDimension();
+
+        if (dimensionKey == null || dimensionKey.location() == null)
+        {
+            MCTradePostMod.LOGGER.warn("BuildingUtil.uniqueBuildingNBT: No dimension found for colony {}.", building.getColony().getID());
+            return tag;
+        }
+
+        ResourceLocation dimLoc = dimensionKey.location();
+
+        tag.putString(TAG_DIMENSION, NullnessBridge.assumeNonnull(dimLoc.toString()));
+        tag.putInt(TAG_COLONY_ID, building.getColony().getID());
+        BlockPosUtil.write(tag, TAG_BUILDING_ID, building.getID());
+        BlockPosUtil.write(tag, TAG_POSITION, building.getPosition());
+
         return tag;
     }
 
@@ -117,8 +117,20 @@ public class BuildingUtil {
     { 
         IBuilding building = null;
         String dimension = tag.getString(TAG_DIMENSION);
+
+        if (dimension == null)
+        {
+            return null;
+        }
+
         ResourceLocation level = ResourceLocation.parse(dimension);
-        ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
+
+        if (level == null)
+        {
+            return null;
+        }
+
+        ResourceKey<Level> levelKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), level);
 
         BlockPos buildingId = BlockPosUtil.read(tag, TAG_BUILDING_ID);
 
@@ -158,8 +170,20 @@ public class BuildingUtil {
     public static IBuildingView buildingViewFromNBT(@Nonnull CompoundTag tag) 
     { 
         String dimension = tag.getString(TAG_DIMENSION);
+        
+        if (dimension == null)
+        {
+            return null;
+        }
+
         ResourceLocation level = ResourceLocation.parse(dimension);
-        ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
+
+        if (level == null)
+        {
+            return null;
+        }
+
+        ResourceKey<Level> levelKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), level);
 
         BlockPos buildingId = BlockPosUtil.read(tag, TAG_BUILDING_ID);
 
@@ -269,28 +293,45 @@ public class BuildingUtil {
         return resolvers;
     }
 
+    /**
+     * Finds all item stacks in the given building that match the given item stack selection predicate.
+     * 
+     * @param building the building to search for item stacks in.
+     * @param itemStackSelectionPredicate the predicate to filter item stacks by.
+     * @return a list of tuples containing the matching item stacks and their positions in the building.
+     */
     public static List<Tuple<ItemStack, BlockPos>> getMatchingItemStacksInBuilding(@Nonnull IBuilding building, @Nonnull final Predicate<ItemStack> itemStackSelectionPredicate)
     {
         Level level = building.getColony().getWorld();
         List<Tuple<ItemStack, BlockPos>> found = new ArrayList<>();
         
-        if (building != null)
+        List<BlockPos> containers = building.getContainers();
+
+        if (containers == null || containers.isEmpty())
         {
-            for (@Nonnull final BlockPos pos : building.getContainers())
+            return found;
+        }
+        
+        for (final BlockPos pos : containers)
+        {
+            if (pos == null)
             {
-                if (WorldUtil.isBlockLoaded(level, pos))
+                continue;
+            }
+
+            if (WorldUtil.isBlockLoaded(level, pos))
+            {
+                final BlockEntity entity = level.getBlockEntity(pos);
+                if (entity instanceof final TileEntityRack rack && !rack.isEmpty() && rack.getItemCount(itemStackSelectionPredicate) > 0)
                 {
-                    final BlockEntity entity = level.getBlockEntity(pos);
-                    if (entity instanceof final TileEntityRack rack && !rack.isEmpty() && rack.getItemCount(itemStackSelectionPredicate) > 0)
+                    for (final ItemStack stack : (InventoryUtils.filterItemHandler(rack.getInventory(), itemStackSelectionPredicate)))
                     {
-                        for (final ItemStack stack : (InventoryUtils.filterItemHandler(rack.getInventory(), itemStackSelectionPredicate)))
-                        {
-                            found.add(new Tuple<>(stack, pos));
-                        }
+                        found.add(new Tuple<>(stack, pos));
                     }
                 }
             }
         }
+
         return found;
     }
 

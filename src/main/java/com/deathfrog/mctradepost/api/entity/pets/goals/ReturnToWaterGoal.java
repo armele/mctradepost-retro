@@ -149,7 +149,7 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
                 final BlockPos bank = target.relative(NullnessBridge.assumeNonnull(dir));
-                if (PathingUtil.isStandableBank(level, bank))
+                if (bank != null && PathingUtil.isStandableBank(level, bank))
                 {
                     candidates.add(bank.immutable());
                 }
@@ -183,7 +183,7 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
                 final BlockPos bank = target.relative(NullnessBridge.assumeNonnull(dir));
-                if (PathingUtil.isStandableBank(level, bank))
+                if (bank != null && PathingUtil.isStandableBank(level, bank))
                 {
                     candidates.add(bank.immutable());
                 }

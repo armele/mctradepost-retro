@@ -48,7 +48,7 @@ public class ItemStackHandlerContainerWrapper implements Container
     public ItemStack removeItemNoUpdate(int index)
     {
         ItemStack stack = handler.getStackInSlot(index);
-        handler.setStackInSlot(index, ItemStack.EMPTY);
+        handler.setStackInSlot(index, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         return stack;
     }
 
@@ -69,7 +69,7 @@ public class ItemStackHandlerContainerWrapper implements Container
     {
         for (int i = 0; i < handler.getSlots(); i++)
         {
-            handler.setStackInSlot(i, ItemStack.EMPTY);
+            handler.setStackInSlot(i, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         }
     }
 

@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToWaterGoal;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -32,7 +33,6 @@ import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -352,7 +352,14 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     public boolean onClimbable()
     {
         // TODO: Lock climbing behind research.
-        return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
+        BlockPos pos = this.blockPosition();
+
+        if (pos == null)
+        {
+            return false;
+        }
+
+        return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
     }
 
     /**
@@ -390,13 +397,14 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         }
     }
 
-
     /**
-     * Handles interaction with this entity.
-     * 
-     * @param player the player that is interacting
-     * @param hand   the hand that is interacting
-     * @return the result of the interaction
+     * Handles interaction with this pet entity. If the interaction is initiated with the main hand and
+     * the game is not on the client-side, it opens a chest menu displaying the pet's inventory.
+     *
+     * @param player the player that is interacting with the pet
+     * @param hand   the hand used for the interaction
+     * @return the result of the interaction, which is InteractionResult.CONSUME if the menu is opened,
+     *         otherwise the result of the superclass's mobInteract method
      */
     @Override
     public InteractionResult mobInteract(@Nonnull Player player, @Nonnull InteractionHand hand)
@@ -405,12 +413,14 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         {
             ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(this.getInventory());
 
-            player.openMenu(new SimpleMenuProvider((windowId, playerInventory, p) -> new ChestMenu(MenuType.GENERIC_9x1, // 1-row menu
+            Component displayName = this.getDisplayName();
+
+            player.openMenu(new SimpleMenuProvider((windowId, playerInventory, p) -> new ChestMenu(NullnessBridge.assumeNonnull(MenuType.GENERIC_9x1), // 1-row menu
                 windowId,
                 playerInventory,
                 inventoryWrapper,
                 1 // number of rows
-            ), this.getDisplayName()));
+            ), displayName == null ? NullnessBridge.assumeNonnull(Component.translatable("entity.mctradepost.pet_inventory")) : displayName));
             return InteractionResult.CONSUME;
         }
 
@@ -435,21 +445,11 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     {
         super.dropCustomDeathLoot(level, source, recentlyHit);
 
-        // Drop the pet’s inventory
-        ItemStackHandler inv = this.getInventory(); // however you expose it
-        if (inv == null) return;
-
-        for (int i = 0; i < inv.getSlots(); i++)
+        if (petData != null) 
         {
-            ItemStack stack = inv.getStackInSlot(i);
-            if (!stack.isEmpty())
-            {
-                net.minecraft.world.Containers.dropItemStack(level, getX(), getY(), getZ(), stack.copy());
-                inv.setStackInSlot(i, ItemStack.EMPTY); // prevent dupes
-            }
+            petData.onDropCustomDeathLoot(level, source, recentlyHit);    
         }
     }
-
 
     /**
      * Sets the custom name of this pet. This will update the pet's display name,

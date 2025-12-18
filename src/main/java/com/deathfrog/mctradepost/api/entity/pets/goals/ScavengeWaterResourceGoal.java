@@ -199,6 +199,10 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void start()
     {
+        final P localPet = this.pet;
+
+        if (localPet == null) return;
+
         final Level level = pet.level();
         if (level == null || level.isClientSide) return;
 
@@ -217,7 +221,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         this.navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
         BlockPos anchor = (this.navigationPos != null) ? this.navigationPos : this.targetPos;
 
-        boolean moved = PathingUtil.flexiblePathing(pet, anchor, 1.0);
+        boolean moved = anchor != null && PathingUtil.flexiblePathing(localPet, anchor, 1.0);
 
         if (!moved)
         {

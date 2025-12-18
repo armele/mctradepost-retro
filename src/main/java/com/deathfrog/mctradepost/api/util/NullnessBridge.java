@@ -6,7 +6,10 @@ public final class NullnessBridge
 {
     private NullnessBridge() {}
 
-    /** Contract: value is non-null, JDT just can't prove it. No runtime check. */
+    /** 
+     * Contract: value is non-null, JDT just can't prove it. No runtime check. 
+     * "I know this is not null - don't warn me."
+    */
     @Nonnull
     @SuppressWarnings("null")
     public static <T> T assumeNonnull(T value)

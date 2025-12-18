@@ -48,7 +48,7 @@ public class PetRegistryUtil
      * @param uuid  the uuid of the pet to resolve
      * @return the entity object of the pet, or null if the pet does not exist on the given level
      */
-    public static @Nullable ITradePostPet resolve(ServerLevel level, UUID uuid)
+    public static @Nullable ITradePostPet resolve(@Nonnull ServerLevel level, @Nonnull UUID uuid)
     {
         Entity e = level.getEntity(uuid);
         return (e instanceof ITradePostPet p) ? p : null;
@@ -57,14 +57,21 @@ public class PetRegistryUtil
     /**
      * Resolve a pet in the global registry to its actual entity object on the given server.
      * @param server the server to resolve the pet on
-     * @param h the handle of the pet to resolve
+     * @param petHandle the handle of the pet to resolve
      * @return the resolved pet entity, or null if the pet is not registered or the server has no level with the given dimension
      */
-    public static @Nullable ITradePostPet resolve(MinecraftServer server, PetHandle h)
+    public static @Nullable ITradePostPet resolve(@Nonnull MinecraftServer server, @Nonnull PetHandle petHandle)
     {
-        ServerLevel lvl = server.getLevel(h.dimension());
+        ResourceKey<Level> dim = petHandle.dimension();
+        UUID uuid = petHandle.uuid();
+
+        if (dim == null || uuid == null) return null;
+
+        ServerLevel lvl = server.getLevel(dim);
+
         if (lvl == null) return null;
-        return resolve(lvl, h.uuid());
+
+        return resolve(lvl, uuid);
     }
 
     /**
@@ -196,9 +203,14 @@ public class PetRegistryUtil
     {
         Queue<PetHandle> q = safePetsForBuilding(building);
         MinecraftServer server = building.getColony().getWorld().getServer();
+
+        if (server == null) return ImmutableList.of();
+
         List<ITradePostPet> result = new ArrayList<>();
         for (PetHandle h : q)
         {
+            if (h == null) continue;
+
             ITradePostPet p = resolve(server, h);
             if (p != null && !((Entity) p).isRemoved() && ((Entity) p).isAlive())
             {
@@ -274,6 +286,8 @@ public class PetRegistryUtil
 
         for (BlockPos pos : workLocations)
         {
+            if (pos == null) continue;
+
             BlockState state = colony.getWorld().getBlockState(pos);
             if (!(state.getBlock() instanceof AbstractBlockPetWorkingLocation))
             {

@@ -25,6 +25,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
@@ -153,7 +154,9 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         return !isWithinDistance() && !mob.getNavigation().isDone();
     }
     /**
-     * Executes the tick logic for this goal. This function is called once per tick for the AI to perform its actions. It checks if the pet is within the stopping distance of the target position, and if so, attempts to pick up food from the work location if there is any.
+     * Executes the tick logic for this goal. This function is called once per tick for the AI to perform its actions. 
+     * It checks if the pet is within the stopping distance of the target position, and if so, attempts to pick up 
+     * food from the work location if there is any.
      * <p>
      * If food is found, it is transferred into the pet's inventory and the AI's "emergency" mode is turned off.
      */
@@ -164,26 +167,30 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
         final Vec3 localLastProgress = lastProgress;
         final BlockPos localTargetPos = targetPos;
+        final P localMob = mob;
+        final Level localLevel = localMob.level();
+
+        if (localLevel == null || localLevel.isClientSide()) return;
 
         if (localLastProgress == null)
         {
-            lastProgress = mob.position();
+            lastProgress = localMob.position();
             return;
         }
 
-        if (mob.position().distanceToSqr(localLastProgress) < 0.25) 
+        if (localMob.position().distanceToSqr(localLastProgress) < 0.25) 
         {
             staleTicks++;
         }
         else
         {
             staleTicks = 0;
-            lastProgress = mob.position();
+            lastProgress = localMob.position();
         }
 
         if (ticksRunning >= HARD_TIMEOUT_TICKS || staleTicks >= 60)
         {
-            mob.getNavigation().stop();
+            localMob.getNavigation().stop();
             ticksRunning = HARD_TIMEOUT_TICKS;
             return;
         }
@@ -193,19 +200,20 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         if (isWithinDistance())
         {
             if (chestCheckCooldown-- > 0) return;
-            chestCheckCooldown = 5; // scan every 5 ticks
+            // scan every 5 ticks
+            chestCheckCooldown = 5; 
 
-            BlockEntity be = mob.level().getBlockEntity(localTargetPos);
+            BlockEntity be = localMob.level().getBlockEntity(localTargetPos);
 
             if (be == null)
             {
                 return;
             }
 
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", mob.getUUID()));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", localMob.getUUID()));
 
             // Pick up food from the working location if there is any
-            Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(mob.level(), localTargetPos, null);
+            Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(localLevel, localTargetPos, null);
             if (optProvider.isEmpty())
             {
                 return;
@@ -213,15 +221,15 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
 
-            ItemStorage food = new ItemStorage(PetTypes.foodForPet(mob.getClass()), EntityAIWorkAnimalTrainer.PETFOOD_SIZE);
+            ItemStorage food = new ItemStorage(PetTypes.foodForPet(localMob.getClass()), EntityAIWorkAnimalTrainer.PETFOOD_SIZE);
             @Nonnull Item foodItem = NullnessBridge.assumeNonnull(food.getItem());
 
             int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(chestHandlerOpt, stack -> !stack.isEmpty() && stack.is(foodItem));
 
             if (foodslot >= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Picking up some food.", mob.getUUID()));
-                boolean gotFood = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, foodslot, mob.getInventory());
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Picking up some food.", localMob.getUUID()));
+                boolean gotFood = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, foodslot, localMob.getInventory());
 
                 if (gotFood)
                 {
@@ -243,11 +251,11 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         {
             if (retryCooldown > 0) retryCooldown--;
 
-            if ((pathTries < MAX_TRIES) && mob.getNavigation().isDone() && retryCooldown <= 0)
+            if ((pathTries < MAX_TRIES) && localMob.getNavigation().isDone() && retryCooldown <= 0)
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", localTargetPos));
 
-                PathingUtil.flexiblePathing(mob, localTargetPos, speedModifier);
+                PathingUtil.flexiblePathing(localMob, localTargetPos, speedModifier);
                 pathTries++;
                 feedingTries++;
                 retryCooldown = RETRY_COOLDOWN;
@@ -271,9 +279,12 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         mob.getNavigation().stop();
     }
 
+
     /**
-     * Starts the goal by setting the target position for the pet's navigation system. If not in emergency mode, also updates the last run day
-     * in the pet's persistent data.
+     * Starts the goal by setting a path towards the target work position. Also resets the state variables like ticksRunning, lastPos, staleTicks, pathTries, feedingTries, and retryCooldown.
+     * <p>This method is called when the goal is started. It resets all internal state and starts the navigation of the pet.</p>
+     * 
+     * @see net.minecraft.world.entity.ai.goal.Goal#start()
      */
     @Override
     public void start()
@@ -291,7 +302,12 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         feedingTries = 0;
         retryCooldown = 0;
 
-        PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
+        P localMob = mob;
+        BlockPos localTargetPos = targetPos;
+
+        if (localMob == null || localTargetPos == null || localTargetPos.equals(BlockPos.ZERO)) return;
+
+        PathingUtil.flexiblePathing(localMob, localTargetPos, speedModifier);
     }
 
     /**

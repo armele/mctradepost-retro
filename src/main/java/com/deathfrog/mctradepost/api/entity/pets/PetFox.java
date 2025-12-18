@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -37,7 +38,6 @@ import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -332,9 +332,17 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
      * @return true if the wolf can climb the block at its current position, false otherwise
      */
     @Override
-    public boolean onClimbable() {
+    public boolean onClimbable()
+    {
         // TODO: Lock climbing behind research.
-        return this.level().getBlockState(this.blockPosition()).is(BlockTags.CLIMBABLE);
+        BlockPos pos = this.blockPosition();
+
+        if (pos == null)
+        {
+            return false;
+        }
+        
+        return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
     }
 
     @SuppressWarnings("unchecked")
@@ -406,20 +414,20 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
      *         otherwise the result of the superclass's mobInteract method
      */
     @Override
-    public InteractionResult mobInteract(@Nonnull Player player, @Nonnull InteractionHand hand) {
-        if (!level().isClientSide && hand == InteractionHand.MAIN_HAND) {
+    public InteractionResult mobInteract(@Nonnull Player player, @Nonnull InteractionHand hand)
+    {
+        if (!level().isClientSide && hand == InteractionHand.MAIN_HAND)
+        {
             ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(this.getInventory());
 
-            player.openMenu(new SimpleMenuProvider(
-                (windowId, playerInventory, p) -> new ChestMenu(
-                    MenuType.GENERIC_9x1, // 1-row menu
-                    windowId,
-                    playerInventory,
-                    inventoryWrapper,
-                    1 // number of rows
-                ),
-                this.getDisplayName()
-            ));
+            Component displayName = this.getDisplayName();
+
+            player.openMenu(new SimpleMenuProvider((windowId, playerInventory, p) -> new ChestMenu(NullnessBridge.assumeNonnull(MenuType.GENERIC_9x1), // 1-row menu
+                windowId,
+                playerInventory,
+                inventoryWrapper,
+                1 // number of rows
+            ), displayName == null ? NullnessBridge.assumeNonnull(Component.translatable("entity.mctradepost.pet_inventory")) : displayName));
             return InteractionResult.CONSUME;
         }
 
@@ -437,18 +445,9 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     {
         super.dropCustomDeathLoot(level, source, recentlyHit);
 
-        // Drop the pet’s inventory
-        ItemStackHandler inv = this.getInventory(); // however you expose it
-        if (inv == null) return;
-
-        for (int i = 0; i < inv.getSlots(); i++)
+        if (petData != null) 
         {
-            ItemStack stack = inv.getStackInSlot(i);
-            if (!stack.isEmpty())
-            {
-                net.minecraft.world.Containers.dropItemStack(level, getX(), getY(), getZ(), stack.copy());
-                inv.setStackInSlot(i, ItemStack.EMPTY); // prevent dupes
-            }
+            petData.onDropCustomDeathLoot(level, source, recentlyHit);    
         }
     }
 

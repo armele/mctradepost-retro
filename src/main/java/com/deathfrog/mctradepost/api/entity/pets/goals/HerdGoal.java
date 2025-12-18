@@ -81,7 +81,8 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         
         if (herdTarget == null || BlockPos.ZERO.equals(herdTarget)) return false;
 
-        List<? extends Animal> targetsNearby = pet.getPetData().searchForCompatibleAnimals(pet.level(), pet.getBoundingBox().inflate(SEARCH_RADIUS));
+        @Nonnull AABB box = NullnessBridge.assumeNonnull(pet.getBoundingBox().inflate(SEARCH_RADIUS));
+        List<? extends Animal> targetsNearby = pet.getPetData().searchForCompatibleAnimals(pet.level(), box);
 
         if (!targetsNearby.isEmpty())
         {

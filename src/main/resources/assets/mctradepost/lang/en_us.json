@@ -444,6 +444,7 @@
     "entity.mctradepost.pet_fox": "Pet Fox",
     "entity.mctradepost.pet_axolotl": "Pet Axolotl",
     "entity.mctradepost.ghost_cart" : "Trade Cart",
+    "entity.mctradepost.pet_inventory"  : "Pet Inventory",
 
     "advancement.mctradepost.root.title": "Trade Post for MineColonies",
     "advancement.mctradepost.root.description": "An AddOn for MineColonies!",

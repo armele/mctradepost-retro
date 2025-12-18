@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.api.util;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -18,7 +19,7 @@ public class DimensionUtil
      * @return the Level if available, else {@code null}.
      */
     @Nullable
-    public static Level resolveLevel(ResourceKey<Level> key, Level referenceLevel)
+    public static Level resolveLevel(@Nonnull ResourceKey<Level> key, Level referenceLevel)
     {
         // --- Server side ----------------------------------------------------
         if (referenceLevel instanceof ServerLevel serverLevel)

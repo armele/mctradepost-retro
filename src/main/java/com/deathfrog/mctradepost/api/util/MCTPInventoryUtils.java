@@ -20,7 +20,6 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.tileentities.TileEntityRack;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -35,6 +34,7 @@ import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -100,6 +100,11 @@ public class MCTPInventoryUtils
 
         for (final BlockPos blockPos : containerList)
         {
+            if (blockPos == null)
+            {
+                continue;
+            }
+
             final BlockEntity rack = world.getBlockEntity(blockPos);
             if (rack instanceof TileEntityRack)
             {
@@ -134,7 +139,7 @@ public class MCTPInventoryUtils
                 @Override
                 public @Nonnull ItemStack quickMoveStack(final @Nonnull Player player, final int slot)
                 {
-                    return ItemStack.EMPTY;
+                    return NullnessBridge.assumeNonnull(ItemStack.EMPTY);
                 }
 
                 @Override
@@ -143,17 +148,25 @@ public class MCTPInventoryUtils
                     return false;
                 }
             }, 3, 3);
+
             for (int slot = 0; slot < inputs.size(); ++slot)
             {
                 final ItemStack[] stacks = inputs.get(slot).getItems();
                 if (stacks.length > 0)
                 {
-                    inv.setItem(slot, stacks[0].copy());
+                    ItemStack copyFirst = stacks[0].copy();
+
+                    if (copyFirst.isEmpty()) continue;
+
+                    inv.setItem(slot, copyFirst);
                 }
             }
-            if (craftingRecipe.matches(inv.asCraftInput(), world))
+
+            CraftingInput input = inv.asCraftInput();
+
+            if (input != null && craftingRecipe.matches(input, world))
             {
-                return craftingRecipe.getRemainingItems(inv.asCraftInput())
+                return craftingRecipe.getRemainingItems(input)
                     .stream()
                     .filter(ItemStackUtils::isNotEmpty)
                     .collect(Collectors.toList());
@@ -169,7 +182,7 @@ public class MCTPInventoryUtils
      * @param pos       the position to drop the item at
      * @param itemStack the item stack to drop
      */
-    public static void dropItemsInWorld(ServerLevel level, BlockPos pos, ItemStack itemStack)
+    public static void dropItemsInWorld(@Nonnull ServerLevel level, @Nonnull BlockPos pos, @Nonnull ItemStack itemStack)
     {
         // Check if the level is server-side
         if (!level.isClientSide)
@@ -293,10 +306,19 @@ public class MCTPInventoryUtils
             return;
         }
 
+        BlockPos buildingPos = building.getPosition();
+        Level world = building.getColony().getWorld();
+
+        if (buildingPos == null || world == null || world.isClientSide())
+        {
+            return;
+        }
+
         List<ItemStack> finalDeposit = new ArrayList<>();
         int amountRemaining = amountToDeposit;
 
-        while (amountRemaining > 0) {
+        while (amountRemaining > 0) 
+        {
             ItemStack deposit = itemToDeposit.getItemStack().copy();
             deposit.setCount(Math.min(deposit.getMaxStackSize(), amountRemaining));
             finalDeposit.add(deposit);
@@ -305,11 +327,14 @@ public class MCTPInventoryUtils
 
         for (ItemStack finalDepositItem : finalDeposit)
         {
+            if (finalDepositItem.isEmpty())
+            {
+                continue;
+            }
+
             if (!InventoryUtils.addItemStackToItemHandler(building.getItemHandlerCap(), finalDepositItem))
             {
-                MCTPInventoryUtils.dropItemsInWorld((ServerLevel) building.getColony().getWorld(), 
-                    building.getPosition(), 
-                    finalDepositItem);
+                MCTPInventoryUtils.dropItemsInWorld((ServerLevel) world, buildingPos, finalDepositItem);
             }
         }
     }
@@ -352,6 +377,7 @@ public class MCTPInventoryUtils
      * @param enchantedItem the item from which to extract enchantments
      * @return the list of enchanted book items, one per enchantment
      */
+    @SuppressWarnings("unchecked")
     public static List<ItemStack> extractEnchantmentsToBooks(ItemStack enchantedItem)
     {
         if (!enchantedItem.isEnchanted()) 
@@ -396,7 +422,7 @@ public class MCTPInventoryUtils
         }
 
         // Strip enchantments from the original item (important if you keep/return it)
-        enchantedItem.remove(DataComponents.ENCHANTMENTS);
+        enchantedItem.remove(NullnessBridge.assumeNonnull(DataComponents.ENCHANTMENTS));
 
         return out;
     }
@@ -416,16 +442,16 @@ public class MCTPInventoryUtils
             return ItemStack.EMPTY;
         }
 
-        ItemStack book = new ItemStack(Items.ENCHANTED_BOOK);
+        ItemStack book = new ItemStack(NullnessBridge.assumeNonnull(Items.ENCHANTED_BOOK));
 
         // Get the enchantments from the original item
         ItemEnchantments enchantments = enchantedItem.getTagEnchantments();
 
         // Apply these enchantments to the book
-        book.set(DataComponents.STORED_ENCHANTMENTS, enchantments);
+        book.set(NullnessBridge.assumeNonnull(DataComponents.STORED_ENCHANTMENTS), enchantments);
 
         // Clear the enchantments from the original item
-        enchantedItem.remove(DataComponents.ENCHANTMENTS);
+        enchantedItem.remove(NullnessBridge.assumeNonnull(DataComponents.ENCHANTMENTS));
 
         return book;
     }

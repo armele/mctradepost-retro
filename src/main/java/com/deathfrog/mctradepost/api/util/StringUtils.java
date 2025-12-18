@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.api.util;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.EntityType;
 
@@ -40,7 +42,7 @@ public class StringUtils {
      * @param entityType the EntityType to get the plural form of
      * @return the plural form of the EntityType's name
      */
-    public static String getPluralEntityName(EntityType<?> entityType) 
+    public static String getPluralEntityName(@Nonnull EntityType<?> entityType) 
     {
         String baseName = BuiltInRegistries.ENTITY_TYPE.getKey(entityType).getPath();
 

@@ -44,6 +44,6 @@ public class GuiUtil
         nameGradient.setGradientEnd(red, green, blue, 255);
 
         String hoverText = String.format("%d of %d (%d%%)", current, total, (int)(progressRatio * 100));
-        PaneBuilders.tooltipBuilder().hoverPane(progressPane).build().setText(Component.literal(hoverText));
+        PaneBuilders.tooltipBuilder().hoverPane(progressPane).build().setText(Component.literal(NullnessBridge.assumeNonnull(hoverText)));
     }
 }

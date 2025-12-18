@@ -42,7 +42,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.Containers;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -51,6 +54,7 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -1091,6 +1095,37 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             // In normal gameplay: restore the true saved name
             this.getAnimal().setCustomName(this.originalName);
             this.getAnimal().setCustomNameVisible(false); // or false, depending on your preference
+        }
+    }
+
+
+    /**
+     * Called when the pet dies, to drop all the items in its inventory.
+     * This is called before the animal is removed from the world.
+     * @param level the level the pet is in
+     * @param source the damage source for the pet's death
+     * @param recentlyHit whether the pet was recently hit (true if just killed)
+     */
+    public void onDropCustomDeathLoot (@Nonnull ServerLevel level, @Nonnull DamageSource source, boolean recentlyHit)
+    {
+
+        // Drop the pet’s inventory
+        ItemStackHandler inv = this.getInventory();
+        if (inv == null) return;
+
+        for (int i = 0; i < inv.getSlots(); i++)
+        {
+            ItemStack stack = inv.getStackInSlot(i);
+            if (!stack.isEmpty())
+            {
+                ItemStack dropStack = stack.copy();
+
+                if (dropStack != null && !dropStack.isEmpty())
+                {
+                    Containers.dropItemStack(level, animal.getX(), animal.getY(), animal.getZ(), dropStack);
+                    inv.setStackInSlot(i, NullnessBridge.assumeNonnull(ItemStack.EMPTY)); // prevent dupes
+                }
+            }
         }
     }
 }

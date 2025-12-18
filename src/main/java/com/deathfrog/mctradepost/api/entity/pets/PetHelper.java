@@ -28,11 +28,17 @@ public class PetHelper<P extends Animal & ITradePostPet>
      */
     public void doRegistration(BuildingPetshop building)
     {
-        pet.setTrainerBuilding(building);
+        if (building == null) return;
+
+        P localPet = this.pet;
+
+        if (localPet == null) return;
+
+        localPet.setTrainerBuilding(building);
         BlockPos spawnPos = findNearbyValidSpawn(building.getColony().getWorld(), building.getPosition(), 3);
-        pet.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
-        building.getColony().getWorld().addFreshEntity(pet);
-        PetRegistryUtil.register(pet);
+        localPet.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+        building.getColony().getWorld().addFreshEntity(localPet);
+        PetRegistryUtil.register(localPet);
         building.markPetsDirty();
     }
 
@@ -54,8 +60,12 @@ public class PetHelper<P extends Animal & ITradePostPet>
                 for (int dz = -radius; dz <= radius; dz++)
                 {
                     BlockPos checkPos = origin.offset(dx, dy, dz);
+                    BlockPos checkBelow = checkPos.below();
+
+                    if (checkPos == null || checkBelow == null) continue;
+
                     if (level.getBlockState(checkPos).isAir() &&
-                        level.getBlockState(checkPos.below()).isSolidRender(level, checkPos.below()))
+                        level.getBlockState(checkBelow).isSolidRender(level, checkBelow))
                     {
                         return checkPos;
                     }

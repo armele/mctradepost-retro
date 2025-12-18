@@ -16,6 +16,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
@@ -27,9 +28,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
+import javax.annotation.Nonnull;
 
+import org.jetbrains.annotations.NotNull;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
@@ -40,20 +41,25 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.mojang.logging.LogUtils;
 
 // --- Utilities to obtain a handler or provider for a block position ---
 public final class ItemHandlerHelpers
 {
     /** Try capability; if missing, wrap the Container (handles double chests). */
-    public static Optional<IItemHandler> getHandler(Level level, BlockPos pos, @org.jetbrains.annotations.Nullable Direction side)
+    public static Optional<IItemHandler> getHandler(@Nonnull Level level, @Nonnull BlockPos pos, @org.jetbrains.annotations.Nullable Direction side)
     {
         BlockEntity be = level.getBlockEntity(pos);
         if (be == null) return Optional.empty();
 
         // 1) NeoForge capability lookup (preferred)
-        IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, level.getBlockState(pos), be, side);
-        if (cap != null) return Optional.of(cap);
+        BlockState state = level.getBlockState(pos);
+
+        if (state != null)
+        {
+            @SuppressWarnings("null")
+            IItemHandler cap = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, state, be, side);
+            if (cap != null) return Optional.of(cap);
+        }
 
         // 2) Wrap a vanilla Container if present
         Container container = extractContainer(level, pos, be);
@@ -67,21 +73,27 @@ public final class ItemHandlerHelpers
     }
 
     /** Same as getHandler, but returns your provider interface for helpers that expect it. */
-    public static Optional<IItemHandlerCapProvider> getProvider(Level level,
-        BlockPos pos,
+    public static Optional<IItemHandlerCapProvider> getProvider(@Nonnull Level level,
+        @Nonnull BlockPos pos,
         @org.jetbrains.annotations.Nullable Direction side)
     {
         return getHandler(level, pos, side).map(SimpleHandlerProvider::of);
     }
 
     /** Gets a Container, joining double chests correctly. */
-    private static Container extractContainer(Level level, BlockPos pos, BlockEntity be)
+    private static Container extractContainer(@Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockEntity be)
     {
         if (be instanceof ChestBlockEntity cbe)
         {
+            BlockState state = level.getBlockState(pos);
+            ChestBlock chestBlock = (ChestBlock) state.getBlock();
+
+            if (chestBlock == null) return null;
+
             // Join double chests (if any)
             Container joined =
-                ChestBlock.getContainer((ChestBlock) level.getBlockState(pos).getBlock(), level.getBlockState(pos), level, pos, false);
+                ChestBlock.getContainer(chestBlock, state, level, pos, false);
+
             if (joined != null) return joined;
             return cbe; // fallback: single chest container
         }
@@ -101,8 +113,6 @@ public final class ItemHandlerHelpers
      */
     public static ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, IItemHandler inv, boolean allowPartial)
     {
-        final Logger LOGGER = LogUtils.getLogger();
-
         final IRequestable payload = request.getRequest();
         final Predicate<ItemStack> matcher = matcherFor(payload);
 
@@ -159,13 +169,19 @@ public final class ItemHandlerHelpers
         {
             Stack specificStack = (Stack) req;
             final ItemStack wanted = specificStack.getStack();
+
+            if (wanted.isEmpty()) return st -> false;
+
             return st -> !st.isEmpty() && ItemStack.isSameItemSameComponents(st, wanted);
         }
 
-        // 2) Delivery often wraps a "Stack"-like intent (adjust if your Delivery exposes different getters)
+        // 2) Delivery often wraps a "Stack"-like intent
         if (req instanceof Delivery d)
         {
             final ItemStack wanted = d.getStack();
+
+            if (wanted.isEmpty()) return st -> false;
+
             return st -> !st.isEmpty() && ItemStack.isSameItem(st, wanted);
         }
 
@@ -180,7 +196,7 @@ public final class ItemHandlerHelpers
                 return st -> false;
             }
 
-            return st -> !st.isEmpty() && wanteds.stream().anyMatch(w -> ItemStack.isSameItem(st, w));
+            return st -> !st.isEmpty() && wanteds.stream().anyMatch(w -> w != null && ItemStack.isSameItem(st, w));
         }
 
         // Tool requests
@@ -198,7 +214,7 @@ public final class ItemHandlerHelpers
         if (req instanceof QualifiesByTag tagReq)
         {
             final TagKey<Item> tag = tagReq.tag();
-            return st -> !st.isEmpty() && st.is(tag);
+            return st -> !st.isEmpty() && tag != null && st.is(tag);
         }
 
         if (req instanceof QualifiesByHolderSet setReq)
@@ -225,12 +241,21 @@ public final class ItemHandlerHelpers
     }
 
 
+    /**
+     * Creates a predicate that checks if an item stack matches the given HolderSet<Item>.
+     * If the set is a HolderSet.Named, it checks if the item stack is tagged with the tag.
+     * If the set is not a HolderSet.Named, it pre-extracts the keys and values of the set, and then checks if the item stack's item
+     * is contained in the set of keys or values.
+     *
+     * @param set the set to create a predicate for
+     * @return a predicate that checks if an item stack matches the given set
+     */
     public static Predicate<ItemStack> predicateForHolderSet(HolderSet<Item> set)
     {
         if (set instanceof HolderSet.Named<Item> named)
         {
             final TagKey<Item> tag = named.key();
-            return st -> !st.isEmpty() && st.is(tag);
+            return st -> !st.isEmpty() && tag != null && st.is(tag);
         }
 
         // Pre-extract keys and fallback values once
@@ -245,6 +270,7 @@ public final class ItemHandlerHelpers
         return st -> {
             if (st.isEmpty()) return false;
             final Item item = st.getItem();
+            if (item == null) return false;
             final Optional<ResourceKey<Item>> keyOpt = BuiltInRegistries.ITEM.getResourceKey(item);
             if (keyOpt.isPresent()) return keys.contains(keyOpt.get());
             return values.contains(item);

@@ -27,7 +27,7 @@ public class PetUtil
         for (int i = 0; i < inventory.getSlots(); i++)
         {
             ItemStack existing = inventory.getStackInSlot(i);
-            if (ItemStack.isSameItemSameComponents(existing, stack))
+            if (existing != null && ItemStack.isSameItemSameComponents(existing, stack))
             {
                 stack = inventory.insertItem(i, stack, false);
                 if (stack.isEmpty()) break;
