@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.api.advancements;
 
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -23,7 +25,7 @@ public class RecycleItemTrigger extends SimpleCriterionTrigger<RecycleItemTrigge
      * 
      * @param player the player the check regards
      */
-    public void trigger(final ServerPlayer player)
+    public void trigger(final @Nonnull ServerPlayer player)
     {
         trigger(player, trigger -> true);
     }

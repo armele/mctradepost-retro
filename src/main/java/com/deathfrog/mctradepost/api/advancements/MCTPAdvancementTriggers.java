@@ -6,7 +6,9 @@ import net.minecraft.core.registries.Registries;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-public class MCTPAdvancementTriggers {
+public class MCTPAdvancementTriggers 
+{
+    @SuppressWarnings("null")
     public static final DeferredRegister<CriterionTrigger<?>> DEFERRED_REGISTER = DeferredRegister.create(Registries.TRIGGER_TYPE, MCTradePostMod.MODID);
     public static final String ADV_PET_TRAINED = "pet_trained";
     public static final String ADV_COLONY_CONNECTED = "colony_connected";

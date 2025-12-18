@@ -6,27 +6,28 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Random;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.Container;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
-import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.mojang.logging.LogUtils;
 
@@ -40,7 +41,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     // --- anti-hang safeguards ---
     private int ticksRunning;
     private int stuckTicks;
-    private Vec3 lastPos;
+    private @Nonnull Vec3 lastPos = NullnessBridge.assumeNonnull(Vec3.ZERO);
     private int replanAttempts;
     private int cooldownTicks;
 
@@ -67,7 +68,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     {
         this.pet = pet;
         this.unloadThreshold = unloadThreshold;
-        this.setFlags(EnumSet.of(Flag.MOVE));
+        this.setFlags(NullnessBridge.assumeNonnull(EnumSet.of(Flag.MOVE)));
     }
 
     /**
@@ -80,10 +81,10 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     @Override
     public boolean canUse()
     {
-        if (pet.getNavigation().isInProgress())
-        {
-            return false;
-        }
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return false;
+
+        // if (pet.getNavigation().isInProgress()) return false;
 
         if (cooldownTicks-- > 0)
         {
@@ -115,10 +116,13 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         if (petInventory == null) return false;
         
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} inventory handler: {} (hash={})", pet.getUUID(), petInventory.getClass().getName(), System.identityHashCode(petInventory)));
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} inventory handler: {} (hash={})", pet.getUUID(), petInventory.getClass().getName(), System.identityHashCode(petInventory)));
 
         int fullSlots = 0;
         int totalSlots = petInventory.getSlots();
+
+        if (totalSlots <= 0) return false;
+
         for (int i = 0; i < totalSlots; i++)
         {
             ItemStack s = petInventory.getStackInSlot(i);
@@ -135,7 +139,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         final int fullSlotsForLogging = fullSlots;
         TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, full slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, fullSlotsForLogging, totalSlots));
 
-        return (totalSlots > 0) && (fillPct >= unloadThreshold);
+        return fillPct >= unloadThreshold;
     }
 
     /**
@@ -148,14 +152,21 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     @Override
     public boolean canContinueToUse()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return false;
+
+        final BlockPos localWorkPos = workPos;
+
         // Continue while not unloaded, not timed out, and either navigating or close enough to try.
         if (unloaded) return false;
         if (ticksRunning > MAX_RUN_TICKS) return false;
-        if (workPos == null) return false;
+        if (localWorkPos == null) return false;
         if (!needsUnload()) return false;
 
+        @Nonnull Vec3 workCenter = NullnessBridge.assumeNonnull(Vec3.atCenterOf(localWorkPos));
+
         boolean navInProgress = pet.getNavigation().isInProgress();
-        boolean closeEnough = pet.position().distanceToSqr(Vec3.atCenterOf(workPos)) <= ARRIVAL_DIST_SQ;
+        boolean closeEnough = pet.position().distanceToSqr(workCenter) <= ARRIVAL_DIST_SQ;
 
         return navInProgress || closeEnough;
     }
@@ -167,13 +178,16 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     @Override
     public void start()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return;
+
         this.workPos = pet.getWorkLocation();
         this.hasArrived = false;
         this.unloaded = false;
         this.ticksRunning = 0;
         this.stuckTicks = 0;
         this.replanAttempts = 0;
-        this.lastPos = pet.position();
+        this.lastPos = NullnessBridge.assumeNonnull(pet.position());
         this.bestDistSq = Double.MAX_VALUE;
         this.noApproachTicks = 0;
 
@@ -199,31 +213,39 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     @Override
     public void tick()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return;
+
+        final BlockPos localWorkPos = workPos;
+        final @Nonnull Vec3 localLastPos = lastPos;
+
+        if (localWorkPos == null) return;
+
+        final @Nonnull Vec3 centerWorkPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(localWorkPos));
+
         ticksRunning++;
 
         // Detect progress
         Vec3 now = pet.position();
-        if (now.distanceToSqr(lastPos) <= PROGRESS_EPSILON_SQ) stuckTicks++;
+        if (now.distanceToSqr(localLastPos) <= PROGRESS_EPSILON_SQ) stuckTicks++;
         else
         {
             stuckTicks = 0;
             lastPos = now;
         }
 
+        double d2 = now.distanceToSqr(centerWorkPos);
+
         // Arrived (or close enough)
-        if (workPos != null)
+        if (d2 <= ARRIVAL_DIST_SQ)
         {
-            double d2 = now.distanceToSqr(Vec3.atCenterOf(workPos));
-            if (d2 <= ARRIVAL_DIST_SQ)
-            {
-                hasArrived = true;
-                tryUnloadInto(workPos);
-                return; // stop tick early if we unloaded (stop() will reset)
-            }
+            hasArrived = true;
+            tryUnloadInto(localWorkPos);
+            return; // stop tick early if we unloaded (stop() will reset)
         }
 
         // If navigation finished but we’re still not close, try replanning locally
-        if (!pet.getNavigation().isInProgress() && !hasArrived && workPos != null && !unloaded)
+        if (!pet.getNavigation().isInProgress() && !hasArrived && localWorkPos != null && !unloaded)
         {
             if (!replanToWorkPos()) // if we couldn't replan, consider fallback
             {
@@ -232,25 +254,23 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             return;
         }
 
-        if (workPos != null)
+        double dNow = pet.position().distanceToSqr(centerWorkPos);
+        // track best distance seen this run (initialize to +INF in start())
+        if (dNow + 1e-6 < bestDistSq)
         {
-            double dNow = pet.position().distanceToSqr(Vec3.atCenterOf(workPos));
-            // track best distance seen this run (initialize to +INF in start())
-            if (dNow + 1e-6 < bestDistSq)
-            {
-                bestDistSq = dNow;
-                noApproachTicks = 0;
-            }
-            else
-            {
-                noApproachTicks++;
-            }
-            if (noApproachTicks > 40)
-            {
-                // ~2s not getting closer
-                if (!replanToWorkPos()) tryFallbackUnloadOrAbort();
-                return;
-            }
+            bestDistSq = dNow;
+            noApproachTicks = 0;
+        }
+        else
+        {
+            noApproachTicks++;
+        }
+
+        if (noApproachTicks > 40)
+        {
+            // ~2s not getting closer
+            if (!replanToWorkPos()) tryFallbackUnloadOrAbort();
+            return;
         }
 
         // Stuck detection: no progress for a while -> replan or fallback
@@ -280,7 +300,6 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     {
         hasArrived = false;
         workPos = null;
-        unloaded = false;
         ticksRunning = 0;
         stuckTicks = 0;
         replanAttempts = 0;
@@ -307,23 +326,27 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      */
     private boolean replanToWorkPos()
     {
-        if (workPos == null) return false;
+        final BlockPos localWorkPos = workPos;
+
+        if (localWorkPos == null) return false;
         if (replanAttempts >= MAX_REPLANS) return false;
 
         replanAttempts++;
 
         // Try center first
-        if (tryPlanTo(workPos)) return true;
+        if (tryPlanTo(localWorkPos)) return true;
 
         // Try nudges around (cardinals + diagonals)
-        BlockPos[] candidates = {workPos.north(),
-            workPos.south(),
-            workPos.east(),
-            workPos.west(),
-            workPos.north().east(),
-            workPos.north().west(),
-            workPos.south().east(),
-            workPos.south().west()};
+        BlockPos[] candidates = {
+            localWorkPos.north(),
+            localWorkPos.south(),
+            localWorkPos.east(),
+            localWorkPos.west(),
+            localWorkPos.north().east(),
+            localWorkPos.north().west(),
+            localWorkPos.south().east(),
+            localWorkPos.south().west()
+        };
 
         // Shuffle a bit to avoid deterministic bad ordering
         for (int i = candidates.length - 1; i > 0; i--)
@@ -336,6 +359,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         for (BlockPos c : candidates)
         {
+            if (c == null) continue;
+
             if (tryPlanTo(c))
             {
                 return true;
@@ -354,10 +379,11 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      * @param target the target position to replan to
      * @return true if the replan was successful, false otherwise
      */
-    private boolean tryPlanTo(BlockPos target)
+    private boolean tryPlanTo(@Nonnull BlockPos target)
     {
+        Vec3 targetVec = NullnessBridge.assumeNonnull(Vec3.atCenterOf(target));
         // If we’re already pretty close to this candidate, don’t re-path needlessly.
-        if (pet.position().distanceToSqr(Vec3.atCenterOf(target)) < 1.0) return true;
+        if (pet.position().distanceToSqr(targetVec) < 1.0) return true;
 
         boolean ok = pet.getNavigation().moveTo(target.getX() + 0.5, target.getY(), target.getZ() + 0.5, 1.1);
         return ok && pet.getNavigation().isInProgress();
@@ -370,12 +396,15 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      */
     private void tryFallbackUnloadOrAbort()
     {
-        if (ALLOW_FALLBACK_UNLOAD_AT_RANGE && workPos != null)
+        final BlockPos localWorkPos = this.workPos;
+
+        if (ALLOW_FALLBACK_UNLOAD_AT_RANGE && localWorkPos != null)
         {
+            Vec3 centerWorkPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(localWorkPos));
             // If we’re within a small radius and have LOS, allow unloading without standing exactly on the block.
-            if (pet.position().distanceToSqr(Vec3.atCenterOf(workPos)) <= FALLBACK_RANGE_SQ && hasLineOfSightToBlock(workPos))
+            if (pet.position().distanceToSqr(centerWorkPos) <= FALLBACK_RANGE_SQ && hasLineOfSightToBlock(localWorkPos))
             {
-                tryUnloadInto(workPos);
+                tryUnloadInto(localWorkPos);
                 return;
             }
         }
@@ -397,15 +426,20 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     private boolean hasLineOfSightToBlock(BlockPos pos)
     {
         if (pos == null) return false;
-        if (!pet.level().isLoaded(pos)) return false;
 
-        Vec3 start = pet.getEyePosition();
+        final P localPet = pet;
+
+        if (localPet == null || !localPet.level().isLoaded(pos)) return false;
+
+        Vec3 start = localPet.getEyePosition();
         Vec3 end = Vec3.atCenterOf(pos);
 
-        // Colliders = respect solid collision shapes; ignore fluids
-        ClipContext ctx = new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, pet);
+        if (start == null || end == null) return false;
 
-        BlockHitResult hit = pet.level().clip(ctx);
+        // Colliders = respect solid collision shapes; ignore fluids
+        ClipContext ctx = new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, localPet);
+
+        BlockHitResult hit = localPet.level().clip(ctx);
 
         // True if nothing blocked us OR the first block we hit is exactly the target pos
         return hit.getType() == HitResult.Type.MISS || pos.equals(hit.getBlockPos());
@@ -420,7 +454,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      *
      * @param pos the block position of the container to unload into
      */
-    private void tryUnloadInto(BlockPos pos)
+    private void tryUnloadInto(@Nonnull BlockPos pos)
     {
         if (!(pet.level() instanceof ServerLevel serverLevel))
         {
@@ -446,6 +480,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         IItemHandler targetHandler = optHandler.get();
         boolean changed = false;
+
+        if (targetHandler == null) return;
 
         for (int i = 0; i < pet.getInventory().getSlots(); i++)
         {
@@ -501,7 +537,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
      * @param itemHandler the inventory to insert into
      * @return the remaining item stack after attempting to merge
      */
-    private ItemStack tryMergeIntoContainer(ItemStack stack, IItemHandler handler) {
+    private ItemStack tryMergeIntoContainer(ItemStack stack, @Nonnull IItemHandler handler) {
         if (stack.isEmpty()) return stack;
 
         return ItemHandlerHelper.insertItemStacked(handler, stack, false);

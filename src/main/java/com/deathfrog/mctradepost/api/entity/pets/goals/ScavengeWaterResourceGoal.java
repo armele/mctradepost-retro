@@ -4,11 +4,15 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 import java.util.EnumSet;
 import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -56,9 +60,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
     public static final String WATER_SCAVENGE_TAG = "amphibious_scavenge";
     public static final String LOOT_BASE = "pet/" + WATER_SCAVENGE_TAG;
-
+    private static final ResourceLocation WATER_SCAVENGE_TAG_RESOURCE = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, WATER_SCAVENGE_TAG);
     private static final TagKey<Block> WATER_SCAVENGE_BLOCK_TAG =
-        TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, WATER_SCAVENGE_TAG));
+        TagKey.create(NullnessBridge.assumeNonnull(Registries.BLOCK), NullnessBridge.assumeNonnull(WATER_SCAVENGE_TAG_RESOURCE));
 
 
     private final P pet;
@@ -87,7 +91,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         this.trainerBuilding = trainerBuilding;
         this.cooldownTicks = cooldownTicks;
         this.lastScavengeTime = -cooldownTicks;
-        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
+        this.setFlags(NullnessBridge.assumeNonnull(EnumSet.of(Goal.Flag.MOVE)));
     }
 
     /**
@@ -100,9 +104,12 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public boolean canUse()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return false;
+
         if (!pet.isAlive() || pet.isPassenger() || pet.isLeashed())
         {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is dead, leashed, or a passenger"));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is dead, leashed, or a passenger"));
             return false;
         }
 
@@ -114,7 +121,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (!PetRoles.SCAVENGE_WATER.equals(pet.getPetData().roleFromWorkLocation(pet.level())))
         {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is not a water scavenger"));
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is not a water scavenger"));
             return false;
         }
 
@@ -124,7 +131,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             long now = pet.level().getGameTime();
             if (now <= this.resumeUntilTick)
             {
-                // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resuming scavenge at {}", this.targetPos));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resuming scavenge at {}", this.targetPos));
                 return true;
             }
             else
@@ -192,6 +199,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void start()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return;
+
         boolean targetChanged = (lastStartTarget == null || !lastStartTarget.equals(this.targetPos));
         if (targetChanged)
         {
@@ -220,8 +230,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
     }
 
-
-
     /**
      * Determines whether the pet can continue using this goal.
      * 
@@ -230,6 +238,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public boolean canContinueToUse()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return false;
+
         if (targetPos == null)
         {
             // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No Target position found during ScavengeWaterResourceGoal.canContinueToUse"));
@@ -260,7 +271,13 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void tick()
     {
-        if (targetPos == null || navigationPos == null) 
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return;
+
+        final BlockPos localTargetPos = targetPos;
+        final BlockPos localNavigationPos = navigationPos;
+
+        if (localTargetPos == null || localNavigationPos == null) 
         {
             reset();
             return;
@@ -270,7 +287,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         if (!hasArrived && pet.getNavigation().isDone())
         {
             // try again (nudge Y up a bit so land navigators don’t stop short on water floors)
-            pet.getNavigation().moveTo(navigationPos.getX() + 0.5, navigationPos.getY() + 1.0, navigationPos.getZ() + 0.5, 1.0);
+            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + 1.0, localNavigationPos.getZ() + 0.5, 1.0);
 
             // also guard against loops: burn a try occasionally when we hit "done but not arrived"
             if (searchTries > 0)
@@ -285,14 +302,16 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             return;
         }
 
-        if (navigationPos != null && hasArrived && !pet.blockPosition().closerToCenterThan(Vec3.atCenterOf(navigationPos), 2.25))
+        @Nonnull final Vec3 centerOfNavPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(localNavigationPos));
+
+        if (hasArrived && !pet.blockPosition().closerToCenterThan(centerOfNavPos, 2.25))
         {
             // We slid by or got pushed too far.  Let's nudge back in range.
-            pet.getNavigation().moveTo(navigationPos.getX() + 0.5, navigationPos.getY() + 1.0, navigationPos.getZ() + 0.5, .3);
+            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + 1.0, localNavigationPos.getZ() + 0.5, .3);
         }
 
     
-        if ((navigationPos != null && pet.blockPosition().closerToCenterThan(Vec3.atCenterOf(navigationPos), 2.25)) || hasArrived)
+        if ((pet.blockPosition().closerToCenterThan(centerOfNavPos, 2.25)) || hasArrived)
         {
             hasArrived = true;
 
@@ -306,7 +325,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Successful harvest attempt."));
 
                 searchTries = 0;
-                harvest(targetPos);
+                harvest(localTargetPos);
             }
             else
             {
@@ -315,8 +334,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
             if (pet.level() instanceof ServerLevel serverLevel)
             {
+                @Nonnull AABB box = NullnessBridge.assumeNonnull(new AABB(localTargetPos).inflate(1.0));
                 List<ItemEntity> items = serverLevel.getEntitiesOfClass(ItemEntity.class,
-                    new AABB(targetPos).inflate(1.0),
+                    box,
                     item -> !item.hasPickUpDelay() && item.isAlive());
 
                 PetUtil.insertItems(pet, items);
@@ -356,14 +376,14 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
      *
      * @param pos the position of the block to be harvested
      */
-    protected void harvest(BlockPos pos)
+    protected void harvest(@Nonnull BlockPos pos)
     {
         if (!(pet.level() instanceof ServerLevel level)) return;
 
         BlockState harvestSpotState = level.getBlockState(pos);
-        Block harvestSpot = harvestSpotState.getBlock();
+        final Block harvestSpot = harvestSpotState.getBlock();
 
-        if (!harvestSpotState.is(WATER_SCAVENGE_BLOCK_TAG))
+        if (harvestSpot == null || !harvestSpotState.is(NullnessBridge.assumeNonnull(WATER_SCAVENGE_BLOCK_TAG)))
         {
             return;
         }
@@ -372,7 +392,12 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(harvestSpot);
         String lootPath = LOOT_BASE + "/" + blockId.getPath();
         ResourceLocation lootTableLocation = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, lootPath);
-        ResourceKey<LootTable> lootTableKey = ResourceKey.create(Registries.LOOT_TABLE, lootTableLocation);
+
+        if (lootTableLocation == null) return;
+
+        ResourceKey<LootTable> lootTableKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.LOOT_TABLE), lootTableLocation);
+
+        if (lootTableKey == null) return;
 
         // Access the loot table from MinecraftServer correctly
         LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(lootTableKey);
@@ -381,16 +406,21 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (lootTable == null || lootTable == LootTable.EMPTY) return;
 
-        LootParams lootParams = new LootParams.Builder(level).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
-            .withOptionalParameter(LootContextParams.THIS_ENTITY, pet)
-            .withLuck(0.0f) // TODO: Modify based on animal trainer skill level
-            .create(LootContextParamSets.EMPTY);
+        Vec3 centerPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(pos));
+
+        // TODO: Modify luck based on animal trainer skill level
+        LootParams lootParams = new LootParams.Builder(level).withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
+            .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet)
+            .withLuck(0.0f) 
+            .create(NullnessBridge.assumeNonnull(LootContextParamSets.EMPTY));
+
+        if (lootParams == null) return;
 
         List<ItemStack> drops = lootTable.getRandomItems(lootParams);
 
         for (ItemStack drop : drops)
         {
-            ItemEntity itemEntity = new ItemEntity(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop.copy());
+            ItemEntity itemEntity = new ItemEntity(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, NullnessBridge.assumeNonnull(drop.copy()));
             itemEntity.setPickUpDelay(0);
             level.addFreshEntity(itemEntity);
 
@@ -406,10 +436,10 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
 
         // Additional particles and sound
-        level.sendParticles(ParticleTypes.BUBBLE,
+        level.sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.BUBBLE),
             pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
             20, 0.5, 0.5, 0.5, 0.1);
-        level.playSound(null, pos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0f, 1.0f);
+        level.playSound(null, pos, NullnessBridge.assumeNonnull(SoundEvents.SHOVEL_FLATTEN), SoundSource.BLOCKS, 1.0f, 1.0f);
 
     }
 
@@ -424,6 +454,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     @Override
     public void stop()
     {
+        final Level level = pet.level();
+        if (level == null || level.isClientSide) return;
+
         // If we were pre-empted while still en route and still have tries, PAUSE
         if (this.targetPos != null && !this.hasArrived && this.searchTries > 0)
         {
@@ -481,6 +514,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
      * If no suitable location is found, null is returned.
      * @return a suitable location for scavenging water resources, or null if no suitable location is found.
      */
+    @SuppressWarnings("null")
     private BlockPos findWaterScavengeLocation()
     {
         final Level level = pet.level();
@@ -494,9 +528,11 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         for (int tries = 0; tries < 20; tries++)
         {
-            BlockPos candidate = origin.offset(pet.getRandom().nextInt(searchRadius * 2) - searchRadius,
+            final BlockPos candidate = origin.offset(pet.getRandom().nextInt(searchRadius * 2) - searchRadius,
                 pet.getRandom().nextInt(3) - 2,
                 pet.getRandom().nextInt(searchRadius * 2) - searchRadius);
+
+            if (candidate == null) continue;
 
             BlockState state = level.getBlockState(candidate);
             BlockState above = level.getBlockState(candidate.above());

@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.api.colony.buildings.modules;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+
 import org.jetbrains.annotations.NotNull;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
@@ -42,16 +44,26 @@ public class RecyclingItemListModule extends ItemListModule
      * @param provider The provider to use for looking up holders.
      * @param compound The compound tag containing the serialized state.
      */
+    @Override
     public void deserializeNBT(@NotNull HolderLookup.@NotNull Provider provider, CompoundTag compound)
     {
         super.deserializeNBT(provider, compound);
+
+        final HolderLookup.Provider nnProvider = Objects.requireNonNull(provider, "provider");
 
         pendingRecyclingQueue.clear();
         ListTag filterableList = compound.getList("pendingList", 10);
 
         for (int i = 0; i < filterableList.size(); ++i)
         {
-            pendingRecyclingQueue.add(new ItemStorage(ItemStack.parseOptional(provider, filterableList.getCompound(i))));
+            CompoundTag listItem = filterableList.getCompound(i);
+
+            if (listItem == null || listItem.isEmpty())
+            {
+                continue;
+            }
+            
+            pendingRecyclingQueue.add(new ItemStorage(ItemStack.parseOptional(nnProvider, listItem)));
         }
     }
 
@@ -61,6 +73,7 @@ public class RecyclingItemListModule extends ItemListModule
      * @param provider The provider to use for looking up holders.
      * @param compound The compound tag to which the state should be serialized.
      */
+    @SuppressWarnings("null")
     public void serializeNBT(@NotNull HolderLookup.Provider provider, CompoundTag compound)
     {
         super.serializeNBT(provider, compound);

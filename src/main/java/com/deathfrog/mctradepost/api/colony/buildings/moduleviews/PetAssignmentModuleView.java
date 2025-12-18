@@ -33,7 +33,7 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
         public String name;
     }
 
-    private final Map<BlockPos, PetWorkingLocationData> petWorkLocations = new HashMap<>();
+    private final Map<@NotNull BlockPos, @NotNull PetWorkingLocationData> petWorkLocations = new HashMap<>();
     private boolean dirty = true;
 
     /**
@@ -129,6 +129,7 @@ public class PetAssignmentModuleView extends AbstractBuildingModuleView
      * 
      * @return An immutable list of IBuildingView representing the herding buildings.
      */
+    @SuppressWarnings("null")
     public ImmutableList<PetWorkingLocationData> getPetWorkLocations()
     {
         return ImmutableList.copyOf(petWorkLocations.values());

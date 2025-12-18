@@ -45,7 +45,6 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public int logCooldown = 0;
 
     protected PetData<PetWolf> petData = null;
-    protected boolean goalsInitialized = false;
 
     protected BlockPos targetPosition = BlockPos.ZERO;
     protected int stuckTicks = 0;
@@ -92,6 +91,9 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         return false;
     }
 
+    /**
+     * Registers the goals for this pet. This includes goals for avoiding water, looking at the nearest player, looking around randomly, and attacking targets that have attacked it. If the pet data is not null, it will also register additional custom goals specific to the pet type.
+     */
     @Override
     protected void registerGoals()
     {
@@ -99,8 +101,12 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
 
+        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
 
-        this.targetSelector.addGoal(23, new HurtByTargetGoal(this).setAlertOthers());
+        if (hurtByTargetGoal != null)
+        {
+            this.targetSelector.addGoal(23, hurtByTargetGoal);
+        }
 
         if (this.petData == null)
         {
@@ -111,6 +117,11 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
     }
 
+    /**
+     * Adds additional data to the given CompoundTag, such as the pet data.
+     * 
+     * @param compound the CompoundTag to add the data to
+     */
     @Override
     public void addAdditionalSaveData(@Nonnull CompoundTag compound)
     {
@@ -181,20 +192,43 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
      * The goals and targets are only registered once the pet has a valid colony context, which is not available until the pet is loaded into a world.
      */
     @Override
-    public void resetGoals() 
+    public void resetGoals()
     {
-        this.goalSelector.removeAllGoals(g -> true);
-        this.targetSelector.removeAllGoals(g -> true);
-        registerGoals();
-        goalsInitialized = true;
+        // Never do AI goal surgery on the client.
+        if (level() == null || level().isClientSide)
+        {
+            return;
+        }
+
+        if (petData == null)
+        {
+            return;
+        }
+
+        petData.setGoalResetInProgress(true);
+        try
+        {
+            petData.resetGoals();
+
+            // Re-register baseline + role-specific goals.
+            registerGoals();
+
+            petData.setGoalsInitialized(true);
+        }
+        finally
+        {
+            petData.setGoalResetInProgress(false);
+        }
     }
+
 
     @Override
     public void tick()
     {
         super.tick();
         
-        if (!goalsInitialized && petData != null) {
+        if (petData != null && !petData.areGoalsInitialized()) 
+        {
             resetGoals();
         }
 
@@ -346,9 +380,9 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
             return;
         }
 
-        resetGoals();
-
         petData.setWorkLocation(location);
+        
+        resetGoals();
     }
 
     @Override

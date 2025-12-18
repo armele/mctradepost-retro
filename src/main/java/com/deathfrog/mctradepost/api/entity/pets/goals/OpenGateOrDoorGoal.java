@@ -3,6 +3,9 @@ package com.deathfrog.mctradepost.api.entity.pets.goals;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nonnull;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -43,7 +46,7 @@ public class OpenGateOrDoorGoal extends Goal
     private final int closeDelayTicks; // counted only after CLEARING the door plane
 
     // Target passage
-    private BlockPos targetPos = null;
+    private @Nonnull BlockPos targetPos = Objects.requireNonNull(BlockPos.ZERO);
     private BooleanProperty openProperty = null; // DoorBlock.OPEN or FenceGateBlock.OPEN
     private boolean isGate = false;
     private BlockPos passThroughPos = null;
@@ -82,7 +85,7 @@ public class OpenGateOrDoorGoal extends Goal
         this.mob = mob;
         this.closeAfter = closeAfter;
         this.closeDelayTicks = Math.max(1, closeDelayTicks);
-        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
+        this.setFlags(Objects.requireNonNull(EnumSet.of(Goal.Flag.MOVE)));
     }
 
     @Override
@@ -114,19 +117,25 @@ public class OpenGateOrDoorGoal extends Goal
             Node node = path.getNode(i);
             BlockPos pos = new BlockPos(node.x, node.y, node.z);
 
+            Direction dir = mob.getDirection();
+
+            if (dir == null) continue;
+
             // Check node, node above, and block in front of the mob
-            BlockPos[] candidates = new BlockPos[] { pos, pos.above(), mob.blockPosition().relative(mob.getDirection()) };
+            BlockPos[] candidates = new BlockPos[] { pos, pos.above(), mob.blockPosition().relative(dir) };
             for (BlockPos cPos : candidates)
             {
+                if (cPos == null) continue;
+
                 BlockState st = level.getBlockState(cPos);
-                if (!isPassageBlock(st)) continue;
+                if (st == null || !isPassageBlock(st)) continue;
 
                 // Anti-oscillation: skip if blacklisted
                 if (doorBlacklist.getOrDefault(cPos, 0) > 0) continue;
 
                 // Forward-only guard: door must not be far past
                 Direction facing = getFacing(st);
-                if (!isAheadOfDoorPlane(cPos, facing)) continue;
+                if (facing == null || !isAheadOfDoorPlane(cPos, facing)) continue;
 
                 // Already far past? don't engage
                 if (planeAlongAmount(cPos, facing) > FAR_PAST_PLANE_THRESHOLD) continue;
@@ -135,7 +144,11 @@ public class OpenGateOrDoorGoal extends Goal
                 if (!isNearPathOrSelf(cPos, path)) continue;
 
                 // Range guard
-                if (Vec3.atCenterOf(cPos).distanceToSqr(mob.position()) > MAX_DOOR_TRIGGER_DIST_SQ) continue;
+                Vec3 mobPos = mob.position();
+
+                if (mobPos == null) continue;
+
+                if (Vec3.atCenterOf(cPos).distanceToSqr(mobPos) > MAX_DOOR_TRIGGER_DIST_SQ) continue;
 
                 // Accept target
                 setTarget(cPos, st);
@@ -150,13 +163,13 @@ public class OpenGateOrDoorGoal extends Goal
     public boolean canContinueToUse()
     {
         // Continue while we have a target and either we've opened it or we're counting down to close.
-        return targetPos != null && (openedThisRun || (closeAfter && closeCountdown > 0));
+        return targetPos != BlockPos.ZERO && (openedThisRun || (closeAfter && closeCountdown > 0));
     }
 
     @Override
     public void start()
     {
-        if (targetPos != null && openProperty != null)
+        if (targetPos != BlockPos.ZERO && openProperty != null)
         {
             openPairedIfNeeded();
             toggleOpen(true);
@@ -179,7 +192,7 @@ public class OpenGateOrDoorGoal extends Goal
     public void tick()
     {
         // Close-after logic only *after* we’ve clearly crossed the plane
-        if (closeAfter && openedThisRun && targetPos != null)
+        if (closeAfter && openedThisRun && targetPos != BlockPos.ZERO)
         {
             if (hasClearedDoorPlane(PAST_PLANE_THRESHOLD))
             {
@@ -234,7 +247,12 @@ public class OpenGateOrDoorGoal extends Goal
 
         // Lightweight stuck detection near threshold; re-issue move if stalled
         Vec3 now = mob.position();
-        if (now.distanceToSqr(lastPos) < PROGRESS_EPSILON_SQ) stuckTicks++;
+
+        if (now == null) return;
+
+        if (lastPos == null) lastPos = now;
+
+        if (now.distanceToSqr(Objects.requireNonNull(lastPos)) < PROGRESS_EPSILON_SQ) stuckTicks++;
         else { stuckTicks = 0; lastPos = now; }
 
         if (stuckTicks > STUCK_LIMIT && passThroughPos != null)
@@ -255,7 +273,7 @@ public class OpenGateOrDoorGoal extends Goal
     public void stop()
     {
         // If stopping early and we intended to close, only close if we’re past the plane.
-        if (closeAfter && openedThisRun && targetPos != null && openProperty != null)
+        if (closeAfter && openedThisRun && targetPos != BlockPos.ZERO && openProperty != null)
         {
             if (hasClearedDoorPlane(PAST_PLANE_THRESHOLD))
             {
@@ -272,14 +290,14 @@ public class OpenGateOrDoorGoal extends Goal
 
     private void blacklistAndReset()
     {
-        if (targetPos != null)
+        if (targetPos != BlockPos.ZERO)
         {
             doorBlacklist.put(targetPos.immutable(), DOOR_BLACKLIST_TICKS);
         }
         globalCooldown = GLOBAL_COOLDOWN_TICKS;
 
         openedThisRun = false;
-        targetPos = null;
+        targetPos = Objects.requireNonNull(BlockPos.ZERO);
         openProperty = null;
         passThroughPos = null;
         closeCountdown = 0;
@@ -291,13 +309,13 @@ public class OpenGateOrDoorGoal extends Goal
 
     private boolean isPassageBlock(BlockState state)
     {
-        if (state.is(BlockTags.DOORS) && state.getBlock() instanceof DoorBlock)
+        if (state.is(Objects.requireNonNull(BlockTags.DOORS)) && state.getBlock() instanceof DoorBlock)
         {
             openProperty = DoorBlock.OPEN;
             isGate = false;
             return true;
         }
-        if (state.is(BlockTags.FENCE_GATES) && state.getBlock() instanceof FenceGateBlock)
+        if (state.is(Objects.requireNonNull(BlockTags.FENCE_GATES)) && state.getBlock() instanceof FenceGateBlock)
         {
             openProperty = FenceGateBlock.OPEN;
             isGate = true;
@@ -310,70 +328,108 @@ public class OpenGateOrDoorGoal extends Goal
     {
         if (isGate && state.getBlock() instanceof FenceGateBlock)
         {
-            return state.getValue(FenceGateBlock.FACING);
+            return state.getValue(Objects.requireNonNull(FenceGateBlock.FACING));
         }
         if (state.getBlock() instanceof DoorBlock)
         {
-            return state.getValue(DoorBlock.FACING);
+            return state.getValue(Objects.requireNonNull(DoorBlock.FACING));
         }
         return mob.getDirection(); // fallback
     }
 
+    /**
+     * Toggles the door or gate at the target position to be open or closed.
+     * If the target position is null or the open property is null, this method does nothing.
+     * If the target block is not a door or fence gate, this method does nothing.
+     * If the target block has changed since the AI's last update, this method does nothing.
+     * If the target block is currently open and the open parameter is false, this method closes the block.
+     * If the target block is currently closed and the open parameter is true, this method opens the block.
+     * If the target block is currently open and the open parameter is true, or if the target block is currently closed and the open parameter is false, this method does nothing.
+     * @param open whether the target block should be open or closed
+     */
     private void toggleOpen(boolean open)
     {
-        if (targetPos == null || openProperty == null) return;
+        final BlockPos localTargetPos = this.targetPos;
+        final BooleanProperty localOpenProp = this.openProperty;
+
+        if (localTargetPos == BlockPos.ZERO || localOpenProp == null) return;
 
         Level level = mob.level();
-        BlockState state = level.getBlockState(targetPos);
-        if (!state.hasProperty(openProperty)) return; // block changed
+        BlockState state = level.getBlockState(localTargetPos);
+        if (!state.hasProperty(localOpenProp)) return; // block changed
 
         if (isGate && state.getBlock() instanceof FenceGateBlock)
         {
-            boolean currentlyOpen = state.getValue(FenceGateBlock.OPEN);
+            boolean currentlyOpen = state.getValue(Objects.requireNonNull(FenceGateBlock.OPEN));
             if (currentlyOpen != open)
             {
-                level.setBlock(targetPos, state.setValue(FenceGateBlock.OPEN, open), Block.UPDATE_CLIENTS);
+                final BlockState newState = state.setValue(Objects.requireNonNull(FenceGateBlock.OPEN), open);
+
+                if (newState != null)
+                {
+                    level.setBlock(localTargetPos, newState, Block.UPDATE_CLIENTS);
+                }
+
             }
             return;
         }
 
-        boolean currentlyOpen = state.getValue(openProperty);
+        boolean currentlyOpen = state.getValue(localOpenProp);
         if (currentlyOpen != open)
         {
-            level.setBlock(targetPos, state.setValue(openProperty, open), Block.UPDATE_CLIENTS);
+            final BlockState newState = state.setValue(localOpenProp, open);
+            if (newState != null)
+            {
+                level.setBlock(localTargetPos, newState, Block.UPDATE_CLIENTS);
+            }
+
         }
     }
 
     /** If this is a double door, also open the mate so we don’t shoulder-bump. */
     private void openPairedIfNeeded()
     {
-        if (targetPos == null) return;
+        final BlockPos localTargetPos = this.targetPos;
+        if (localTargetPos == BlockPos.ZERO) return;
+
         Level level = mob.level();
-        BlockState s = level.getBlockState(targetPos);
+        BlockState s = level.getBlockState(localTargetPos);
 
         if (!(s.getBlock() instanceof DoorBlock)) return;
 
-        Direction facing = s.getValue(DoorBlock.FACING);
-        DoorHingeSide hinge = s.getValue(DoorBlock.HINGE);
-        BlockPos matePos = targetPos.relative(hinge == DoorHingeSide.LEFT ? facing.getClockWise() : facing.getCounterClockWise());
+        Direction facing = s.getValue(Objects.requireNonNull(DoorBlock.FACING));
+        DoorHingeSide hinge = s.getValue(Objects.requireNonNull(DoorBlock.HINGE));
+
+        if (hinge == null) return;
+
+        Direction dir = hinge == DoorHingeSide.LEFT ? facing.getClockWise() : facing.getCounterClockWise();
+
+        if (dir == null) return;
+
+        BlockPos matePos = localTargetPos.relative(dir);
+
+        if (matePos == null) return;
+
         BlockState mate = level.getBlockState(matePos);
 
-        if (mate.getBlock() instanceof DoorBlock && mate.getValue(DoorBlock.FACING) == facing)
+        if (mate.getBlock() instanceof DoorBlock && mate.getValue(Objects.requireNonNull(DoorBlock.FACING)) == facing)
         {
-            if (!mate.getValue(DoorBlock.OPEN))
+            if (!mate.getValue(Objects.requireNonNull(DoorBlock.OPEN)))
             {
-                level.setBlock(matePos, mate.setValue(DoorBlock.OPEN, true), Block.UPDATE_CLIENTS);
+                final BlockState newState = mate.setValue(Objects.requireNonNull(DoorBlock.OPEN), true);
+                if (newState != null)
+                {
+                    level.setBlock(matePos, newState, Block.UPDATE_CLIENTS);
+                }
             }
         }
     }
 
-
-
     /** How far the mob is along the door facing normal (positive = in front/past). */
-    private double planeAlongAmount(BlockPos door, Direction facing)
+    private double planeAlongAmount(@Nonnull BlockPos door, @Nonnull Direction facing)
     {
         Vec3 doorCenter = Vec3.atCenterOf(door);
-        Vec3 toMob = mob.position().subtract(doorCenter);
+        Vec3 toMob = mob.position().subtract(Objects.requireNonNull(doorCenter));
         return toMob.x * facing.getStepX() + toMob.z * facing.getStepZ();
     }
 
@@ -382,10 +438,10 @@ public class OpenGateOrDoorGoal extends Goal
      * @param pos the BlockPos of the door/gate
      * @param state the BlockState of the door/gate
      */
-    private void setTarget(BlockPos pos, BlockState state)
+    private void setTarget(@Nonnull BlockPos pos, @Nonnull BlockState state)
     {
-        this.targetPos = pos.immutable();
-        Direction facing = getFacing(state);
+        this.targetPos = Objects.requireNonNull(pos.immutable());
+        final Direction facing = Objects.requireNonNull(getFacing(state));
 
         // Are we on the "negative" (behind) or "positive" (in front) side of the door plane?
         double along = planeAlongAmount(targetPos, facing);
@@ -409,9 +465,11 @@ public class OpenGateOrDoorGoal extends Goal
      */
     private boolean hasClearedDoorPlane(double threshold)
     {
-        if (targetPos == null) return false;
         BlockState state = mob.level().getBlockState(targetPos);
         Direction facing = getFacing(state);
+
+        if (facing == null) return false;
+
         double along = planeAlongAmount(targetPos, facing);
         // Consider cleared when we've gone threshold distance past the plane in our intended direction.
         return (along * approachSign) > threshold;
@@ -429,7 +487,7 @@ public class OpenGateOrDoorGoal extends Goal
      * @param facing the direction the door/gate is facing
      * @return true if the mob is ahead of the door plane, false otherwise
      */
-    private boolean isAheadOfDoorPlane(BlockPos door, Direction facing)
+    private boolean isAheadOfDoorPlane(@Nonnull BlockPos door, @Nonnull Direction facing)
     {
         // Use approachSign so the “already far past?” check is symmetric.
         double along = planeAlongAmount(door, facing);
@@ -441,16 +499,17 @@ public class OpenGateOrDoorGoal extends Goal
     /** Consider “inside doorway” as within the 1x2 block column occupied by the door/gate (with a tiny inflation). */
     private boolean isInsideDoorwayAABB()
     {
-        if (targetPos == null) return false;
         AABB doorway = new AABB(targetPos).inflate(0.05).expandTowards(0, 1, 0); // 1x2 column
-        return doorway.inflate(0.05).contains(mob.position());
+        Vec3 mobPos = Objects.requireNonNull(mob.position());
+        return doorway.inflate(0.05).contains(mobPos);
     }
 
     /** Door should be close to the current path or the mob; prevents engaging doors off-route. */
-    private boolean isNearPathOrSelf(BlockPos door, Path path)
+    private boolean isNearPathOrSelf(@Nonnull BlockPos door, Path path)
     {
         // Near mob?
-        if (Vec3.atCenterOf(door).distanceToSqr(mob.position()) <= PATH_PROXIMITY_MAX_DIST_SQ) return true;
+        Vec3 mobPos = Objects.requireNonNull(mob.position());
+        if (Vec3.atCenterOf(door).distanceToSqr(mobPos) <= PATH_PROXIMITY_MAX_DIST_SQ) return true;
 
         // Near any of the next few nodes?
         int next = path.getNextNodeIndex();
@@ -459,7 +518,8 @@ public class OpenGateOrDoorGoal extends Goal
         {
             Node n = path.getNode(i);
             Vec3 np = new Vec3(n.x + 0.5, n.y + 0.5, n.z + 0.5);
-            if (np.distanceToSqr(Vec3.atCenterOf(door)) <= PATH_PROXIMITY_MAX_DIST_SQ) return true;
+            Vec3 doorCenter = Objects.requireNonNull(Vec3.atCenterOf(door));
+            if (np.distanceToSqr(doorCenter) <= PATH_PROXIMITY_MAX_DIST_SQ) return true;
         }
         return false;
     }

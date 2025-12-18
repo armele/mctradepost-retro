@@ -2,10 +2,8 @@ package com.deathfrog.mctradepost.api.entity.pets;
 
 import java.util.UUID;
 
-import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;

@@ -21,6 +21,7 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeWaterResourceGoal
 import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
@@ -35,6 +36,7 @@ import com.minecolonies.core.colony.buildings.modules.AnimalHerdingModule;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -44,14 +46,18 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
@@ -60,8 +66,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int LOG_COOLDOWN_INTERVAL = 200;
+
     public static final int JOB_GOAL_PRIORITY = 7;
 
+    private static final double MOVE_EPSILON_SQ = 0.001 * 0.001; // tiny movement threshold
+    
     public static final String STATS_PETS_DIED = "pets_died";
     public static final String STATS_PETS_RETIRED = "pets_retired";
     public static final String STATS_PETS_RANAWAY = "pets_ranaway";
@@ -79,6 +88,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
     public static final String TAG_ANIMAL_TYPE = "animalType";
+    
+    private int watchdogGraceTicks = 0;
 
     protected UUID entityUuid;
     protected int entityId = -1;
@@ -92,6 +103,9 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     
     private Component originalName = null;
     private String lastActiveGoal = null;
+
+    protected boolean goalsInitialized = false;
+    protected boolean goalResetInProgress = false;
 
     public PetData(P animal)
     {
@@ -113,6 +127,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         fromNBT(compound);
     }
 
+
+    /**
+     * Gets the underlying animal associated with this pet.
+     *
+     * @return the underlying animal associated with this pet.
+     */
     public P getAnimal()
     {
         return animal;
@@ -124,7 +144,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      *
      * @return the name of the animal type associated with this pet.
      */
-    public String getAnimalType()
+    public @Nonnull String getAnimalType()
     {
         return petType.getTypeName();
     }
@@ -152,22 +172,32 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             BlockPosUtil.write(compound,"trainerBuilding", trainerBuildingID);
             BlockPosUtil.write(compound,"workLocation", workLocation);
-            compound.putString("dimension", dimension.location().toString());
+            String dimName = dimension.location().toString();
+            compound.putString("dimension", dimName != null ? dimName : "");
             compound.putString(TAG_ANIMAL_TYPE, this.getAnimalType());
             // compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
         }
 
         compound.putInt("entityId", this.getEntityId());
 
-        if (animal != null && animal.getUUID() != null)
+        final UUID localUuid = animal.getUUID();
+        if (animal != null && localUuid != null)
         {
-            compound.putUUID("uuid", animal.getUUID());
+            compound.putUUID("uuid", localUuid);
         }
 
         // --- INVENTORY (always save) ---
         if (animal != null && animal.level() != null)
         {
-            compound.put(TAG_INV, inventory.serializeNBT(animal.level().registryAccess()));
+            RegistryAccess registryAccess = animal.level().registryAccess();
+            if (registryAccess != null)
+            {
+                CompoundTag inventoryTag = inventory.serializeNBT(registryAccess);
+                if (inventoryTag != null)
+                {
+                    compound.put(TAG_INV, inventoryTag);
+                }
+            }
         }
         // LOGGER.info("Serialized PetData to NBT: {}", compound);
     }
@@ -200,7 +230,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (dimname != null && !dimname.isEmpty()) 
         {
             ResourceLocation level = ResourceLocation.parse(dimname);
-            dimension = ResourceKey.create(Registries.DIMENSION, level);
+
+            if (level != null) 
+            {
+                dimension = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), level);
+            }
         } 
         else 
         {
@@ -218,19 +252,25 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 try 
                 {
                     // Variant B: API with provider
-                    if (animal != null && animal.level() != null) 
+                    if (animal != null && animal.level() != null && invTag != null) 
                     {
-                        inventory.deserializeNBT(animal.level().registryAccess(), invTag);
-                        applied = true;
+                        RegistryAccess registryAccess = animal.level().registryAccess();
+                        if (registryAccess != null) 
+                        {
+                            inventory.deserializeNBT(registryAccess, invTag);
+                            applied = true;
+                        }
                     }
-                } catch (Throwable ignored) 
+                } 
+                catch (Throwable ignored) 
                 { 
                     LOGGER.error("Error deserializing inventory", ignored);
                 }
             }
 
             // If still not applied (no Level yet), keep it for later
-            if (!applied) {
+            if (!applied && invTag != null) 
+            {
                 pendingInv = invTag.copy();
             }
 
@@ -336,7 +376,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     {
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Pet {}: Work location changed to: {}", this.animal.getUUID(), this.workLocation));
         
-        if (this.animal != null || this.animal.isAlive())
+        if (this.animal != null && this.animal.isAlive())
         {
             this.animal.resetGoals();
         }
@@ -351,6 +391,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void assignPetGoals()
     {
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning pet goals for pet {}:", this.animal.getUUID()));
+
         this.assignBasicGoals();
         this.assignGoalFromWorkLocation();
     }
@@ -378,14 +420,18 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         BlockPos workPos = getWorkLocation();
         if (workPos != null && !workPos.equals(BlockPos.ZERO))
         {
-            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), getWorkLocation(), 1.2, 2));
+            this.getAnimal().goalSelector.addGoal(5, new WalkToWorkPositionGoal<>(this.getAnimal(), workPos, 1.2, 2));
         }
 
         animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300));
 
         if (getTrainerBuilding() != null)
         {
-            this.getAnimal().goalSelector.addGoal(30, new ReturnToTrainerAtNightGoal<>(this.getAnimal(), getTrainerBuilding().getPosition()));
+            BlockPos trainerPos = getTrainerBuilding().getPosition();
+            if (trainerPos != null && !trainerPos.equals(BlockPos.ZERO))
+            {
+                this.getAnimal().goalSelector.addGoal(30, new ReturnToTrainerAtNightGoal<>(this.getAnimal(), trainerPos));
+            }
         }
 
     }
@@ -423,19 +469,21 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         switch (role)
         {
             case HERDING:
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning herding goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HerdGoal<P>(this.getAnimal()));
                 break;
 
             case SCAVENGE_LAND:
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeForResourceGoal<>(
                     this.getAnimal(),
                     16,                      // search radius
                     8.0,                     // light level (optional to ignore)
                     0.3f,                    // 30% success rate
                     pos -> {
-                        BlockState stateBelow = this.getAnimal().level().getBlockState(pos.below());
+                        BlockState stateBelow = this.getAnimal().level().getBlockState(NullnessBridge.assumeNonnull(pos.below()));
                         return this.getAnimal().level().getMaxLocalRawBrightness(pos) < 8 &&
-                            (stateBelow.is(BlockTags.DIRT) || stateBelow.is(BlockTags.MUSHROOM_GROW_BLOCK)) &&
+                            (stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.DIRT)) || stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.MUSHROOM_GROW_BLOCK))) &&
                             this.getAnimal().level().isEmptyBlock(pos);
                     },
                     pos -> {
@@ -447,13 +495,14 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                         StatsUtil.trackStatByName(this.getTrainerBuilding(), ScavengeForResourceGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
 
                         // Place the mushroom
-                        this.getAnimal().level().setBlock(pos, mushroomBlock.defaultBlockState(), 3);
+                        this.getAnimal().level().setBlock(NullnessBridge.assumeNonnull(pos), NullnessBridge.assumeNonnull(mushroomBlock.defaultBlockState()), 3);
                     },
                     1000
                 ));
                 break;
 
             case SCAVENGE_WATER:
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning scavenge_water goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeWaterResourceGoal<>(
                     this.getAnimal(), 
                     8,
@@ -469,35 +518,41 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
     }
 
+
     /**
-     * Periodic AI watchdog check. This is called every tick the pet AI is enabled.
+     * Called once per tick while the AI is active.
      * 
-     * <p>This function is responsible for detecting AI stalls and attempting to recover from them. 
-     * If there are no active goals, targets, or navigation, it increments a counter. 
-     * If the counter reaches 10, it enables the control flags for movement, looking, and targeting. 
-     * If the counter reaches 20, it clears the stale path to let goals start fresh. If the counter reaches 50, 
-     * it performs a single soft goal refresh. If the pet becomes active again, it resets the counter.</p>
+     * If the AI is not active, it will increment a stall counter and attempt to refresh the AI goals if the stall counter reaches certain thresholds.
+     * If the AI is active, it will reset the stall counter.
      * 
-     * <p>This is a "soft" AI reset, meaning it doesn't reset the entire pet state, but only the AI control flags, path, and goals. 
-     * This is less intrusive than a full reset and avoids resetting the pet's inventory, skills, and other state.</p>
-     * 
-     * <p>This function is called from PetData.resetGoals() and is intended to be called every tick the pet AI is enabled.</p>
+     * @see #isAiActiveNow()
+     * @see #stallTicks
      */
     public void aiWatchdogTick()
     {
-        if (watchdogCooldown >= 0) {
-            watchdogCooldown--;
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {}: watchdog tick. Grace: {}, Cooldown: {}, Stall: {}", this.animal.getUUID(), watchdogGraceTicks, watchdogCooldown, stallTicks));
+
+        if (watchdogGraceTicks > 0)
+        {
+            watchdogGraceTicks--;
             return;
         }
 
+        if (watchdogCooldown > 0) 
+        { 
+            watchdogCooldown--;
+            return; 
+        }
+
         watchdogCooldown = WATCHDOWN_COOLDOWN_INTERVAL;
+
         
         if (this.getAnimal() == null || this.getAnimal().level().isClientSide) return;
 
-        boolean anyMoveRunning = this.getAnimal().goalSelector.getAvailableGoals().stream().anyMatch(WrappedGoal::isRunning);
-        boolean anyTargetRunning = this.getAnimal().targetSelector.getAvailableGoals().stream().anyMatch(WrappedGoal::isRunning);
-        boolean navBusy = !getAnimal().getNavigation().isDone();
-        boolean active = anyMoveRunning || anyTargetRunning || navBusy;
+        boolean active = isAiActiveNow();
+
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {}: watchdog tick. Active: {}, getAnimal().isAlive(): {}, getAnimal().isPassenger(): {}, getAnimal().isLeashed(): {}, getAnimal().isNoAi(): {}", 
+        //    this.animal.getUUID(), active, getAnimal().isAlive(), getAnimal().isPassenger(), getAnimal().isLeashed(), getAnimal().isNoAi()));
 
         if (!active && getAnimal().isAlive() && !getAnimal().isPassenger() && !getAnimal().isLeashed() && !getAnimal().isNoAi())
         {
@@ -505,6 +560,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             // (first second): make sure control flags aren’t stuck off
             if (stallTicks == 10)
             {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet {}: checking control flags.", this.animal.getUUID()));
                 getAnimal().goalSelector.enableControlFlag(Goal.Flag.MOVE);
                 getAnimal().goalSelector.enableControlFlag(Goal.Flag.LOOK);
                 getAnimal().targetSelector.enableControlFlag(Goal.Flag.TARGET);
@@ -512,11 +568,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             // (~2s): clear stale path to let goals start fresh
             if (stallTicks == 20)
             {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Clear stale path to let goals start fresh.", this.animal.getUUID()));
                 getAnimal().getNavigation().stop();
             }
             // (~5s): single soft goal refresh (once)
             if (stallTicks == 50)
             {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Resetting goals.", this.animal.getUUID()));
                 getAnimal().resetGoals();
             }
         }
@@ -540,6 +598,9 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public IBuilding getBuildingContainingWorkLocation(Level level)
     {
         IColony colony = IColonyManager.getInstance().getClosestColony(level, this.getWorkLocation());
+
+        if (colony == null) return null;
+
         for (IBuilding building : colony.getBuildingManager().getBuildings().values())
         {
             if (BlockPosUtil.isInArea(building.getCorners().getA(), building.getCorners().getB(), workLocation)) 
@@ -558,7 +619,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      * @return a list of animals that are compatible with one or more of the AnimalHerdingModules associated with this pet's work
      *         building.
      */
-    public List<? extends Animal> searchForCompatibleAnimals(Level level, AABB boundingBox)
+    public List<? extends Animal> searchForCompatibleAnimals(Level level, @Nonnull AABB boundingBox)
     {
         final List<Animal> animals = new ArrayList<>();
 
@@ -605,7 +666,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      *
      * @return the inventory of the pet.
      */
-    public ItemStackHandler getInventory() {
+    public ItemStackHandler getInventory() 
+    {
         return inventory;
     }
 
@@ -616,7 +678,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      * @param pos   the block position to retrieve the role for
      * @return the PetRoles value associated with the block at the given position, or null if the block is not a valid work location
      */
-    public static PetRoles roleFromPosition(Level level, BlockPos pos) 
+    public static PetRoles roleFromPosition(Level level, @Nonnull BlockPos pos) 
     {
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
@@ -648,9 +710,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public PetRoles roleFromWorkLocation(Level level) 
     {
-        if (this.workLocation == null || this.workLocation.equals(BlockPos.ZERO)) return PetRoles.NONE;
+        final BlockPos localWorkPos = this.workLocation;
+        if (localWorkPos == null || localWorkPos.equals(BlockPos.ZERO)) return PetRoles.NONE;
 
-        return roleFromPosition(level, this.workLocation);
+        return roleFromPosition(level, localWorkPos);
     }
 
     /**
@@ -749,21 +812,247 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RANAWAY, this.getAnimalType(), 1);
         }
     }
+    
+    /**
+     * Returns whether the pet is currently in the process of resetting its goals.
+     * This is used to prevent the pet from attempting to reset its goals while it is already in the process of doing so.
+     *
+     * @return true if the pet is currently resetting its goals, false otherwise
+     */
+    public boolean isGoalResetInProgress() 
+    { 
+        return goalResetInProgress; 
+    }
 
-    /** Call from the entity’s server tick once level/registry are available. */
+
+
+    /**
+     * Sets whether the pet is currently in the process of resetting its goals.
+     * This flag is used to prevent the pet from attempting to reset its goals while it is already in the process of doing so.
+     * @param goalResetInProgress true if the pet is currently resetting its goals, false otherwise
+     */
+    public void setGoalResetInProgress(boolean goalResetInProgress) 
+    { 
+        this.goalResetInProgress = goalResetInProgress; 
+    }
+
+    /**
+     * Returns whether the pet's goals have been initialized.
+     * This should be set to true after the pet's goals have been registered.
+     * 
+     * @return true if the pet's goals have been initialized, false otherwise
+     */
+    public boolean areGoalsInitialized() 
+    { 
+        return goalsInitialized; 
+    }
+
+
+    /**
+     * Sets whether the pet's goals have been initialized.
+     * This should be set to true after the pet's goals have been registered.
+     * 
+     * @param intialized true if the pet's goals have been initialized, false otherwise
+     */
+    public void setGoalsInitialized(boolean intialized) 
+    { 
+        this.goalsInitialized = intialized; 
+    }
+
+    /**
+     * Resets the state of this pet's AI goals and targets, by clearing all existing goals and targets and re-registering them.
+     * A change of work location may necessitate a change of goals. The goals and targets are only registered once the pet has a valid
+     * colony context, which is not available until the pet is loaded into a world.
+     *
+     * This function is idempotent: calling it multiple times will have the same effect as calling it once.
+     *
+     * @see #stopAllSelectorGoalsSafely
+     */
+    public void resetGoals()
+    {
+
+        if (animal == null)
+        {
+            return;
+        }
+
+        watchdogGraceTicks = 60; // 3 seconds
+        stallTicks = 0;
+
+        try
+        {
+            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resetting pet goals for pet {}:", this.animal.getUUID()));
+
+            animal.goalSelector.enableControlFlag(Goal.Flag.MOVE);
+            animal.goalSelector.enableControlFlag(Goal.Flag.LOOK);
+            animal.goalSelector.enableControlFlag(Goal.Flag.JUMP);
+            animal.targetSelector.enableControlFlag(Goal.Flag.TARGET);
+
+            // Hard-stop movement/navigation FIRST so "isInProgress()" deadlocks don't persist.
+            animal.getNavigation().stop();
+            animal.getMoveControl().setWantedPosition(animal.getX(), animal.getY(), animal.getZ(), 0.0); // clear wanted movement
+            animal.setDeltaMovement(NullnessBridge.assumeNonnull(Vec3.ZERO));
+            animal.hurtMarked = true; // ensure motion sync
+
+            // Stop any currently running goals cleanly before removing them.
+            stopAllSelectorGoalsSafely(animal.goalSelector);
+            stopAllSelectorGoalsSafely(animal.targetSelector);
+
+            // Clear everything.
+            animal.goalSelector.removeAllGoals(g -> true);
+            animal.targetSelector.removeAllGoals(g -> true);
+
+            // Reset misc AI state that can carry across goal sets.
+            animal.setTarget(null);
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Failed to reset pet goals for pet {}", this.animal.getUUID(), e);
+        }
+        finally
+        {
+            // No Op
+        }
+    }
+
+
+    /**
+     * Checks if the pet is currently active (not stalled) by checking for various signs of AI activity.
+     * This includes:
+     * <ol>
+     * <li>Any goal or target goal currently running</li>
+     * <li>Navigation state (more robust than isDone())</li>
+     * <li>Physical movement (covers knockback, nudges, falling, etc.)</li>
+     * <li>Intent without motion (very important)</li>
+     * <li>"Eligible to act": there exists *any* MOVE goal</li>
+     * </ol>
+     *
+     * @return true if the pet is currently active, false otherwise
+     */
+    private boolean isAiActiveNow()
+    {
+        final P a = this.getAnimal();
+        if (a == null) return false;
+
+        // If AI is disabled, treat as active (not stalled)
+        if (a.isNoAi()) return true;
+
+        // 1) Any goal or target goal currently running?
+        boolean goalRunning = a.goalSelector.getAvailableGoals().stream()
+            .anyMatch(WrappedGoal::isRunning);
+
+        boolean targetRunning = a.targetSelector.getAvailableGoals().stream()
+            .anyMatch(WrappedGoal::isRunning);
+
+        // 2) Navigation state (more robust than isDone())
+        final PathNavigation nav = a.getNavigation();
+        final Path path = nav.getPath();
+
+        boolean navBusy =
+            nav.isInProgress()
+            || (path != null && !path.isDone());
+
+        // 3) Physical movement (covers knockback, nudges, falling, etc.)
+        Vec3 dm = a.getDeltaMovement();
+
+        // horizontal-only motion
+        boolean horizMoving = (dm.x * dm.x + dm.z * dm.z) > MOVE_EPSILON_SQ;
+
+        // count vertical only if not grounded (falling / jumping / swimming)
+        boolean vertMoving = !a.onGround() && (dm.y * dm.y) > MOVE_EPSILON_SQ;
+
+        boolean physicallyMoving = horizMoving || vertMoving;
+
+        // 4) Intent without motion (very important)
+        boolean hasAttackTarget = a.getTarget() != null;
+
+        // 5) “Eligible to act”: there exists *any* MOVE goal
+        boolean hasMoveGoals =
+            a.goalSelector.getAvailableGoals().stream()
+                .map(WrappedGoal::getGoal)
+                .anyMatch(g -> g != null && g.getFlags() != null && g.getFlags().contains(Goal.Flag.MOVE));
+
+        boolean hasAnyGoals = !a.goalSelector.getAvailableGoals().isEmpty();
+        boolean eligibleButIdle = hasAnyGoals && hasMoveGoals;
+
+        boolean isActive = goalRunning || targetRunning || navBusy || physicallyMoving || hasAttackTarget
+            || (eligibleButIdle && watchdogGraceTicks > 0); // only suppress for the first second
+
+        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> 
+        //     LOGGER.info("Pet {}: isAiActiveNow({}). goalRunning: {}, targetRunning: {}, navBusy: {}, physicallyMoving({}): {}, hasAttackTarget: {}, hasMoveGoals: {}, hasAnyGoals: {}, eligibleButIdle: {}, stallTicks: {}",
+        //     this.animal.getUUID(), isActive, goalRunning, targetRunning, navBusy, dm, physicallyMoving, hasAttackTarget, hasMoveGoals, hasAnyGoals, eligibleButIdle, stallTicks));
+
+        return isActive;
+
+    }
+
+
+    /**
+     * Best-effort: call stop() on goals that are currently running, then clear navigation again.
+     * This prevents "removed goal still thinks it owns MOVE flag" style lockups.
+     */
+    private void stopAllSelectorGoalsSafely(final GoalSelector selector)
+    {
+
+        if (animal == null)
+        {
+            return;
+        }
+
+        try
+        {
+
+            for (WrappedGoal wrapped : selector.getAvailableGoals())
+            {
+                final Goal goal = wrapped.getGoal();
+                if (goal == null) continue;
+
+                // Only stop goals that are actually running, if that info is accessible.
+                // WrappedGoal typically has isRunning(); if not, calling stop() is still usually safe.
+                if (wrapped.isRunning())
+                {
+                    try
+                    {
+                        goal.stop();
+                    }
+                    catch (Exception ignored)
+                    {
+                        // Goal stop should never bring down the entity tick.
+                    }
+                }
+            }
+        }
+        catch (Throwable ignored)
+        {
+            // Some mappings don't expose getAvailableGoals() / WrappedGoal.
+            // In that case, we at least rely on navigation stop + selector removal.
+        }
+
+        // Re-stop navigation after stopping goals, because some stop() methods call moveTo().
+        animal.getNavigation().stop();
+    }
+
+    /** 
+     * Call from the entity’s server tick once level/registry are available. 
+     */
     public void tryApplyPendingInventory(Level level)
     {
         if (pendingInv == null || level == null || level.isClientSide) return;
 
-            try 
-            {
-                inventory.deserializeNBT(level.registryAccess(), pendingInv);
-            } 
-            catch (Throwable err) 
-            {
-                // LOGGER.error("Failed to deserialize pet inventory", err);
-                return;
-            }
+        try 
+        {
+            RegistryAccess access = level.registryAccess();
+            final CompoundTag localPendingInv = pendingInv;
+            
+            if (access == null || localPendingInv == null) return;
+
+            inventory.deserializeNBT(access, localPendingInv);
+        } 
+        catch (Throwable err) 
+        {
+            // LOGGER.error("Failed to deserialize pet inventory", err);
+            return;
+        }
 
         pendingInv = null; // applied successfully
     }
@@ -783,7 +1072,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (debugging)
         {
             String idText = this.getAnimal().getUUID().toString();
-            String baseName = this.originalName != null ? this.originalName.getString() : "<unnamed>";
+            String job = this.roleFromWorkLocation(this.getAnimal().level()).toString();
 
             Goal goal = getActiveGoal();
             String goalName = null;
@@ -794,16 +1083,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 goalName = " - " + lastActiveGoal;
             }
 
-            if (this.lastActiveGoal != null)
-            {
-                goalName = " - " + this.lastActiveGoal;
-            }
-            else
-            {
-                goalName = "";
-            }
-
-            this.getAnimal().setCustomName(Component.literal(idText + " (" + baseName + goalName + ")"));
+            this.getAnimal().setCustomName(Component.literal(idText + " Role: " + job + " (" + goalName + ")"));
             this.getAnimal().setCustomNameVisible(true);
         }
         else

@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.minecolonies.api.util.InventoryUtils;
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -15,6 +16,8 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+
+import java.util.Objects;
 
 import org.slf4j.Logger;
 
@@ -181,7 +184,13 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
             return;
         }
 
-        boolean didEat = InventoryUtils.attemptReduceStackInItemHandler(pet.getInventory(), new ItemStack(foodItem, 1), 1);
+        if (foodItem == null)
+        {
+            return;
+        }
+
+        final Item nnFoodItem = Objects.requireNonNull(foodItem, "foodItem");
+        boolean didEat = InventoryUtils.attemptReduceStackInItemHandler(pet.getInventory(), new ItemStack(nnFoodItem, 1), 1);
 
         if (!didEat)
         {
@@ -196,11 +205,13 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
         {
             pet.heal(healAmount);
 
+            final BlockPos pos = Objects.requireNonNull(pet.blockPosition(), "pet.blockPosition()");
+
             // Play a small eat sound
             pet.level()
                 .playSound(null,
-                    pet.blockPosition(),
-                    SoundEvents.GENERIC_EAT,
+                    pos,
+                    Objects.requireNonNull(SoundEvents.GENERIC_EAT),
                     SoundSource.NEUTRAL,
                     0.8F,
                     pet.getRandom().nextFloat() * 0.2F + 0.9F);

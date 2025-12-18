@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.api.colony.buildings.views;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
@@ -18,7 +20,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 
 public class PetshopView extends AbstractBuildingView 
 {
-    protected List<PetData<?>> pets = new ArrayList<>();
+    protected final @Nonnull List<PetData<?>> pets = new ArrayList<>();
 
     public PetshopView(IColonyView c, @NotNull BlockPos l)
     {

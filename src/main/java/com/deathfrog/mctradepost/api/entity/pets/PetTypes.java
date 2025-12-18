@@ -1,6 +1,10 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
@@ -10,17 +14,17 @@ import net.minecraft.world.item.Items;
 
 public enum PetTypes
 {
-    WOLF(new ItemStack(Items.BONE, 16), PetWolf.class, MCTradePostMod.PET_WOLF.get(), "Wolf"),
-    FOX(new ItemStack(Items.SWEET_BERRIES, 16), PetFox.class, MCTradePostMod.PET_FOX.get(), "Fox"),
-    AXOLOTL(new ItemStack(Items.KELP, 16), PetAxolotl.class, MCTradePostMod.PET_AXOLOTL.get(), "Axolotl");
+    WOLF(new ItemStack(NullnessBridge.assumeNonnull(Items.BONE), 16), PetWolf.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_WOLF.get()), "Wolf"),
+    FOX(new ItemStack(NullnessBridge.assumeNonnull(Items.SWEET_BERRIES), 16), PetFox.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_FOX.get()), "Fox"),
+    AXOLOTL(new ItemStack(NullnessBridge.assumeNonnull(Items.KELP), 16), PetAxolotl.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_AXOLOTL.get()), "Axolotl");
 
 
-    private final ItemStack trainingItem;
-    private final Class<? extends Animal> petClass;
-    private final EntityType<? extends Animal> entityType;
-    private final String typeName;
+    private final @Nonnull ItemStack trainingItem;
+    private final @Nonnull Class<? extends Animal> petClass;
+    private final @Nonnull EntityType<? extends Animal> entityType;
+    private final @Nonnull String typeName;
 
-    PetTypes(ItemStack trainingItem, Class<? extends Animal> petClass, EntityType<? extends Animal> entityType, String typeName)
+    PetTypes(@Nonnull ItemStack trainingItem, @Nonnull Class<? extends Animal> petClass, @Nonnull EntityType<? extends Animal> entityType, @Nonnull String typeName)
     {
         this.trainingItem = trainingItem;
         this.petClass = petClass;
@@ -61,7 +65,8 @@ public enum PetTypes
      * 
      * @return the human-readable name of the pet type
      */
-    public String getTypeName() {
+    public @Nonnull String getTypeName() 
+    {
         return typeName;
     }
 

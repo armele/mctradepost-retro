@@ -1,33 +1,38 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+
+import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.PathingUtil;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.Vec3;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.slf4j.Logger;
-import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
-import com.deathfrog.mctradepost.api.util.PathingUtil;
-import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.mojang.logging.LogUtils;
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
 
 public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     private final P pet;
-    private final Level level;
     private final int airThresholdTicks;
     private final int searchRadius;
     private final double speed;
@@ -38,7 +43,7 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
     private int stuckTicks;
     private static final int STUCK_TICKS_LIMIT = 40; // ~2s @20tps
     private static final double PROGRESS_EPSILON_SQ = 0.05 * 0.05; // ~0.05 block
-    private Vec3 lastPos;
+    private Vec3 lastPos = Vec3.ZERO;
 
     // target & path
     private BlockPos targetWaterPos;
@@ -51,29 +56,33 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
     private int cooldownTicks;
     private static final int COOLDOWN_TICKS_ON_FAIL = 40;
 
-    /**
-     * @param pet                 the actor
-     * @param airThresholdSeconds trigger when remaining air is below this (seconds)
-     * @param searchRadius        how far to look for water
-     * @param speed               path speed
-     * @param maxRunTicks         hard timeout to avoid hangs
-     */
-    public ReturnToWaterGoal(P pet, int airThresholdSeconds, int searchRadius, double speed, int maxRunTicks)
+    public ReturnToWaterGoal(final P pet, final int airThresholdSeconds, final int searchRadius, final double speed, final int maxRunTicks)
     {
         this.pet = pet;
-        this.level = pet.level();
         this.airThresholdTicks = airThresholdSeconds * 20;
         this.searchRadius = Math.max(8, searchRadius);
         this.speed = speed;
         this.maxRunTicks = Math.max(60, maxRunTicks);
 
         // This goal moves, looks, and may jump
-        this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));
+        this.setFlags(NullnessBridge.assumeNonnull(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP)));
     }
 
+    /**
+     * Determines if the return to water goal can be used.
+     * 
+     * This goal can be used if no cooldown is active, the pet is not a passenger, the pet is not sleeping, the pet is not already in water or a bubble, and the pet is either running low on air or not on the ground.
+     * The goal will also be used if there is a loaded work location that is water, or if there is a reachable water block within the search radius.
+     * 
+     * @return true if the goal can be used, false otherwise.
+     */
     @Override
     public boolean canUse()
     {
+
+        final Level level = pet.level();
+        if (level.isClientSide) return false;
+
         if (cooldownTicks > 0)
         {
             cooldownTicks--;
@@ -82,7 +91,7 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
         if (pet.isPassenger() || pet.isSleeping()) return false;
 
         // If already safe, skip
-        if (isInWaterOrBubble(pet)) return false;
+        if (pet.isInWaterOrBubble()) return false;
 
         // Trigger when running low on air OR simply out of water (defensive)
         if (pet.getAirSupply() > airThresholdTicks && pet.onGround())
@@ -90,71 +99,90 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
             return false;
         }
 
-        if ((pet.getWorkLocation() != null) && PathingUtil.isWater(pet.level(), pet.getWorkLocation()))
+        final BlockPos work = pet.getWorkLocation();
+        if (work != null && level.isLoaded(work) && PathingUtil.isWater(level, work))
         {
-            targetWaterPos = pet.getWorkLocation();
+            targetWaterPos = work;
             return true;
         }
 
-        // Find a candidate water target
-        targetWaterPos = findNearestReachableWater(pet.blockPosition(), searchRadius);
+        targetWaterPos = findNearestReachableWater(pet.blockPosition(), this.searchRadius);
         return targetWaterPos != null;
     }
 
+    /**
+     * Called when the goal is activated. This goal will start the pet navigating to the nearest water block.
+     * If the pet is not on land, it will try to find a water block above or below it first.
+     * If the pet is on land, it will try to find a water block beside it first, then above or below it.
+     * If no path can be found to a water block, the goal will fail and the pet will be stopped.
+     */
     @Override
     public void start()
     {
+
+        final Level level = pet.level();
+        if (level.isClientSide) return;
+
         ticksRunning = 0;
         stuckTicks = 0;
+
+        if (!pet.isAlive()) return;
+
         lastPos = pet.position();
 
-        if (targetWaterPos == null) return;
+        final BlockPos target = targetWaterPos;
+        if (target == null)
+        {
+            // No target, nothing to do.
+            return;
+        }
 
         final boolean onLand = !pet.isInWaterOrBubble();
-        final Level level = pet.level();
 
-        // Build a short, ordered candidate list:
-        // - If on land, try standable "bank" squares first (adjacent to water),
-        // then air above water, then the water cell itself.
-        // - If already in water, try the water cell first (then above).
-        List<BlockPos> candidates = new ArrayList<>();
+        // Ordered candidate list:
+        // on land: banks -> above -> water
+        // in water: water -> above -> banks
+        final List<BlockPos> candidates = new ArrayList<>();
 
         if (onLand)
         {
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
-                BlockPos bank = targetWaterPos.relative(dir);
+                final BlockPos bank = target.relative(NullnessBridge.assumeNonnull(dir));
                 if (PathingUtil.isStandableBank(level, bank))
                 {
                     candidates.add(bank.immutable());
                 }
             }
-            // Step onto the air above water (walk to edge, drop in)
-            BlockPos above = PathingUtil.findTopOfWaterColumn(pet.level(), targetWaterPos);
-            candidates.add(above.immutable());
 
-            // Finally, the water itself (may still work sometimes from land)
-            if (PathingUtil.isSwimmableWater(level, targetWaterPos))
+            final BlockPos above = PathingUtil.findTopOfWaterColumn(level, target);
+            if (above != null) // if your helper can return null, keep this; otherwise you can drop the check
             {
-                candidates.add(targetWaterPos.immutable());
+                candidates.add(above.immutable());
+            }
+
+            if (PathingUtil.isSwimmableWater(level, target))
+            {
+                candidates.add(target.immutable());
             }
         }
         else
         {
-            // In water: go straight for the water cell (or above, if you want to surface entry)
-            if (PathingUtil.isSwimmableWater(level, targetWaterPos))
+            if (PathingUtil.isSwimmableWater(level, target))
             {
-                candidates.add(targetWaterPos.immutable());
+                candidates.add(target.immutable());
             }
-            BlockPos above = targetWaterPos.above();
-            if (level.getBlockState(above).isAir() || level.getBlockState(above).getFluidState().isSource())
+
+            final BlockPos above = target.above();
+            if (level.isLoaded(NullnessBridge.assumeNonnull(above)) && 
+                (level.getBlockState(NullnessBridge.assumeNonnull(above)).isAir() || level.getBlockState(NullnessBridge.assumeNonnull(above)).getFluidState().isSource()))
             {
                 candidates.add(above.immutable());
             }
-            // A nearby bank can also be acceptable if we need to exit-reenter
+
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
-                BlockPos bank = targetWaterPos.relative(dir);
+                final BlockPos bank = target.relative(NullnessBridge.assumeNonnull(dir));
                 if (PathingUtil.isStandableBank(level, bank))
                 {
                     candidates.add(bank.immutable());
@@ -162,88 +190,91 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
             }
         }
 
-        // Try each candidate with a couple of strategies before we give up.
-        for (BlockPos cand : candidates)
+        // Try candidates
+        for (final BlockPos cand : candidates)
         {
-            if (!level.isLoaded(cand)) continue;
+            if (!level.isLoaded(NullnessBridge.assumeNonnull(cand))) continue;
 
-            // 1) Let nav build a path implicitly (often more permissive than prebuilding)
-            boolean accepted = pet.getNavigation().moveTo(cand.getX() + 0.5, cand.getY() + 0.5, cand.getZ() + 0.5, speed);
+            // 1) implicit moveTo
+            final boolean accepted = pet.getNavigation().moveTo(
+                cand.getX() + 0.5, cand.getY() + 0.5, cand.getZ() + 0.5, speed
+            );
             if (accepted && pet.getNavigation().isInProgress())
             {
                 return;
             }
 
-            // 2) Explicit path build with BlockPos overload; accuracy 1–2 is safer than 0
-            Path p1 = pet.getNavigation().createPath(cand, 1);
-            if (p1 == null)
+            // 2) explicit path build (accuracy 1–2)
+            Path p = pet.getNavigation().createPath(cand, 1);
+            if (p == null)
             {
-                p1 = pet.getNavigation().createPath(cand, 2);
+                p = pet.getNavigation().createPath(cand, 2);
             }
-            if (p1 != null)
+            if (p != null)
             {
-                pet.getNavigation().moveTo(p1, speed);
+                pet.getNavigation().moveTo(p, speed);
                 return;
             }
         }
 
-        // As a last tiny nudge: try the air above water with a slightly wider tolerance
-        BlockPos A = targetWaterPos.above();
-        if (level.isLoaded(A) && level.getBlockState(A).isAir())
-        {
-            Path p2 = pet.getNavigation().createPath(A, 2);
-            if (p2 != null)
-            {
-                pet.getNavigation().moveTo(p2, speed);
-                return;
-            }
-        }
-
-        // Couldn’t secure a path right now. Do NOT immediately blacklist:
-        // give the finder a beat (chunks update, small position change) then retry.
-        // Your tick() can call replan; here we just back off briefly.
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.debug("ReturnToWater: defer abort; no path to {}, retrying soon.", targetWaterPos));
-        
-        this.cooldownTicks = Math.max(this.cooldownTicks, 10); // ~0.5 s pause before next canUse()
+        // No path: treat as failure deterministically (avoid start/stop loops)
+        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.debug("ReturnToWater: no path to {}, blacklisting + cooldown.", target));
+        blacklistTarget(target);
+        cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
+        targetWaterPos = null;
+        pet.getNavigation().stop();
     }
 
     /**
-     * Determines if the goal should continue to run. This method will return true if the following conditions are met: - the target
-     * water position is not null - the goal has not been running for more than the maximum number of ticks - the pet is not already in
-     * water or a bubble - the target water position is still valid water - the pet's navigation is not done
-     * 
-     * @return true if the goal should continue to run, false otherwise
+     * Determines if the goal can continue to run.
+     * This goal can continue to run if the pet has a valid target position, the navigation is not done, and the pet has not
+     * arrived at the water location yet.
+     * Additionally, if the pet has been running for too long, or if the pet is already in water or a bubble, this goal will
+     * not continue to run.
+     * @return true if the goal can continue to run, false otherwise
      */
     @Override
     public boolean canContinueToUse()
     {
-        if (targetWaterPos == null) return false;
+        final BlockPos target = targetWaterPos;
+        if (target == null) return false;
+
         if (ticksRunning > maxRunTicks) return false; // hard timeout
+        if (pet.isInWaterOrBubble()) return false;
 
-        // If we’ve reached water or are safe now, done
-        if (isInWaterOrBubble(pet)) return false;
+        final Level level = pet.level();
+        if (!level.isLoaded(target)) return false;                 // prevent unloaded-chunk weirdness
+        if (!PathingUtil.isWater(level, target)) return false;
 
-        // Target still valid water?
-        if (!PathingUtil.isWater(pet.level(), targetWaterPos)) return false;
-
-        // Path still valid or navigation still running?
         return !pet.getNavigation().isDone();
     }
 
     /**
-     * Executes the tick logic for this goal. This function is called once per tick for the AI to perform its actions. It checks for
-     * progress toward the target water position, and if stuck, will try to replan once toward the same target. If replanning fails, it
-     * will give up on this target and put it on the blacklist. If the path is finished but the pet is not yet in water, it will
-     * perform a small local reseek to find a new target if possible.
+     * Ticks the return to water goal.
+     * <p>This method is called every tick that the goal is active. It checks if the target position is null, if the pet is stuck, if the pet is in water or a bubble, if the pet has finished navigating to the target, and if a local reseek is necessary.</p>
+     * <p>If the pet is stuck, it attempts to replan towards the target position. If replanning fails, it blacklists the target position and stops the goal.</p>
+     * <p>If the pet has finished navigating to the target but is not in water yet, it attempts to find a nearby reachable water position and replans towards it.</p>
+     * <p>If the pet is in water or a bubble, it stops the goal.</p>
      */
     @Override
     public void tick()
     {
+        final Level level = pet.level();
+        if (level.isClientSide) return;
+
         ticksRunning++;
 
+        final BlockPos target = targetWaterPos;
+        if (target == null)
+        {
+            // Defensive: avoid NPEs if target cleared by scheduler/other state changes.
+            stop();
+            return;
+        }
+
         // Progress / stuck detection
-        Vec3 now = pet.position();
-        if (now.distanceToSqr(lastPos) <= PROGRESS_EPSILON_SQ)
+        final Vec3 now = pet.position();
+        if (now.distanceToSqr(NullnessBridge.assumeNonnull(lastPos)) <= PROGRESS_EPSILON_SQ)
         {
             stuckTicks++;
         }
@@ -253,39 +284,40 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
             lastPos = now;
         }
 
-        // If path is finished but we’re not in water yet (e.g., nav says done but short), try a final step
-        if (pet.getNavigation().isDone() && !isInWaterOrBubble(pet))
+        // If path is finished but we’re not in water yet, try a small local reseek
+        if (pet.getNavigation().isDone() && !pet.isInWaterOrBubble())
         {
-            // small local reseek
-            BlockPos nearby = findNearestReachableWater(pet.blockPosition(), 6);
-            if (nearby != null && !nearby.equals(targetWaterPos))
+            final BlockPos nearby = findNearestReachableWater(pet.blockPosition(), 6);
+            if (nearby != null && !nearby.equals(target))
             {
                 targetWaterPos = nearby;
                 replanTowards(nearby);
             }
         }
-        
+
         if (stuckTicks > STUCK_TICKS_LIMIT)
         {
-            // Try to replan once toward same target
-            if (replanTowards(targetWaterPos))
+            if (replanTowards(target))
             {
                 stuckTicks = 0;
             }
             else
             {
-                // Give up on this target
-                blacklistTarget(targetWaterPos);
-                stop(); // will trigger cleanup; canUse() will be re-evaluated next tick
+                blacklistTarget(target);
                 cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
+                stop();
             }
         }
     }
 
+    /**
+     * Stops the return to water goal and resets its state.
+     * <p>This method is called when the goal is stopped, either because the target has been reached or because the goal was cancelled.</p>
+     * <p>It stops the pet's navigation, resets the target position, the number of ticks running, and the number of stuck ticks. It also decays the blacklist timers.</p>
+     */
     @Override
     public void stop()
     {
-        // Clean termination
         pet.getNavigation().stop();
         targetWaterPos = null;
         ticksRunning = 0;
@@ -299,10 +331,13 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
         }
     }
 
+    /**
+     * Returns true, indicating that this goal can be interrupted by other goals.
+     * <p>This goal can be interrupted by other goals, so it will be stopped if another goal is activated.</p>
+     */
     @Override
     public boolean isInterruptable()
     {
-        // Allow higher-priority (e.g., panic) to preempt
         return true;
     }
 
@@ -310,33 +345,49 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
     // Helpers
     // -----------------------
 
-    private boolean isInWaterOrBubble(LivingEntity e)
-    {
-        return e.isInWaterOrBubble();
-    }
-
-    private void blacklistTarget(BlockPos pos)
+    /**
+     * Blacklists the given position for a certain amount of ticks to prevent repeated navigation attempts.
+     * 
+     * @param pos the position to blacklist
+     */
+    private void blacklistTarget(final BlockPos pos)
     {
         if (pos == null) return;
         blacklist.put(pos.immutable(), BLACKLIST_TICKS);
     }
 
-    private boolean isBlacklisted(BlockPos pos)
+    /**
+     * Determines if the given position is blacklisted.
+     * Blacklisting is used to prevent the pet from attempting to navigate to the same position multiple times in a row.
+     * If a position is blacklisted, the pet will not attempt to navigate to that position until the blacklist timer has expired.
+     * 
+     * @param pos the position to check
+     * @return true if the position is blacklisted, false otherwise
+     */
+    private boolean isBlacklisted(final BlockPos pos)
     {
-        Integer left = blacklist.get(pos);
+        final Integer left = blacklist.get(pos);
         return left != null && left > 0;
     }
 
     /**
-     * Replans the path to the given target position, if possible, and starts navigating to it.
+     * Attempts to replan the path to the given target position.
+     * <p>This method is called when the pet is stuck and the goal is not yet satisfied. It will try to replan the path to the target
+     * position by using the pet's navigation system to compute a new path. If the replan is successful, it starts navigating to the
+     * target position. If the replan fails, the goal is considered failed and the pet should stop navigating to the target
+     * position.</p>
      * 
      * @param to the target position to replan towards
-     * @return true if the replan attempt was successful and the pet is now navigating to the target, false otherwise
+     * @return true if the replan was successful, false otherwise
      */
-    private boolean replanTowards(BlockPos to)
+    private boolean replanTowards(final BlockPos to)
     {
         if (to == null) return false;
-        Path path = pet.getNavigation().createPath(to.getX() + 0.5, to.getY() + 0.5, to.getZ() + 0.5, 0);
+
+        // Using the overload with coordinates; adjust "accuracy" if you have a better one available.
+        final Path path = pet.getNavigation().createPath(
+            to.getX() + 0.5, to.getY() + 0.5, to.getZ() + 0.5, 0
+        );
         if (path != null)
         {
             pet.getNavigation().moveTo(path, speed);
@@ -346,44 +397,38 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
     }
 
     /**
-     * Finds a nearby water position that is both water and pathfindable. Uses a bounded expanding cube scan (cheap, no
-     * allocation-heavy BFS).
+     * Finds a nearby water position that is both water and pathfindable. Uses a bounded expanding shell scan.
      */
-    private BlockPos findNearestReachableWater(BlockPos origin, int radius)
+    private BlockPos findNearestReachableWater(final BlockPos origin, final int radius)
     {
-        // Fast path: if standing next to water, choose that
+        final Level level = pet.level();
+
         BlockPos best = null;
         double bestDist2 = Double.MAX_VALUE;
 
-        // Scan outward; prefer positions the pathfinder considers valid for water travel
         for (int r = 1; r <= radius; r++)
         {
-            // shell scan at manhattan distance r (simple cube but skip inner layers for speed)
             for (int dx = -r; dx <= r; dx++)
             {
                 for (int dy = -2; dy <= 2; dy++)
-                { // vertical search is limited; pets don’t need huge Y swings
+                {
                     for (int dz = -r; dz <= r; dz++)
                     {
                         if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue; // outer shell only
 
-                        BlockPos p = origin.offset(dx, dy, dz);
+                        final @Nonnull BlockPos p = NullnessBridge.assumeNonnull(origin.offset(dx, dy, dz));
                         if (!level.isLoaded(p)) continue;
-                        if (!PathingUtil.isWater(pet.level(), p)) continue;
+                        if (!PathingUtil.isWater(level, p)) continue;
                         if (isBlacklisted(p)) continue;
 
-                        // Ensure the nav system thinks it can be used for water pathing
-                        // and there’s at least some space to occupy (no solid collision above).
                         if (!level.getBlockState(p).isPathfindable(PathComputationType.WATER)) continue;
 
-                        // Optional: ensure headroom in water (pet can fit)
-                        BlockPos head = p.above();
-                        if (!level.getBlockState(head).getFluidState().is(FluidTags.WATER) && !level.getBlockState(head).isAir())
-                        {
-                            continue;
-                        }
+                        final BlockPos head = p.above();
+                        final boolean headIsWater = level.getBlockState(NullnessBridge.assumeNonnull(head)).getFluidState().is(NullnessBridge.assumeNonnull(FluidTags.WATER));
+                        final boolean headIsAir = level.getBlockState(NullnessBridge.assumeNonnull(head)).isAir();
+                        if (!headIsWater && !headIsAir) continue;
 
-                        double d2 = p.distSqr(origin);
+                        final double d2 = p.distSqr(origin);
                         if (d2 < bestDist2)
                         {
                             best = p.immutable();
@@ -393,13 +438,12 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
                 }
             }
 
-            // Early return if we found a very close one to reduce expensive path attempts
-            if (best != null && bestDist2 <= 9.0)
-            { // within 3 blocks
+            if (best != null && bestDist2 <= 9.0) // within 3 blocks
+            {
                 return best;
             }
         }
 
-        return best; // may be null
+        return best;
     }
 }

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkAnimalTrainer;
@@ -23,6 +24,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
@@ -59,7 +61,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
         this.speedModifier = speed;
         this.stopDistanceSq = stopDistance * stopDistance;
-        this.setFlags(EnumSet.of(Goal.Flag.MOVE));
+        this.setFlags(NullnessBridge.assumeNonnull(EnumSet.of(Goal.Flag.MOVE)));
     }
 
     /**
@@ -76,10 +78,13 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     {
         if (mob.level().isClientSide()) return false;
         if (!mob.isAlive()) return false;
-        if (BlockPos.ZERO.equals(targetPos) || targetPos == null) return false;
+
+        final BlockPos localTargetPos = this.targetPos;
+
+        if (BlockPos.ZERO.equals(localTargetPos) || localTargetPos == null) return false;
     
-        if (!mob.level().isLoaded(targetPos)) return false; 
-        if (!mob.level().isInWorldBounds(targetPos)) return false; 
+        if (!mob.level().isLoaded(localTargetPos)) return false; 
+        if (!mob.level().isInWorldBounds(localTargetPos)) return false; 
 
         final long timeOfDay = mob.level().getDayTime() % 24000L;
 
@@ -156,9 +161,17 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     public void tick()
     {
         ticksRunning++;
-        if (lastProgress == null) lastProgress = mob.position();
 
-        if (mob.position().distanceToSqr(lastProgress) < 0.25) 
+        final Vec3 localLastProgress = lastProgress;
+        final BlockPos localTargetPos = targetPos;
+
+        if (localLastProgress == null)
+        {
+            lastProgress = mob.position();
+            return;
+        }
+
+        if (mob.position().distanceToSqr(localLastProgress) < 0.25) 
         {
             staleTicks++;
         }
@@ -175,12 +188,14 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             return;
         }
 
+        if (localTargetPos == null || localTargetPos.equals(BlockPos.ZERO)) return;
+
         if (isWithinDistance())
         {
             if (chestCheckCooldown-- > 0) return;
             chestCheckCooldown = 5; // scan every 5 ticks
 
-            BlockEntity be = mob.level().getBlockEntity(targetPos);
+            BlockEntity be = mob.level().getBlockEntity(localTargetPos);
 
             if (be == null)
             {
@@ -190,7 +205,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", mob.getUUID()));
 
             // Pick up food from the working location if there is any
-            Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(mob.level(), targetPos, null);
+            Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(mob.level(), localTargetPos, null);
             if (optProvider.isEmpty())
             {
                 return;
@@ -199,7 +214,9 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
             IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
 
             ItemStorage food = new ItemStorage(PetTypes.foodForPet(mob.getClass()), EntityAIWorkAnimalTrainer.PETFOOD_SIZE);
-            int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(chestHandlerOpt, stack -> !stack.isEmpty() && stack.is(food.getItem()));
+            @Nonnull Item foodItem = NullnessBridge.assumeNonnull(food.getItem());
+
+            int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(chestHandlerOpt, stack -> !stack.isEmpty() && stack.is(foodItem));
 
             if (foodslot >= 0)
             {
@@ -228,9 +245,9 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             if ((pathTries < MAX_TRIES) && mob.getNavigation().isDone() && retryCooldown <= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", targetPos));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", localTargetPos));
 
-                PathingUtil.flexiblePathing(mob, targetPos, speedModifier);
+                PathingUtil.flexiblePathing(mob, localTargetPos, speedModifier);
                 pathTries++;
                 feedingTries++;
                 retryCooldown = RETRY_COOLDOWN;
@@ -284,8 +301,12 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
      */
     private boolean isWithinDistance()
     {
-        if (targetPos == null) return false;
-        return mob.position().distanceToSqr(Vec3.atCenterOf(targetPos)) <= stopDistanceSq;
+        BlockPos localTargetPos = targetPos;
+
+        if (localTargetPos == null) return false;
+
+        Vec3 targetCenter = NullnessBridge.assumeNonnull(Vec3.atCenterOf(localTargetPos));
+        return mob.position().distanceToSqr(targetCenter) <= stopDistanceSq;
     }
 
     /**

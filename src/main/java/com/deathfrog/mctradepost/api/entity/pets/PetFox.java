@@ -87,9 +87,9 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
             return;
         }
 
-        resetGoals();
-
         petData.setWorkLocation(location);
+        
+        resetGoals();
     }
 
     @Override
@@ -117,8 +117,12 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
 
+        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
 
-        this.targetSelector.addGoal(23, new HurtByTargetGoal(this).setAlertOthers());
+        if (hurtByTargetGoal != null)
+        {
+            this.targetSelector.addGoal(23, hurtByTargetGoal);
+        }
 
         if (this.petData == null)
         {
@@ -190,12 +194,34 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
      * A change of work location may necessitate a change of goals.
      * The goals and targets are only registered once the pet has a valid colony context, which is not available until the pet is loaded into a world.
      */
-    public void resetGoals() 
+    @Override
+    public void resetGoals()
     {
-        this.goalSelector.removeAllGoals(g -> true);
-        this.targetSelector.removeAllGoals(g -> true);
-        registerGoals();
-        goalsInitialized = true;
+        // Never do AI goal surgery on the client.
+        if (level() == null || level().isClientSide)
+        {
+            return;
+        }
+
+        if (petData == null)
+        {
+            return;
+        }
+
+        petData.setGoalResetInProgress(true);
+        try
+        {
+            petData.resetGoals();
+
+            // Re-register baseline + role-specific goals.
+            registerGoals();
+
+            petData.setGoalsInitialized(true);
+        }
+        finally
+        {
+            petData.setGoalResetInProgress(false);
+        }
     }
 
     @Override
@@ -203,7 +229,8 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     {
         super.tick();
 
-        if (!goalsInitialized && petData != null) {
+        if (!goalsInitialized && petData != null) 
+        {
             resetGoals();
         }
         

@@ -36,13 +36,17 @@ public class MCTPSimpleModelType extends SimpleModelType {
     {
         // return super.getTexture(entityCitizen);
         
+        @SuppressWarnings("null")
         String style = entityCitizen.getEntityData().get(DATA_STYLE);
 
         final int moddedTextureId = (entityCitizen.getTextureId() % getNumTextures()) + 1;
+
+        @SuppressWarnings("null")
         final String textureIdentifier =
           getName().getPath() + (entityCitizen.isFemale() ? "female" : "male") + moddedTextureId + entityCitizen.getEntityData().get(DATA_TEXTURE_SUFFIX);
         final ResourceLocation modified = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ISimpleModelType.BASE_FOLDER + style + "/" + textureIdentifier + ".png");
-        if (Minecraft.getInstance().getResourceManager().getResource(modified).isPresent())
+
+        if (modified != null && Minecraft.getInstance().getResourceManager().getResource(modified).isPresent())
         {
             return modified;
         }
