@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
@@ -77,7 +78,7 @@ public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
                 1.0F);                        // pitch
 
         ((ServerLevel)marketplace.getColony().getWorld()).sendParticles(
-                ParticleTypes.HAPPY_VILLAGER,
+                NullnessBridge.assumeNonnull(ParticleTypes.HAPPY_VILLAGER),
                 pos.getX(), pos.getY(), pos.getZ(),
                 4,                           // count
                 0.3, 0.3, 0.3,               // x,y,z scatter

@@ -59,35 +59,33 @@ public class PetAssignmentModule extends AbstractBuildingModule implements IPers
         Level level = building.getColony().getWorld();
         
         Set<BlockPos> animalWorkLocations = gatherWorkLocations(building.getColony());
-        // MCTradePostMod.LOGGER.info("Sending {} herding buildings", herdingBuildings.size());
 
         buf.writeInt(animalWorkLocations.size());
 
         for (BlockPos workPos : animalWorkLocations)
         {   
+            if (workPos == null || workPos.equals(BlockPos.ZERO))
+            {
+                continue;
+            }
+
             CompoundTag tag = new CompoundTag();
             BlockPosUtil.writeToNBT(tag, "WorkLocation", workPos);
-
-            // BlockState state = level.getBlockState(workPos);
             BlockEntity be = level.getBlockEntity(workPos);
-            // Block block = state.getBlock();
 
-            if (workPos != null && !BlockPos.ZERO.equals(workPos)) 
+            PetRoles role = PetData.roleFromPosition(level, workPos);
+            if (role != null)
             {
-                PetRoles role = PetData.roleFromPosition(level, workPos);
-                if (role != null)
-                {
-                    tag.putInt("Role", role.ordinal());
-                }
-                else
-                {
-                    tag.putInt("Role", -1);
-                }
+                tag.putInt("Role", role.ordinal());
+            }
+            else
+            {
+                tag.putInt("Role", -1);
             }
 
             if (be instanceof PetWorkingBlockEntity pwb)
             {
-                tag.putString("LocationName", pwb.getDefaultName().getString());
+                tag.putString("LocationName", pwb.getDefaultName().getString() + "");
             }
             
             buf.writeNbt(tag);

@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.api.sounds;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.minecolonies.api.sounds.EventType;
 import com.minecolonies.api.sounds.ModSoundEvents;
 import com.minecolonies.api.util.Tuple;
@@ -11,14 +12,16 @@ import net.minecraft.sounds.SoundEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.*;
 
+import javax.annotation.Nonnull;
+
 /**
  * Registering of sound events for our colony.
  */
 public final class MCTPModSoundEvents
 {
-    public static final SoundEvent CASH_REGISTER = MCTPModSoundEvents.getSoundID("environment.cash_register");
+    public static final @Nonnull SoundEvent CASH_REGISTER = MCTPModSoundEvents.getSoundID("environment.cash_register");
 
-    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MCTradePostMod.MODID);
+    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(NullnessBridge.assumeNonnull(Registries.SOUND_EVENT), MCTradePostMod.MODID);
     public static Map<String, Map<EventType, List<Tuple<SoundEvent, SoundEvent>>>> MCTP_CITIZEN_SOUND_EVENTS = new HashMap<>();     // These will be injected into MineColonies' CITIZEN_SOUND_EVENTS
 
     /**
@@ -57,8 +60,20 @@ public final class MCTPModSoundEvents
                     final SoundEvent femaleSoundEvent =
                       MCTPModSoundEvents.getSoundID(ModSoundEvents.CITIZEN_SOUND_EVENT_PREFIX + job.getPath() + ".female" + i + "." + event.getId());
 
-                    SOUND_EVENTS.register(maleSoundEvent.getLocation().getPath(), () -> maleSoundEvent);
-                    SOUND_EVENTS.register(femaleSoundEvent.getLocation().getPath(), () -> femaleSoundEvent);
+                    String maleSoundPath = maleSoundEvent.getLocation().getPath();
+
+                    if (maleSoundPath != null)
+                    {
+                        SOUND_EVENTS.register(maleSoundPath, () -> maleSoundEvent); 
+                    }
+
+                    String femaleSoundPath = femaleSoundEvent.getLocation().getPath();
+
+                    if (femaleSoundPath != null)
+                    {
+                        SOUND_EVENTS.register(femaleSoundPath, () -> maleSoundEvent); 
+                    }
+
                     individualSounds.add(new Tuple<>(maleSoundEvent, femaleSoundEvent));
                 }
                 map.put(event, individualSounds);
@@ -73,9 +88,23 @@ public final class MCTPModSoundEvents
      * @param soundName The SoundEvent's name without the minecolonies prefix
      * @return The SoundEvent
      */
-    public static SoundEvent getSoundID(final String soundName)
+    public static @Nonnull SoundEvent getSoundID(final @Nonnull String soundName)
     {
-        return SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, soundName));
+        final ResourceLocation location = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, soundName);
+
+        if (location == null)
+        {
+            throw new IllegalArgumentException("No resource location found for sound name: " + soundName);
+        }
+
+        SoundEvent sound = SoundEvent.createVariableRangeEvent(location);
+
+        if (sound == null)
+        {
+            throw new IllegalArgumentException("No sound event found for sound: " + location.toString());
+        }
+
+        return sound;
     }
 
     /**

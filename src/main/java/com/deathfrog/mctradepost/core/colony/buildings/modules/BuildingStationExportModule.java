@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
@@ -33,6 +34,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
@@ -111,7 +113,10 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             {
                 station = StationData.fromNBT(compoundNBT.getCompound("exportStation"));
             }
-            ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
+
+            CompoundTag storedItem = compoundNBT.getCompound(NbtTagConstants.STACK);
+
+            ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), NullnessBridge.assumeNonnull(storedItem)));
             int cost = compoundNBT.getInt(TAG_COST);
             // int quantity = compoundNBT.getInt(TAG_QUANTITY);
             int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
@@ -159,7 +164,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         {
             final CompoundTag compoundNBT = new CompoundTag();
             compoundNBT.put("exportStation", exportData.getDestinationStationData().toNBT());
-            compoundNBT.put(NbtTagConstants.STACK, exportData.getTradeItem().getItemStack().saveOptional(provider));
+            Tag storedItem = exportData.getTradeItem().getItemStack().saveOptional(NullnessBridge.assumeNonnull(provider));
+
+            if (storedItem != null)
+            {
+                compoundNBT.put(NbtTagConstants.STACK, storedItem);
+            }
+
             compoundNBT.putInt(TAG_COST, exportData.getCost());
             // compoundNBT.putInt(TAG_QUANTITY, exportData.getQuantity());
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
@@ -308,7 +319,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
         for (ExportData exportData : exportList) 
         {
-            if (exportData.getDestinationStationData().equals(station) && exportData.getTradeItem().getItemStack().is(itemStack.getItem())) 
+            Item item = itemStack.getItem();
+
+            if (item == null) continue;
+
+            if (exportData.getDestinationStationData().equals(station) && exportData.getTradeItem().getItemStack().is(item)) 
             {
                 boolean removed = removeExport(exportData);
 

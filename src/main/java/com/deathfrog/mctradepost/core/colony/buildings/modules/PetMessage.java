@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
@@ -24,6 +25,8 @@ import org.slf4j.Logger;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
 import java.util.UUID;
+
+import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -70,8 +73,9 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     @Override
     protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        @Nonnull BlockPos localWorkLoc = this.workLocation == null ? NullnessBridge.assumeNonnull(BlockPos.ZERO) : this.workLocation;
         super.toBytes(buf);
-        buf.writeBlockPos(this.workLocation);
+        buf.writeBlockPos(localWorkLoc);
         buf.writeInt(this.petAction.ordinal());
 
         if (this.entityUuid != null)
@@ -100,7 +104,20 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
     @Override
     protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding trainerBuilding)
     {
-        Entity entity = (Entity) PetRegistryUtil.resolve((ServerLevel) colony.getWorld(), entityUuid);
+        ServerLevel level = (ServerLevel) colony.getWorld();
+
+        if (level == null || level.isClientSide)
+        {
+            return;
+        }
+
+        UUID localUuid = entityUuid;
+        if (localUuid == null)
+        {
+            return;
+        }
+
+        Entity entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
 
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, 
             () -> MCTradePostMod.LOGGER.info("Server execution of PetMessage. Colony: {}, Trainer Building: {}, Entity: {}, Work Location: {}, Pet Action: {}", 

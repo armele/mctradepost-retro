@@ -55,13 +55,11 @@ import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
-import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
-import com.minecolonies.api.util.constant.CitizenConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
@@ -886,7 +884,6 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
 
         final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
-        IRequestResolver<?> currentlyAssignedResolver = null;
  
         final List<IToken<?>> openTaskList = module.getMutableRequestList();
         final List<IToken<?>> reqsToRemove = new ArrayList<>();
@@ -909,7 +906,9 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             try
             {
-                currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+                final IRequestResolver<?> currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} is currently assigned to resolver: {}", request.getLongDisplayString(), currentlyAssignedResolver));
             } catch (IllegalArgumentException e)
             {
                 // Repair request if it is not registered with the request manager.

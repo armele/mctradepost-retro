@@ -3,14 +3,10 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
-import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.modules.*;
-import com.minecolonies.api.colony.requestsystem.request.IRequest;
-import com.minecolonies.api.colony.requestsystem.request.RequestState;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
-import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Utils;
@@ -108,26 +104,6 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         return importMap.size(); 
     }
 
-    
-    /**
-     * Get the request from the list that matches this stack.
-     * @param stack the stack to search for in the requests.
-     * @param list the list of requests.
-     * @return the token of the matching request or null.
-     */
-    private IToken<?> getMatchingRequest(final ItemStack stack, final Collection<IToken<?>> list)
-    {
-        for (final IToken<?> token : list)
-        {
-            final IRequest<?> iRequest = building.getColony().getRequestManager().getRequestForToken(token);
-            if (iRequest != null && iRequest.getRequest() instanceof Stack && ItemStackUtils.compareItemStacksIgnoreStackSize(((Stack) iRequest.getRequest()).getStack(), stack))
-            {
-                return token;
-            }
-        }
-        return null;
-    }
-
     /**
      * Deserializes the NBT data for the trade list, restoring its state from the
      * provided CompoundTag.
@@ -144,7 +120,14 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         for (int i = 0; i < importTagList.size(); i++)
         {
             final CompoundTag compoundNBT = importTagList.getCompound(i);
-            ItemStorage tradeItem = new ItemStorage(ItemStack.parseOptional(provider, compoundNBT.getCompound(NbtTagConstants.STACK)));
+            final CompoundTag tradeItemTag = compoundNBT.getCompound(NbtTagConstants.STACK);
+
+            if (tradeItemTag.isEmpty())
+            {
+                continue;
+            }
+
+            ItemStorage tradeItem = new ItemStorage(ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), tradeItemTag));
             int cost = compoundNBT.getInt(ExportData.TAG_COST);
             int quantity = compoundNBT.getInt(ExportData.TAG_QUANTITY);
             importMap.put(tradeItem, new TradeDefinition(tradeItem, cost, quantity));
@@ -167,7 +150,8 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
         {
             TradeDefinition tradeDef = entry.getValue();
             final CompoundTag compoundNBT = new CompoundTag();
-            compoundNBT.put(NbtTagConstants.STACK, tradeDef.tradeItem().getItemStack().saveOptional(provider));
+            final Tag storedItem = tradeDef.tradeItem().getItemStack().saveOptional(NullnessBridge.assumeNonnull(provider));
+            compoundNBT.put(NbtTagConstants.STACK, NullnessBridge.assumeNonnull(storedItem));
             compoundNBT.putInt(ExportData.TAG_COST, tradeDef.price());
             compoundNBT.putInt(ExportData.TAG_QUANTITY, tradeDef.quantity());
             importTagList.add(compoundNBT);

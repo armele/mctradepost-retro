@@ -9,14 +9,11 @@ import java.util.Queue;
 import java.util.Set;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
-
 import java.util.List;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -88,7 +85,9 @@ public class TrackPathConnection
      */
     public static TrackConnectionResult arePointsConnectedByTracks(ServerLevel level, BlockPos start, BlockPos end, boolean loadChunks)
     {
-        if (level == null || start == null || end == null) return new TrackConnectionResult(false, null, null, level.getGameTime());
+        ServerLevel localLevel = level;
+
+        if (localLevel == null || start == null || end == null) return new TrackConnectionResult(false, null, null, level.getGameTime());
 
         Set<BlockPos> visited = new HashSet<>();
         Queue<BlockPos> toVisit = new ArrayDeque<>();

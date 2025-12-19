@@ -59,7 +59,6 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
-import com.minecolonies.core.colony.buildings.modules.BuildingResourcesModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.utils.BuilderBucket;
 

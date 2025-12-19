@@ -9,6 +9,7 @@ public class MCTPSettingsFactory
 {
     public static class SortSettingFactory extends AbstractBoolSettingFactory<SortSetting>
     {
+        @SuppressWarnings("null")
         @Nonnull
         @Override
         public TypeToken<SortSetting> getFactoryOutputType()

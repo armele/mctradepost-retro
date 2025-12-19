@@ -6,11 +6,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
@@ -128,23 +131,33 @@ public class ExportData
      * @param path the path of block positions that the cart should follow when spawned
      * @return the spawned GhostCartEntity, or the existing one if already present
      */
-    public GhostCartEntity spawnCartForTrade(List<BlockPos> path)
+    public @Nullable GhostCartEntity spawnCartForTrade(List<BlockPos> path)
     {
         if (path == null || path.isEmpty()) return null;
 
         ServerLevel level = (ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld();
         
-        ChunkUtil.ensureChunkLoaded(level, path.getFirst());
+        if (level == null) return null;
+
+        BlockPos startPos = path.getFirst();
+
+        if (startPos == null || !startPos.equals(BlockPos.ZERO)) return null;
+
+        ChunkUtil.ensureChunkLoaded(level, startPos);
 
         GhostCartEntity cart =
-            GhostCartEntity.spawn(level, ImmutableList.copyOf(path), isReverse());
+            GhostCartEntity.spawn(level, NullnessBridge.assumeNonnull(ImmutableList.copyOf(path)), isReverse());
 
         if (cart == null) return null;
 
-        cart.setTradeItem(this.getTradeItem().getItemStack().copy());
+        ItemStack tradeItem = this.getTradeItem().getItemStack().copy();
+
+        if (tradeItem.isEmpty()) return null;
+
+        cart.setTradeItem(tradeItem);
         this.setCart(cart);
 
-        ChunkUtil.releaseChunkTicket(level, path.getFirst(), 1);
+        ChunkUtil.releaseChunkTicket(level, startPos, 1);
 
         return cart;
     }

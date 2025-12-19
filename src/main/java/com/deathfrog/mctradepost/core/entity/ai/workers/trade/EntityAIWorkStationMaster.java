@@ -599,7 +599,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if trade capable building at {} should be checked: {}", tradeCapableBuilding.getPosition(), stationData));
 
-                    ITradeCapable remoteTradeCapable = stationData.getStation();
                     TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
                     
                     if ((connectionResult == null) || (connectionResult.ageOfCheck(world.getGameTime()) > MCTPConfig.trackValidationFrequency.get())

@@ -1,6 +1,10 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
 import java.util.Objects;
+
+import javax.annotation.Nonnull;
+
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.IColony;
@@ -16,8 +20,10 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 public class StationData
 {
+
+    public static final ResourceLocation OVERWORLD = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
     public static final StationData EMPTY =
-        new StationData(ResourceKey.create(Registries.DIMENSION, ResourceLocation.fromNamespaceAndPath("minecraft", "overworld")),
+        new StationData(ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), NullnessBridge.assumeNonnull(OVERWORLD)),
             -1,
             BlockPos.ZERO);
 
@@ -135,11 +141,11 @@ public class StationData
      *
      * @return the serialized NBT tag.
      */
-    public CompoundTag toNBT()
+    public @Nonnull CompoundTag toNBT()
     {
         CompoundTag tag = new CompoundTag();
 
-        tag.putString("dimension", dimension.location().toString());
+        tag.putString("dimension", dimension.location().toString() + "");
         tag.putInt("colonyId", colonyId);
 
         BlockPosUtil.write(tag, "buildingposition", buildingposition);
@@ -176,9 +182,10 @@ public class StationData
             return null;
         }
 
-        String dimension = tag.getString("dimension");
+        String dimension = tag.getString("dimension") + "";
         ResourceLocation level = ResourceLocation.parse(dimension);
-        ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION, level);
+
+        ResourceKey<Level> levelKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), NullnessBridge.requireNonnull(level, "Null dimension: " + dimension));
 
         data = new StationData(levelKey, colonyId, buildingposition);
 

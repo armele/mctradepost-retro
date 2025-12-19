@@ -21,7 +21,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingR
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkShopkeeper;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
-import com.minecolonies.api.colony.jobs.ModJobs;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.core.colony.buildings.modules.CraftingWorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
@@ -33,8 +32,6 @@ import com.minecolonies.core.colony.buildings.moduleviews.CraftingModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.ItemListModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.SettingsModuleView;
 import com.minecolonies.core.colony.buildings.moduleviews.WorkerBuildingModuleView;
-import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCowboy;
-
 import net.minecraft.network.chat.Component;
 
 

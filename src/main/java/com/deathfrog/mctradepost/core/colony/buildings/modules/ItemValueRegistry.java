@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -21,7 +22,11 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.minecolonies.api.crafting.ItemStorage;
 
 public class ItemValueRegistry
@@ -68,6 +73,8 @@ public class ItemValueRegistry
 
         for (Item item : BuiltInRegistries.ITEM)
         {
+            if (item == null) continue;
+
             ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
 
             if (!allowedMods.contains(key.getNamespace()))
@@ -99,13 +106,20 @@ public class ItemValueRegistry
      * @param level         the level to access the registry for item results
      * @return a list of recipes that result in the specified item, filtered by specific recipe types
      */
-    public static List<RecipeHolder<?>> getRecipeListForItem(RecipeManager recipeManager, Item item, Level level)
+    public static List<RecipeHolder<?>> getRecipeListForItem(RecipeManager recipeManager, Item item, @Nonnull Level level)
     {
+        RegistryAccess registryAccess = level.registryAccess();
+
+        if (registryAccess == null)
+        {
+            return Collections.emptyList();
+        }
+        
         List<RecipeHolder<?>> recipes = recipeManager.getRecipes()
             .stream()
             // .filter(r -> r.value().getResultItem(level.registryAccess()).getItem().equals(item))
             .filter(r -> {
-                ItemStack result = r.value().getResultItem(level.registryAccess());
+                ItemStack result = r.value().getResultItem(registryAccess);
                 return result != null && !result.isEmpty() && result.getItem().equals(item);
             })
             .filter(r -> (r.value().getType() == RecipeType.CRAFTING) || (r.value().getType() == RecipeType.SMELTING) ||
@@ -130,7 +144,7 @@ public class ItemValueRegistry
     private static int appraiseRecipeListForItem(Item item,
         RecipeManager recipeManager,
         Set<Recipe<?>> visited,
-        Level level,
+        @Nonnull Level level,
         int depth)
     {
         int value = 0;
@@ -162,7 +176,7 @@ public class ItemValueRegistry
                 value = recipes.stream()
                     .map(r -> (int) appraiseRecipeValue(r.value(), recipeManager, level, visited, depth + 1))
                     .filter(v -> v > 0)
-                    .min(Integer::compare)
+                    .min(Integer::compareTo)
                     .orElse(1);
                 itemValues.put(item, value); // Since we've calculated the value, add it to the map
             }
@@ -194,7 +208,7 @@ public class ItemValueRegistry
      */
     private static int appraiseRecipeValue(Recipe<?> recipe,
         RecipeManager recipeManager,
-        Level level,
+        @Nonnull Level level,
         Set<Recipe<?>> visited,
         int depth)
     {
@@ -247,12 +261,14 @@ public class ItemValueRegistry
                     }
 
                     return value;
-                }).min(Integer::compare).orElse(1);
+                }).min(Integer::compareTo).orElse(1);
                 total += ingredientvalue;
             }
         }
 
-        int resultCount = recipe.getResultItem(level.registryAccess()).getCount();
+        RegistryAccess registryAccess = level.registryAccess();
+
+        int resultCount = recipe.getResultItem(NullnessBridge.assumeNonnull(registryAccess)).getCount();
         total = resultCount == 0 ? total : Math.max(total / resultCount, 1);
 
         if (startTracking)
@@ -292,7 +308,7 @@ public class ItemValueRegistry
      * @param level the level to use for getting the rarity
      * @return the estimated value of the item
      */
-    private static int appraiseLootValue(Item item, ServerLevel level)
+    private static int appraiseLootValue(@Nonnull Item item, ServerLevel level)
     {
         ItemStack stack = new ItemStack(item);
         Rarity rarity = stack.getRarity();
@@ -351,7 +367,7 @@ public class ItemValueRegistry
         return itemValues.entrySet()
             .stream()
             .filter(e -> e.getValue() > 0)
-            .map(e -> new ItemStorage(new ItemStack(e.getKey())))
+            .map(e -> new ItemStorage(new ItemStack(NullnessBridge.assumeNonnull(e.getKey()))))
             .collect(Collectors.toSet());
     }
 
@@ -381,7 +397,7 @@ public class ItemValueRegistry
         Map<String, Integer> output = itemValues.entrySet()
             .stream()
             .collect(Collectors
-                .toMap(e -> BuiltInRegistries.ITEM.getKey(e.getKey()).toString(), Map.Entry::getValue, (v1, v2) -> v1, TreeMap::new));
+                .toMap(e -> BuiltInRegistries.ITEM.getKey(NullnessBridge.assumeNonnull(e.getKey())).toString(), Map.Entry::getValue, (v1, v2) -> v1, TreeMap::new));
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String json = gson.toJson(output);
         MCTradePostMod.LOGGER.info("Item Values JSON Dump:\n{}", json);
@@ -409,7 +425,7 @@ public class ItemValueRegistry
 
             for (Map.Entry<String, Integer> entry : jsonValues.entrySet())
             {
-                ResourceLocation rl = ResourceLocation.tryParse(entry.getKey());
+                ResourceLocation rl = ResourceLocation.tryParse(NullnessBridge.assumeNonnull(entry.getKey()));
 
                 if (rl != null)
                 {
@@ -443,7 +459,7 @@ public class ItemValueRegistry
     }
 
     /* In theory this should only be called on the client side after deserializing... */
-    public static void deserializedSellableItem(String s, int value)
+    public static void deserializedSellableItem(@Nonnull String s, int value)
     {
         itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(ResourceLocation.parse(s)), value);
     }

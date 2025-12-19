@@ -15,6 +15,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.mojang.logging.LogUtils;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import net.minecraft.core.BlockPos;
@@ -42,6 +43,16 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
         super(ID);
     }
 
+
+    /**
+     * Deserializes the outpost export list from the provided NBT compound.
+     * The compound should contain a list of items, each represented as a compound
+     * tag with an item stack inside. The outpost export list is cleared and then
+     * populated with the deserialized items.
+     *
+     * @param provider the holder lookup provider for item and block references.
+     * @param compound the NBT compound containing the serialized outpost export list.
+     */
     public void deserializeNBT(@NotNull HolderLookup.@NotNull Provider provider, CompoundTag compound)
     {
         super.deserializeNBT(provider, compound);
@@ -52,12 +63,27 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
 
         for (int i = 0; i < filterableList.size(); ++i)
         {
-            possibleItems.add(new ItemStorage(ItemStack.parseOptional(provider, filterableList.getCompound(i))));
+            CompoundTag itemTag = filterableList.getCompound(i);
+
+            if (itemTag.isEmpty())
+            {
+                continue;
+            }
+            
+            possibleItems.add(new ItemStorage(ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), itemTag)));
         }
 
         this.outpostInventory.addAll(possibleItems);
     }
 
+    /**
+     * Serializes the outpost export list into an NBT compound.
+     * The compound will contain a list of items, each represented as a compound
+     * tag with an item stack inside.
+     *
+     * @param provider the holder lookup provider for item and block references
+     * @param compound the NBT compound to which the outpost export list should be serialized
+     */
     public void serializeNBT(@NotNull HolderLookup.Provider provider, CompoundTag compound)
     {
         super.serializeNBT(provider, compound);
@@ -68,13 +94,20 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
         while (itemIterator.hasNext())
         {
             ItemStorage item = (ItemStorage) itemIterator.next();
-            filteredItems.add(item.getItemStack().saveOptional(provider));
+            filteredItems.add(item.getItemStack().saveOptional(NullnessBridge.assumeNonnull(provider)));
         }
 
         compound.put("possibleItemList", filteredItems);
     }
 
 
+
+    /**
+     * Serializes the outpost export list to the given RegistryFriendlyByteBuf for
+     * transmission to the client.
+     *
+     * @param buf the buffer to serialize the outpost export list to
+     */
     public void serializeToView(@NotNull RegistryFriendlyByteBuf buf)
     {
         super.serializeToView(buf);
@@ -88,6 +121,15 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
         }
     }
 
+    /**
+     * Called every tick that the colony updates.
+     * This method is responsible for checking the outpost's member buildings for
+     * items to add to the outpost's export list. If an item is added to the
+     * export list, the module is marked as dirty and the export list is
+     * refreshed in the GUI.
+     * 
+     * @param colony the colony that this building is a part of
+     */
     @Override
     public void onColonyTick(@NotNull IColony colony) 
     { 

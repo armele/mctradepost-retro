@@ -891,6 +891,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
                 if (bestSlot >= 0)
                 {
+                    @SuppressWarnings("unused")
                     boolean canhold = InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(inventory, bestSlot, worker.getInventoryCitizen());
                     TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("Took one from outpost inventory at {} ({})", outpostWorkPos, outpostWorksite.getBuildingDisplayName()));
 
