@@ -105,23 +105,32 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     public boolean canUse()
     {
         final Level level = pet.level();
-        if (level == null || level.isClientSide) return false;
+        if (level == null) 
+        {
+            logBlock("No level for pet.");
+            return false;
+        }
+
+        if (level.isClientSide)
+        {
+            return false;
+        }
 
         if (!pet.isAlive() || pet.isPassenger() || pet.isLeashed())
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is dead, leashed, or a passenger"));
+            logBlock("Can't scavenge: pet is dead, leashed, or a passenger");
             return false;
         }
 
         if (pet.getPetData() == null || pet.level() == null)
         {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet data or level is null"));
+             logBlock("Can't scavenge: pet data or level is null");
             return false;
         }
 
         if (!PetRoles.SCAVENGE_WATER.equals(pet.getPetData().roleFromWorkLocation(pet.level())))
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: pet is not a water scavenger"));
+             logBlock("Can't scavenge: pet is not a water scavenger");
             return false;
         }
 
@@ -131,7 +140,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             long now = pet.level().getGameTime();
             if (now <= this.resumeUntilTick)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resuming scavenge at {}", this.targetPos));
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} is resuming scavenge at {}", pet.getUUID(), this.targetPos));
                 return true;
             }
             else
@@ -141,17 +150,19 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
 
         long gameTime = pet.level().getGameTime();
+        long cooldownCounter = gameTime - lastScavengeTime;
 
-        if (gameTime - lastScavengeTime < cooldownTicks)
+        if (cooldownCounter < cooldownTicks)
         {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Can't scavenge: cooldown"));
+            logBlock("Can't scavenge: cooldown {} of {}", cooldownCounter, cooldownTicks);
             return false;
         }
 
         boolean periodicGate = true;
         boolean probablisticGate = true;
 
-        if (nextGateTime == 0L) {
+        if (nextGateTime == 0L) 
+        {
             // per-entity jitter so pets don't all align
             int jitter = (pet.getId() & (CANUSE_PERIOD - 1)); // 0..7 when period=8
             nextGateTime = gameTime + jitter;
@@ -174,11 +185,18 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (!periodicGate || !probablisticGate)
         {
+            final boolean finalPeriodicGate = periodicGate;
+            final boolean finalProbablisticGate = probablisticGate;
+            logBlock("Can't scavenge: periodic gate {} probablistic gate {}", finalPeriodicGate, finalProbablisticGate);
             return false;
         }
 
         targetPos = findWaterScavengeLocation();
-        if (targetPos == null) return false;
+        if (targetPos == null) 
+        {
+            logBlock("Can't scavenge: targetPosition is null");
+            return false;
+        }
 
         navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
 
@@ -190,7 +208,24 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
 
-        return targetPos != null;
+        return true;
+    }
+
+    /**
+     * Logs a message when the scavenge water resource goal is blocked.
+     * 
+     * <p>This is only active when the TRACING_PETGOALS trace is enabled.</p>
+     * 
+     * @param reason the reason the goal is blocked
+     */
+    private void logBlock(String format, Object... args) 
+    {
+        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+
+        if (debugging)
+        {
+            LOGGER.info("[SCAVENGE-WATER][BLOCK] uuid={} tick={} reason=" + format, pet.getUUID(), pet.tickCount, args);
+        }
     }
 
     /**

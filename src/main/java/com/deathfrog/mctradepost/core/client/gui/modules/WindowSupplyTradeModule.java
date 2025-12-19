@@ -15,8 +15,6 @@ import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
  * BOWindow for the BuildingStation's export window.
@@ -27,20 +25,6 @@ public class WindowSupplyTradeModule extends AbstractModuleWindow<BuildingStatio
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
-
-    @SuppressWarnings("unused")
-    private final ItemStackHandler inputHandler = new ItemStackHandler(1) {
-        @Override
-        protected void onContentsChanged(int slot) {
-            super.onContentsChanged(slot);
-
-            // Copy the item to your tracked station list logic
-            ItemStack inserted = getStackInSlot(slot);
-            if (!inserted.isEmpty()) {
-                // no-op
-            }
-        }
-    };
 
     /**
      * Scrollinglist of the resources.
@@ -103,7 +87,7 @@ public class WindowSupplyTradeModule extends AbstractModuleWindow<BuildingStatio
                 wrapperBox.setSize(wrapperBox.getParent().getWidth(), wrapperBox.getHeight());
 
                 final Text location = wrapperBox.findPaneOfTypeByID("location", Text.class);
-                location.setText(Component.literal(IColonyManager.getInstance().getColonyView(station.getColonyId(), station.getDimension()).getName()));
+                location.setText(Component.literal(IColonyManager.getInstance().getColonyView(station.getColonyId(), station.getDimension()).getName() + ""));
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
                 status.setText(Component.literal("Placeholder"));

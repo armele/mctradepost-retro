@@ -106,20 +106,15 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
-                ClientLevel level = null;
+                ClientLevel level = Minecraft.getInstance().level;
 
-                if (Minecraft.getInstance().level == null)
+                if (level == null)
                 {
                     return;
-                }
-                else 
-                {
-                    level = Minecraft.getInstance().level;
                 }
 
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
 
-                @SuppressWarnings("null")
                 Entity previewEntity = PetTypes.values()[index].getEntityType().create(level);
                 
                 if (previewEntity != null)
@@ -131,7 +126,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                     entityIcon.show();
                     final Text petType = rowPane.findPaneOfTypeByID(LABEL_TYPE, Text.class);
                     Component type = PetTypes.values()[index].getEntityType().getDescription();
-                    String typeText = type.getString();
+                    String typeText = type.getString() + "";
                     petType.setText(Component.literal(typeText));       // If we use the component directly it comes out white for some reason
                     petType.setColors(Color.getByName("black", 0));
                 }

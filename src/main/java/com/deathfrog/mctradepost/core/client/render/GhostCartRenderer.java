@@ -1,6 +1,9 @@
 package com.deathfrog.mctradepost.core.client.render;
 
 import javax.annotation.Nonnull;
+
+import org.joml.Quaternionf;
+
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -26,6 +29,18 @@ public class GhostCartRenderer extends MinecartRenderer<GhostCartEntity>
         this.itemRenderer = ctx.getItemRenderer();      // reuse vanilla renderer
     }
 
+    /**
+     * Renders the given GhostCartEntity, including its trade item if it has one.
+     * The trade item is rendered as if it were on the ground, and is scaled up slightly to be more visible.
+     * The item is also rotated to face the direction of the cart's movement.
+     *
+     * @param cart the GhostCartEntity to render
+     * @param yaw the yaw of the cart
+     * @param partialTicks the partial ticks of the cart's movement
+     * @param pose the PoseStack to use for rendering
+     * @param buf the MultiBufferSource to render into
+     * @param light the light level to render with
+     */
     @Override
     public void render(@Nonnull GhostCartEntity cart,
         float yaw,
@@ -43,7 +58,12 @@ public class GhostCartRenderer extends MinecartRenderer<GhostCartEntity>
         pose.scale(1.20F, 1.20F, 1.20F);  // a bit larger than default block
         pose.translate(0.0, 0.1, 0.0);   // Sitting low in the cart
 
-        pose.mulPose(Axis.YP.rotationDegrees((cart.tickCount + partialTicks) * 4F)); // slow spin (optional)
+        Quaternionf spin = Axis.YP.rotationDegrees((cart.tickCount + partialTicks) * 4F);
+
+        if (spin != null) 
+        {
+            pose.mulPose(spin);
+        }
 
         /* --- render item as a flat (GROUND) transform --- */
         itemRenderer.renderStatic(stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY, pose, buf, null, cart.getId());

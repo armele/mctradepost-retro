@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.api.entity.pets;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +27,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -47,12 +49,15 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity.RemovalReason;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.GoalSelector;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -70,6 +75,14 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int LOG_COOLDOWN_INTERVAL = 200;
+
+    public static final int STALL_PHASE1 = 10;
+    public static final int STALL_PHASE2 = 30;
+    public static final int STALL_PHASE3 = 50;
+    
+    // --- Debug snapshot state (server) ---
+    private net.minecraft.world.phys.Vec3 lastGoalLogPos = null;
+    private int lastGoalLogTick = 0;
 
     public static final int JOB_GOAL_PRIORITY = 7;
 
@@ -555,14 +568,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         boolean active = isAiActiveNow();
 
-        // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {}: watchdog tick. Active: {}, getAnimal().isAlive(): {}, getAnimal().isPassenger(): {}, getAnimal().isLeashed(): {}, getAnimal().isNoAi(): {}", 
-        //    this.animal.getUUID(), active, getAnimal().isAlive(), getAnimal().isPassenger(), getAnimal().isLeashed(), getAnimal().isNoAi()));
-
         if (!active && getAnimal().isAlive() && !getAnimal().isPassenger() && !getAnimal().isLeashed() && !getAnimal().isNoAi())
         {
             stallTicks++;
             // (first second): make sure control flags aren’t stuck off
-            if (stallTicks == 10)
+            if (stallTicks == STALL_PHASE1)
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet {}: checking control flags.", this.animal.getUUID()));
                 getAnimal().goalSelector.enableControlFlag(Goal.Flag.MOVE);
@@ -570,13 +580,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 getAnimal().targetSelector.enableControlFlag(Goal.Flag.TARGET);
             }
             // (~2s): clear stale path to let goals start fresh
-            if (stallTicks == 20)
+            if (stallTicks == STALL_PHASE2)
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Clear stale path to let goals start fresh.", this.animal.getUUID()));
                 getAnimal().getNavigation().stop();
             }
             // (~5s): single soft goal refresh (once)
-            if (stallTicks == 50)
+            if (stallTicks == STALL_PHASE3)
             {
                 TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Resetting goals.", this.animal.getUUID()));
                 getAnimal().resetGoals();
@@ -584,6 +594,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
         else
         {
+            if (stallTicks >= STALL_PHASE1)
+            {
+                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {}: Recovered. Active: {}, getAnimal().isAlive(): {}, getAnimal().isPassenger(): {}, getAnimal().isLeashed(): {}, getAnimal().isNoAi(): {}", 
+                    this.animal.getUUID(), active, getAnimal().isAlive(), getAnimal().isPassenger(), getAnimal().isLeashed(), getAnimal().isNoAi()));
+            }
+
             stallTicks = 0; // recovered
         }
     }
@@ -760,6 +776,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void logActiveGoals()
     {
+        if (animal.level().isClientSide) return;
+        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+
+        if (!debugging) return;
 
         if (logCooldown > 0)
         {
@@ -774,26 +794,346 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
 
         logCooldown = LOG_COOLDOWN_INTERVAL;
+        boolean goalFound = false;
+        int selectorGoalsChecked = 0;
+        int targetGoalsChecked = 0;
 
         for (WrappedGoal wrapped : getAnimal().goalSelector.getAvailableGoals())
         {
+            selectorGoalsChecked++;
             Goal goal = wrapped.getGoal();
             if (wrapped.isRunning())
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Active Goal for pet {}: {} ", this.getAnimal().getUUID(), goal.getClass().getSimpleName()));
+                goalFound = true;
+                LOGGER.info("Active Goal for pet {}: {}, with tick count {}.", this.getAnimal().getUUID(), goal.getClass().getSimpleName(), animal.tickCount);
             }
         }
 
         for (WrappedGoal wrapped : getAnimal().targetSelector.getAvailableGoals())
         {
+            targetGoalsChecked++;
             Goal goal = wrapped.getGoal();
             if (wrapped.isRunning())
             {
+                goalFound = true;
                 TraceUtils.dynamicTrace(TRACE_PETGOALS,
-                    () -> LOGGER.info("Active Target Goal for pet {}: {}" , this.getAnimal().getUUID(), goal.getClass().getSimpleName()));
+                    () -> LOGGER.info("Active Target Goal for pet {}: {}, with tick count {}." , this.getAnimal().getUUID(), goal.getClass().getSimpleName(), animal.tickCount));
             }
         }
+
+        if (!goalFound)
+        {
+            LOGGER.info("No active goals for pet {}, tick count {}. {} selector goals checked and {} target goals checked. Is reset in progress? {}. Is nav in progress? {}.",
+                this.getAnimal().getUUID(), animal.tickCount, selectorGoalsChecked, targetGoalsChecked, isGoalResetInProgress(), animal.getNavigation().isInProgress());
+            logNoGoalDetail();
+        }
     }
+
+    /**
+     * Logs some extra information about the pet's AI state when no goal is active.
+     *
+     * This information is useful for debugging why a pet is not doing anything.
+     */
+    @SuppressWarnings("null")
+    private void logNoGoalDetail()
+    {
+        // --- Compute a few “why would anything start?” signals ---
+        final Player nearestPlayer = animal.level().getNearestPlayer(animal, 64.0);
+        final double nearestPlayerDist = nearestPlayer == null ? -1.0 : nearestPlayer.distanceTo(animal);
+
+        final double moveSpeed =
+            animal.getAttribute(Attributes.MOVEMENT_SPEED) == null ? -1.0 : animal.getAttributeValue(Attributes.MOVEMENT_SPEED);
+
+        final Vec3 pos = animal.position();
+        final Vec3 dMove = animal.getDeltaMovement();
+
+        double movedSinceLastLog = -1.0;
+        int ticksSinceLastLog = -1;
+        if (lastGoalLogPos != null)
+        {
+            movedSinceLastLog = pos.distanceTo(lastGoalLogPos);
+            ticksSinceLastLog = animal.tickCount - lastGoalLogTick;
+        }
+        lastGoalLogPos = pos;
+        lastGoalLogTick = animal.tickCount;
+
+        // --- Try to read GoalSelector disabled flags (reflection-safe) ---
+        String disabledFlagsStr = "<unknown>";
+        try
+        {
+            // In many mappings this field is called "disabledFlags" (EnumSet<Goal.Flag>)
+            final Field f = animal.goalSelector.getClass().getDeclaredField("disabledFlags");
+            f.setAccessible(true);
+            final Object v = f.get(animal.goalSelector);
+            disabledFlagsStr = String.valueOf(v);
+        }
+        catch (final Throwable t)
+        {
+            // ignore; keep <unknown>
+        }
+
+        // --- Nav/path details (if any) ---
+        String pathStr = "<null>";
+        try
+        {
+            final var path = animal.getNavigation().getPath();
+            if (path != null)
+            {
+                pathStr = "done=" + path.isDone()
+                    + " idx=" + path.getNextNodeIndex()
+                    + "/" + path.getNodeCount();
+            }
+        }
+        catch (final Throwable t)
+        {
+            // ignore
+        }
+
+        // --- This is the “high-signal” snapshot line ---
+        LOGGER.info(
+            "[AI-SNAPSHOT] uuid={} tick={} effAi={} noAi={} sittingWolf={} passenger={} leashed={} onGround={} " +
+            "navInProg={} path={} moveSpeed={} dMove=({},{},{}) pos=({},{},{}) movedSinceLast={} overTicks={} " +
+            "nearestPlayerDist={} hasTarget={} resetInProg={} disabledFlags={}",
+            animal.getUUID(),
+            animal.tickCount,
+            animal.isEffectiveAi(),
+            animal.isNoAi(),
+            animal instanceof Wolf wolf && (wolf.isOrderedToSit() || wolf.isInSittingPose()),
+            animal.isPassenger(),
+            animal.isLeashed(),
+            animal.onGround(),
+            animal.getNavigation().isInProgress(),
+            pathStr,
+            moveSpeed,
+            dMove.x, dMove.y, dMove.z,
+            pos.x, pos.y, pos.z,
+            movedSinceLastLog,
+            ticksSinceLastLog,
+            nearestPlayerDist,
+            (animal instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() != null),
+            isGoalResetInProgress(),
+            disabledFlagsStr
+        );
+
+        // Dump all selector goals (rate-limited by your existing logCooldown)
+        LOGGER.info("[GOAL-DUMP][SEL] uuid={} tick={}", animal.getUUID(), animal.tickCount);
+        int i = 0;
+        WrappedGoal wanderWrapped = null;
+
+        for (WrappedGoal wrapped : animal.goalSelector.getAvailableGoals())
+        {
+            final Goal g = wrapped.getGoal();
+            final String name = g.getClass().getName();
+            final String simple = g.getClass().getSimpleName();
+
+            // Flags are useful: MOVE/LOOK/JUMP/TARGET
+            LOGGER.info("[GOAL-DUMP][SEL] #{} running={} flags={} goal={}",
+                i++, wrapped.isRunning(), wrapped.getFlags(), simple);
+
+            // Heuristic: find the wander goal
+            if (wanderWrapped == null && (name.contains("RandomStroll") || name.contains("WaterAvoidingRandomStroll")))
+            {
+                wanderWrapped = wrapped;
+            }
+        }
+
+        LOGGER.info("[GOAL-DUMP][TGT] uuid={} tick={}", animal.getUUID(), animal.tickCount);
+        i = 0;
+        for (WrappedGoal wrapped : animal.targetSelector.getAvailableGoals())
+        {
+            final Goal g = wrapped.getGoal();
+            LOGGER.info("[GOAL-DUMP][TGT] #{} running={} flags={} goal={}",
+                i++, wrapped.isRunning(), wrapped.getFlags(), g.getClass().getSimpleName());
+        }
+
+        // Probe wander goal eligibility once
+        if (wanderWrapped != null)
+        {
+            try
+            {
+                final Goal wg = wanderWrapped.getGoal();
+                final boolean can = wg.canUse();
+                final boolean canCont = wg.canContinueToUse();
+                LOGGER.info("[WANDER-PROBE] uuid={} tick={} goal={} canUse={} canContinue={}",
+                    animal.getUUID(), animal.tickCount, wg.getClass().getSimpleName(), can, canCont);
+            }
+            catch (Throwable t)
+            {
+                LOGGER.info("[WANDER-PROBE] uuid={} tick={} error calling canUse: {}",
+                    animal.getUUID(), animal.tickCount, t.toString());
+            }
+        }
+        else
+        {
+            LOGGER.info("[WANDER-PROBE] uuid={} tick={} No RandomStroll/WaterAvoidingRandomStroll goal found in selector!",
+                animal.getUUID(), animal.tickCount);
+        }
+
+        dumpGoalSelectorInternals();
+    }
+
+    /**
+     * Attempts to dump the internal state of the animal's goal selector, which can help debug AI issues.
+     * This is a best-effort attempt and may not work in all mappings.
+     * @see #dumpGoalSelector
+     */
+    private void dumpGoalSelectorInternals()
+    {
+        try
+        {
+            // GoalSelector internals vary by mappings, so we do best-effort reflection.
+            var sel = getAnimal().goalSelector;
+
+            String disabled = "<unknown>";
+            String locked = "<unknown>";
+            String running = "<unknown>";
+
+            try
+            {
+                var f = sel.getClass().getDeclaredField("disabledFlags");
+                f.setAccessible(true);
+                disabled = String.valueOf(f.get(sel));
+            }
+            catch (Throwable ignored) {}
+
+            try
+            {
+                // Often a Map<Goal.Flag, WrappedGoal> or similar
+                var f = sel.getClass().getDeclaredField("lockedFlags");
+                f.setAccessible(true);
+                locked = String.valueOf(f.get(sel));
+            }
+            catch (Throwable ignored) {}
+
+            try
+            {
+                // Often a Set<WrappedGoal>
+                var f = sel.getClass().getDeclaredField("runningGoals");
+                f.setAccessible(true);
+                running = String.valueOf(f.get(sel));
+            }
+            catch (Throwable ignored) {}
+
+            LOGGER.info("[GOAL-SELECTOR-INTERNAL] uuid={} tick={} disabledFlags={} lockedFlags={} runningGoals={}",
+                getAnimal().getUUID(), getAnimal().tickCount, disabled, locked, running);
+
+            dumpMoveLockOwner();
+        }
+        catch (Throwable t)
+        {
+            LOGGER.info("[GOAL-SELECTOR-INTERNAL] Failed: {}", t.toString());
+        }
+    }
+
+
+    /**
+     * Attempts to dump the owner of the move lock (if any).
+     * This tries to read the lockedFlags map of the goal selector, then extract the Goal and flags associated with the MOVE flag.
+     * If the move lock owner is not found, it will log a message indicating this.
+     * The goal of this method is to help debug AI issues.
+     * @see #dumpGoalSelector
+     */
+    private void dumpMoveLockOwner()
+    {
+        final var animal = getAnimal();
+        if (animal == null) return;
+
+        try
+        {
+            final Object sel = animal.goalSelector;
+
+            // 1) Read lockedFlags map
+            Field lockedField = null;
+            for (Field f : sel.getClass().getDeclaredFields())
+            {
+                if (f.getName().toLowerCase().contains("locked"))
+                {
+                    lockedField = f;
+                    break;
+                }
+            }
+            if (lockedField == null)
+            {
+                LOGGER.info("[MOVE-LOCK] uuid={} tick={} lockedFlags field not found", animal.getUUID(), animal.tickCount);
+                return;
+            }
+
+            lockedField.setAccessible(true);
+            final Object lockedObj = lockedField.get(sel);
+            if (!(lockedObj instanceof java.util.Map<?, ?> lockedMap))
+            {
+                LOGGER.info("[MOVE-LOCK] uuid={} tick={} lockedFlags not a Map: {}", animal.getUUID(), animal.tickCount, lockedObj);
+                return;
+            }
+
+            final Object wrapped = lockedMap.get(net.minecraft.world.entity.ai.goal.Goal.Flag.MOVE);
+            if (wrapped == null)
+            {
+                LOGGER.info("[MOVE-LOCK] uuid={} tick={} MOVE not locked", animal.getUUID(), animal.tickCount);
+                return;
+            }
+
+            // 2) Extract Goal from WrappedGoal
+            Goal goal = null;
+            try
+            {
+                // Prefer method if present
+                var m = wrapped.getClass().getMethod("getGoal");
+                goal = (Goal) m.invoke(wrapped);
+            }
+            catch (Throwable ignored)
+            {
+                // Try field named "goal"
+                for (Field f : wrapped.getClass().getDeclaredFields())
+                {
+                    if (Goal.class.isAssignableFrom(f.getType()))
+                    {
+                        f.setAccessible(true);
+                        goal = (Goal) f.get(wrapped);
+                        break;
+                    }
+                }
+            }
+
+            // 3) Extract flags / running from WrappedGoal
+            Object flags = "<unknown>";
+            Object running = "<unknown>";
+            Object priority = "<unknown>";
+
+            try { flags = wrapped.getClass().getMethod("getFlags").invoke(wrapped); } catch (Throwable ignored) {}
+            try { running = wrapped.getClass().getMethod("isRunning").invoke(wrapped); } catch (Throwable ignored) {}
+
+            // Priority is sometimes stored on WrappedGoal as an int field or getPriority()
+            try { priority = wrapped.getClass().getMethod("getPriority").invoke(wrapped); } catch (Throwable ignored) {}
+            if ("<unknown>".equals(priority))
+            {
+                for (Field f : wrapped.getClass().getDeclaredFields())
+                {
+                    if (f.getType() == int.class && f.getName().toLowerCase().contains("priority"))
+                    {
+                        f.setAccessible(true);
+                        priority = f.getInt(wrapped);
+                        break;
+                    }
+                }
+            }
+
+            LOGGER.info("[MOVE-LOCK] uuid={} tick={} ownerWrappedClass={} ownerGoal={} priority={} running={} flags={}",
+                animal.getUUID(),
+                animal.tickCount,
+                wrapped.getClass().getName(),
+                goal == null ? "<unknown>" : goal.getClass().getSimpleName(),
+                priority,
+                running,
+                flags
+            );
+        }
+        catch (Throwable t)
+        {
+            LOGGER.info("[MOVE-LOCK] uuid={} tick={} failed: {}", animal.getUUID(), animal.tickCount, t.toString());
+        }
+    }
+
 
     /**
      * Called when the pet is removed from the game for any reason.
@@ -919,6 +1259,53 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
     }
 
+    /**
+     * Best-effort: call stop() on goals that are currently running, then clear navigation again.
+     * This prevents "removed goal still thinks it owns MOVE flag" style lockups.
+     */
+    private void stopAllSelectorGoalsSafely(final GoalSelector selector)
+    {
+
+        if (animal == null)
+        {
+            return;
+        }
+
+        try
+        {
+
+            for (WrappedGoal wrapped : selector.getAvailableGoals())
+            {
+                final Goal goal = wrapped.getGoal();
+                if (goal == null) continue;
+
+                // Only stop goals that are actually running, if that info is accessible.
+                // WrappedGoal typically has isRunning(); if not, calling stop() is still usually safe.
+                if (wrapped.isRunning())
+                {
+                    try
+                    {
+                        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("{}: Stopping goal {}.", this.animal.getUUID(), goal.getClass().getSimpleName()));
+                        wrapped.stop();
+                    }
+                    catch (Exception ignored)
+                    {
+                        // Goal stop should never bring down the entity tick.
+                        Log.getLogger().error("Failed to stop goal", ignored);
+                    }
+                }
+            }
+        }
+        catch (Throwable ignored)
+        {
+            // Some mappings don't expose getAvailableGoals() / WrappedGoal.
+            // In that case, we at least rely on navigation stop + selector removal.
+            Log.getLogger().error("Error stopping all selector goals.", ignored);
+        }
+
+        // Re-stop navigation after stopping goals, because some stop() methods call moveTo().
+        animal.getNavigation().stop();
+    }
 
     /**
      * Checks if the pet is currently active (not stalled) by checking for various signs of AI activity.
@@ -988,52 +1375,6 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         return isActive;
 
-    }
-
-
-    /**
-     * Best-effort: call stop() on goals that are currently running, then clear navigation again.
-     * This prevents "removed goal still thinks it owns MOVE flag" style lockups.
-     */
-    private void stopAllSelectorGoalsSafely(final GoalSelector selector)
-    {
-
-        if (animal == null)
-        {
-            return;
-        }
-
-        try
-        {
-
-            for (WrappedGoal wrapped : selector.getAvailableGoals())
-            {
-                final Goal goal = wrapped.getGoal();
-                if (goal == null) continue;
-
-                // Only stop goals that are actually running, if that info is accessible.
-                // WrappedGoal typically has isRunning(); if not, calling stop() is still usually safe.
-                if (wrapped.isRunning())
-                {
-                    try
-                    {
-                        goal.stop();
-                    }
-                    catch (Exception ignored)
-                    {
-                        // Goal stop should never bring down the entity tick.
-                    }
-                }
-            }
-        }
-        catch (Throwable ignored)
-        {
-            // Some mappings don't expose getAvailableGoals() / WrappedGoal.
-            // In that case, we at least rely on navigation stop + selector removal.
-        }
-
-        // Re-stop navigation after stopping goals, because some stop() methods call moveTo().
-        animal.getNavigation().stop();
     }
 
     /** 

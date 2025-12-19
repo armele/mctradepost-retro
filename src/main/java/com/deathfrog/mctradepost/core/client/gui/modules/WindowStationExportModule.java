@@ -10,6 +10,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage.TradeType;
@@ -32,6 +33,7 @@ import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 public class WindowStationExportModule extends AbstractModuleWindow<BuildingStationExportModuleView>
@@ -243,9 +245,12 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
                 wrapperBox.setSize(wrapperBox.getParent().getWidth(), wrapperBox.getHeight());
 
                 final Text location = wrapperBox.findPaneOfTypeByID("location", Text.class);
-                location.setText(Component.literal(IColonyManager.getInstance()
+
+                String locValue = IColonyManager.getInstance()
                     .getColonyView(destinationStation.getColonyId(), destinationStation.getDimension())
-                    .getName()));
+                    .getName() + "";
+
+                location.setText(Component.literal(locValue));
 
                 /*
                 final Text quantity = wrapperBox.findPaneOfTypeByID("quantity", Text.class);
@@ -261,7 +266,7 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
 
                 final ItemIcon costStackDisplay = rowPane.findPaneOfTypeByID("costStack", ItemIcon.class);
                 costStackDisplay.setVisible(true);
-                ItemStack stack = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get());
+                ItemStack stack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.MCTP_COIN_ITEM.get()));
                 stack.setCount(export.getCost());
                 costStackDisplay.setItem(stack);
 
@@ -352,8 +357,15 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
 
                         for (ExportData export : moduleView.getExportList())
                         {
+                            Item item = exportGui.getItemStorage().getItem();
+
+                            if (item == null)
+                            {
+                                continue;
+                            }
+
                             if (exportGui.isEnabled() && export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
-                                export.getTradeItem().getItemStack().is(exportGui.getItemStorage().getItem()) &&
+                                export.getTradeItem().getItemStack().is(item) &&
                                 exportGui.cost.equals(export.getCost()))
                             {
                                 exportGui.selected = true;

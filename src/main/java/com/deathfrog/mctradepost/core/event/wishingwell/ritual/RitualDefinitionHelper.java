@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.event.wishingwell.ritual;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.StringUtils;
@@ -28,19 +29,37 @@ public class RitualDefinitionHelper
     }
 
     /**
+     * Returns the filename of the ritual definition file that this helper object is associated with.
+     * This is useful for logging and debugging purposes.
+     * @return The filename of the ritual definition file that this helper object is associated with.
+     */
+    public String getFileName() 
+    {
+        return this.fileName;
+    }
+
+    /**
      * Retrieves the target item for the ritual as an Item object.
      * If the target specified in the ritual definition is invalid or not found,
      * logs a warning and returns null.
      * 
      * @return The Item corresponding to the ritual target, or null if the target is invalid or unknown.
      */
+    @Nullable
     public Item getTargetAsItem() 
     {
-        ResourceLocation itemLocation = ResourceLocation.tryParse(this.ritualDefinition.target());
+        String target = this.ritualDefinition.target();
+
+        if (target == null || target.isEmpty()) 
+        {
+            return null;
+        }
+
+        ResourceLocation itemLocation = ResourceLocation.tryParse(target);
 
         if (itemLocation == null) 
         {
-            MCTradePostMod.LOGGER.warn("Invalid target item {} identified in ritual with companion item: {}", this.ritualDefinition.target(), this.ritualDefinition.companionItem());
+            MCTradePostMod.LOGGER.warn("{}: Invalid target item {} identified in ritual with companion item: {}", this.fileName, target, this.ritualDefinition.companionItem());
             return null;
         }
 
@@ -48,7 +67,6 @@ public class RitualDefinitionHelper
 
         if (item == null || item.equals(Items.AIR)) 
         {
-            MCTradePostMod.LOGGER.warn("Unknown target item {} identified in ritual with companion item: {}", this.ritualDefinition.target(), this.ritualDefinition.companionItem());
             return null;
         }
         
@@ -66,10 +84,19 @@ public class RitualDefinitionHelper
      * 
      * @return The Item corresponding to the ritual coin, or null if the coin is invalid or unknown.
      */
+    @Nullable
     public Item getCoinAsItem() 
     {
         Item coinItem = null;
-        ResourceLocation itemLocation = ResourceLocation.tryParse(this.ritualDefinition.coinType());
+        String coinType = this.ritualDefinition.coinType();
+
+        if (coinType == null || coinType.isEmpty()) 
+        {
+            MCTradePostMod.LOGGER.warn("{}: No coin item specified in ritual with companion item: {}", this.fileName, this.ritualDefinition.coinType(), this.ritualDefinition.companionItem());
+            return null;
+        }
+
+        ResourceLocation itemLocation = ResourceLocation.tryParse(coinType);
 
         if (itemLocation == null) 
         {
@@ -82,7 +109,7 @@ public class RitualDefinitionHelper
         
         if (!(coinItem instanceof CoinItem))
         {
-            MCTradePostMod.LOGGER.warn("Unknown coin item {} identified in ritual with companion item: {}", this.ritualDefinition.coinType(), this.ritualDefinition.companionItem());
+            MCTradePostMod.LOGGER.warn("{}: Unknown coin item {} identified in ritual with companion item: {}", this.fileName, this.ritualDefinition.coinType(), this.ritualDefinition.companionItem());
             return null;
         }
 
@@ -93,17 +120,25 @@ public class RitualDefinitionHelper
      * Returns the EntityType that is targeted by this ritual, or null if the target is unknown.
      * @return The EntityType targeted by this ritual, or null if the target is unknown.
      */
+    @Nullable
     public EntityType<?> getTargetAsEntityType() 
     {
        ResourceLocation entityTypeId = null;
 
         try 
         {
-            entityTypeId = ResourceLocation.parse(this.ritualDefinition.target());  // Intentional use of parse.
+            String target = this.ritualDefinition.target();
+
+            if (target == null || target.isEmpty()) 
+            {
+                return null;
+            }
+
+            entityTypeId = ResourceLocation.parse(target);  // Intentional use of parse.
         } 
         catch (IllegalArgumentException e) 
         {
-            MCTradePostMod.LOGGER.warn("Unknown target entity type {} identified in ritual with companion item: {}", this.ritualDefinition.target(), this.ritualDefinition.companionItem());
+            MCTradePostMod.LOGGER.warn("{}: Unknown target entity type {} identified in ritual with companion item: {}", this.fileName,this.ritualDefinition.target(), this.ritualDefinition.companionItem());
             return null;
         }
         
@@ -119,7 +154,9 @@ public class RitualDefinitionHelper
      * to be slayed and the radius of the effect.
      * @return A human-readable description of the effect of this ritual.
      */
-    public String describe() {
+    @Nonnull
+    public String describe() 
+    {
         String text = "Not Defined: " + this.ritualDefinition.effect();
         EntityType<?> entityType = null;
         Item item = null;
@@ -128,6 +165,11 @@ public class RitualDefinitionHelper
         {
             case RitualManager.RITUAL_EFFECT_SLAY:
                 entityType = getTargetAsEntityType();
+
+                if (entityType == null) 
+                {
+                    return this.fileName + ": !UNDEFINED!";
+                }
 
                 text = "Slays " + entityType.toShortString().replace("_", " ") + "s within a " + this.ritualDefinition.radius() + " block radius.";
                 break;

@@ -108,7 +108,8 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
                 }
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
-                status.setText(Component.literal(((StationView) buildingView).stationConnectionStatus(station).toString()));
+                String statValue = ((StationView) buildingView).stationConnectionStatus(station).toString() + "";
+                status.setText(Component.literal(statValue));
             }
         });
     }

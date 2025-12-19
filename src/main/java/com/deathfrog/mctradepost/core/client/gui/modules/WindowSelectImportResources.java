@@ -18,9 +18,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.function.TriConsumer;
+import org.apache.commons.text.similarity.LevenshteinDistance;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -97,8 +97,8 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
         quantityInput.setText("64");
         PaneBuilders.tooltipBuilder().hoverPane(quantityInput).build().setText(Component.translatable(TRADE_QUANTITY_TOOLTIP));
 
-        this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(new ItemStack(Items.AIR));
-        this.findPaneOfTypeByID("resourceName", Text.class).setText(new ItemStack(Items.AIR).getHoverName());
+        this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(ItemStack.EMPTY);
+        this.findPaneOfTypeByID("resourceName", Text.class).setText(ItemStack.EMPTY.getHoverName());
         this.test = test;
         this.consumer = consumer;
 
@@ -186,7 +186,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
             }
         }
 
-        allItems.sort(Comparator.comparingInt(s1 -> StringUtils.getLevenshteinDistance(s1.getHoverName().getString(), filter)));
+        allItems.sort(Comparator.comparingInt(s1 -> LevenshteinDistance.getDefaultInstance().apply(s1.getHoverName().getString(), filter)));
         this.updateResourceList();
     }
 

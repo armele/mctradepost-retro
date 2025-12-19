@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.render;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.minecolonies.api.colony.ICitizenDataView;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.items.component.ColonyId;
@@ -57,7 +58,7 @@ public class AdvancedClipBoardDecorator implements IItemDecorator {
                         ps.pushPose();
                         ps.translate(0, 0, 500);
                         graphics.drawCenteredString(font,
-                            Component.literal(count + ""),
+                            NullnessBridge.assumeNonnull(Component.literal(count + "")),
                             xOffset + 15,
                             yOffset - 2,
                             0xFF4500 | (255 << 24));

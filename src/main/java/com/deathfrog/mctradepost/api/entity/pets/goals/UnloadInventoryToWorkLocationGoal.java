@@ -59,6 +59,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     private boolean hasArrived;
     private BlockPos workPos;
     private boolean unloaded = false;
+    private boolean failed = false;
+
     private int noApproachTicks = 0;
     private double bestDistSq = Double.MAX_VALUE;
 
@@ -82,9 +84,9 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     public boolean canUse()
     {
         final Level level = pet.level();
+        
         if (level == null || level.isClientSide) return false;
-
-        // if (pet.getNavigation().isInProgress()) return false;
+        if (pet.getInventory() == null) return false;
 
         if (cooldownTicks-- > 0)
         {
@@ -92,9 +94,6 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         }
 
         cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
-
-        if (pet.level().isClientSide) return false;
-        if (pet.getInventory() == null) return false;
 
         BlockPos wp = pet.getWorkLocation();
         if (wp == null) return false;
@@ -157,8 +156,9 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         final BlockPos localWorkPos = workPos;
 
-        // Continue while not unloaded, not timed out, and either navigating or close enough to try.
+        // Continue while not unloaded, not failed, not timed out, and either navigating or close enough to try.
         if (unloaded) return false;
+        if (failed) return false;
         if (ticksRunning > MAX_RUN_TICKS) return false;
         if (localWorkPos == null) return false;
         if (!needsUnload()) return false;
@@ -184,6 +184,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         this.workPos = pet.getWorkLocation();
         this.hasArrived = false;
         this.unloaded = false;
+        this.failed = false;
         this.ticksRunning = 0;
         this.stuckTicks = 0;
         this.replanAttempts = 0;
@@ -241,7 +242,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         {
             hasArrived = true;
             tryUnloadInto(localWorkPos);
-            return; // stop tick early if we unloaded (stop() will reset)
+            return;
         }
 
         // If navigation finished but we’re still not close, try replanning locally
@@ -408,10 +409,10 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
                 return;
             }
         }
+
         // Could not replan and fallback not possible -> abort safely with cooldown to avoid thrash.
         cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
-        // stop() clears state + stops navigation
-        stop();
+        failed = true;
     }
 
     /**
@@ -474,7 +475,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
                     pet.getUUID(), pos.toShortString()));
 
             cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
-            stop();
+            failed = true;
             return;
         }
 
@@ -515,18 +516,17 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             {
                 be.setChanged();
             }
+            // Mark success and terminate
+            this.unloaded = true;
 
         }
         else
         {
+            this.failed = true;
             cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
-            stop();
             return;
         }
 
-        // Mark success and terminate
-        this.unloaded = true;
-        stop();
     }
 
     /**

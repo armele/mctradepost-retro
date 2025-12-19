@@ -18,6 +18,7 @@ import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -132,14 +133,24 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                 rowPane.findPaneOfTypeByID(LABEL_TYPE, Text.class).setText(Component.literal(pets.get(index).getAnimalType()));
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
                 
-                Entity selectedEntity = Minecraft.getInstance().level.getEntity(pets.get(index).getEntityId());
+                ClientLevel level = Minecraft.getInstance().level;
+
+                if (level == null)
+                {
+                    return;
+                }
+
+                Entity selectedEntity = level.getEntity(pets.get(index).getEntityId());
                 final Text entityOor = rowPane.findPaneOfTypeByID(LABEL_OOR, Text.class);
                 
                 if (selectedEntity != null)
                 {
                     entityIcon.setEntity(selectedEntity);
                     final AbstractTextBuilder.TooltipBuilder hoverPaneBuilder = PaneBuilders.tooltipBuilder().hoverPane(entityIcon);
-                    if (selectedEntity.getCustomName() != null && !selectedEntity.getCustomName().toString().isEmpty()) 
+
+                    Component customName = selectedEntity.getCustomName();
+
+                    if (customName != null && !customName.toString().isEmpty()) 
                     {
                         hoverPaneBuilder.append(selectedEntity.getCustomName());
                     }
@@ -147,9 +158,14 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                     {
                         hoverPaneBuilder.append(selectedEntity.getName());
                     }
-                    hoverPaneBuilder.appendNL(Component.literal(selectedEntity.getOnPos().toShortString()));
 
-                    if (selectedEntity instanceof LivingEntity living) {
+                    BlockPos entityPos = selectedEntity.getOnPos();
+                    String entityPosStr = entityPos.toShortString() + "";
+         
+                    hoverPaneBuilder.appendNL(Component.literal(entityPosStr));
+
+                    if (selectedEntity instanceof LivingEntity living) 
+                    {
                         hoverPaneBuilder.appendNL(
                             Component.literal("HP: " +(int)living.getHealth() + " / " + (int)living.getMaxHealth())
                         );
@@ -195,7 +211,8 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                             return Component.empty();
                         }
 
-                        return Component.translatableEscape((String) moduleView.getPetWorkLocations().get(index).name);
+                        String workBldName = (String) moduleView.getPetWorkLocations().get(index).name + "";
+                        return Component.translatableEscape(workBldName);
                     }
                 });
 

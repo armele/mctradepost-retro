@@ -288,7 +288,8 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
      * @return a path navigation for this pet
      */
     @Override   
-    protected PathNavigation createNavigation(@Nonnull Level level) {
+    protected PathNavigation createNavigation(@Nonnull Level level) 
+    {
         MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
         pathNavigation.getPathingOptions().setEnterDoors(true);
         pathNavigation.getPathingOptions().setCanOpenDoors(true);

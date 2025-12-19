@@ -3,13 +3,14 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
@@ -115,8 +116,9 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
         formattedSales = "‡" + formatter.format(cashGenerated);        
         cashLabel.setText(Component.literal(formattedSales));  
 
-        final ItemIcon coinIcon = findPaneOfTypeByID("coinicon", ItemIcon.class);      
-        coinIcon.setItem(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), 1));
+        final ItemIcon coinIcon = findPaneOfTypeByID("coinicon", ItemIcon.class);   
+        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();   
+        coinIcon.setItem(new ItemStack(NullnessBridge.assumeNonnull(coinItem), 1));
 
         int coinValue = MCTPConfig.tradeCoinValue.get();
         final Text coinValueLabel = findPaneOfTypeByID("coinvalue", Text.class);
@@ -139,7 +141,8 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
             @Override
             public MutableComponent getLabel(final int index)
             {
-                return Component.translatableEscape((String) INTERVAL.keySet().toArray()[index]);
+                String label = (String) INTERVAL.keySet().toArray()[index];
+                return Component.translatableEscape(label == null ? "" : label);
             }
         });
         intervalDropdown.setSelectedIndex(new ArrayList<>(INTERVAL.keySet()).indexOf(selectedInterval));

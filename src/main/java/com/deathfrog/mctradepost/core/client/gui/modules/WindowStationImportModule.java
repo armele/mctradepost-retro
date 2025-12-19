@@ -162,7 +162,7 @@ public class WindowStationImportModule extends AbstractModuleWindow<BuildingStat
                 rowPane.findPaneOfTypeByID(LABEL_PRICE, Text.class)
                     .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).price()) + "‡"));
                 rowPane.findPaneOfTypeByID(LABEL_QUANTITY, Text.class)
-                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).quantity())));
+                    .setText(Component.literal(String.valueOf(moduleView.getImports().get(index).quantity()) + ""));
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);
             }
         });

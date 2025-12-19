@@ -123,7 +123,7 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper>
 
         if (coinItem == null) 
         {
-            MCTradePostMod.LOGGER.warn("Invalid recipe identified in ritual with coin type {}, target {} and companion item: {}", recipe.coinType(), recipe.target(), recipe.companionItem());
+            MCTradePostMod.LOGGER.warn("{}: Invalid recipe identified in ritual with coin type {}, target {} and companion item: {}", recipe.getFileName(), recipe.coinType(), recipe.target(), recipe.companionItem());
             return;
         }
 
@@ -136,7 +136,7 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper>
             result = new ItemStack(targetItem, recipe.companionItemCount());
         }
 
-        MCTradePostMod.LOGGER.info("Setting up ritual in the JEI for companion item: {}", recipe.companionItem());
+        // MCTradePostMod.LOGGER.info("Setting up ritual in the JEI for companion item: {}", recipe.companionItem());
 
         IRecipeSlotBuilder tipSlot = builder.addSlot(RecipeIngredientRole.CATALYST, 4, 20)
             .setBackground(guiHelper.createBlankDrawable(WELL_TIP_WIDTH, WELL_TIP_HEIGHT), -1, -1)
