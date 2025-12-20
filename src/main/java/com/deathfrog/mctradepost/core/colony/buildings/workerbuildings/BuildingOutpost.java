@@ -189,7 +189,10 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         if (outpostResolverToken != null)
         {
             CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, outpostResolverToken);
-            compound.put(NBT_OUTPOST_TOKEN, outpostToken);
+            if (!outpostToken.isEmpty())
+            {
+                compound.put(NBT_OUTPOST_TOKEN, outpostToken);
+            }
         }
 
         if (!requestTracking.isEmpty())
@@ -269,7 +272,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             if (tokenTag != null)
             {
                 entry.put(TAG_REQUEST_TOKEN, tokenTag);
-                entry.putString(TAG_REQUEST_STATE, e.getValue().getState().name());
+                entry.putString(TAG_REQUEST_STATE, e.getValue().getState().name() + "");
                 list.add(entry);
             }
         }
@@ -375,13 +378,15 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
 
         if (!requestedBuilder.equals(this.getPosition()))
         {
+            String buildingDisplayName = this.getBuildingDisplayName() + "";
+
             if (player != null)
             {
-                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(this.getBuildingDisplayName())).sendTo(player);
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(buildingDisplayName)).sendTo(player);
             }
             else
             {
-                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(this.getBuildingDisplayName())).sendTo(getColony());
+                MessageUtils.format("com.mctradepost.outpost.builder.switched", Component.translatable(buildingDisplayName)).sendTo(getColony());
             }
         }
 
@@ -750,8 +755,15 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             outpostResolverToken = outpostResolver.getId();
         }
 
-        builder.addAll(supers);
-        builder.add(outpostResolver);
+        if (!supers.isEmpty())
+        {
+            builder.addAll(supers);
+        }
+
+        if (outpostResolver != null)
+        {
+            builder.add(outpostResolver);
+        }
 
         return builder.build();
     }

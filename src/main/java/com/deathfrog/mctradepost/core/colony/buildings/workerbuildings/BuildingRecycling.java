@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
@@ -18,6 +20,7 @@ import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.DomumOrnamentumHelper;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
@@ -47,6 +50,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -62,6 +66,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -113,15 +118,31 @@ public class BuildingRecycling extends AbstractBuilding
         super(colony, pos);
     }
 
+    /**
+     * Returns the unique identifier for the recycling building's schematic.
+     *
+     * @return the schematic name for the recycling building
+     */
     @Override
     public String getSchematicName()
     {
         return ModBuildings.RECYCLING_ID;
     }
 
+
+    /**
+     * Deserializes the NBT data for the recycling building, restoring its state from the
+     * provided CompoundTag.
+     *
+     * @param provider The holder lookup provider for item and block references.
+     * @param compound The CompoundTag containing the serialized state of the
+     *                 recycling building.
+     */
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compound)
     {
+        if (provider == null || compound == null) return;
+
         super.deserializeNBT(provider, compound);
         deserializeRecyclingProcessors(provider, compound);
         deserializeAllowableItems(provider, compound);
@@ -167,7 +188,13 @@ public class BuildingRecycling extends AbstractBuilding
 
         // Serialize allowable items
         CompoundTag allowableItemsTag = new CompoundTag();
-        serializeAllowableItems(buf.registryAccess(), allowableItemsTag);
+        RegistryAccess regAccess = buf.registryAccess();
+
+        if (regAccess != null)
+        {
+            serializeAllowableItems(regAccess, allowableItemsTag);
+        }
+
         buf.writeNbt(allowableItemsTag);
     }
 
@@ -180,6 +207,8 @@ public class BuildingRecycling extends AbstractBuilding
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider)
     {
+        if (provider == null) return null;
+
         CompoundTag tag = super.serializeNBT(provider);
         Tag recyclingProcessorsTag = serializeRecyclingProcessors(provider).get(SERIALIZE_RECYCLINGPROCESSORS_TAG);
         if (recyclingProcessorsTag != null)
@@ -188,7 +217,7 @@ public class BuildingRecycling extends AbstractBuilding
         }
 
         // Serialize allowable items
-        serializeAllowableItems(provider, tag);
+        serializeAllowableItems(NullnessBridge.assumeNonnull(provider), tag);
 
         return tag;
     }
@@ -199,7 +228,7 @@ public class BuildingRecycling extends AbstractBuilding
      *
      * @return the serialized NBT tag.
      */
-    public @Nonnull CompoundTag serializeRecyclingProcessors(HolderLookup.Provider provider)
+    public @Nonnull CompoundTag serializeRecyclingProcessors(@Nonnull HolderLookup.Provider provider)
     {
         CompoundTag tag = new CompoundTag();
         ListTag processorListTag = new ListTag();
@@ -222,7 +251,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param provider The holder lookup provider for item and block references.
      * @param tag      The CompoundTag to which the list of allowable items should be serialized.
      */
-    public void serializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag)
+    public void serializeAllowableItems(@Nonnull HolderLookup.Provider provider, CompoundTag tag)
     {
         if (allItems != null && !allItems.isEmpty())
         {
@@ -230,7 +259,12 @@ public class BuildingRecycling extends AbstractBuilding
             for (ItemStorage storage : allItems.keySet())
             {
                 CompoundTag itemTag = new CompoundTag();
-                itemTag.put("stack", storage.getItemStack().save(provider));
+                ItemStack stack = storage.getItemStack();
+                Tag stackTag = stack.save(provider);
+
+                if (stackTag == null) continue;
+
+                itemTag.put("stack", stackTag);
                 itemTag.putInt("count", allItems.getInt(storage));
                 itemsListTag.add(itemTag);
             }
@@ -247,7 +281,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param provider The holder lookup provider for item and block references.
      * @param compound The CompoundTag containing the serialized state of allowable items.
      */
-    public void deserializeAllowableItems(HolderLookup.Provider provider, CompoundTag tag)
+    public void deserializeAllowableItems(@Nonnull HolderLookup.Provider provider, CompoundTag tag)
     {
         this.allItems.clear();
 
@@ -258,7 +292,11 @@ public class BuildingRecycling extends AbstractBuilding
             for (int i = 0; i < outputTag.size(); i++)
             {
                 CompoundTag itemTag = outputTag.getCompound(i);
-                ItemStack stack = ItemStack.parseOptional(provider, itemTag.getCompound("stack"));
+                CompoundTag stackTag = itemTag.getCompound("stack");
+
+                if (stackTag == null) continue;
+
+                ItemStack stack = ItemStack.parseOptional(provider, stackTag);
                 int count = itemTag.getInt("count");
 
                 if (!stack.isEmpty())
@@ -326,14 +364,20 @@ public class BuildingRecycling extends AbstractBuilding
          * @param provider The holder lookup provider for item and block references.
          * @return the serialized NBT tag.
          */
-        public CompoundTag serialize(HolderLookup.Provider provider)
+        public CompoundTag serialize(@Nonnull HolderLookup.Provider provider)
         {
             CompoundTag tag = new CompoundTag();
 
             if (!processingItem.isEmpty())
             {
-                tag.put("ProcessingItem", processingItem.save(provider));
+                Tag itemTag = processingItem.save(provider);
+
+                if (itemTag != null)
+                {
+                    tag.put("ProcessingItem", itemTag);
+                }
             }
+
             if (output != null && !output.isEmpty())
             {
                 ListTag outputTag = new ListTag();
@@ -364,7 +408,8 @@ public class BuildingRecycling extends AbstractBuilding
         {
             if (tag.contains("ProcessingItem"))
             {
-                this.processingItem = ItemStack.parseOptional(provider, tag.getCompound("ProcessingItem"));
+                CompoundTag itemTag = tag.getCompound("ProcessingItem");
+                this.processingItem = ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), NullnessBridge.assumeNonnull(itemTag));
             }
             else
             {
@@ -378,7 +423,11 @@ public class BuildingRecycling extends AbstractBuilding
 
                 for (int i = 0; i < outputTag.size(); i++)
                 {
-                    ItemStack stack = ItemStack.parseOptional(provider, outputTag.getCompound(i));
+                    CompoundTag itemTag = outputTag.getCompound(i);
+
+                    if (itemTag == null) continue;
+
+                    ItemStack stack = ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), itemTag);
                     if (!stack.isEmpty())
                     {
                         this.output.add(stack);
@@ -431,7 +480,7 @@ public class BuildingRecycling extends AbstractBuilding
      *                      simulate flawless recycling.
      * @return true if the processor was added, false if the item cannot be recycled.
      */
-    public boolean addRecyclingProcess(ItemStack itemToRecycle, int workerSkill)
+    public boolean addRecyclingProcess(@Nonnull ItemStack itemToRecycle, int workerSkill)
     {
         List<ItemStack> recyclingOutput = outputList(itemToRecycle, workerSkill);
 
@@ -535,6 +584,11 @@ public class BuildingRecycling extends AbstractBuilding
         }
         ServerLevel level = (ServerLevel) getColony().getWorld();
 
+        if (level == null)
+        {
+            return;
+        }
+
         if (particleType != null)
         {
             level.sendParticles(particleType, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 20, 0.5, 0.5, 0.5, 0.1);
@@ -571,7 +625,12 @@ public class BuildingRecycling extends AbstractBuilding
                 removeRecyclingProcess(processor);
 
                 AdvancementUtils.TriggerAdvancementPlayersForColony(this.getColony(),
-                    player -> MCTPAdvancementTriggers.RECYCLE_ITEM.get().trigger(player));
+                    player -> {
+                        if (player != null) 
+                        {
+                            MCTPAdvancementTriggers.RECYCLE_ITEM.get().trigger(player);
+                        }
+                    });
             }
         }
 
@@ -679,13 +738,27 @@ public class BuildingRecycling extends AbstractBuilding
         }
     }
 
-    private Optional<RecipeHolder<DeconstructionRecipe>> findDeconstructionRecipe(ItemStack stack, Level level) 
+    /**
+     * Attempts to find a DeconstructionRecipe for the given ItemStack in the given Level.
+     * 
+     * @param stack the ItemStack to search for a DeconstructionRecipe
+     * @param level the Level to search for a DeconstructionRecipe
+     * @return an Optional containing the DeconstructionRecipe if found, or an empty Optional if no matching recipe was found
+     */
+    private Optional<RecipeHolder<DeconstructionRecipe>> findDeconstructionRecipe(@Nonnull ItemStack stack, Level level) 
     {
         RecipeManager manager = level.getRecipeManager();
         SingleRecipeInput input   = new SingleRecipeInput(stack);
 
         // Let RecipeManager find the first matching recipe of your custom type
-        return manager.getRecipeFor(MCTradePostMod.DECON_RECIPE_TYPE.get(), input, level);
+        RecipeType<DeconstructionRecipe> decon = MCTradePostMod.DECON_RECIPE_TYPE.get();
+
+        if (decon == null) 
+        {
+            return Optional.empty();
+        }
+
+        return manager.getRecipeFor(decon, input, level);
     }
 
 
@@ -699,13 +772,20 @@ public class BuildingRecycling extends AbstractBuilding
      * @param workerSkill the skill level of the worker (or -1 for flawless recycling)
      * @return a list of items that can be deconstructed from the given inputStack, or null if no matching recipe is found.
      */
-    protected Tuple<Object2IntOpenHashMap<ItemStorage>, ItemStack> outputsFromReverseEngineeredRecipe(ItemStack inputStack)
+    protected @Nullable Tuple<Object2IntOpenHashMap<ItemStorage>, ItemStack> outputsFromReverseEngineeredRecipe(ItemStack inputStack)
     {
         Recipe<?> recipe = null;
+
+        Level level = this.getColony().getWorld();
+
+        if (level == null || level.getRecipeManager() == null)
+        {
+            return null;
+        }
         
-        RecipeManager recipeManager = this.getColony().getWorld().getRecipeManager();
+        RecipeManager recipeManager = level.getRecipeManager();
         List<RecipeHolder<?>> recipes =
-            ItemValueRegistry.getRecipeListForItem(recipeManager, inputStack.getItem(), this.getColony().getWorld());
+            ItemValueRegistry.getRecipeListForItem(recipeManager, inputStack.getItem(), level);
 
         if (recipes == null || recipes.isEmpty())
         {
@@ -720,8 +800,14 @@ public class BuildingRecycling extends AbstractBuilding
 
         Object2IntOpenHashMap<ItemStorage> outputItems = new Object2IntOpenHashMap<>();
 
-        ItemStack resultStack = recipe.getResultItem(getColony().getWorld().registryAccess());
-        List<ItemStack> remainingItems = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, getColony().getWorld());
+        ItemStack resultStack = recipe.getResultItem(NullnessBridge.assumeNonnull(level.registryAccess()));
+
+        if (resultStack.isEmpty())
+        {
+            return null;
+        }
+
+        List<ItemStack> remainingItems = MCTPInventoryUtils.calculateSecondaryOutputs(recipe, level);
         List<Ingredient> ingredients = determineIngredients(recipe, inputStack);
 
         final Recipe<?> selectedRecipeForLogging = recipe;
@@ -749,6 +835,8 @@ public class BuildingRecycling extends AbstractBuilding
 
                 for (ItemStack remainingItem : remainingItems)
                 {
+                    if (remainingItem.isEmpty() || itemStack.isEmpty()) continue;
+
                     if (ItemStack.isSameItem(itemStack, remainingItem))
                     {
                         // Skip ingredients which are also part of the output (not consumed by the recipe).
@@ -847,7 +935,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param workerSkill the skill level of the worker (or -1 for flawless recycling)
      * @return a list of output item stacks
      */
-    public List<ItemStack> outputList(ItemStack inputStack, int workerSkill)
+    public List<ItemStack> outputList(@Nonnull ItemStack inputStack, int workerSkill)
     {
         Object2IntOpenHashMap<ItemStorage> candidateMaterialsOutput = null;
         Tuple<Object2IntOpenHashMap<ItemStorage>, ItemStack> outputResult = null;
@@ -1006,7 +1094,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param stack the item stack to be inserted into the output chest.
      * @return true if the item stack was successfully inserted, false otherwise.
      */
-    private boolean tryInsertIntoOutputChest(ItemStack stack)
+    private boolean tryInsertIntoOutputChest(@Nonnull ItemStack stack)
     {
         IItemHandler handler = null;
         BlockPos lastPos = null;
@@ -1014,6 +1102,8 @@ public class BuildingRecycling extends AbstractBuilding
 
         for (BlockPos pos : identifyOutputPositions())
         {
+            if (pos == null || pos.equals(BlockPos.ZERO)) continue;
+
             IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(this.getColony().getWorld().getBlockEntity(pos));
 
             if (itemHandlerOpt != null)
@@ -1126,7 +1216,7 @@ public class BuildingRecycling extends AbstractBuilding
                 recyclableRecord = new RecyclableRecord(false);
             }
 
-            stackToCheck.set(MCTPModDataComponents.RECYCLABLE_COMPONENT, recyclableRecord);
+            stackToCheck.set(NullnessBridge.assumeNonnull(MCTPModDataComponents.RECYCLABLE_COMPONENT), recyclableRecord);
         }
 
         return stackToCheck;

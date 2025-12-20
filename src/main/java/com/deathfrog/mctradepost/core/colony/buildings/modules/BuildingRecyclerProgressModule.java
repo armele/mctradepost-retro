@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
@@ -32,7 +33,7 @@ public class BuildingRecyclerProgressModule extends AbstractBuildingModule imple
         CompoundTag tag = new CompoundTag();
         tag.putInt("maxProcessors", recyclingCenter.getMachineCapacity());
 
-        buf.writeNbt(recyclingCenter.serializeRecyclingProcessors(buf.registryAccess()));
+        buf.writeNbt(recyclingCenter.serializeRecyclingProcessors(NullnessBridge.assumeNonnull(buf.registryAccess())));
         buf.writeNbt(tag);
     }
 }
