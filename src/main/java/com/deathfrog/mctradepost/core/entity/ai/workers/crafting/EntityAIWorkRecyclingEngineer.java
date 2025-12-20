@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
@@ -141,7 +142,8 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> pendingRecyclingQueue.contains(listItem));
                 if (slot >= 0)
                 {
-                    worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
+                    ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(slot);
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(stackInSlot));
                     pendingRecyclingQueue.remove(listItem); // This has been delivered and we're about to recycle it. Remove it from the queue.
                     
                     return true;
@@ -175,6 +177,11 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         // Check if any output boxes need to be unoaded.
         for (BlockPos pos : recycling.identifyOutputPositions())
         {
+            if (pos == null)
+            {
+                continue;
+            }
+
             // Identify a chest at position pos.
             // Try to get an item handler from a tile entity at this position
             IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(pos));
@@ -239,6 +246,11 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         // Check if the machine needs to be started (items exist in input boxes).
         for (BlockPos pos : recycling.identifyInputPositions())
         {
+            if (pos == null)
+            {
+                continue;
+            }
+
             // Identify a chest at position pos.
             // Try to get an item handler from a tile entity at this position
             IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(pos));
@@ -271,21 +283,22 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      */
     public IAIState unloadOutput()
     {
-        // BuildingRecycling recycling = (BuildingRecycling) building;
         boolean cancarry = true;
 
         TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Unloading output."));
 
         worker.getCitizenData().setVisibleStatus(RECYCLING);
 
-        if (currentOutputChest != null)
+        BlockPos localOutputChest = currentOutputChest;
+
+        if (localOutputChest != null)
         {
-            if (!walkToSafePos(currentOutputChest))
+            if (!walkToSafePos(localOutputChest))
             {
                 return getState();
             }
 
-            IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(currentOutputChest));
+            IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(localOutputChest));
 
             if (itemHandlerOpt != null)
             {
@@ -304,12 +317,18 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     }
                 }
             }
-            worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(0));
+
+            ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(0);
+
+            if (!stackInSlot.isEmpty())
+            {
+                worker.setItemInHand(InteractionHand.MAIN_HAND, stackInSlot);
+            }
 
             // If the worker could unload everything in the chest, set currentOutputChest to null
             if (cancarry)
             {
-                currentOutputChest = null;
+                localOutputChest = null;
             }
 
             if (building.getSetting(BuildingRecycling.ITERATIVE_PROCESSING).getValue())
@@ -364,7 +383,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 }
             }
 
-            worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         }
         else
         {
@@ -395,24 +414,26 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Loading to recycler."));
 
-        if (currentInputChest == null)
+        BlockPos localCurrentInputChest = currentInputChest;
+
+        if (localCurrentInputChest == null)
         {
-            currentInputChest = recycling.identifyInputPositions().getFirst();
+            localCurrentInputChest = recycling.identifyInputPositions().getFirst();
         }
 
-        if (currentInputChest == null)
+        if (localCurrentInputChest == null)
         {
             LOGGER.error("No input chest found on the recycling center...");
             complain(BuildingRecycling.RECYCLER_NO_INPUT_BOX);
             return DECIDE;
         }
 
-        if (!walkToSafePos(currentInputChest))
+        if (!walkToSafePos(localCurrentInputChest))
         {
             return getState();
         }
 
-        IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(currentInputChest));
+        IItemHandlerCapProvider itemHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(localCurrentInputChest));
 
         if (itemHandlerOpt.getItemHandlerCap() != null)
         {
@@ -430,7 +451,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 }
             }
 
-            worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         }
         else
         {
@@ -470,6 +491,14 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         BuildingRecycling recycling = (BuildingRecycling) building;
         BlockPos pos = recycling.identifyInputPositions().getFirst();
+
+        if (pos == null)
+        {
+            LOGGER.error("No input chest found on the recycling center...");
+            complain(BuildingRecycling.RECYCLER_NO_INPUT_BOX);
+            return DECIDE;
+        }
+
         IItemHandlerCapProvider chestHandlerOpt = IItemHandlerCapProvider.wrap(world.getBlockEntity(pos));
 
         if (chestHandlerOpt.getItemHandlerCap() != null)
@@ -489,7 +518,9 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                         () -> LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId()));
                     final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
 
-                    if (recycling.addRecyclingProcess(removedStack.copy(),
+                    ItemStack processStack = removedStack.copy();
+
+                    if (processStack != null && recycling.addRecyclingProcess(processStack,
                         worker.getCitizenData().getCitizenSkillHandler().getLevel(getModuleForJob().getPrimarySkill())))
                     {
                         TraceUtils.dynamicTrace(TRACE_RECYCLING,
@@ -597,7 +628,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             return DECIDE;
         }
 
-        worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
         if (!building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
         {

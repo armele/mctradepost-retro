@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.minecolonies.api.util.NBTUtils;
 
@@ -9,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 
 public class DisplayCase 
@@ -100,16 +103,29 @@ public class DisplayCase
      * @return A CompoundTag representing the serialized state of the DisplayCase, including
      *         position, item contents, tick count, and frame ID if present.
      */
-
-    public CompoundTag toNBT(HolderLookup.Provider provider) 
+    public CompoundTag toNBT(@Nonnull HolderLookup.Provider provider) 
     {
         CompoundTag tag = new CompoundTag();
-        tag.put("Pos", NBTUtils.writeBlockPos(pos));
+
+        Tag posTag = NBTUtils.writeBlockPos(pos == null ? BlockPos.ZERO : pos);
+
+        if (posTag != null)
+        {
+            tag.put("Pos", posTag); 
+        }
+
         if (!stack.isEmpty()) 
         {
-            tag.put("Contents", stack.save(provider));
+            Tag stackTag = stack.save(provider);
+
+            if (stackTag != null) 
+            {
+                tag.put("Contents", stackTag);  
+            }
         }
+
         tag.putInt("TickCount", tickcount);
+
         if (frameId != null) 
         {
             tag.putLong("FrameIdMost", frameId.getMostSignificantBits());

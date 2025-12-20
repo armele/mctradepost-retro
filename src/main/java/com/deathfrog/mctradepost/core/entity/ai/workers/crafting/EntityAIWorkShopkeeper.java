@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.RequestUtil;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -17,8 +18,10 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.google.common.collect.ImmutableList;
+import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
@@ -43,6 +46,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NonNls;
@@ -50,6 +54,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+
+import javax.annotation.Nonnull;
+
 import com.minecolonies.api.util.InventoryUtils;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.minecolonies.api.util.constant.Constants.*;
@@ -198,6 +206,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         return value;
     }
 
+    /**
+     * Returns a multiplier for the sales value based on the primary skill of the AI.
+     * The multiplier is computed as 1 + (primary skill level / 50).
+     * This means that for every 50 levels of the primary skill, the AI will increase the sales value by 1.
+     * @return the computed multiplier.
+     */
     private double skillMultiplier()
     {
         return 1 + (worker.getCitizenData().getCitizenSkillHandler().getLevel(getModuleForJob().getPrimarySkill()) / 50);
@@ -206,10 +220,18 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     /**
      * Increase the sales value based on primary skills.
      */
-    private void sellItem(ItemStack item)
+    private void sellItem(@Nonnull ItemStack item)
     {
         final double skillMultiplier = skillMultiplier();
-        ItemStack originalItem = new ItemStack(SouvenirItem.getOriginal(item));
+
+        Item underlyingItem = SouvenirItem.getOriginal(item);
+
+        if (underlyingItem == null)
+        {
+            return;
+        }
+
+        ItemStack originalItem = new ItemStack(underlyingItem);
 
         StatsUtil.trackStatByName(building, ITEM_SOLD, originalItem.getHoverName(), 1);
 
@@ -217,12 +239,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         sellvalue = (int) Math.round(sellvalue * skillMultiplier);
 
         building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.ITEM_SOLD, 1);
-        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue); // Cash generated
-                                                                                                                     // over all time.
+
+        // Cash generated
+        building.getModule(MCTPBuildingModules.ECON_MODULE).incrementBy(WindowEconModule.CASH_GENERATED, sellvalue);
+                       
+        // Current balance
         building.getColony()
             .getStatisticsManager()
-            .incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue, building.getColony().getDay());                // Current
-                                                                                                                     // balance.
+            .incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue, building.getColony().getDay());
     }
 
     /**
@@ -257,15 +281,21 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             return getState();
         }
 
+        // Move the item from the building to the worker.
         for (ItemStorage candidate : sortedList)
         {
             ItemStack targetStack = candidate.getItemStack();
 
-            if (InventoryUtils.hasItemInProvider(building, stack -> ItemStack.isSameItem(stack, targetStack)))
+            if (targetStack == null)
+            {
+                continue;
+            }
+
+            if (InventoryUtils.hasItemInProvider(building, stack -> stack != null && ItemStack.isSameItem(stack, targetStack)))
             {
                 InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
                     InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
-                        stack -> ItemStack.isSameItem(stack, targetStack)),
+                        stack -> stack != null && ItemStack.isSameItem(stack, targetStack)),
                     worker.getInventoryCitizen());
 
                 // only transfer the highest value match
@@ -274,25 +304,42 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         int slot = -1;
+
+        // Identity the slot with the best candidate item in the workers inventory.
         for (ItemStorage candidate : sortedList)
         {
             ItemStack targetStack = candidate.getItemStack();
+
+            if (targetStack == null)
+            {
+                continue;
+            }
+
             slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> ItemStack.isSameItem(stack, targetStack));
+                stack -> stack != null && ItemStack.isSameItem(stack, targetStack));
             if (slot >= 0)
             {
                 break;
             }
         }
-            
+        
+        // Display that item in the worker's hand
         if (slot >= 0)
         {
-            worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
+            ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(slot);
+
+            if (stackInSlot != null)
+            {
+                worker.setItemInHand(InteractionHand.MAIN_HAND, stackInSlot);
+            }
+
             return START_WORKING;
         }
 
-        worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        // No item in the worker's inventory
+        worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
+        // If there are no open requests, ask for new sellable items to be delivered.
         if (!building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
         {
             final ArrayList<ItemStack> itemList = new ArrayList<>();
@@ -405,9 +452,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         SettingsModule settings = building.getModule(MCTPBuildingModules.ECON_SETTINGS);
         Optional<BoolSetting> shouldMintCoins = settings.getOptionalSetting(BuildingMarketplace.AUTOMINT);
 
+        BuildingMarketplace localBuilding = building;
+
+        if (localBuilding == null)
+        {
+            return DECIDE;
+        }
+
         if (coinsToMint > 0 && shouldMintCoins.isPresent() && shouldMintCoins.get().getValue())
         {
-            ItemStack stack = building.mintCoins(null, coinsToMint);
+            ItemStack stack = localBuilding.mintCoins(null, coinsToMint);
             coinsToMint = 0;
             
             TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
@@ -415,28 +469,28 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             
             if (stack.isEmpty())
             {
-                MessageUtils.format("mctradepost.marketplace.nsf").sendTo(building.getColony()).forAllPlayers();
+                MessageUtils.format("mctradepost.marketplace.nsf").sendTo(localBuilding.getColony()).forAllPlayers();
                 settings.with(BuildingMarketplace.AUTOMINT, new BoolSetting(false));
                 return DECIDE;
             }
 
-            StatsUtil.trackStat(building, WindowEconModule.COINS_MINTED, stack.getCount());
+            StatsUtil.trackStat(localBuilding, WindowEconModule.COINS_MINTED, stack.getCount());
 
-            if (!InventoryUtils.addItemStackToProvider(building, stack))
+            if (!InventoryUtils.addItemStackToProvider(localBuilding, stack))
             {
                 if (!InventoryUtils.addItemStackToProvider(worker, stack))
                 {
-                    BuildingEconModule econ = building.getModule(MCTPBuildingModules.ECON_MODULE);
+                    BuildingEconModule econ = localBuilding.getModule(MCTPBuildingModules.ECON_MODULE);
                     econ.deposit(coinsToMint * MCTPConfig.tradeCoinValue.get());
 
                     stack.setCount(0);
-                    MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(building.getColony()).forAllPlayers();
+                    MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(localBuilding.getColony()).forAllPlayers();
 
                     return DECIDE;
                 }
             }
             
-            BuildingUtil.bringThisToTheWarehouse(building, stack);
+            BuildingUtil.bringThisToTheWarehouse(localBuilding, stack);
         }
 
         return DECIDE;
@@ -451,6 +505,13 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     {
         int coinsNeeded = 0;
 
+        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+
+        if (coinItem == null)
+        {
+            throw new IllegalStateException("TradePost coin item is null. This should never happen. Please report.");
+        }
+
         for (IBuilding somebuilding : building.getColony().getBuildingManager().getBuildings().values())
         {
             ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(somebuilding, false);
@@ -463,9 +524,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 {
                     Stack stack = itemRequest.getRequest();
 
-                    // LOGGER.info("Stack Request: {}", stack.getStack());
-
-                    if (stack != null && stack.getStack().is(MCTradePostMod.MCTP_COIN_ITEM.get()))
+                    if (stack != null && stack.getStack().is(coinItem))
                     {
                         coinsNeeded = coinsNeeded + stack.getStack().getCount();
                     }
@@ -500,12 +559,27 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private IAIState evaluateFramesForFilling()
     {
+
+        if (building.getDisplayShelves().isEmpty())
+        {
+            Log.getLogger().error("Building {} has no display shelves in colony {}", building.getBuildingDisplayName(), building.getColony().getID());
+            return DECIDE;
+        }
+
         // First pass: Find any empty item frame (considered available to fill)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
         {
+            if (displayLocation == null)
+            {
+                continue;
+            }
+
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
             final Level world = building.getColony().getWorld();
-            ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
+
+            UUID frameId = displayCase.getFrameId();
+
+            ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
 
             if (frame == null)
             {
@@ -523,7 +597,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
         }
 
-        return null;
+        return DECIDE;
     }
 
     /**
@@ -535,13 +609,29 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private IAIState evaluteFramesForSelling()
     {
+
+        if (building.getDisplayShelves().isEmpty())
+        {
+            Log.getLogger().error("Building {} has no display shelves in colony {}", building.getBuildingDisplayName(), building.getColony().getID());
+            return DECIDE;
+        }
+
         // Find any filled item frame (considered eligible to be sold)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
         {
+
+            if (displayLocation == null)
+            {
+                continue;
+            }
+
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
 
             final Level world = building.getColony().getWorld();
-            ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
+
+            UUID frameId = displayCase.getFrameId();
+
+            ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
 
             if (frame == null)
             {
@@ -567,7 +657,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
         }
 
-        return null;
+        return DECIDE;
     }
 
     /**
@@ -581,7 +671,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         ServerLevel level = (ServerLevel) building.getColony().getWorld();
 
         // Additional particles and sound
-        level.sendParticles(ParticleTypes.POOF, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 20, 0.5, 0.5, 0.5, 0.1);
+        level.sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.POOF), pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 20, 0.5, 0.5, 0.5, 0.1);
 
         int chanceOfChaChing = (int) (MCTPConfig.registerSoundChance.get() * 100);
         SoundUtils.playSoundWithChance(level,
@@ -602,30 +692,38 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private IAIState sellFromDisplay()
     {
-        DisplayCase displayCase = building.getDisplayShelves().get(currentTarget);
-        ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
+        BlockPos localCurrentTarget = currentTarget;
 
-        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Selling from display."));
+        if (localCurrentTarget == null)
+        {
+            return DECIDE;
+        }
+
+        DisplayCase displayCase = building.getDisplayShelves().get(localCurrentTarget);
+        UUID frameId = displayCase.getFrameId();
+        ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
 
         if (frame == null)
         {
-            building.lostShelfAtDisplayPos(currentTarget);
+            building.lostShelfAtDisplayPos(localCurrentTarget);
         }
         else
         {
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Selling from display {}.", frameId));
+
             ItemStack item = frame.getItem();
             if (!item.isEmpty())
             {
                 if (item.getItem() instanceof SouvenirItem)
                 {
                     TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                        () -> LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, currentTarget));
+                        () -> LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, localCurrentTarget));
 
                     // "Sell" the item — remove it from the frame
-                    frame.setItem(ItemStack.EMPTY);         // Empty the visual frame
+                    frame.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));         // Empty the visual frame
                     sellItem(item);                         // Calculate the value of the item and credit it to the economic module and
                                                             // stats module.
-                    triggerEffect(currentTarget);
+                    triggerEffect(localCurrentTarget);
                     // Add experience, stats, etc.
                     worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                     incrementActionsDoneAndDecSaturation();
@@ -633,7 +731,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 else
                 {
                     // Remove the invalid item from the frame
-                    frame.setItem(ItemStack.EMPTY);
+                    frame.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
                     // Attempt to insert into the worker's inventory
                     ItemStack leftover = InventoryUtils.addItemStackToItemHandlerWithResult(worker.getInventoryCitizen(), item);
@@ -651,7 +749,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
                     () -> LOGGER.info("Shopkeeper: sold item {} from display at {}", item, currentTarget));
 
-                displayCase.setStack(ItemStack.EMPTY);                  // Note that the display case is empty
+                displayCase.setStack(NullnessBridge.assumeNonnull(ItemStack.EMPTY));                  // Note that the display case is empty
                 displayCase.setSaleState(SaleState.ORDER_FULFILLED);    // Mark the order as fulfilled
                 displayCase.setTickcount(-1);                           // Reset the timer.
             }
@@ -678,25 +776,37 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
             if (slot >= 0)
             {
-                worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(slot));
+                ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(slot);
+                if (!stackInSlot.isEmpty())
+                {
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, stackInSlot);
+                }
             }
             else
             {
                 return GET_MATERIALS;
             }
         }
-        if (!walkToWorkPos(currentTarget))
+
+        BlockPos localCurrentTarget = currentTarget;
+        if (localCurrentTarget == null)
+        {
+            return DECIDE;
+        }
+
+        if (!walkToWorkPos(localCurrentTarget))
         {
             setDelay(2);
             return getState();
         }
 
-        DisplayCase displayCase = building.getDisplayShelves().get(currentTarget);
-        ItemFrame frame = (ItemFrame) ((ServerLevel) world).getEntity(displayCase.getFrameId());
+        DisplayCase displayCase = building.getDisplayShelves().get(localCurrentTarget);
+        UUID frameId = displayCase.getFrameId();
+        ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
 
         if (frame == null)
         {
-            building.lostShelfAtDisplayPos(currentTarget);
+            building.lostShelfAtDisplayPos(localCurrentTarget);
         }
         else
         {
@@ -704,11 +814,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
             if (frame.getItem().isEmpty())
             {
-                ItemStack placed = heldItem.split(1);           // Take the item from the inventory();
+                // Take the item from the inventory();
+                ItemStack placed = heldItem.split(1);           
                 ItemStack souvenir = null;
 
+                Item souvenirItem = MCTradePostMod.SOUVENIR.get();
+
                 // If the shopkeeper has gotten their hands on unsold souvenirs somehow, don't re-souvenir them.
-                if (placed.is(MCTradePostMod.SOUVENIR.get()))
+                if (souvenirItem != null && placed.is(souvenirItem))
                 {
                     souvenir = placed;
                 }
@@ -732,7 +845,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 this.incrementActionsDoneAndDecSaturation();
 
-                worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
                 incrementActionsDone();
             }

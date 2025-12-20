@@ -10,12 +10,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 import java.util.Queue;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
@@ -23,6 +21,7 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
@@ -35,6 +34,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.ICitizenData;
@@ -46,6 +46,7 @@ import com.minecolonies.api.colony.buildings.modules.IBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
@@ -73,7 +74,6 @@ import com.minecolonies.core.colony.requestsystem.management.IStandardRequestMan
 import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.Provider;
@@ -82,9 +82,11 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -97,9 +99,9 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static String EXPORTS_SHIPPED = "exports_shipped";
-    public static String IMPORTS_RECEIVED = "imports_received";
-    public static String NBT_TDR_TOKEN = "tdr_token";
+    public static @Nonnull String EXPORTS_SHIPPED = "exports_shipped";
+    public static @Nonnull String IMPORTS_RECEIVED = "imports_received";
+    public static @Nonnull String NBT_TDR_TOKEN = "tdr_token";
 
     protected TrainDeliveryResolver trainDeliveryResolver;
     protected IToken<?> trainDeliveryResolverToken = null;
@@ -147,7 +149,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
     public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
 
-    public BuildingStation(@NotNull IColony colony, BlockPos pos) 
+    public BuildingStation(@NotNull IColony colony, BlockPos pos)
     {
         super(colony, pos);
     }
@@ -159,36 +161,35 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
 
     @Override
-    public String getSchematicName() 
+    public String getSchematicName()
     {
         return ModBuildings.STATION_ID;
     }
 
     /**
-     * Retrieves the map of stations for this building.
-     * The map is keyed by BlockPos, which is the position of the station in the building.
-     * The values are the StationData objects associated with the station at that position.
+     * Retrieves the map of stations for this building. The map is keyed by BlockPos, which is the position of the station in the
+     * building. The values are the StationData objects associated with the station at that position.
+     * 
      * @return a reference to the map of stations.
      */
-    public Map<BlockPos, StationData> getStations() 
+    public Map<BlockPos, StationData> getStations()
     {
         return stations;
     }
 
     /**
-     * Clears the list of connected stations for this building.
-     * This should be called when the building is being destroyed, or when all stations
-     * are being cleared from the building for some other reason.
+     * Clears the list of connected stations for this building. This should be called when the building is being destroyed, or when all
+     * stations are being cleared from the building for some other reason.
      */
-    public void clearConnectedStations() 
+    public void clearConnectedStations()
     {
         stations.clear();
     }
 
     /**
-     * Clears the list of exports for this station.
-     * This will remove all export data from the station, and mark the module as dirty so that it will be saved to disk.
-     * This is useful when the user changes the trade settings, so that the client can receive the updated trade data.
+     * Clears the list of exports for this station. This will remove all export data from the station, and mark the module as dirty so
+     * that it will be saved to disk. This is useful when the user changes the trade settings, so that the client can receive the
+     * updated trade data.
      */
     public void clearExports()
     {
@@ -201,14 +202,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Adds a station to the list of stations for this building.
-     * The station is mapped to its position in the building's station map.
+     * Adds a station to the list of stations for this building. The station is mapped to its position in the building's station map.
      *
      * @param station The StationData to be added.
      */
-    public void addStation(StationData sdata) 
+    public void addStation(StationData sdata)
     {
-        if (sdata == null || sdata.getBuildingPosition() == null || sdata.getBuildingPosition().equals(BlockPos.ZERO)) 
+        if (sdata == null || sdata.getBuildingPosition() == null || sdata.getBuildingPosition().equals(BlockPos.ZERO))
         {
             LOGGER.warn("Attempted to add null station to building.");
             return;
@@ -239,7 +239,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param pos The BlockPos to check.
      * @return true if a station is at the given position, false if not.
      */
-    public boolean hasStationAt(@Nonnull BlockPos pos) 
+    public boolean hasStationAt(@Nonnull BlockPos pos)
     {
         return stations.containsKey(pos);
     }
@@ -256,10 +256,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Marks the trades as dirty, so that they will be re-sent to the client on the next update.
-     * This cascades to both the import and export modules.
-     * This is useful when the user changes the trade settings, so that the client can receive the
-     * updated trade data.
+     * Marks the trades as dirty, so that they will be re-sent to the client on the next update. This cascades to both the import and
+     * export modules. This is useful when the user changes the trade settings, so that the client can receive the updated trade data.
      */
     public void markTradesDirty()
     {
@@ -279,34 +277,31 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
     }
 
-
     /**
-     * Validates the stations that are connected to this station.
-     * 
-     * Goes through all the stations in the list and checks if they are still valid.
-     * Checks for the following conditions:
-     * - The server is not null.
-     * - The level is not null.
-     * - The colony is not null.
-     * - The building is not null and is an instance of BuildingStation.
-     * If any of these conditions are not met, the station is removed from the list.
+     * Validates the stations that are connected to this station. Goes through all the stations in the list and checks if they are
+     * still valid. Checks for the following conditions: - The server is not null. - The level is not null. - The colony is not null. -
+     * The building is not null and is an instance of BuildingStation. If any of these conditions are not met, the station is removed
+     * from the list.
      */
     protected void validateStations()
     {
-        for (StationData remoteStation : this.stations.values() )
+        for (StationData remoteStation : this.stations.values())
         {
             MinecraftServer server = getColony().getWorld().getServer();
+            ResourceKey<Level> dimension = remoteStation.getDimension();
 
-            if (server == null) {
+            if (server == null || dimension == null)
+            {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no server): {} - removing it.", remoteStation);
                 markTradesDirty();
                 continue;
             }
 
-            Level level = server.getLevel(remoteStation.getDimension());
+            Level level = server.getLevel(dimension);
 
-            if (level == null) {
+            if (level == null)
+            {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no level): {} - removing it.", remoteStation);
                 markTradesDirty();
@@ -315,7 +310,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             IColony stationColony = IColonyManager.getInstance().getIColony(level, remoteStation.getBuildingPosition());
 
-            if (stationColony == null) {
+            if (stationColony == null)
+            {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no colony): {} - removing it.", remoteStation);
                 markTradesDirty();
@@ -324,7 +320,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             IBuilding building = stationColony.getBuildingManager().getBuilding(remoteStation.getBuildingPosition());
 
-            if (building == null || !(building instanceof ITradeCapable)) {
+            if (building == null || !(building instanceof ITradeCapable))
+            {
                 stations.remove(remoteStation.getBuildingPosition());
                 BuildingStation.LOGGER.warn("Failed to validate station (no building): {} - removing it.", remoteStation);
                 markTradesDirty();
@@ -332,9 +329,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
 
             // Restore track connection information if not present (for example, after restoring from a save)
-            if (getTrackConnectionResult(remoteStation) == null) {
-                TrackConnectionResult trackConnectionResult = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(), 
-                    this.getRailStartPosition(), remoteStation.getRailStartPosition(), false);
+            if (getTrackConnectionResult(remoteStation) == null)
+            {
+                TrackConnectionResult trackConnectionResult =
+                    TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(),
+                        this.getRailStartPosition(),
+                        remoteStation.getRailStartPosition(),
+                        false);
                 putTrackConnectionResult(remoteStation, trackConnectionResult);
                 markTradesDirty();
             }
@@ -343,13 +344,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
     /**
      * Handles the spawning of tourists in the station, based on the current research level for tourists.
-     * <p>
-     * If the station is open for business and the number of external citizens is less than the current tourism level
-     * multiplied by the building level, a visitor is spawned and the recruitment interaction is triggered with the
-     * first name of the visitor.
-     * <p>
-     * The time until the next visitor is determined by the current number of citizens in the colony, the maximum
-     * number of citizens in the colony and the current building level.
+     * <p>If the station is open for business and the number of external citizens is less than the current tourism level multiplied by
+     * the building level, a visitor is spawned and the recruitment interaction is triggered with the first name of the visitor.
+     * <p>The time until the next visitor is determined by the current number of citizens in the colony, the maximum number of citizens
+     * in the colony and the current building level.
      */
     private void handleTourists()
     {
@@ -393,7 +391,6 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     @Override
     public void onColonyTick(@NotNull final IColony colony)
     {
-
         handleTourists();
         validateStations();
 
@@ -454,22 +451,22 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         if (recruitLevel > 1)
         {
             // Leather
-            hat = new ItemStack(Items.LEATHER_HELMET);
+            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.LEATHER_HELMET));
         }
         if (recruitLevel > 2)
         {
             // Gold
-            hat = new ItemStack(Items.GOLDEN_HELMET);
+            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.GOLDEN_HELMET));
         }
         if (recruitLevel > 3)
         {
             // Iron
-            hat = new ItemStack(Items.IRON_HELMET);
+            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.IRON_HELMET));
         }
         if (recruitLevel > 4)
         {
             // Diamond
-            hat = new ItemStack(Items.DIAMOND_HELMET);
+            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.DIAMOND_HELMET));
         }
         return hat;
     }
@@ -481,34 +478,39 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     public ICitizenData getStationmaster()
     {
-        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get()).getAssignedCitizen();
-        
-        if (employees.isEmpty()) {
+        List<ICitizenData> employees =
+            this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get())
+                .getAssignedCitizen();
+
+        if (employees.isEmpty())
+        {
             return null;
         }
-    
+
         return employees.get(0);
     }
 
     /**
-     * Returns true if the station is open for business, i.e. if it has a
-     * stationmaster assigned and they are working.
+     * Returns true if the station is open for business, i.e. if it has a stationmaster assigned and they are working.
+     * 
      * @return true if the station is open for business, false otherwise.
      */
-    public boolean isOpenForBusiness() 
+    public boolean isOpenForBusiness()
     {
         ICitizenData stationmaster = getStationmaster();
 
-        if (stationmaster == null) {
+        if (stationmaster == null)
+        {
             return false;
         }
-    
+
         final Optional<AbstractEntityCitizen> optionalEntityCitizen = stationmaster.getEntity();
 
-        if (!optionalEntityCitizen.isPresent()) {
+        if (!optionalEntityCitizen.isPresent())
+        {
             return false;
         }
-        
+
         AbstractEntityCitizen stationmasterEntity = optionalEntityCitizen.get();
 
         IState workState = ((EntityCitizen) stationmasterEntity).getCitizenAI().getState();
@@ -516,8 +518,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         return CitizenAIState.WORKING.equals(workState);
     }
 
+    /**
+     * Serializes the state of the building to NBT, including the list of stations that this building is connected to.
+     * The list of stations is stored in a ListTag with the key {@link #TAG_STATIONS}. Each station is represented by a CompoundTag
+     * containing the state of the station, as returned by {@link StationData#toNBT(HolderLookup.Provider)}.
+     * Additionally, the token used to identify the outpost resolver used by the train delivery AI is stored in a CompoundTag with the key
+     * {@link #NBT_TDR_TOKEN}.
+     * 
+     * @param provider The holder lookup provider for item and block references.
+     * @return The compound tag containing the serialized state of the building.
+     */    
     @Override
-    public CompoundTag serializeNBT(final HolderLookup.Provider provider)
+    public CompoundTag serializeNBT(@SuppressWarnings("null") final HolderLookup.Provider provider)
     {
         CompoundTag compound = super.serializeNBT(provider);
 
@@ -537,7 +549,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         if (trainDeliveryResolverToken != null)
         {
             CompoundTag outpostToken = StandardFactoryController.getInstance().serializeTag(provider, trainDeliveryResolverToken);
-            compound.put(NBT_TDR_TOKEN, outpostToken);
+
+            if (outpostToken != null)
+            {
+                compound.put(NullnessBridge.assumeNonnull(NBT_TDR_TOKEN), outpostToken);
+            }
         }
 
         return compound;
@@ -545,6 +561,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
     /**
      * Deserializes the state of the building from NBT, including the list of stations.
+     * 
      * @param provider The holder lookup provider for item and block references.
      * @param compound The compound tag containing the serialized state of the building.
      */
@@ -569,22 +586,22 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
         }
 
-        if (compound.contains(NBT_TDR_TOKEN)) 
+        if (compound.contains(NBT_TDR_TOKEN))
         {
-            trainDeliveryResolverToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_TDR_TOKEN));
+            trainDeliveryResolverToken =
+                StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(NBT_TDR_TOKEN));
         }
-
     }
 
     /**
-     * Serializes the current state of the building, including the list of stations, to the given buffer.
-     * The state of the stations is stored under the key TAG_STATIONS in the serialized CompoundTag.
+     * Serializes the current state of the building, including the list of stations, to the given buffer. The state of the stations is
+     * stored under the key TAG_STATIONS in the serialized CompoundTag.
      *
      * @param buf      The buffer to serialize the state of the building into.
      * @param fullSync Whether or not to serialize the full state of the building, or just the delta.
      */
     @Override
-    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync) 
+    public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf, final boolean fullSync)
     {
         super.serializeToView(buf, fullSync);
         buf.writeInt(stations.size());
@@ -593,9 +610,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             buf.writeNbt(station.getValue().toNBT());
         }
 
-
         buf.writeInt(connectionresults.size());
-        for (final Map.Entry<StationData, TrackConnectionResult> e : connectionresults.entrySet()) 
+        for (final Map.Entry<StationData, TrackConnectionResult> e : connectionresults.entrySet())
         {
             buf.writeNbt(e.getKey().toNBT());       // key
             buf.writeBoolean(e.getValue().connected);     // value
@@ -606,8 +622,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * Records the track connection result for a given station.
      *
      * @param stationData The station data for which the track connection result is being recorded.
-     * @param result The result of the track connection, which includes whether the connection is successful,
-     *               the closest point on the track, and the path of the track connection.
+     * @param result      The result of the track connection, which includes whether the connection is successful, the closest point on
+     *                    the track, and the path of the track connection.
      */
     public void putTrackConnectionResult(StationData stationData, TrackConnectionResult result)
     {
@@ -618,8 +634,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * Retrieves the track connection result for a given station data object.
      *
      * @param stationData The station data for which the track connection result is being retrieved.
-     * @return The track connection result, which includes whether the connection is successful,
-     *         the closest point on the track, and the path of the track connection.
+     * @return The track connection result, which includes whether the connection is successful, the closest point on the track, and
+     *         the path of the track connection.
      */
     public TrackConnectionResult getTrackConnectionResult(StationData stationData)
     {
@@ -627,10 +643,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Retrieves the BlockPos of the starting point of the rail network for this train station.
-     * If there is no starting point specified, the position of the building itself is returned.
-     * If there are multiple starting points specified in the building's NBT, the first one is used.
-     * A warning will be logged if there are multiple starting points found.
+     * Retrieves the BlockPos of the starting point of the rail network for this train station. If there is no starting point
+     * specified, the position of the building itself is returned. If there are multiple starting points specified in the building's
+     * NBT, the first one is used. A warning will be logged if there are multiple starting points found.
+     * 
      * @return The BlockPos of the starting point of the rail network for this train station.
      */
     public BlockPos getRailStartPosition()
@@ -648,8 +664,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Adds a payment request to the queue. The request will be processed on the
-     * next call to {@link #removePaymentRequest()}.
+     * Adds a payment request to the queue. The request will be processed on the next call to {@link #removePaymentRequest()}.
+     * 
      * @param amount the amount of the payment request.
      */
     public void addPaymentRequest(Integer amount)
@@ -668,25 +684,31 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Completes a shipment of goods from this station to another station specified by the export data.
-     * This method will add the goods to the remote station's inventory or drop them on the ground if the inventory is full.
-     * It will also add the payment to the local station's inventory or drop it on the ground if the inventory is full.
-     * Additionally, it will give experience to the worker at the remote station.
+     * Completes a shipment of goods from this station to another station specified by the export data. This method will add the goods
+     * to the remote station's inventory or drop them on the ground if the inventory is full. It will also add the payment to the local
+     * station's inventory or drop it on the ground if the inventory is full. Additionally, it will give experience to the worker at
+     * the remote station.
+     * 
      * @param exportData the export data containing the station to ship to, the item to ship, and the cost of shipping.
      */
     public void completeExport(ExportData exportData)
     {
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment completed of {} for {} at {}", exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getDestinationStationData().getStation().getPosition()));
+        TraceUtils.dynamicTrace(TRACE_STATION,
+            () -> LOGGER.info("Shipment completed of {} for {} at {}",
+                exportData.getTradeItem().getItem(),
+                exportData.getCost(),
+                exportData.getDestinationStationData().getStation().getPosition()));
 
-        ItemStack finalPayment = ItemStack.EMPTY;
-        
-        if (exportData.getCost() > 0) 
+        @Nonnull ItemStack finalPayment = NullnessBridge.assumeNonnull(ItemStack.EMPTY);
+
+        if (exportData.getCost() > 0)
         {
-            finalPayment = new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), exportData.getCost());
+            CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+            finalPayment = new ItemStack(NullnessBridge.assumeNonnull(coinItem), exportData.getCost());
         }
 
         int shipmentCountdown = exportData.getShipmentCountdown();
-        if (shipmentCountdown > 0) 
+        if (shipmentCountdown > 0)
         {
             shipmentCountdown -= 1;
             exportData.setShipmentCountdown(shipmentCountdown);
@@ -694,13 +716,25 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         if (!exportData.isReverse())
         {
-            StatsUtil.trackStatByName(this, EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
-            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(), IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(this,
+                EXPORTS_SHIPPED,
+                exportData.getTradeItem().getItemStack().getHoverName(),
+                exportData.getQuantity());
+            StatsUtil.trackStatByName(exportData.getDestinationStationData().getStation(),
+                IMPORTS_RECEIVED,
+                exportData.getTradeItem().getItemStack().getHoverName(),
+                exportData.getQuantity());
         }
         else
         {
-            StatsUtil.trackStatByName(exportData.getSourceStation(), EXPORTS_SHIPPED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
-            StatsUtil.trackStatByName(this, IMPORTS_RECEIVED, exportData.getTradeItem().getItemStack().getHoverName(), exportData.getQuantity());
+            StatsUtil.trackStatByName(exportData.getSourceStation(),
+                EXPORTS_SHIPPED,
+                exportData.getTradeItem().getItemStack().getHoverName(),
+                exportData.getQuantity());
+            StatsUtil.trackStatByName(this,
+                IMPORTS_RECEIVED,
+                exportData.getTradeItem().getItemStack().getHoverName(),
+                exportData.getQuantity());
         }
 
         ITradeCapable remoteStation = exportData.getDestinationStationData().getStation();
@@ -712,14 +746,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             MCTPInventoryUtils.InsertOrDropByQuantity(this, exportData.getTradeItem(), exportData.getQuantity());
             exportData.setShipDistance(-1);
             GhostCartEntity cart = exportData.getCart();
-            if (cart != null) 
+            if (cart != null)
             {
                 cart.discard();
                 exportData.setCart(null);
             }
             return;
         }
- 
+
         MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
 
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
@@ -729,16 +763,22 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
         else
         {
-            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) this.getColony().getWorld(), this.getPosition(), finalPayment);
+            ServerLevel level = (ServerLevel) this.getColony().getWorld();
+            BlockPos buildingPos = this.getPosition();
+
+            if (level != null && buildingPos != null)
+            {
+                MCTPInventoryUtils.dropItemsInWorld(level, buildingPos, finalPayment);
+            }
         }
-    
+
         this.onShipmentDelivered(exportData);
-        
+
         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Resetting export."));
-        
+
         exportData.setShipDistance(-1);
         GhostCartEntity cart = exportData.getCart();
-        if (cart != null) 
+        if (cart != null)
         {
             cart.discard();
             exportData.setCart(null);
@@ -746,24 +786,23 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Called when a shipment is delivered to this station.
-     * If the shipment has an associated request token, the request is resolved.
+     * Called when a shipment is delivered to this station. If the shipment has an associated request token, the request is resolved.
      * Additionally, all assigned citizens at this station receive 1 experience point.
+     * 
      * @param shipmentSent the export data containing the shipment that was delivered.
      */
     @Override
     public void onShipmentDelivered(ExportData shipmentSent)
     {
-
         if (shipmentSent.getRequestToken() != null)
         {
             IRequest<?> associatedRequest = null;
-            
-            try 
+
+            try
             {
                 IRequestManager requestManager = this.getColony().getRequestManager();
                 associatedRequest = requestManager.getRequestForToken(shipmentSent.getRequestToken());
-                
+
                 if (associatedRequest != null)
                 {
                     resolveRequest(associatedRequest, true);
@@ -771,11 +810,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
             catch (Exception e)
             {
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request for token {} no longer valid (possibly cancelled while shipping).", shipmentSent.getRequestToken(), e));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Request for token {} no longer valid (possibly cancelled while shipping).",
+                        shipmentSent.getRequestToken(),
+                        e));
             }
-
         }
-
 
         for (ICitizenData citizen : getAllAssignedCitizen())
         {
@@ -784,12 +824,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 citizen.getEntity().get().getCitizenExperienceHandler().addExperience(1);
             }
         }
-
     }
 
     /**
-     * Called when a shipment has been received at this building. This method is used to call for a pickup for the received items.
-     * If the building is an outpost, it will call for a pickup for the full amount of the shipment. If the building is not an outpost, it will call for a pickup for each stack of the shipment, up to the max stack size of the item.
+     * Called when a shipment has been received at this building. This method is used to call for a pickup for the received items. If
+     * the building is an outpost, it will call for a pickup for the full amount of the shipment. If the building is not an outpost, it
+     * will call for a pickup for each stack of the shipment, up to the max stack size of the item.
      * 
      * @param itemShipped the shipment that was received
      */
@@ -810,7 +850,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 thisPickup = pickupAmount;
             }
             pickupAmount -= thisPickup;
-            IToken<?> token = BuildingUtil.bringThisToTheWarehouse(this, new ItemStack(shipmentReceived.getTradeItem().getItemStack().getItem(), thisPickup));
+
+            Item item = shipmentReceived.getTradeItem().getItemStack().getItem();
+            
+            IToken<?> token = item == null ? null : BuildingUtil.bringThisToTheWarehouse(this, new ItemStack(item, thisPickup));
 
             if (token != null)
             {
@@ -820,13 +863,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         if (calledForPickup)
         {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Calling for pickup for {} at {}", this.getBuildingDisplayName(), this.getPosition()));
+            TraceUtils.dynamicTrace(TRACE_STATION,
+                () -> LOGGER.info("Calling for pickup for {} at {}", this.getBuildingDisplayName(), this.getPosition()));
         }
 
         if (!this.getAllAssignedCitizen().isEmpty())
         {
             ICitizenData worker = this.getStationmaster();
-            
+
             if (worker != null && !worker.getEntity().isEmpty())
             {
                 worker.getEntity().get().getCitizenExperienceHandler().addExperience(shipmentReceived.getCost());
@@ -834,23 +878,21 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
     }
 
-
     /**
-     * Returns a list of connected outpost buildings.
-     * A connected outpost is defined as one which is connected to this station by a track,
-     * and is part of the same colony as this station.
+     * Returns a list of connected outpost buildings. A connected outpost is defined as one which is connected to this station by a
+     * track, and is part of the same colony as this station.
+     * 
      * @return a list of connected outpost buildings
      */
     public List<BuildingOutpost> findConnectedOutposts()
     {
-        List<BuildingOutpost> outposts = new ArrayList<>(); 
+        List<BuildingOutpost> outposts = new ArrayList<>();
         for (StationData stationData : connectionresults.keySet())
         {
             TrackConnectionResult connectionResult = connectionresults.get(stationData);
 
-            if (connectionResult.isConnected() 
-                && stationData.getStation() instanceof BuildingOutpost outpost
-                && this.getColony().getID() == outpost.getColony().getID())
+            if (connectionResult.isConnected() && stationData.getStation() instanceof BuildingOutpost outpost &&
+                this.getColony().getID() == outpost.getColony().getID())
             {
                 outposts.add(outpost);
             }
@@ -859,12 +901,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Analyzes all requests from connected outposts and attempts to resolve them.
-     * If a request is in the CREATED or ASSIGNED state, it checks if the outpost has a qualifying item to ship.
-     * If so, it initiates a shipment and sets the request state to RESOLVED.
-     * If no qualifying item is found, it echoes the request to the stationmaster and sets the request state to ASSIGNED.
-     * If the request is already in progress, it does nothing.
-     * This method is called as needed by the worker's AI.
+     * Analyzes all requests from connected outposts and attempts to resolve them. If a request is in the CREATED or ASSIGNED state, it
+     * checks if the outpost has a qualifying item to ship. If so, it initiates a shipment and sets the request state to RESOLVED. If
+     * no qualifying item is found, it echoes the request to the stationmaster and sets the request state to ASSIGNED. If the request
+     * is already in progress, it does nothing. This method is called as needed by the worker's AI.
      */
     public void handleOutpostRequests()
     {
@@ -884,18 +924,22 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
 
         final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
- 
+
         final List<IToken<?>> openTaskList = module.getMutableRequestList();
         final List<IToken<?>> reqsToRemove = new ArrayList<>();
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing {} tasks for station: {} in colony {}.", openTaskList.size(), this.getBuildingDisplayName(), this.getColony().getID()));
+        TraceUtils.dynamicTrace(TRACE_STATION,
+            () -> LOGGER.info("Analyzing {} tasks for station: {} in colony {}.",
+                openTaskList.size(),
+                this.getBuildingDisplayName(),
+                this.getColony().getID()));
 
         int car = 1;
 
         // Cycle through open task list, see if we have something that can
         // be shipped, and ship it if so. Remove it from the task list once shipped.
         for (final IToken<?> requestToken : openTaskList)
-        {   
+        {
             final IRequest<?> request = requestManager.getRequestForToken(requestToken);
 
             if (request == null || !(request.getRequest() instanceof Delivery delivery))
@@ -906,19 +950,25 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             try
             {
-                final IRequestResolver<?> currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());   
+                final IRequestResolver<?> currentlyAssignedResolver = requestManager.getResolverForRequest(request.getId());
 
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} is currently assigned to resolver: {}", request.getLongDisplayString(), currentlyAssignedResolver));
-            } catch (IllegalArgumentException e)
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Request {} is currently assigned to resolver: {}",
+                        request.getLongDisplayString(),
+                        currentlyAssignedResolver));
+            }
+            catch (IllegalArgumentException e)
             {
                 // Repair request if it is not registered with the request manager.
                 // requestManager.getRequestHandler().registerRequest(request);
                 // requestManager.assignRequest(request.getId());
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
                 continue;
             }
-            
-            IBuilding destinationBuilding = this.getColony().getBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
+
+            IBuilding destinationBuilding =
+                this.getColony().getBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
 
             if (destinationBuilding == null || !(destinationBuilding instanceof BuildingOutpost outpost))
             {
@@ -928,19 +978,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
 
             OutpostShipmentTracking tracking = outpost.trackingForRequest(request);
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}", request.getState(), tracking, request.getLongDisplayString()));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}",
+                    request.getState(),
+                    tracking,
+                    request.getLongDisplayString()));
 
-            if (
-                (
-                        tracking.getState() == OutpostOrderState.NEEDED 
-                    || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING
-                    || tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP
-                )
-                    && !handledRequestList.contains(request.getId())
-                    && !reqsToRemove.contains(request.getId())
-            ) {
+            if ((tracking.getState() == OutpostOrderState.NEEDED || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING ||
+                tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP) && !handledRequestList.contains(request.getId()) &&
+                !reqsToRemove.contains(request.getId()))
+            {
                 boolean satisfied = trySatisfyRequest(request, outpost, car++);
-                
+
                 if (satisfied)
                 {
                     tracking.setState(OutpostOrderState.SHIPMENT_INITIATED);
@@ -960,7 +1009,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests(false);
 
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.", remainingRequests.size(), outpost.getBuildingDisplayName(), this.getColony().getID()));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.",
+                    remainingRequests.size(),
+                    outpost.getBuildingDisplayName(),
+                    this.getColony().getID()));
 
             if (remainingRequests == null || remainingRequests.isEmpty())
             {
@@ -971,7 +1024,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             {
                 if (handledRequestList.contains(request.getId()) || request.hasChildren())
                 {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} was already shipped or is scheduled to be shipped - skipping.", request.getId(), request.getState(),request.getLongDisplayString()));
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                        () -> LOGGER.info(
+                            "Delivery Request {} (state {}) - {} was already shipped or is scheduled to be shipped - skipping.",
+                            request.getId(),
+                            request.getState(),
+                            request.getLongDisplayString()));
                     continue;
                 }
 
@@ -987,8 +1045,16 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     {
                         // Attempting to use the request system to generate the delivery request (which will populate our work queue).
                         // If this doesn't work, we'll have to ship it and let the cancellation logic at the outpost handle it.
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has a satisfier: {}", request.getId(), request.getState(), request.getLongDisplayString(), satisfier));
-                        Delivery delivery = new Delivery(this.getLocation(), outpost.getLocation(), satisfier.getItemStack().copyWithCount(satisfier.getAmount()), 0);
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} has a satisfier: {}",
+                                request.getId(),
+                                request.getState(),
+                                request.getLongDisplayString(),
+                                satisfier));
+                        Delivery delivery = new Delivery(this.getLocation(),
+                            outpost.getLocation(),
+                            satisfier.getItemStack().copyWithCount(satisfier.getAmount()),
+                            0);
                         IToken<?> deliveryRequestToken = outpost.createRequest(delivery, true);
                         IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
                         deliveryRequest.setParent(request.getId());
@@ -996,50 +1062,72 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
                         requestManager.updateRequestState(request.getId(), RequestState.IN_PROGRESS);
 
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} had a delivery created: {} (state {})", 
-                            request.getId(), request.getState(), request.getLongDisplayString(), deliveryRequestToken, deliveryRequest.getState()));
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} had a delivery created: {} (state {})",
+                                request.getId(),
+                                request.getState(),
+                                request.getLongDisplayString(),
+                                deliveryRequestToken,
+                                deliveryRequest.getState()));
 
                         handledRequestList.add(request.getId());
                     }
                     else
                     {
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no satisfier.", request.getId(), request.getState(), request.getLongDisplayString()));
+                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no satisfier.",
+                                request.getId(),
+                                request.getState(),
+                                request.getLongDisplayString()));
 
                         if (!request.hasChildren() && request instanceof IDeliverable outstandingNeed)
                         {
-                            IDeliverable deliverableCopy = ((IDeliverable) request.getRequest()).copyWithCount(outstandingNeed.getCount());
+                            IDeliverable deliverableCopy =
+                                ((IDeliverable) request.getRequest()).copyWithCount(outstandingNeed.getCount());
                             IToken<?> copyToken = this.createRequest(deliverableCopy, false);
 
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no child steps and is a deliverable - creating a new request for the station: {}", 
-                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
-
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                                () -> LOGGER.info(
+                                    "Outstanding Request {} (state {}) - {} has no child steps and is a deliverable - creating a new request for the station: {}",
+                                    request.getId(),
+                                    request.getState(),
+                                    request.getLongDisplayString(),
+                                    copyToken));
                         }
                         else if (!request.hasChildren() && request instanceof ItemStackRequest stackrequest)
                         {
                             IToken<?> copyToken = this.createRequest(stackrequest.getRequest(), false);
 
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is echoed to {}", 
-                                request.getId(), request.getState(), request.getLongDisplayString(), copyToken));
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                                () -> LOGGER.info("Outstanding Request {} (state {}) - {} is echoed to {}",
+                                    request.getId(),
+                                    request.getState(),
+                                    request.getLongDisplayString(),
+                                    copyToken));
                         }
                         else
                         {
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} (state {}) - {} is not being echoed. Children: {}, Instance: {}", 
-                                request.getId(), request.getState(), request.getLongDisplayString(), request.getChildren().size(), request.getClass().getSimpleName()));
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                                () -> LOGGER.info(
+                                    "Outstanding Request {} (state {}) - {} is not being echoed. Children: {}, Instance: {}",
+                                    request.getId(),
+                                    request.getState(),
+                                    request.getLongDisplayString(),
+                                    request.getChildren().size(),
+                                    request.getClass().getSimpleName()));
                         }
                     }
                 }
             }
-
         }
     }
 
     /**
-     * Handles the completion of a request in the task queue. If the request was successful, marks it as resolved; otherwise, marks it as failed.
-     * If the request was a delivery, attempts to resolve any dependent requests (i.e. other deliveries to the same outpost) and updates the state of those requests accordingly.
+     * Handles the completion of a request in the task queue. If the request was successful, marks it as resolved; otherwise, marks it
+     * as failed. If the request was a delivery, attempts to resolve any dependent requests (i.e. other deliveries to the same outpost)
+     * and updates the state of those requests accordingly. Adapted from JobDeliveryman
      * 
-     * Adapted from JobDeliveryman
-     * 
-     * @param request the request to finish
+     * @param request    the request to finish
      * @param successful whether the request was successful or not
      */
     public void resolveRequest(IRequest<?> request, final boolean successful)
@@ -1051,26 +1139,40 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         if (request.getRequest() instanceof Delivery)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} - {} (state {}) about to be marked as resolved.", request.getId(), request.getLongDisplayString(), request.getState()));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Outstanding Request {} - {} (state {}) about to be marked as resolved.",
+                    request.getId(),
+                    request.getLongDisplayString(),
+                    request.getState()));
 
             if (request.getState() == RequestState.IN_PROGRESS)
             {
-                getColony().getRequestManager().updateRequestState(request.getId(), successful ? RequestState.RESOLVED : RequestState.FAILED);
+                getColony().getRequestManager()
+                    .updateRequestState(request.getId(), successful ? RequestState.RESOLVED : RequestState.FAILED);
 
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Outstanding Request {} - {} (state {}) post-update.", request.getId(), request.getLongDisplayString(), request.getState()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Outstanding Request {} - {} (state {}) post-update.",
+                        request.getId(),
+                        request.getLongDisplayString(),
+                        request.getState()));
 
                 if (request.getParent() != null)
                 {
                     IRequest<?> parent = getColony().getRequestManager().getRequestForToken(request.getParent());
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Parent Request {} - {} (state {}) post-update.", parent.getId(), parent.getLongDisplayString(), parent.getState()));
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                        () -> LOGGER.info("Parent Request {} - {} (state {}) post-update.",
+                            parent.getId(),
+                            parent.getLongDisplayString(),
+                            parent.getState()));
                 }
             }
         }
     }
 
     /**
-     * Adds a delivery request to the station's work queue if it is not already present, and if the request is a delivery
-     * from this station to the given outpost.
+     * Adds a delivery request to the station's work queue if it is not already present, and if the request is a delivery from this
+     * station to the given outpost.
+     * 
      * @param request The request to check for adding to the work queue.
      * @param outpost The outpost to check for delivery requests to.
      * @return True if the request was added to the work queue, false otherwise.
@@ -1092,41 +1194,53 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
             if (deliveryTargetBuilding == null)
             {
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} - {} from {} to {} is missing a target building at that location.", 
-                    request.getId(), 
-                    request.getLongDisplayString(), 
-                    delivery.getStart().getInDimensionLocation().toShortString(), 
-                    delivery.getTarget().getInDimensionLocation().toShortString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Delivery Request {} - {} from {} to {} is missing a target building at that location.",
+                        request.getId(),
+                        request.getLongDisplayString(),
+                        delivery.getStart().getInDimensionLocation().toShortString(),
+                        delivery.getTarget().getInDimensionLocation().toShortString()));
                 return false;
             }
 
             IBuilding outpostDeliveryTarget = BuildingOutpost.toOutpostBuilding(deliveryTargetBuilding);
 
             // If this is a delivery to the outpost in question from this station, add it to our work queue.
-            if (outpostDeliveryTarget != null && outpostDeliveryTarget.equals(outpost)
-                && delivery.getStart().getInDimensionLocation().equals(this.getPosition())
-                && !module.getMutableRequestList().contains(request.getId())) 
+            if (outpostDeliveryTarget != null && outpostDeliveryTarget.equals(outpost) &&
+                delivery.getStart().getInDimensionLocation().equals(this.getPosition()) &&
+                !module.getMutableRequestList().contains(request.getId()))
             {
                 module.addRequest(request.getId());
                 addedDelivery = true;
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} (state {}) - {} added to station queue.", request.getId(), request.getState(), request.getLongDisplayString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Delivery Request {} (state {}) - {} added to station queue.",
+                        request.getId(),
+                        request.getState(),
+                        request.getLongDisplayString()));
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery Request {} - {} from {} to {} is not a station {} to outpost {} request.", 
-                    request.getId(), 
-                    request.getLongDisplayString(), 
-                    delivery.getStart().getInDimensionLocation().toShortString(), 
-                    delivery.getTarget().getInDimensionLocation().toShortString(), 
-                    this.getPosition().toShortString(), 
-                    outpost.getPosition().toShortString()));
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Delivery Request {} - {} from {} to {} is not a station {} to outpost {} request.",
+                        request.getId(),
+                        request.getLongDisplayString(),
+                        delivery.getStart().getInDimensionLocation().toShortString(),
+                        delivery.getTarget().getInDimensionLocation().toShortString(),
+                        this.getPosition().toShortString(),
+                        outpost.getPosition().toShortString()));
             }
-        } 
-        else 
+        }
+        else
         {
-            for (IToken<?> childRequest : request.getChildren())
+            for (IToken<?> childRequestToken : request.getChildren())
             {
-                addedDelivery = addedDelivery || addTaskForDeliveryIfMissing(this.getColony().getRequestManager().getRequestForToken(childRequest), outpost) || addedDelivery;
+                IRequest<?> childRequest = this.getColony().getRequestManager().getRequestForToken(childRequestToken);
+
+                if (childRequest == null) continue;
+
+                addedDelivery = addedDelivery ||
+                    addTaskForDeliveryIfMissing(childRequest, outpost) ||
+                    addedDelivery;
             }
         }
 
@@ -1134,20 +1248,24 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
-     * Check if we can satisfy the given request from an outpost. If so, initiate a shipment and mark the request as resolved.
-     * If not, check if we need an item to be delivered in order to satisfy the request. If so,
-     * request that item and mark the request as needing an item for shipping.
+     * Check if we can satisfy the given request from an outpost. If so, initiate a shipment and mark the request as resolved. If not,
+     * check if we need an item to be delivered in order to satisfy the request. If so, request that item and mark the request as
+     * needing an item for shipping.
+     * 
      * @param request The request to check for satisfaction.
      * @param outpost The outpost to check for satisfaction.
-     * @param car The car to use for the shipment.
+     * @param car     The car to use for the shipment.
      * @return A list of request tokens to remove from the outpost's request list.
      */
     protected boolean trySatisfyRequest(@Nonnull IRequest<?> request, @Nonnull BuildingOutpost outpost, int car)
     {
-        
         boolean satisfied = false;
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking if satisfiable: {} (state {}) - {}", request.getId(), request.getState(), request.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+            () -> LOGGER.info("Checking if satisfiable: {} (state {}) - {}",
+                request.getId(),
+                request.getState(),
+                request.getLongDisplayString()));
         // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
         ItemStorage satisfier = inventorySatisfiesRequest(request, true);
 
@@ -1161,21 +1279,23 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         return satisfied;
     }
 
-
     /**
-     * Initiates a shipment of goods from this station to an outpost.
-     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
-     * The shipment data is added to the outpost's expected shipments.
+     * Initiates a shipment of goods from this station to an outpost. The cost of shipping is hardcoded to 0 (no charge to the outpost
+     * for shipping). The shipment data is added to the outpost's expected shipments.
      * 
-     * @param thingsToDeliver the items to ship
-     * @param associatedRequest the request associated with the shipment
+     * @param thingsToDeliver    the items to ship
+     * @param associatedRequest  the request associated with the shipment
      * @param outpostDestination the outpost to ship to
-     * @param car When called multiple times in short succession use different car numbers to space them out on the track.
+     * @param car                When called multiple times in short succession use different car numbers to space them out on the
+     *                           track.
      */
-    public void initiateShipment(ItemStorage thingsToDeliver, IRequest<?> associatedRequest, BuildingOutpost outpostDestination, int car)
+    public void initiateShipment(ItemStorage thingsToDeliver,
+        IRequest<?> associatedRequest,
+        BuildingOutpost outpostDestination,
+        int car)
     {
         BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
-        
+
         if (exports == null)
         {
             LOGGER.error("No export module on connected station - cannot place order.");
@@ -1184,7 +1304,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         if (thingsToDeliver == null || thingsToDeliver.isEmpty())
         {
-            LOGGER.error("Shipments should not be initiated with nothing to deliver. Associated request: {} (State {}) - {}", associatedRequest.getId(), associatedRequest.getState(), associatedRequest.getLongDisplayString());
+            LOGGER.error("Shipments should not be initiated with nothing to deliver. Associated request: {} (State {}) - {}",
+                associatedRequest.getId(),
+                associatedRequest.getState(),
+                associatedRequest.getLongDisplayString());
             return;
         }
 
@@ -1200,26 +1323,25 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         exports.markDirty();
         this.markDirty();
 
-        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Set up export order for {} to {} for request {} - {}.", 
-            thingsToDeliver, 
-            outpostDestination.getBuildingDisplayName(), 
-            associatedRequest == null ? "null" : associatedRequest.getId(), 
-            associatedRequest == null ? "null" : associatedRequest.getLongDisplayString()));
+        TraceUtils.dynamicTrace(TRACE_STATION,
+            () -> LOGGER.info("Set up export order for {} to {} for request {} - {}.",
+                thingsToDeliver,
+                outpostDestination.getBuildingDisplayName(),
+                associatedRequest == null ? "null" : associatedRequest.getId(),
+                associatedRequest == null ? "null" : associatedRequest.getLongDisplayString()));
     }
 
-
     /**
-     * Initiates a return shipment of goods to this station.
-     * It is the caller's responsibility to eliminate the items from the source inventory.
-     * The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
+     * Initiates a return shipment of goods to this station. It is the caller's responsibility to eliminate the items from the source
+     * inventory. The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
      * 
      * @param thingsToDeliver the items to ship
-     * @param carNumber the carNumber is used to space out cars when many are being sent in a short time frame.
+     * @param carNumber       the carNumber is used to space out cars when many are being sent in a short time frame.
      */
     public void initiateReturn(StationData returningFrom, ItemStorage thingsToDeliver, int carNumber)
     {
         BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
-        
+
         if (exports == null)
         {
             LOGGER.error("No export module - cannot place return order.");
@@ -1237,7 +1359,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         ExportData export = exports.addReturn(returningFrom.getStation(), thingsToDeliver);
         export.setShipmentCountdown(1);
         export.setShipDistance(carNumber);
-            
+
         TrackConnectionResult tcr = getTrackConnectionResult(returningFrom);
         if (tcr != null)
         {
@@ -1252,13 +1374,15 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         export.setTrackDistance(trackDistance);
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST,
+            () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
     }
 
     /**
-     * Creates a collection of request resolvers for this outpost.
-     * This collection contains all request resolvers from the superclass, as well as an additional resolver for outpost requests.
-     * The outpost request resolver is responsible for resolving requests for the outpost.
+     * Creates a collection of request resolvers for this outpost. This collection contains all request resolvers from the superclass,
+     * as well as an additional resolver for outpost requests. The outpost request resolver is responsible for resolving requests for
+     * the outpost.
+     * 
      * @return A collection of request resolvers for this outpost.
      */
     @Override
@@ -1266,21 +1390,33 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     {
         final ImmutableCollection<IRequestResolver<?>> supers = super.createResolvers();
         final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
-
+        ILocation location = NullnessBridge.assumeNonnull(getRequester().getLocation());
+        
         if (trainDeliveryResolverToken != null)
         {
-            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), trainDeliveryResolverToken);
+            trainDeliveryResolver = new TrainDeliveryResolver(location, trainDeliveryResolverToken);
         }
         else
         {
-            trainDeliveryResolver = new TrainDeliveryResolver(getRequester().getLocation(), colony.getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN));
-            trainDeliveryResolverToken = trainDeliveryResolver.getId();
+            IToken <?> token = colony.getRequestManager().getFactoryController().getNewInstance(TypeConstants.ITOKEN);
+
+            if (token != null)
+            {
+                trainDeliveryResolver = new TrainDeliveryResolver(location, token);
+                trainDeliveryResolverToken = trainDeliveryResolver.getId();
+            }
         }
 
-        builder.addAll(supers);
-        builder.add(trainDeliveryResolver);
+        if (!supers.isEmpty())
+        {
+            builder.addAll(supers);
+        }
+
+        if (trainDeliveryResolver != null)
+        {
+            builder.add(trainDeliveryResolver);
+        }
 
         return builder.build();
     }
-
 }

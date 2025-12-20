@@ -35,6 +35,7 @@ public class TrainDeliveryResolverFactory implements IRequestResolverFactory<Tra
         return TypeConstants.ILOCATION;
     }
 
+    @SuppressWarnings("null")
     @NotNull
     @Override
     public TrainDeliveryResolver getNewInstance(
@@ -46,6 +47,7 @@ public class TrainDeliveryResolverFactory implements IRequestResolverFactory<Tra
         return new TrainDeliveryResolver(iLocation, factoryController.getNewInstance(TypeConstants.ITOKEN));
     }
 
+    @SuppressWarnings("null")
     @NotNull
     @Override
     public CompoundTag serialize(
@@ -64,6 +66,11 @@ public class TrainDeliveryResolverFactory implements IRequestResolverFactory<Tra
         final IToken<?> token = controller.deserializeTag(provider, nbt.getCompound(NBT_TOKEN));
         final ILocation location = controller.deserializeTag(provider, nbt.getCompound(NBT_LOCATION));
 
+        if (token == null || location == null)
+        {
+            throw new IllegalArgumentException("Null token or location attempting to deserialize TrainDeliveryResolver.");
+        }
+
         return new TrainDeliveryResolver(location, token);
     }
 
@@ -79,6 +86,12 @@ public class TrainDeliveryResolverFactory implements IRequestResolverFactory<Tra
     {
         final IToken<?> token = controller.deserialize(buffer);
         final ILocation location = controller.deserialize(buffer);
+
+        if (token == null || location == null)
+        {
+            throw new IllegalArgumentException("Null token or location attempting to deserialize TrainDeliveryResolver.");
+        }
+
 
         return new TrainDeliveryResolver(location, token);
     }

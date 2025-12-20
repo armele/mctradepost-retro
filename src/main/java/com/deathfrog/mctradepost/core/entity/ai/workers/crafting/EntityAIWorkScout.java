@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -68,6 +69,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -126,7 +128,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         final BlockState worldState = handler.getWorld().getBlockState(worldPos);
 
         return worldState.getBlock() instanceof IBuilderUndestroyable || worldState.getBlock() == Blocks.BEDROCK ||
-            worldState.is(ModBlockTags.TRACK_TAG) ||
+            worldState.is(NullnessBridge.assumeNonnull(ModBlockTags.TRACK_TAG)) ||
             (info.getBlockInfo().getState().getBlock() instanceof AbstractBlockHut && handler.getWorldPos().equals(worldPos) &&
                 worldState.getBlock() instanceof AbstractBlockHut);
     };
@@ -178,9 +180,11 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
         if (building.isDisconnected())
         {
+            String buildingDisplayName = building.getBuildingDisplayName();
+
             worker.getCitizenData()
                 .triggerInteraction(new StandardInteraction(
-                    Component.translatable(DISCONNECTED_OUTPOST, Component.translatable(building.getBuildingDisplayName())),
+                    Component.translatable(DISCONNECTED_OUTPOST, Component.translatable(buildingDisplayName + "")),
                     Component.translatable(DISCONNECTED_OUTPOST),
                     ChatPriority.BLOCKING));
         }
@@ -479,7 +483,10 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
      */
     public IAIState makeDelivery()
     {
-        if (currentDeliverableSatisfier == null)
+
+        ItemStack localSatisfier = currentDeliverableSatisfier;
+
+        if (localSatisfier == null)
         {
             TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No current deliverable satisfier in makeDelivery."));
 
@@ -508,7 +515,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         {
             // Somewhere along the line something got cancelled, and we aren't expecting this any more...
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("No tracking for delivery: {} - repairing.", currentDeliverableSatisfier));
+                () -> LOGGER.info("No tracking for delivery: {} - repairing.", localSatisfier));
 
             if (!getInventory().isEmpty())
             {
@@ -523,7 +530,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         final OutpostShipmentTracking trackingForLog = tracking;
         TraceUtils.dynamicTrace(TRACE_OUTPOST,
             () -> LOGGER.info("Making delivery of {} to {} (tracking status {})",
-                currentDeliverableSatisfier,
+                localSatisfier,
                 deliveryTarget.getBuildingDisplayName(),
                 trackingForLog.getState()));
 
@@ -535,13 +542,13 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                 TraceUtils.dynamicTrace(TRACE_OUTPOST,
                     () -> LOGGER.info("Walking to {} with delivery: {}",
                         deliveryTarget.getBuildingDisplayName(),
-                        currentDeliverableSatisfier));
+                        localSatisfier));
                 return getState();
             }
 
             // Transfer the item into the target building's inventory once we've arrived.
             int slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> ItemStack.isSameItem(stack, currentDeliverableSatisfier));
+                stack -> stack != null && ItemStack.isSameItem(stack, localSatisfier));
 
             if (slot >= 0)
             {
@@ -556,7 +563,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                         e.getLocalizedMessage());
                 }
 
-                worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
                 markDeliverySuccessful(currentDeliverableRequest, tracking);
             }
@@ -579,7 +586,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
         // Pick up the item.
         int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
-            stack -> ItemStack.matches(stack, currentDeliverableSatisfier));
+            stack -> stack != null && ItemStack.matches(stack, localSatisfier));
 
         if (slot >= 0)
         {
@@ -591,14 +598,20 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
             if (moved)
             {
                 int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                    s -> ItemStack.matches(s, currentDeliverableSatisfier));
+                    s -> s != null && ItemStack.matches(s, localSatisfier));
+
                 if (held >= 0)
                 {
-                    worker.setItemInHand(InteractionHand.MAIN_HAND, worker.getInventoryCitizen().getStackInSlot(held));
+                    ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(held);
+
+                    if (!stackInSlot.isEmpty())
+                    {
+                        worker.setItemInHand(InteractionHand.MAIN_HAND, stackInSlot);
+                    }
                 }
                 else
                 {
-                    worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
                 }
 
                 tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
@@ -832,7 +845,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
             canmine = mineBlock(blockToMine,
                 safeStand,
                 true,
-                !IColonyManager.getInstance().getCompatibilityManager().isOre(world.getBlockState(blockToMine)),
+                !IColonyManager.getInstance().getCompatibilityManager().isOre(world.getBlockState(NullnessBridge.assumeNonnull(blockToMine))),
                 null);
         }
         catch (IllegalArgumentException e)
@@ -857,6 +870,13 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
             return slot;
         }
 
+        ServerLevel localWorld = world;
+
+        if (localWorld == null || pos == null || BlockPos.ZERO.equals(pos))
+        {
+            return NO_TOOL;
+        }
+
         // Otherwise, try to magic one out of the outpost inventory - and then use it.
         for (BlockPos outpostWorkPos : building.getWorkBuildings())
         {
@@ -864,7 +884,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
             if (outpostWorksite != null)
             {
-                final EquipmentTypeEntry toolType = WorkerUtil.getBestToolForBlock(target, target.getDestroySpeed(world, pos), building, world, pos);
+                final EquipmentTypeEntry toolType = WorkerUtil.getBestToolForBlock(target, target.getDestroySpeed(localWorld, pos), building, world, pos);
                 final int required = WorkerUtil.getCorrectHarvestLevelForBlock(target);
 
                 if (toolType == ModEquipmentTypes.none.get())
@@ -880,12 +900,12 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                 for (int i = 0; i < inventory.getSlots(); i++)
                 {
                     final ItemStack item = inventory.getStackInSlot(i);
-                    final int level = toolType.getMiningLevel(item);
+                    final int miningLevel = toolType.getMiningLevel(item);
 
-                    if (level > -1 && level >= required && level < bestLevel && ItemStackUtils.verifyEquipmentLevel(item, level, required, maxToolLevel))
+                    if (miningLevel > -1 && miningLevel >= required && miningLevel < bestLevel && ItemStackUtils.verifyEquipmentLevel(item, miningLevel, required, maxToolLevel))
                     {
                         bestSlot = i;
-                        bestLevel = level;
+                        bestLevel = miningLevel;
                     }
                 }
 
@@ -1065,15 +1085,24 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
      * @param position  the position to set it.
      * @param removal   if removal step.
      */
+    @Override
     public void loadStructure(@NotNull final IBuilderWorkOrder workOrder, final BlockPos position, final boolean removal)
     {
+
+        BlockPos localPosition = position;
+
+        if (localPosition == null || BlockPos.ZERO.equals(localPosition))
+        {
+            return;
+        }
+
         IBuilding colonyBuilding =
-            worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(position);
-        final BlockEntity entity = world.getBlockEntity(position);
+            worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(localPosition);
+        final BlockEntity entity = world.getBlockEntity(localPosition);
 
         if (!(colonyBuilding instanceof BuildingOutpost outpost))
         {
-            super.loadStructure(workOrder, position, removal);
+            super.loadStructure(workOrder, localPosition, removal);
             return;
         }
 

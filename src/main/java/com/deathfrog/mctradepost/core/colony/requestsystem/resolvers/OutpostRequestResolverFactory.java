@@ -46,6 +46,16 @@ public class OutpostRequestResolverFactory implements IRequestResolverFactory<Ou
         return new OutpostRequestResolver(iLocation, factoryController.getNewInstance(TypeConstants.ITOKEN));
     }
 
+    /**
+     * Serializes the given outpost request resolver into an NBT tag. The tag contains two elements: "Token" which is the serialized
+     * token of the resolver, and "Location" which is the serialized location of the resolver.
+     * 
+     * @param provider The holder lookup provider for item and block references.
+     * @param controller The factory controller that is managing the request resolver.
+     * @param deliveryRequestResolver The request resolver to be serialized.
+     * @return the serialized NBT tag.
+     */
+    @SuppressWarnings("null")
     @NotNull
     @Override
     public CompoundTag serialize(

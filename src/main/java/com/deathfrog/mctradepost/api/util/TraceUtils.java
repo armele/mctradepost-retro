@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -82,7 +84,8 @@ public class TraceUtils {
      * @return a list of strings representing the trace keys.
      */
 
-    public static List<String> getTraceKeys() {
+    public static @Nonnull List<String> getTraceKeys() 
+    {
         List<String> keys = new ArrayList<>();
         keys.add(TRACE_NONE);
         keys.add(TRACE_BURNOUT);

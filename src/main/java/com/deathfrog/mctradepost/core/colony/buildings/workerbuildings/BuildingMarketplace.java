@@ -506,7 +506,7 @@ public class BuildingMarketplace extends AbstractBuilding
 
         for (Map.Entry<BlockPos, DisplayCase> entry : displayShelfContents.entrySet())
         {
-            shelfTagList.add(entry.getValue().toNBT(provider));
+            shelfTagList.add(entry.getValue().toNBT(NullnessBridge.assumeNonnull(provider)));
         }
 
         compound.put(TAG_DISPLAYSHELVES, shelfTagList);

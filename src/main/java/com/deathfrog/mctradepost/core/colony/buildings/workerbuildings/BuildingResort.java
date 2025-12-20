@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_BURNOUT;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import org.jetbrains.annotations.NotNull;
@@ -321,8 +322,16 @@ public class BuildingResort extends AbstractBuilding {
      * 
      * @return a list of all guests currently checked in to this resort.
      */
-    public List<Vacationer> getGuests() {
-        return ImmutableList.copyOf(this.guests.values());
+    public List<Vacationer> getGuests() 
+    {
+        Collection<Vacationer> guests = this.guests.values();
+
+        if (guests.isEmpty()) 
+        {
+            return ImmutableList.of();
+        }
+
+        return ImmutableList.copyOf(guests);
     }
 
     /**
