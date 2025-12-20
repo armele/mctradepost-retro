@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.gui;
 
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostLivingBuildingModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.network.messages.OutpostAssignMessage;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
@@ -255,14 +256,14 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                 final BlockPos work = citizen.getWorkBuilding();
 
                 final Text citizenLabel = rowPane.findPaneOfTypeByID(CITIZEN_LABEL, Text.class);
-                citizenLabel.setText(Component.literal(citizen.getName()));
+                citizenLabel.setText(Component.literal(citizen.getName() + ""));
 
-                MutableComponent workString = Component.empty();
+                MutableComponent workComponent = Component.empty();
                 int newDistance = 0;
                 if (work != null)
                 {
                     newDistance = (int) BlockPosUtil.getDistance(work, buildingView.getPosition());
-                    workString = Component.translatableEscape("com.minecolonies.coremod.gui.home.new", newDistance);
+                    workComponent = Component.translatableEscape("com.minecolonies.coremod.gui.home.new", newDistance);
                 }
 
                 MutableComponent homeString = Component.translatableEscape("com.minecolonies.coremod.gui.home.homeless");
@@ -287,18 +288,24 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
 
                 if (better)
                 {
-                    workString = workString.withStyle(ChatFormatting.DARK_GREEN);
+                    workComponent = workComponent.withStyle(ChatFormatting.DARK_GREEN);
                 }
 
 
                 final Text newLivingLabel = rowPane.findPaneOfTypeByID(CITIZEN_JOB, Text.class);
                 if (citizen.getJobView() != null)
                 {
-                    newLivingLabel.setText(Component.empty().append(Component.translatable(citizen.getJobView().getEntry().getTranslationKey())).append(": ").append(workString).append(" ").append(homeString));
+                    Component translationKey = Component.translatable(citizen.getJobView().getEntry().getTranslationKey() + "");
+
+                    newLivingLabel.setText(Component.empty()
+                        .append(NullnessBridge.assumeNonnull(translationKey))
+                        .append(": ")
+                        .append(NullnessBridge.assumeNonnull(workComponent))
+                        .append(" ").append(homeString + ""));
                 }
                 else
                 {
-                    newLivingLabel.setText(Component.translatable(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString));
+                    newLivingLabel.setText(Component.translatable(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString + ""));
                 }
                 newLivingLabel.setTextWrap(true);
 
@@ -324,6 +331,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
 
         assignedCitizenList.enable();
         assignedCitizenList.show();
+
         //Creates a dataProvider for the homeless citizenList.
         assignedCitizenList.setDataProvider(new ScrollingList.DataProvider()
         {
@@ -351,14 +359,14 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                 fireButton.setText(Component.translatableEscape("com.minecolonies.coremod.gui.hiring.buttonunassign"));
 
                 final Text citizenLabel = rowPane.findPaneOfTypeByID(CITIZEN_LABEL, Text.class);
-                citizenLabel.setText(Component.literal(citizen.getName()));
+                citizenLabel.setText(Component.literal(citizen.getName() + ""));
 
-                MutableComponent workString = Component.empty();
+                MutableComponent workComponent = Component.empty();
                 int newDistance;
                 if (work != null)
                 {
                     newDistance = (int) BlockPosUtil.getDistance(work, buildingView.getPosition());
-                    workString = Component.translatableEscape("com.minecolonies.coremod.gui.home.new", newDistance);
+                    workComponent = Component.translatableEscape("com.minecolonies.coremod.gui.home.new", newDistance);
                 }
 
                 final Text newLivingLabel = rowPane.findPaneOfTypeByID(CITIZEN_JOB, Text.class);
@@ -370,10 +378,18 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                         final int distance = (int) BlockPosUtil.getDistance(work, buildingView.getPosition());
                         if (distance > FAR_DISTANCE_THRESHOLD)
                         {
-                            workString = workString.withStyle(ChatFormatting.RED);
+                            workComponent = workComponent.withStyle(ChatFormatting.RED);
                         }
                     }
-                    newLivingLabel.setText(Component.empty().append(Component.translatableEscape(citizen.getJobView().getEntry().getTranslationKey())).append(Component.literal(": ")).append(workString));
+
+
+                    Component translationKey = Component.translatableEscape(citizen.getJobView().getEntry().getTranslationKey() + "");
+
+                    newLivingLabel.setText(Component.empty()
+                        .append(NullnessBridge.assumeNonnull(translationKey))
+                        .append(NullnessBridge.assumeNonnull(Component.literal(": ")))
+                        .append(NullnessBridge.assumeNonnull(workComponent))
+                    );
                 }
                 else
                 {

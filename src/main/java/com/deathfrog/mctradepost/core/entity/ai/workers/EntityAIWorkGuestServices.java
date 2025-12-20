@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -461,7 +462,12 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("I have the remedy needed for {}.", vacationingCitizen.getName()));
         }
 
-        worker.setItemInHand(InteractionHand.MAIN_HAND, currentGuest.getRemedyItems().get(0).getItemStack());
+        ItemStack itemToHold = currentGuest.getRemedyItems().get(0).getItemStack();
+
+        if (!itemToHold.isEmpty())
+        {
+            worker.setItemInHand(InteractionHand.MAIN_HAND, itemToHold);
+        }
 
         TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("At this point I should have a remedy item in hand! Does the guest already have one?"));
 
@@ -490,7 +496,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
                     
                     currentGuest.setState(Vacationer.VacationState.TREATED);
 
-                    worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
                     StatsUtil.trackStatByStack(building, BuildingResort.TREATS_SERVED, remedy.getItemStack(), 1);
                     worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);

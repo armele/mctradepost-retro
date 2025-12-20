@@ -50,7 +50,11 @@ public class RitualManager extends SimpleJsonResourceReloadListener
 
             RitualDefinition.CODEC.decode(JsonOps.INSTANCE, json).result().ifPresent(pair -> {
                 RitualDefinition def = pair.getFirst();
-                rituals.put(id, new RitualDefinitionHelper(id, def));
+
+                if (def != null) 
+                {
+                    rituals.put(id, new RitualDefinitionHelper(id, def));
+                }
             });
         });
 

@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.entity;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -31,30 +32,49 @@ public class CoinEntity extends ItemEntity
     public CoinEntity(EntityType<CoinEntity> type, Level level)
     {
         super(type, level);
-        this.setUnlimitedLifetime(); // if you want it to persist
-        this.setItem(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get()));
+        this.setUnlimitedLifetime();
+        
+        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+
+        if (coinItem == null)
+        {
+            throw new IllegalStateException("Trade Post Coin item is null. This shouldn't happen. Please report this.");
+        }
+
+        this.setItem(new ItemStack(coinItem));
     }
 
+    /**
+     * Server-side tick logic for the coin entity.
+     * 
+     * This method checks every server tick if the coin entity is within a marketplace.
+     * If it is, it triggers the well logic and updates the checked position.
+     * If not, it increments the well search cooldown and waits for the next tick.
+     */
     @Override
     public void tick()
     {
         super.tick();
 
-        if (!level().isClientSide)
+        Level localLevel = level();
+
+        if (!localLevel.isClientSide)
         {
             if (--wellSearchCooldown > 0) return;
-            if (checkedPos != null && checkedPos.equals(this.blockPosition())) return;  // Don't keep checking the same position.
+            if (checkedPos != null && checkedPos.equals(this.blockPosition())) return;
 
-            BlockPos pos = this.blockPosition(); // where the item settled
+            BlockPos pos = this.blockPosition();
 
-            BuildingMarketplace closestMarketplace = BuildingMarketplace.getMarketplaceFromPos(level(), pos);
+            if (pos == null || BlockPos.ZERO.equals(pos)) return;
+
+            BuildingMarketplace closestMarketplace = BuildingMarketplace.getMarketplaceFromPos(localLevel, pos);
 
             if (closestMarketplace != null)
             {
                 // MCTradePostMod.LOGGER.info("Nearest Marketplace to coin at {} is at {}", pos, closestMarketplace.getLocation());
 
                 // We're inside a colony and found a marketplace, now proceed with the well logic
-                WishingWellHandler.downInAWell(level(), closestMarketplace, pos);
+                WishingWellHandler.downInAWell(localLevel, closestMarketplace, pos);
 
                 this.checkedPos = pos;
             }
@@ -89,8 +109,8 @@ public class CoinEntity extends ItemEntity
         // Create your custom CoinEntity instead
         CoinEntity coin = new CoinEntity(MCTradePostMod.COIN_ENTITY_TYPE.get(), level);
         coin.setPos(itemEntity.getX(), itemEntity.getY(), itemEntity.getZ());
-        coin.setDeltaMovement(itemEntity.getDeltaMovement());
-        coin.setItem(stack.copy());
+        coin.setDeltaMovement(NullnessBridge.assumeNonnull(itemEntity.getDeltaMovement()));
+        coin.setItem(NullnessBridge.assumeNonnull(stack.copy()));
         coin.setPickUpDelay(10); // Optional: short delay before player can pick it up
 
         level.addFreshEntity(coin);

@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.event.wishingwell.ritual;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.compat.jei.JEIMCTPPlugin;
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
@@ -18,6 +19,7 @@ import java.util.Map;
  */
 public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) implements CustomPacketPayload
 {
+    @SuppressWarnings("null")
     public static final CustomPacketPayload.Type<RitualPacket> TYPE =
         new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "sync_rituals"));
 
@@ -26,7 +28,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
         .codec()
         .xmap(RitualPacket::new, RitualPacket::rituals);
 
-    public static final StreamCodec<ByteBuf, RitualPacket> RITUAL_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    public static final StreamCodec<ByteBuf, RitualPacket> RITUAL_CODEC = ByteBufCodecs.fromCodec(NullnessBridge.assumeNonnull(CODEC));
 
     @Override
     public CustomPacketPayload.Type<RitualPacket> type()
@@ -42,7 +44,12 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
      */
     public void handleDataInClientOnMain(IPayloadContext ctx)
     {
-        rituals.forEach((id, def) -> RitualManager.putRitual(id, new RitualDefinitionHelper(id, def)));
+        rituals.forEach((id, def) -> {
+                if (def != null)    
+                {
+                    RitualManager.putRitual(id, new RitualDefinitionHelper(id, def));
+                }
+            });
 
         MCTradePostMod.LOGGER.info("Received {} rituals on client", rituals.size());
 
@@ -63,6 +70,11 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
      */
     public static void sendPacketsToPlayer(ServerPlayer player)
     {
+        if (player == null)
+        {
+            return;
+        }
+
         try
         {
             PacketDistributor.sendToPlayer(player, new RitualPacket(RitualManager.getUnwrappedRituals()));

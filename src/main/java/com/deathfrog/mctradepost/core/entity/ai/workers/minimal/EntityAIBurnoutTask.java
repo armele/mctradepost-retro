@@ -7,6 +7,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
@@ -700,15 +701,13 @@ public class EntityAIBurnoutTask
             int selectedIndex = citizen.getRandom().nextInt(list.size());
             ItemStorage selectedRemedy = list.get(selectedIndex);
 
-            // Set the item in-hand for animation/effect
-            citizen.setItemInHand(InteractionHand.MAIN_HAND, selectedRemedy.getItemStack());
-
-            // Consume the item from storage
-            if (selectedRemedy.getAmount() > 0)
+            if (!selectedRemedy.isEmpty())
             {
+                // Set the item in-hand for animation/effect
+                citizen.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(selectedRemedy.getItemStack()));
+
                 TraceUtils.dynamicTrace(TRACE_BURNOUT,
                     () -> LOGGER.info("Vacationer {} moved remedy {} to main hand.", citizen, selectedRemedy));
-                selectedRemedy.setAmount(selectedRemedy.getAmount() - 1);
             }
         }
         else
@@ -731,7 +730,7 @@ public class EntityAIBurnoutTask
         }
 
         citizen.swing(InteractionHand.MAIN_HAND);
-        citizen.playSound(SoundEvents.NOTE_BLOCK_HARP.value(),
+        citizen.playSound(NullnessBridge.assumeNonnull(SoundEvents.NOTE_BLOCK_HARP.value()),
             (float) SoundUtils.BASIC_VOLUME,
             (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(citizen.getRandom()));
         new CircleParticleEffectMessage(citizen.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, currentLevel)
@@ -799,7 +798,12 @@ public class EntityAIBurnoutTask
             StatsUtil.trackStat(vacationTracker.getResort(), BuildingResort.VACATIONS_COMPLETED, 1);
 
             AdvancementUtils.TriggerAdvancementPlayersForColony(citizenData.getColony(),
-                    player -> MCTPAdvancementTriggers.COMPLETE_VACATION.get().trigger(player));
+                    player -> {
+                        if (player != null) 
+                        {
+                            MCTPAdvancementTriggers.COMPLETE_VACATION.get().trigger(player);
+                        }
+                    });
 
             int incomeGenerated = MCTPConfig.vacationIncome.get() * MCTPConfig.tradeCoinValue.get();
             citizenData.getColony()
@@ -809,7 +813,7 @@ public class EntityAIBurnoutTask
             vacationTracker.reset();
         }
 
-        citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        citizen.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         citizen.setHealth(citizen.getMaxHealth());
         citizenData.setSaturation(ICitizenData.MAX_SATURATION);
 
@@ -955,6 +959,6 @@ public class EntityAIBurnoutTask
         
         citizen.releaseUsingItem();
         citizen.stopUsingItem();
-        citizen.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        citizen.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
     }
 }

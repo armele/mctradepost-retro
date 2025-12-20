@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.crafting.ItemStorage;
 
 import net.minecraft.world.entity.item.ItemEntity;
@@ -50,15 +51,25 @@ public class RitualState
      */
     public boolean meetsRequirements(ItemStorage requirementStack)
     {
-        if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_ITEM.get()))
+
+        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+        CoinItem goldCoin = MCTradePostMod.MCTP_COIN_GOLD.get();
+        CoinItem diamondCoin = MCTradePostMod.MCTP_COIN_DIAMOND.get();
+
+        if (coinItem == null || goldCoin == null || diamondCoin == null) 
+        {
+            throw new IllegalStateException("Trade Post Coin items not initialized. This should never happen. Please report.");
+        }
+
+        if (requirementStack.getItemStack().is(coinItem))
         {
             return entityCount(baseCoins) >= requirementStack.getItemStack().getCount();
         }
-        else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_GOLD.get()))
+        else if (requirementStack.getItemStack().is(goldCoin))
         {
             return entityCount(goldCoins) >= requirementStack.getItemStack().getCount();
         }
-        else if (requirementStack.getItemStack().is(MCTradePostMod.MCTP_COIN_DIAMOND.get()))
+        else if (requirementStack.getItemStack().is(diamondCoin))
         {
             return entityCount(diamondCoins) >= requirementStack.getItemStack().getCount();
         }

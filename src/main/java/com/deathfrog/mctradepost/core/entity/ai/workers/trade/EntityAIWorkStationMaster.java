@@ -17,6 +17,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -593,11 +594,18 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     continue;
                 }
 
-                if (this.building.hasStationAt(tradeCapableBuilding.getPosition()))
-                {
-                    StationData stationData = this.building.getStationAt(tradeCapableBuilding.getPosition());
+                BlockPos tcBuildingPos = tradeCapableBuilding.getPosition();
 
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if trade capable building at {} should be checked: {}", tradeCapableBuilding.getPosition(), stationData));
+                if (tcBuildingPos == null || BlockPos.ZERO.equals(tcBuildingPos))
+                {
+                    continue;
+                }
+
+                if (this.building.hasStationAt(tcBuildingPos))
+                {
+                    StationData stationData = this.building.getStationAt(tcBuildingPos);
+
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if trade capable building at {} should be checked: {}", tcBuildingPos, stationData));
 
                     TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
                     
@@ -656,7 +664,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
 
                 AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
-                        player -> MCTPAdvancementTriggers.COLONY_CONNECTED.get().trigger(player));
+                        player -> {
+                            if (player != null)
+                            {
+                                MCTPAdvancementTriggers.COLONY_CONNECTED.get().trigger(player);
+                            }
+                        });
             }
             else
             {
@@ -728,8 +741,15 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return getState();
         }
 
+        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+
+        if (coinItem == null)
+        {
+            throw new IllegalStateException("Trade Post coin item is null. This should never happen. Please file a bug report.");
+        }
+
         final ArrayList<ItemStack> itemList = new ArrayList<>();
-        itemList.add(new ItemStack(MCTradePostMod.MCTP_COIN_ITEM.get(), currentFundRequest));
+        itemList.add(new ItemStack(coinItem, currentFundRequest));
 
         worker.getCitizenData()
             .createRequestAsync(new StackList(itemList,

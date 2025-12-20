@@ -41,13 +41,21 @@ public class WellLocations implements INBTSerializable<CompoundTag> {
             BlockPos pos = entry.getKey();
             RitualState state = entry.getValue();
 
+            if (pos == null) continue;
+
             // Recompute counts from current pools (handles null lists too)
             int baseCount = state.entityCount(state.baseCoins);
             int goldCount = state.entityCount(state.goldCoins);
             int diamondCount = state.entityCount(state.diamondCoins);
 
             CompoundTag ritualTag = new CompoundTag();
-            ritualTag.put("Pos", NBTUtils.writeBlockPos(pos));
+            Tag posTag = NBTUtils.writeBlockPos(pos);
+            
+            if (posTag != null)
+            {
+                ritualTag.put("Pos", posTag);
+            }
+
             ritualTag.putInt("BaseCoinCount", baseCount);
             ritualTag.putInt("GoldCoinCount", goldCount);
             ritualTag.putInt("DiamondCoinCount", diamondCount);

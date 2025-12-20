@@ -1,7 +1,5 @@
 package com.deathfrog.mctradepost.core.placementhandlers;
 
-import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

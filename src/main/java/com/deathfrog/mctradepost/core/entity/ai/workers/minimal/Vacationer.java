@@ -91,7 +91,7 @@ public class Vacationer
    {
       compoundNBT.putInt("id", this.civilianId);
       compoundNBT.putInt("status", this.state.ordinal());
-      compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name());
+      compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name() + "");
       compoundNBT.putInt("targetLevel", targetLevel);
       compoundNBT.putBoolean("currentlyAtResort", currentlyAtResort);
    }
@@ -116,12 +116,14 @@ public class Vacationer
      */
     public List<ItemStorage> getRemedyItems() 
     {
-        if (burntSkill == null)
+        Skill localSkill = this.burntSkill;
+
+        if (localSkill == null)
         {
             return new ArrayList<ItemStorage>();
         }
 
-        List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(burntSkill);
+        List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(localSkill);
 
         return remedyItems;
     }
@@ -135,7 +137,7 @@ public class Vacationer
      */
     public Component name() 
     {
-        return Component.literal(burntSkill.name());
+        return Component.literal(burntSkill.name() + "");
     }
 
     /**
@@ -153,7 +155,14 @@ public class Vacationer
         for (int i = 0; i < remedyItems.size(); i++)
         {
             final ItemStorage cureStack = remedyItems.get(i);
-            cureString.append(String.valueOf(cureStack.getItemStack().getCount())).append(" ").append(cureStack.getItemStack().getHoverName());
+            ItemStack itemstack = cureStack.getItemStack().copy();
+
+            if (itemstack.isEmpty())
+            {
+                continue;
+            }
+
+            cureString.append(String.valueOf(itemstack.getCount()) + "").append(" ").append(itemstack.getHoverName() + "");
             if (i != remedyItems.size() - 1)
             {
                 cureString.append(" + ");

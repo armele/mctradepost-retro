@@ -7,7 +7,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
 import java.util.List;
 import java.util.Map;
@@ -121,12 +125,14 @@ public class TrackPathConnection
             /* cardinal moves – same Y */
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
+                if (dir == null) continue;
                 tryMove(level, current, dir, 0, toVisit, visited, parent, loadChunks);
             }
 
             /* upward / downward slopes */
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
+                if (dir == null) continue;
                 tryMove(level, current, dir, +1, toVisit, visited, parent, loadChunks);
                 tryMove(level, current, dir, -1, toVisit, visited, parent, loadChunks);
             }
@@ -158,8 +164,13 @@ public class TrackPathConnection
         // tracks.
         for (int i = 1; i < path.size() - 2; i++)
         {
+            BlockPos nextStep = path.get(i);
+
+            // We've got a bad path - something is missing.
+            if (nextStep == null) return false;
+
             // We're going to be optimistic about unloaded positions - assume they are still tracks.
-            boolean isTrack = isTrackBlock(level, path.get(i)) || !level.isLoaded(path.get(i));
+            boolean isTrack = isTrackBlock(level, nextStep) || !level.isLoaded(nextStep);
 
             if (!isTrack)
             {
@@ -185,7 +196,7 @@ public class TrackPathConnection
      */
     private static void tryMove(ServerLevel level,
         BlockPos from,
-        Direction dir,
+        @Nonnull Direction dir,
         int dy,
         Queue<BlockPos> q,
         Set<BlockPos> visited,
@@ -193,6 +204,8 @@ public class TrackPathConnection
         boolean loadChunks)
     {
         BlockPos nxt = from.relative(dir).offset(0, dy, 0);
+
+        if (nxt == null) return;
 
         if (!level.isLoaded(nxt))
         {
@@ -250,12 +263,12 @@ public class TrackPathConnection
      * @param pos   the BlockPos of the block to check
      * @return true if the block is a track block, false otherwise
      */
-    private static boolean isTrackBlock(ServerLevel level, BlockPos pos)
+    private static boolean isTrackBlock(@Nonnull ServerLevel level, @Nonnull BlockPos pos)
     {
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
 
-        if (block instanceof BaseRailBlock || state.is(ModBlockTags.TRACK_TAG))
+        if (block instanceof BaseRailBlock || state.is(NullnessBridge.assumeNonnull(ModBlockTags.TRACK_TAG)))
         {
             return true;
         }

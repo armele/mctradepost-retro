@@ -9,8 +9,6 @@ import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
-import com.minecolonies.api.util.constant.Constants;
-import com.minecolonies.core.colony.buildings.DefaultBuildingInstance;
 import com.minecolonies.core.colony.buildings.modules.AbstractAssignedCitizenModule;
 import com.minecolonies.core.colony.buildings.modules.LivingBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
@@ -79,13 +77,15 @@ public class OutpostAssignMessage extends AbstractBuildingServerMessage<IBuildin
     @Override
     protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
+        JobEntry localJobEntry = jobEntry;
+
         super.toBytes(buf);
         buf.writeBoolean(assign);
         buf.writeInt(citizenID);
-        buf.writeBoolean(jobEntry != null);
-        if (jobEntry != null)
+        buf.writeBoolean(localJobEntry != null);
+        if (localJobEntry != null)
         {
-            buf.writeById(IMinecoloniesAPI.getInstance().getJobRegistry()::getIdOrThrow, jobEntry);
+            buf.writeById(IMinecoloniesAPI.getInstance().getJobRegistry()::getIdOrThrow, localJobEntry);
         }
     }
 
