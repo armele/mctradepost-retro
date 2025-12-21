@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 public class BlockOutpostMarker extends Block
 {
 
-    public BlockOutpostMarker(BlockBehaviour.Properties props)
+    public BlockOutpostMarker(@Nonnull BlockBehaviour.Properties props)
     {
         super(props);
     }

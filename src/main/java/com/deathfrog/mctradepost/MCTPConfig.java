@@ -193,8 +193,12 @@ public class MCTPConfig
     {
         // Ensure this runs only on the dedicated or integrated server
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server != null) {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+        
+        if (server != null) 
+        {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) 
+            {
+                if (player == null) continue;
                 ConfigurationPacket.sendPacketsToPlayer(player);
             }
             MCTradePostMod.LOGGER.info("Config sent to all connected players.");

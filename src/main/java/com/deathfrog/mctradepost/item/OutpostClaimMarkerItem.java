@@ -3,13 +3,13 @@ package com.deathfrog.mctradepost.item;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -28,6 +28,13 @@ public class OutpostClaimMarkerItem extends Item
         super(properties);
     }
     
+    /**
+     * Called when the player right-clicks with the outpost claim marker item in hand.
+     * If the player is not null, it sets the linked block position on the item stack and sends a message to the player.
+     * If the level is not the client side, it does not send a message.
+     * @param ctx the context of the interaction
+     * @return the result of the interaction
+     */
     @Override
     public InteractionResult useOn(@Nonnull UseOnContext ctx)
     {
@@ -40,13 +47,14 @@ public class OutpostClaimMarkerItem extends Item
         }
 
         Level level = ctx.getLevel();
-        ItemStack stack = player != null ? player.getItemInHand(ctx.getHand()) : ItemStack.EMPTY;
+        ItemStack stack = player != null ? player.getItemInHand(NullnessBridge.assumeNonnull(ctx.getHand())) : ItemStack.EMPTY;
         BlockPos clicked = ctx.getClickedPos();
 
         if (!level.isClientSide && !stack.isEmpty())
         {
             setLinkedBlockPos(stack, clicked);
-            player.displayClientMessage(Component.translatable("com.mctradepost.outpost.claim", clicked.toShortString()), true);
+            Component message = Component.translatable("com.mctradepost.outpost.claim", clicked.toShortString());
+            player.displayClientMessage(NullnessBridge.assumeNonnull(message), true);
         }
 
         return super.useOn(ctx);
@@ -54,31 +62,68 @@ public class OutpostClaimMarkerItem extends Item
 
     // --- store/retrieve BlockPos on the item ---
 
+    /**
+     * Sets the linked block position on the given item stack to the given BlockPos.
+     * If the item stack is empty, or the BlockPos is null, this method does nothing.
+     * @param stack The item stack to set the linked block position on.
+     * @param pos The BlockPos to set as the linked block position on the item stack.
+     */
     public static void setLinkedBlockPos(ItemStack stack, BlockPos pos)
     {
         if (!stack.isEmpty() && pos != null)
         {
-            stack.set(MCTPModDataComponents.LINKED_BLOCK_POS.get(), pos);
+            stack.set(linkedBlockDataComponent(), pos);
         }
     }
 
-    @Nullable
+    /**
+     * Retrieves the linked block position from the given item stack.
+     * If the item stack is empty or does not contain a linked block position, this method will return BlockPos.ZERO.
+     * @param stack the item stack to retrieve the linked block position from
+     * @return the linked block position from the item stack, or BlockPos.ZERO if the stack does not contain a linked block position
+     */
     public static BlockPos getLinkedBlockPos(ItemStack stack)
     {
-        return stack.getOrDefault(MCTPModDataComponents.LINKED_BLOCK_POS.get(), null);
+        return stack.getOrDefault(linkedBlockDataComponent(), NullnessBridge.assumeNonnull(BlockPos.ZERO));
     }
 
+    /**
+     * Checks if the given item stack has a linked block position.
+     * If the item stack is empty, this method will return false.
+     * @param stack the item stack to check
+     * @return true if the item stack has a linked block position, false otherwise
+     */
     public static boolean hasLinkedBlockPos(ItemStack stack)
     {
-        return !stack.isEmpty() && stack.has(MCTPModDataComponents.LINKED_BLOCK_POS.get());
+        return !stack.isEmpty() && stack.has(linkedBlockDataComponent());
     }
 
+
+    /**
+     * Clears the linked block position from the given item stack.
+     * If the item stack is empty, this method does nothing.
+     * @param stack The item stack to clear the linked block position from.
+     */
     public static void clearLinkedBlockPos(ItemStack stack)
     {
         if (!stack.isEmpty())
         {
-            stack.remove(MCTPModDataComponents.LINKED_BLOCK_POS.get());
+            stack.remove(linkedBlockDataComponent());
         }
+    }
+
+
+    /**
+     * Returns the DataComponentType responsible for storing the linked block position on
+     * the item stack. This component is used to store the block position of the outpost
+     * claim marker item when it is used to claim a block for an outpost. The component is
+     * used to retrieve the linked block position on the client side when the player hovers over
+     * the item stack.
+     * @return the DataComponentType responsible for storing the linked block position
+     */
+    private static @Nonnull DataComponentType<BlockPos> linkedBlockDataComponent() 
+    {
+        return NullnessBridge.assumeNonnull(MCTPModDataComponents.LINKED_BLOCK_POS.get());
     }
 
     /**
@@ -100,12 +145,16 @@ public class OutpostClaimMarkerItem extends Item
         if (hasLinkedBlockPos(stack))
         {
             BlockPos pos = getLinkedBlockPos(stack);
-            tooltip.add(Component.translatable("com.mctradepost.outpost.marker.set.tooltip", pos.toShortString()).withStyle(ChatFormatting.GRAY));
+
+            if (pos != null && !BlockPos.ZERO.equals(pos))
+            {
+                tooltip.add(Component.translatable("com.mctradepost.outpost.marker.set.tooltip", pos.toShortString()).withStyle(ChatFormatting.GRAY));
+                return;
+            }
         }
-        else   
-        {
-            tooltip.add(Component.translatable("com.mctradepost.outpost.marker.unset.tooltip").withStyle(ChatFormatting.GRAY));
-        }
+
+        tooltip.add(Component.translatable("com.mctradepost.outpost.marker.unset.tooltip").withStyle(ChatFormatting.GRAY));
+
     }
 
 }

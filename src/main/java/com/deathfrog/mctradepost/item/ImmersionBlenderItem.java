@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 
 public class ImmersionBlenderItem extends Item
 {
-    public ImmersionBlenderItem(Properties properties)
+    public ImmersionBlenderItem(@Nonnull Properties properties)
     {
         super(properties);
     }

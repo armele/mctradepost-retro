@@ -9,6 +9,7 @@ import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 public class ModLootModifiers
 {
+    @SuppressWarnings("null")
     public static final DeferredRegister<MapCodec<? extends IGlobalLootModifier>> LOOT_MODIFIERS =
         DeferredRegister.create(NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MCTradePostMod.MODID);
 

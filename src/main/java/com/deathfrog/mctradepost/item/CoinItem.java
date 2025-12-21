@@ -5,13 +5,13 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
-import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -38,18 +38,34 @@ public class CoinItem extends Item
         super(properties);
     }
 
+    /**
+     * Creates an entity based on the given stack and location.
+     * If the stack contains a CoinItem and the level is not the client side, this method will return a CoinEntity.
+     * The CoinEntity will have the same position and delta movement as the given entity, and will have a copy of the stack.
+     * Otherwise, this method will return null.
+     * @param level the current level
+     * @param location the location of the entity
+     * @param stack the stack to create the entity from
+     * @return an entity created from the given stack and location, or null if no entity could be created
+     */
     @Override
     public Entity createEntity(@Nonnull Level level, @Nonnull Entity location, @Nonnull ItemStack stack)
     {
         if (!level.isClientSide && stack.getItem() instanceof CoinItem)
         {
             CoinEntity coin = new CoinEntity(level, location.getX(), location.getY(), location.getZ(), stack.copy());
-            coin.setDeltaMovement(location.getDeltaMovement());
+            coin.setDeltaMovement(NullnessBridge.assumeNonnull(location.getDeltaMovement()));
             return coin;
         }
         return null;
     }
 
+
+    /**
+     * Returns the EntityType of the CoinEntity, which is used to represent coins in the world.
+     * This is used by the createEntity method to determine if a CoinEntity should be spawned when an item is dropped.
+     * @return the EntityType of the CoinEntity
+     */
     public EntityType<?> getEntityRepresentation()
     {
         return MCTradePostMod.COIN_ENTITY_TYPE.get();
@@ -65,21 +81,22 @@ public class CoinItem extends Item
      * @return an InteractionResultHolder containing the modified stack
      */
     @Override
-    public InteractionResultHolder<ItemStack> use(@Nonnull Level level, @Nonnull Player player, @Nonnull InteractionHand hand)
+    public InteractionResultHolder<ItemStack> use(
+        @Nonnull Level level,
+        @Nonnull Player player,
+        @Nonnull InteractionHand hand)
     {
         ItemStack stack = player.getItemInHand(hand);
 
         if (!level.isClientSide && !stack.isEmpty())
         {
-            // Drop one item like pressing "Q"
             ItemStack toDrop = stack.split(1);
-            player.drop(toDrop, false);
-
-            return InteractionResultHolder.success(stack);
+            player.drop(NullnessBridge.assumeNonnull(toDrop), false);
         }
 
-        return InteractionResultHolder.pass(stack);
+        return InteractionResultHolder.sidedSuccess(NullnessBridge.assumeNonnull(stack), level.isClientSide);
     }
+
 
     /**
      * Handles right click on the marketplace with coins in hand.
@@ -98,8 +115,8 @@ public class CoinItem extends Item
             return InteractionResult.PASS;
         }
 
-        final ItemStack coinstack = player.getItemInHand(ctx.getHand());
-        final BlockEntity entity = ctx.getLevel().getBlockEntity(ctx.getClickedPos());
+        final ItemStack coinstack = player.getItemInHand(NullnessBridge.assumeNonnull(ctx.getHand()));
+        final BlockEntity entity = ctx.getLevel().getBlockEntity(NullnessBridge.assumeNonnull(ctx.getClickedPos()));
 
         if (entity != null && entity instanceof TileEntityColonyBuilding buildingEntity)
         {
@@ -137,7 +154,7 @@ public class CoinItem extends Item
     /** Returns true if the stack has a minted-colony id component. */
     public static boolean hasMintColony(ItemStack stack)
     {
-        return !stack.isEmpty() && stack.has(MCTPModDataComponents.MINT_COLONY_NAME.get());
+        return !stack.isEmpty() && stack.has(mintColonyNameDataComponent());
     }
 
     /** Set (persist) the colony id on the item stack. */
@@ -145,15 +162,15 @@ public class CoinItem extends Item
     {
         if (!stack.isEmpty())
         {
-            stack.set(MCTPModDataComponents.MINT_COLONY_NAME.get(), colonyName);
+            stack.set(mintColonyNameDataComponent(), colonyName);
         }
     }
 
     /** Get the colony id, or defaultValue if not present. */
-    public static String getMintColony(ItemStack stack, String defaultValue)
+    public static String getMintColony(ItemStack stack, @Nonnull String defaultValue)
     {
         if (stack.isEmpty()) return defaultValue;
-        return stack.getOrDefault(MCTPModDataComponents.MINT_COLONY_NAME.get(), defaultValue);
+        return stack.getOrDefault(mintColonyNameDataComponent(), defaultValue);
     }
 
     /** Clear the colony id. */
@@ -161,8 +178,22 @@ public class CoinItem extends Item
     {
         if (!stack.isEmpty())
         {
-            stack.remove(MCTPModDataComponents.MINT_COLONY_NAME.get());
+            stack.remove(mintColonyNameDataComponent());
         }
+    }
+
+
+    /**
+     * Returns the DataComponentType responsible for persisting the colony name on the
+     * item stack when it is minted. This is used to store the colony name when the
+     * player mints a coin at a MineColonies building. The component is used to
+     * retrieve the colony name on the client side when the player hovers over the
+     * item stack.
+     * @return the DataComponentType responsible for persisting the colony name
+     */
+    protected static @Nonnull DataComponentType<String> mintColonyNameDataComponent ()
+    {
+        return NullnessBridge.assumeNonnull(MCTPModDataComponents.MINT_COLONY_NAME.get());
     }
 
     @OnlyIn(Dist.CLIENT)

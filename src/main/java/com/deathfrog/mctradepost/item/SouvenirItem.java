@@ -4,6 +4,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -16,23 +17,27 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class SouvenirItem extends Item
 {
-    public record SouvenirRecord(String originalItem, int itemValue)
+    public record SouvenirRecord(@Nonnull String originalItem, int itemValue)
     {
+        @SuppressWarnings("null")
         public static final Codec<SouvenirRecord> CODEC = RecordCodecBuilder.create(
             builder -> builder
                 .group(Codec.STRING.fieldOf("originalItem").forGetter(SouvenirRecord::originalItem),
                     Codec.INT.fieldOf("itemValue").forGetter(SouvenirRecord::itemValue))
                 .apply(builder, SouvenirRecord::new));
 
+        @SuppressWarnings("null")
         public static final StreamCodec<RegistryFriendlyByteBuf, SouvenirRecord> STREAM_CODEC =
             StreamCodec.composite(ByteBufCodecs.STRING_UTF8,
                 SouvenirRecord::originalItem,
@@ -52,7 +57,7 @@ public class SouvenirItem extends Item
         }
     }
 
-    public SouvenirItem(Properties properties)
+    public SouvenirItem(@Nonnull Properties properties)
     {
         super(properties);
     }
@@ -65,7 +70,7 @@ public class SouvenirItem extends Item
      */
     public static Item getOriginal(ItemStack stack)
     {
-        SouvenirRecord souvenirRecord = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+        SouvenirRecord souvenirRecord = stack.get(souvenirComponent());
 
         // MCTradePostMod.LOGGER.info("Getting original item based on : {} ", souvenirRecord.originalItem);
 
@@ -81,7 +86,7 @@ public class SouvenirItem extends Item
      */
     public static int getSouvenirValue(ItemStack stack)
     {
-        SouvenirRecord souvenirRecord = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+        SouvenirRecord souvenirRecord = stack.get(souvenirComponent());
 
         if (souvenirRecord == null)
         {
@@ -98,7 +103,7 @@ public class SouvenirItem extends Item
      * @param value    the souvenir value
      * @return the souvenir item stack
      */
-    public static ItemStack createSouvenir(Item original, int value)
+    public static ItemStack createSouvenir(@Nonnull Item original, int value)
     {
         ItemStack originalStack = new ItemStack(original);
         return createSouvenir(originalStack, value);
@@ -112,14 +117,21 @@ public class SouvenirItem extends Item
      * @param value    the souvenir value
      * @return the souvenir item stack
      */
-    public static ItemStack createSouvenir(ItemStack original, int value)
+    public static ItemStack createSouvenir(@Nonnull ItemStack original, int value)
     {
-        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(original.getItem());
-        ItemStack stack = new ItemStack(MCTradePostMod.SOUVENIR.get());
+        Item originalItem = original.getItem();
+        
+        if (original.isEmpty() || originalItem == null || net.minecraft.world.item.Items.AIR.equals(originalItem))
+        {
+            return ItemStack.EMPTY;
+        }
+
+        ResourceLocation registryName = BuiltInRegistries.ITEM.getKey(originalItem);
+        ItemStack stack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.SOUVENIR.get()));
         stack.setCount(original.getCount());
 
-        SouvenirRecord souvenirRecord = new SouvenirRecord(registryName.toString(), value);
-        stack.set(MCTPModDataComponents.SOUVENIR_COMPONENT, souvenirRecord);
+        SouvenirRecord souvenirRecord = new SouvenirRecord(registryName.toString() + "", value);
+        stack.set(souvenirComponent(), souvenirRecord);
 
         return stack;
     }
@@ -150,7 +162,7 @@ public class SouvenirItem extends Item
     {
         super.appendHoverText(stack, context, tooltip, flag);
 
-        final SouvenirRecord rec = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+        final SouvenirRecord rec = stack.get(souvenirComponent());
         if (rec == null)
         {
             return;
@@ -169,7 +181,7 @@ public class SouvenirItem extends Item
 
         if (originalItem != Items.AIR)
         {
-            boolean hasCustomName = stack.has(DataComponents.CUSTOM_NAME);
+            boolean hasCustomName = stack.has(NullnessBridge.assumeNonnull(DataComponents.CUSTOM_NAME));
             if (!hasCustomName) 
             {
                 Component display = buildSouvenirDisplayName(stack);
@@ -196,16 +208,35 @@ public class SouvenirItem extends Item
      */
     public static Component buildSouvenirDisplayName(ItemStack stack)
     {
-        final SouvenirRecord rec = stack.get(MCTPModDataComponents.SOUVENIR_COMPONENT);
+        final SouvenirRecord rec = stack.get(souvenirComponent());
         if (rec == null) 
         {
             return null;
         }
 
         final Item original = rec.asOriginalItem();
-        if (original == net.minecraft.world.item.Items.AIR) return null;
+        if (original == null || original == net.minecraft.world.item.Items.AIR) return null;
 
         Component origName = new ItemStack(original).getHoverName();
         return Component.translatable("item.mctradepost.tooltip.souvenir_of", origName);
+    }
+
+    /**
+     * Returns the DataComponentType for SouvenirRecord.
+     * This is used to store and retrieve SouvenirRecord data from ItemStacks.
+     * If the souvenir component is not initialized, an IllegalStateException is thrown.
+     * This should not happen in normal circumstances, but if it does, report it to the mod author.
+     * @return the DataComponentType for SouvenirRecord
+     */
+    private static @Nonnull DeferredHolder<DataComponentType<?>, DataComponentType<SouvenirRecord>> souvenirComponent()
+    {
+        DeferredHolder<DataComponentType<?>, DataComponentType<SouvenirRecord>> souvenirComponent = MCTPModDataComponents.SOUVENIR_COMPONENT;
+
+        if (souvenirComponent == null)
+        {
+            throw new IllegalStateException("Souvenir component not initialized. This should not happen. Report this to the mod author.");
+        }
+
+        return souvenirComponent;
     }
 }

@@ -20,12 +20,14 @@ public class DeconstructionRecipe implements Recipe<SingleRecipeInput>
 
     public record Output(ItemStack stack, float chance)
     {
+        @SuppressWarnings("null")
         public static final MapCodec<Output> CODEC =
             RecordCodecBuilder.mapCodec(i -> i
                 .group(ItemStack.CODEC.fieldOf("item").forGetter(Output::stack),
                     com.mojang.serialization.Codec.FLOAT.optionalFieldOf("chance", 1.0f).forGetter(Output::chance))
                 .apply(i, Output::new));
 
+        @SuppressWarnings("null")
         public static final StreamCodec<RegistryFriendlyByteBuf, Output> STREAM_CODEC =
             StreamCodec.composite(
                 ItemStack.STREAM_CODEC, Output::stack,
@@ -103,6 +105,7 @@ public class DeconstructionRecipe implements Recipe<SingleRecipeInput>
                         .forGetter(DeconstructionRecipe::getOutputs))
                 .apply(i, DeconstructionRecipe::new));
 
+        @SuppressWarnings("null")
         public static final StreamCodec<RegistryFriendlyByteBuf, DeconstructionRecipe> STREAM_CODEC =
             StreamCodec.composite(
                 Ingredient.CONTENTS_STREAM_CODEC, DeconstructionRecipe::getInput,

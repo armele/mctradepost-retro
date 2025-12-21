@@ -166,6 +166,7 @@ import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 
 @Mod(MCTradePostMod.MODID)
+@SuppressWarnings("null")
 public class MCTradePostMod
 {
     // Define mod id in a common place for everything to reference

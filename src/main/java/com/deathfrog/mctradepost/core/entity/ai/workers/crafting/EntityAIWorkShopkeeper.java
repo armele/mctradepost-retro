@@ -812,6 +812,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         {
             // Insert the item into the frame, replacing what's there
             ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
+
             if (frame.getItem().isEmpty())
             {
                 // Take the item from the inventory();
@@ -827,7 +828,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 }
                 else
                 {
-                    souvenir = SouvenirItem.createSouvenir(placed.getItem(), computeItemValue(placed));
+                    souvenir = SouvenirItem.createSouvenir(NullnessBridge.assumeNonnull(placed.getItem()), computeItemValue(placed));
                 }
 
                 final ItemStack souvenirFinal = souvenir.copy();
