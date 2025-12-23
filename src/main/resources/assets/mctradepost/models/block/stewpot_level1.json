@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/water_cauldron_level1",
+  "textures": {
+    "content": "mctradepost:block/stew_surface"
+  }
+}

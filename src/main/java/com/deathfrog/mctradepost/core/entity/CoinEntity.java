@@ -26,7 +26,7 @@ public class CoinEntity extends ItemEntity
     public CoinEntity(Level level, double x, double y, double z, ItemStack stack)
     {
         super(level, x, y, z, stack);
-        this.setUnlimitedLifetime(); // if you want it to persist
+        this.setUnlimitedLifetime();
     }
 
     public CoinEntity(EntityType<CoinEntity> type, Level level)
@@ -111,7 +111,7 @@ public class CoinEntity extends ItemEntity
         coin.setPos(itemEntity.getX(), itemEntity.getY(), itemEntity.getZ());
         coin.setDeltaMovement(NullnessBridge.assumeNonnull(itemEntity.getDeltaMovement()));
         coin.setItem(NullnessBridge.assumeNonnull(stack.copy()));
-        coin.setPickUpDelay(10); // Optional: short delay before player can pick it up
+        coin.setPickUpDelay(30); // Short delay before player can pick it up
 
         level.addFreshEntity(coin);
 

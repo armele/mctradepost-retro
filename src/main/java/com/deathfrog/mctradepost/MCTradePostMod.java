@@ -30,6 +30,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.blocks.StewpotBlock;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
@@ -75,6 +76,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.ldtteam.domumornamentum.block.ModBlocks;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -118,6 +120,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CauldronBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
@@ -252,6 +255,9 @@ public class MCTradePostMod
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> QUARTZ_MORTAR = ITEMS.register("quartz_mortar",
+        () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> STEW_SEASONING = ITEMS.register("stew_seasoning",
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> WISH_PLENTY = ITEMS.register("wish_plenty",
@@ -546,6 +552,16 @@ public class MCTradePostMod
 
     public static final DeferredBlock<BlockOutpostMarker> BLOCK_OUTPOST_MARKER =
         BLOCKS.register(ModBlocksInitializer.BLOCK_OUTPOST_MARKER_NAME, () -> new BlockOutpostMarker(Blocks.BLACK_BANNER.properties()));
+ 
+    public static final DeferredBlock<StewpotBlock> STEWPOT_FILLED =
+        BLOCKS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME,
+            () -> new StewpotBlock(BlockBehaviour.Properties.of()
+                .strength(2.0F)
+                .requiresCorrectToolForDrops()
+                .noOcclusion()
+            )
+        );
+
     /*
     * ITEMS (Block)
     */
@@ -728,6 +744,11 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WOVEN_KELP_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new BlockItem(WOVEN_KELP_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
+        ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
+
+
 
     /*
     * Creative Mode Tabs
@@ -1121,6 +1142,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.END_MORTAR.get());
                     event.accept(MCTradePostMod.PRISMARINE_MORTAR.get());
                     event.accept(MCTradePostMod.QUARTZ_MORTAR.get());
+                    event.accept(MCTradePostMod.STEW_SEASONING.get());
                     event.accept(MCTradePostMod.MIXED_STONE.get());
                     event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
@@ -1192,6 +1214,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
+                    event.accept(MCTradePostMod.STEWPOT_FILLED.get());
                 }
             });
 

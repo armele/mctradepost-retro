@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "level=1": { "model": "mctradepost:block/stewpot_level1" },
+    "level=2": { "model": "mctradepost:block/stewpot_level2" },
+    "level=3": { "model": "mctradepost:block/stewpot_filled" }
+  }
+}

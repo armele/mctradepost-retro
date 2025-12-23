@@ -16,7 +16,8 @@
     "item.mctradepost.souvenir": "Souvenir",
     "item.mctradepost.end_mortar": "End Mortar",
     "item.mctradepost.prismarine_mortar": "Prismarine Mortar",
-    "item.mctradepost.quartz_mortar": "Quartz Mortar",  
+    "item.mctradepost.quartz_mortar": "Quartz Mortar", 
+    "item.mctradepost.stew_seasoning": "Stew Seasoning",
     "item.mctradepost.outpost_claim": "Outpost Claim Marker",
     "item.mctradepost.thatch": "Thatch",
     "item.mctradepost.thatch_stairs": "Thatch Stairs",
@@ -488,6 +489,11 @@
     "com.mctradepost.job.dairyworker": "Dairyworker",
     "mctradepost:dairyworker.job.desc": "Milks cows and makes dairy products.",
     "mctradepost:dairy": "Dairy",
-    "mctradepost:dairyworker_product": "Dairy Products"
+    "mctradepost:dairyworker_product": "Dairy Products",
+    "com.minecolonies.coremod.jei.stewmelier": "Uses excess foodstuffs to make a delicious perpetual stew.",
+    "entity.stewmelier.nocauldron": "I need a cauldron over a campfire within 30 blocks of my workplace to make my delicious perpetual stew!",
+    "com.mctradepost.job.stewmelier": "Stewmelier",
+    "mctradepost:stewmelier.job.desc": "Expertly takes excess foodstuffs and makes a delicious perpetual stew to feed the hungry.",
+    "com.minecolonies.coremod.gui.stewmelier.ingredients": "Perpetual Stew Ingredients"
 }
   
