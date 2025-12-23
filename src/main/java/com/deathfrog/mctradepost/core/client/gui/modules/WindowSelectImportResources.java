@@ -19,7 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.apache.commons.lang3.function.TriConsumer;
-import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.apache.commons.lang3.StringUtils;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -172,6 +172,7 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
     /**
      * Update the list of resources.
      */
+    @SuppressWarnings("deprecation")
     private void updateResources()
     {
         this.allItems.clear();
@@ -186,7 +187,8 @@ public class WindowSelectImportResources extends AbstractWindowSkeleton
             }
         }
 
-        allItems.sort(Comparator.comparingInt(s1 -> LevenshteinDistance.getDefaultInstance().apply(s1.getHoverName().getString(), filter)));
+        // Deprecation resolution to be resolved when core MineColonies version is updated to resolve it.
+        allItems.sort(Comparator.comparingInt(s1 -> StringUtils.getLevenshteinDistance(s1.getHoverName().getString(), filter)));
         this.updateResourceList();
     }
 
