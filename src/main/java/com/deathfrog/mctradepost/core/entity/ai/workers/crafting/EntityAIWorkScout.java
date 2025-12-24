@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
+import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.OutpostExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
@@ -128,7 +128,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         final BlockState worldState = handler.getWorld().getBlockState(worldPos);
 
         return worldState.getBlock() instanceof IBuilderUndestroyable || worldState.getBlock() == Blocks.BEDROCK ||
-            worldState.is(NullnessBridge.assumeNonnull(ModBlockTags.TRACK_TAG)) ||
+            worldState.is(NullnessBridge.assumeNonnull(ModTags.TRACK_TAG)) ||
             (info.getBlockInfo().getState().getBlock() instanceof AbstractBlockHut && handler.getWorldPos().equals(worldPos) &&
                 worldState.getBlock() instanceof AbstractBlockHut);
     };

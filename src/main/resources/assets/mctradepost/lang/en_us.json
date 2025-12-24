@@ -494,6 +494,10 @@
     "entity.stewmelier.nocauldron": "I need a cauldron over a campfire within 30 blocks of my workplace to make my delicious perpetual stew!",
     "com.mctradepost.job.stewmelier": "Stewmelier",
     "mctradepost:stewmelier.job.desc": "Expertly takes excess foodstuffs and makes a delicious perpetual stew to feed the hungry.",
-    "com.minecolonies.coremod.gui.stewmelier.ingredients": "Perpetual Stew Ingredients"
+    "com.minecolonies.coremod.gui.stewmelier.ingredients": "Perpetual Stew Ingredients",
+    "com.minecolonies.coremod.gui.ingredients.empty": "No ingredients selected.",
+    "mctradepost.stewmolier.ingredients_updated": "Perpetual stew ingredients updated.",
+    "com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip": "How many stacks to leave in the warehouse?",
+    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks"
 }
   

@@ -55,7 +55,7 @@ public class MCTPBuildingModules
         () -> new WorkerBuildingModule(MCTPModJobs.stewmelier.get(), Skill.Creativity, Skill.Focus, false, (b) -> 1),
       () -> WorkerBuildingModuleView::new);
 
-    public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> STEWMELIER_INGREDIENTS =
+    public static final BuildingEntry.ModuleProducer<StewmelierIngredientModule,StewmelierIngredientModuleView> STEWMELIER_INGREDIENTS =
       new BuildingEntry.ModuleProducer<>("stewmelier_ingredients", 
         () -> new StewmelierIngredientModule(),
         () -> StewmelierIngredientModuleView::new);

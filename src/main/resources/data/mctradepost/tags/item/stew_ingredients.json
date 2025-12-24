@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "#mctradepost:meat",
+    "#mctradepost:vegetable",
+    "#c:mushrooms",
+    "minecolonies:durum",
+    "minecolonies:rice",
+    "minecraft:egg"
+  ]
+}

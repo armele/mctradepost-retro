@@ -12,7 +12,8 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
-import com.deathfrog.mctradepost.core.blocks.ModBlockTags;
+import com.deathfrog.mctradepost.core.ModTags;
+
 import java.util.List;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
@@ -268,7 +269,7 @@ public class TrackPathConnection
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
 
-        if (block instanceof BaseRailBlock || state.is(NullnessBridge.assumeNonnull(ModBlockTags.TRACK_TAG)))
+        if (block instanceof BaseRailBlock || state.is(NullnessBridge.assumeNonnull(ModTags.TRACK_TAG)))
         {
             return true;
         }

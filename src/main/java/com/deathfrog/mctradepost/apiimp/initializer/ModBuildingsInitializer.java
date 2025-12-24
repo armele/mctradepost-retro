@@ -201,6 +201,7 @@ public final class ModBuildingsInitializer
         final DeferredHolder<BuildingEntry,BuildingEntry> cook = com.minecolonies.api.colony.buildings.ModBuildings.cook;
 
         injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_WORK, cook);
+        injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_INGREDIENTS, cook, 2);
     }
 
     /**
