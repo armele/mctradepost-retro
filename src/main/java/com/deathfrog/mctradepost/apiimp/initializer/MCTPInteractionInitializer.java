@@ -2,15 +2,19 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.interactionhandling.InteractionValidatorRegistry;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCowboy;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingKitchen;
 
 import net.minecraft.network.chat.Component;
 
 import static com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask.GREAT_VACATION;
 
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
+import com.deathfrog.mctradepost.core.colony.jobs.JobStewmelier;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 
@@ -20,6 +24,9 @@ public class MCTPInteractionInitializer
     public static final String MISSING_OUTPOST_BUILDINGS    = "com.mctradepost.outpost.missing";
     public static final String OUTPOST_INVENTORY_FULL       = "com.mctradepost.outpost.full_inventory";
     public static final String NO_COWS                      = "entity.dairyworker.nocows";
+    public static final String NO_STEWPOT                   = "entity.stewmelier.nostewpot";
+    public static final String NO_INGREDIENTS               = "entity.stewmelier.noingredients";
+    public static final String NO_BOWLS                     = "entity.stewmelier.nobowls";
 
     public static void injectInteractionHandlers() 
     {
@@ -55,6 +62,15 @@ public class MCTPInteractionInitializer
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_COWS),
           citizen -> citizen.getWorkBuilding() instanceof BuildingCowboy && citizen.getJob(JobDairyworker.class).checkForCowInteraction());
 
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_STEWPOT),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForStewpotInteraction());
 
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_INGREDIENTS),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen 
+          && citizen.getWorkBuilding() != null 
+          && citizen.getWorkBuilding().getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).ingredientCount() == 0);
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_BOWLS),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForStewpotInteraction());
     }
 }

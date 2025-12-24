@@ -5,21 +5,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.jetbrains.annotations.NotNull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.blocks.StewpotBlock;
+import com.ldtteam.structurize.api.BlockPosUtil;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class StewmelierIngredientModule extends AbstractBuildingModule implements IPersistentModule 
 {
@@ -28,7 +38,11 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
      */
     private static final String TAG_INGREDIENTS = "ingredients";
     private static final String TAG_PROTECTED_QUANTITY = "protectedQuantity";
+    private static final String TAG_STEWPOT_LOCATION = "stewpotLocation";
+    private static final String TAG_STEW_QUANTITY = "stewQuantity";
 
+    protected BlockPos stewpotLocation = BlockPos.ZERO;
+    protected float stewQuantity = 0.0f;
 
     protected Set<ItemStorage> ingredientSet = new HashSet<>();
 
@@ -40,6 +54,39 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     public Set<ItemStorage> getIngredients() 
     {
         return ingredientSet;
+    }
+
+    public int ingredientCount() 
+    {
+        return ingredientSet.size();
+    }
+
+    public BlockPos getStewpotLocation() 
+    {
+        return stewpotLocation;
+    }
+
+    public void setStewpotLocation(BlockPos location) 
+    {
+        stewpotLocation = location;
+        markDirty();
+    }
+
+    public float getStewQuantity() 
+    {
+        return stewQuantity;
+    }
+
+    public void setStewQuantity(float quantity) 
+    {
+        stewQuantity = quantity;
+        markDirty();
+    }
+
+    public void addStew(float adjustBy) 
+    {
+        stewQuantity += adjustBy;
+        markDirty();
     }
 
     /**
@@ -64,6 +111,105 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         markDirty();
     }
 
+
+    /**
+     * Marks the module as dirty and updates the stew level.
+     * This method is called when the module's state changes in a way that should be reflected on the client.
+     * It will call the parent class's markDirty method, then update the stew level based on the current stew quantity.
+     * If the stew quantity is greater than 50, the stew level will be set to 3.
+     * If the stew quantity is greater than 25, the stew level will be set to 2.
+     * If the stew quantity is greater than 0, the stew level will be set to 1.
+     * If the stew quantity is 0 or less, the stew level will be set to 0.
+     */
+    @Override
+    public void markDirty()
+    {
+        super.markDirty();
+
+        Level level = building.getColony().getWorld();
+        BlockPos stewPos = stewpotLocation;
+
+        if (level == null || level.isClientSide || stewPos == null) 
+        {
+            return;
+        }
+        
+        int stewLevel = 0;
+
+        if (stewQuantity > 50)
+        {
+            stewLevel = 3;
+        }
+        else if (stewQuantity > 25)
+        {
+            stewLevel = 2;
+        }
+        else if (stewQuantity > 0)
+        {
+            stewLevel = 1;
+        }
+
+        setStewLevel(level, stewPos, stewLevel);
+    }
+
+    /**
+     * Sets the level of a stewpot block at the given position in the given level.
+     * If the block at the given position is not a StewpotBlock, this method does nothing.
+     * 
+     * @param level the level to modify.
+     * @param pos the position of the block to modify.
+     * @param newLevel the new level of the stewpot block.
+     */
+    @SuppressWarnings("null")
+    public static void setStewLevel(
+        final @Nonnull Level level,
+        final @Nonnull BlockPos pos,
+        final int newStewLevel)
+    {
+        BlockState state = level.getBlockState(pos);
+        final int clamped = Mth.clamp(newStewLevel, 0, 3);
+
+        // If target is empty, always end as a vanilla cauldron.
+        if (clamped == 0)
+        {
+            if (!state.is(Blocks.CAULDRON))
+            {
+                // Only swap if currently our filled stewpot (or something else you choose to normalize).
+                if (state.is(MCTradePostMod.STEWPOT_FILLED.get()) || state.getBlock() instanceof StewpotBlock)
+                {
+                    level.setBlock(pos, Blocks.CAULDRON.defaultBlockState(), 2 | 16);
+                }
+            }
+            return;
+        }
+
+        // clamped is 1..3 here.
+        // Ensure we're using the filled stewpot block.
+        if (state.is(Blocks.CAULDRON))
+        {
+            state = MCTradePostMod.STEWPOT_FILLED.get()
+                .defaultBlockState()
+                .setValue(StewpotBlock.LEVEL, clamped);
+
+            level.setBlock(pos, state, 2 | 16);
+            return;
+        }
+
+        // If it's not our filled stewpot, do nothing (avoid mutating other cauldron-like blocks).
+        if (!state.is(MCTradePostMod.STEWPOT_FILLED.get()) && !(state.getBlock() instanceof StewpotBlock))
+        {
+            return;
+        }
+
+        // Update existing filled stewpot level.
+        final BlockState updated = state.setValue(StewpotBlock.LEVEL, clamped);
+        if (updated != state)
+        {
+            level.setBlock(pos, updated, 2 | 16);
+        }
+    }
+
+
     @Override
     public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
@@ -85,6 +231,8 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
 
             ingredientSet.add(tradeItem);
         }
+        stewpotLocation = BlockPosUtil.readFromNBT(compound, TAG_STEWPOT_LOCATION);
+        stewQuantity = compound.getFloat(TAG_STEW_QUANTITY);
     }
 
     /**
@@ -98,16 +246,18 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     @Override
     public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
-        @NotNull final ListTag importTagList = new ListTag();
+        @NotNull final ListTag ingredientTagList = new ListTag();
         for (ItemStorage ingredient : ingredientSet)
         {
             final CompoundTag compoundNBT = new CompoundTag();
             final Tag storedItem = ingredient.getItemStack().saveOptional(NullnessBridge.assumeNonnull(provider));
             compoundNBT.put(NbtTagConstants.STACK, NullnessBridge.assumeNonnull(storedItem));
             compoundNBT.putInt(TAG_PROTECTED_QUANTITY, ingredient.getAmount());
-            importTagList.add(compoundNBT);
+            ingredientTagList.add(compoundNBT);
         }
-        compound.put(TAG_INGREDIENTS, importTagList);
+        BlockPosUtil.writeToNBT(compound, TAG_STEWPOT_LOCATION, stewpotLocation);
+        compound.put(TAG_INGREDIENTS, ingredientTagList);
+        compound.putFloat(TAG_STEW_QUANTITY, stewQuantity);
     }
 
     /**
@@ -119,7 +269,7 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     @Override
     public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
-
+        // TODO: Serialize stew quantity to view and display it.
         // Sort ingredients by display name (case-insensitive, locale-safe)
         final List<ItemStorage> sorted =
             ingredientSet.stream()

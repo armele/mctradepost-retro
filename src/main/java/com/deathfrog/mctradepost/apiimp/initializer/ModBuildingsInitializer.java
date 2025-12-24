@@ -198,10 +198,10 @@ public final class ModBuildingsInitializer
         injectModuleToBuilding(MCTPBuildingModules.DAIRYWORKER_CRAFT, cowboy, 2);
 
         // Get the existing entry to extend
-        final DeferredHolder<BuildingEntry,BuildingEntry> cook = com.minecolonies.api.colony.buildings.ModBuildings.cook;
+        final DeferredHolder<BuildingEntry,BuildingEntry> kitchen = com.minecolonies.api.colony.buildings.ModBuildings.kitchen;
 
-        injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_WORK, cook);
-        injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_INGREDIENTS, cook, 2);
+        injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_WORK, kitchen);
+        injectModuleToBuilding(MCTPBuildingModules.STEWMELIER_INGREDIENTS, kitchen, 2);
     }
 
     /**
