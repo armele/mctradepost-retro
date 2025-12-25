@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -162,7 +163,7 @@ public class Vacationer
                 continue;
             }
 
-            cureString.append(String.valueOf(itemstack.getCount()) + "").append(" ").append(itemstack.getHoverName() + "");
+            cureString.append(String.valueOf(itemstack.getCount()) + "").append(" ").append(NullnessBridge.assumeNonnull(itemstack.getHoverName()));
             if (i != remedyItems.size() - 1)
             {
                 cureString.append(" + ");

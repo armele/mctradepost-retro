@@ -77,7 +77,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.ldtteam.domumornamentum.block.ModBlocks;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -121,7 +120,6 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.CauldronBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
@@ -245,6 +243,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<ItemFood> ENERGY_SHAKE = ITEMS.register("energy_shake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+    public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(5).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
 
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
@@ -1138,6 +1139,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.ENERGY_SHAKE.get());
                     event.accept(MCTradePostMod.VANILLA_MILKSHAKE.get());
                     event.accept(MCTradePostMod.BAR_NUTS.get());
+                    event.accept(MCTradePostMod.PERPETUAL_STEW.get());
                     event.accept(MCTradePostMod.COLD_BREW.get());
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());

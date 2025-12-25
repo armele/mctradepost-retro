@@ -4,16 +4,20 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction.InteractionMap;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractCauldronBlock;
 import net.minecraft.world.level.block.Block;
@@ -123,7 +127,73 @@ public class StewpotBlock extends AbstractCauldronBlock
         InteractionHand hand,
         BlockHitResult hitResult)
     {
+
+        if (pos == null || level == null || player == null)
+        {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        final ItemInteractionResult bowlResult =
+            tryFillBowlWithPerpetualStew(stack, state, level, pos, player, hand);
+
+        if (bowlResult != ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION)
+        {
+            return bowlResult;
+        }
+
         // No player interactions for stewpot. Let other handlers proceed.
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }
+
+    /**
+     * If the player is holding an empty bowl, replace one bowl with one PerpetualStew.
+     * Returns a non-PASS result if it handled the interaction.
+     */
+    private static ItemInteractionResult tryFillBowlWithPerpetualStew(
+        final ItemStack held,
+        final BlockState state,
+        final Level level,
+        final @Nonnull BlockPos pos,
+        final Player player,
+        final InteractionHand hand)
+    {
+        // Only act on server; client will get the success result from the server-side interaction.
+        if (level.isClientSide)
+            return ItemInteractionResult.SUCCESS;
+
+        // Must be an empty bowl
+        if (!held.is(NullnessBridge.assumeNonnull(Items.BOWL)))
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+
+        // Optional: only allow if your stewpot has contents
+        if (state.getValue(LEVEL) <= 0)
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+
+        // Create the filled stew item
+        final ItemStack filledStew = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()));
+
+        // If not creative, consume exactly one bowl from the held stack
+        if (!player.getAbilities().instabuild)
+        {
+            held.shrink(1);
+        }
+
+        // Put the filled item into the player's hand if the hand is now empty;
+        // otherwise try to add to inventory; if that fails, drop it.
+        if (hand != null && held.isEmpty())
+        {
+            player.setItemInHand(hand, filledStew);
+        }
+        else if (!player.getInventory().add(filledStew))
+        {
+            player.drop(filledStew, false);
+        }
+
+        // TODO: Identify module from cauldron position, and reduce the stew amount in the module.
+
+        level.playSound(null, pos, NullnessBridge.assumeNonnull(SoundEvents.BOTTLE_FILL), SoundSource.BLOCKS, 1.0F, 1.0F);
+
+        return ItemInteractionResult.SUCCESS;
+    }
+
 }

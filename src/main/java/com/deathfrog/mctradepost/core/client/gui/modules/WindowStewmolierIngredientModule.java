@@ -11,7 +11,6 @@ import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.constant.WindowConstants;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;

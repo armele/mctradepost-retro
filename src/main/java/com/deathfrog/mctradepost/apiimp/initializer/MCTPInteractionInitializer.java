@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.interactionhandling.InteractionValidatorRegistry;
 import com.minecolonies.api.util.InventoryUtils;
-import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCowboy;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingKitchen;
 

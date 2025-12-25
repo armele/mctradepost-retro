@@ -640,7 +640,6 @@ public class EntityAIBurnoutTask
             return VacationAIState.SEARCH_RESORT;
         }
 
-        // TODO: RESORT - if it is night time let them go home (set to IDLE)
         if (!citizen.getCitizenSleepHandler().isAsleep() &&
             BlockPosUtil.getDistance2D(bestResortPosition, citizen.blockPosition()) > MIN_DIST_TO_RESORT)
         {

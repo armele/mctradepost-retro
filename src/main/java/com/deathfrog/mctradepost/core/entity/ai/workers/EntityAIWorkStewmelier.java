@@ -110,6 +110,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     private IAIState decide()
     {
         // TODO: Add experience and increment actions done.
+        // TODO: Add stats (bowls collected, stew served, ingredients used)
 
         Level world = building.getColony().getWorld();
         if (world == null || world.isClientSide())
@@ -257,6 +258,39 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         return StewmelierState.SERVE_STEW;
     }
+
+    /**
+     * Returns the citizen with the lowest saturation from the list of hungry citizens.
+     * If the list of hungry citizens is empty, returns null.
+     * 
+     * @return the citizen with the lowest saturation, or null if there are no hungry citizens.
+     */
+    @Nullable
+    protected ICitizenData getHungriestCitizen()
+    {
+        if (hungryCitizens.isEmpty())
+        {
+            return null;
+        }
+
+        ICitizenData hungriest = null;
+        double lowestSaturation = Double.MAX_VALUE;
+
+        for (ICitizenData citizen : hungryCitizens.values())
+        {
+            // Defensive: saturation *should* be valid, but this keeps us robust
+            double saturation = citizen.getSaturation();
+
+            if (hungriest == null || saturation < lowestSaturation)
+            {
+                hungriest = citizen;
+                lowestSaturation = saturation;
+            }
+        }
+
+        return hungriest;
+    }
+
 
     /**
      * Checks if the worker has any seasoning in their inventory or the building's inventory.
@@ -472,15 +506,45 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return StewmelierState.MAKE_STEW;
         }
 
-        int ingredientsUsed = 0;
+        // Count seasoning and add seasoning logic to makeStew AI.
+        ItemStack seasoningStack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.STEW_SEASONING.get()));
+        int seasoning = InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), stack -> stack != null && ItemStack.isSameItem(stack, seasoningStack));
 
-        for (ItemStorage ingredient : safeStewModule().getIngredients())
+        if (seasoning == 0)
+        {
+            return DECIDE;
+        }
+
+        int ingredientsUsed = 0;
+        StewmelierIngredientModule stewModule = safeStewModule();
+
+        for (ItemStorage ingredient : stewModule.getIngredients())
         {
             ItemStack ingredientStack = ingredient.getItemStack();
 
             if (ingredientStack == null || ingredientStack.isEmpty())
             {
                 continue;
+            }
+
+            // Season the stew when necessary!
+            if (stewModule.getSeasoningLevel() <= 0)
+            {
+                boolean seasoned = InventoryUtils.attemptReduceStackInItemHandler(worker.getInventoryCitizen(), ingredientStack, 1);
+                if (seasoned)
+                {
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, seasoningStack);
+                    worker.swing(InteractionHand.MAIN_HAND);
+                    worker.playSound(NullnessBridge.assumeNonnull(SoundEvents.LAVA_AMBIENT),
+                        (float) SoundUtils.BASIC_VOLUME,
+                        (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(worker.getRandom()));
+
+                    stewModule.setSeasoningLevel(1);
+                }
+                else
+                {
+                    return DECIDE;
+                }
             }
 
             worker.setItemInHand(InteractionHand.MAIN_HAND, ingredientStack);
@@ -502,7 +566,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             incrementActionsDone();
             worker.getCitizenExperienceHandler().addExperience(ingredientsUsed);
             int skill = getPrimarySkillLevel();
-            safeStewModule().addStew(ingredientsUsed + ((float)ingredientsUsed * ((float) skill / PERFECT_STEW_SKILL)));
+            stewModule.addStew(ingredientsUsed + ((float)ingredientsUsed * ((float) skill / PERFECT_STEW_SKILL)));
 
             return StewmelierState.MAKE_STEW;
         }
@@ -513,8 +577,24 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
     protected IAIState serveStew()
     {
-        // TODO: Pick a hungry citizen.
-        // TODO: walk to them
+        // Pick a hungry citizen.
+        if (currentHungryCitizen == null)
+        {
+            currentHungryCitizen = getHungriestCitizen();
+
+            if (currentHungryCitizen == null)
+            {
+                return DECIDE;
+            }
+        }
+
+        // Walk to them
+        AbstractEntityCitizen citizenEntity = currentHungryCitizen.getEntity().get();
+        if (citizenEntity != null && !EntityNavigationUtils.walkToPos(worker, citizenEntity.blockPosition(), 3, false))
+        {
+            return StewmelierState.SERVE_STEW;
+        }
+
         // TODO: serve the stew.
 
         return DECIDE;
@@ -538,18 +618,27 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
 
             boolean gotSome = false;
-            int stacklimit = 5;
+            int trylimit = 5;
             
             // Take all the bowls in this building.
             do
             {
-                gotSome = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(currentBowlPickupBuilding,
-                    InventoryUtils.findFirstSlotInProviderNotEmptyWith(currentBowlPickupBuilding,
-                        stack -> stack != null && ItemStack.isSameItem(stack, new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL)))),
-                    worker.getInventoryCitizen());
+                int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(currentBowlPickupBuilding,
+                        stack -> stack != null && ItemStack.isSameItem(stack, new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL))));
+                
+                if (slot >= 0)
+                {
+                    gotSome = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(currentBowlPickupBuilding,
+                        slot,
+                        worker.getInventoryCitizen());
+                }
+                else
+                {
+                    gotSome = false;
+                }
 
-                stacklimit--;
-            } while (gotSome && stacklimit > 0);
+                trylimit--;
+            } while (gotSome && trylimit > 0);
 
             if (gotSome)
             {

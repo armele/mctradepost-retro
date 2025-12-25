@@ -40,10 +40,15 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     private static final String TAG_PROTECTED_QUANTITY = "protectedQuantity";
     private static final String TAG_STEWPOT_LOCATION = "stewpotLocation";
     private static final String TAG_STEW_QUANTITY = "stewQuantity";
+    private static final String TAG_SEASONING_LEVEL = "seasoningLevel";
+
+    private static final float STEW_SEASONING_LEVEL = 8.0f;
 
     protected BlockPos stewpotLocation = BlockPos.ZERO;
+    protected float unseasonedQuantity = 0.0f;
     protected float stewQuantity = 0.0f;
-
+    protected int seasoningLevel = 0;
+    
     protected Set<ItemStorage> ingredientSet = new HashSet<>();
 
     public StewmelierIngredientModule() 
@@ -79,13 +84,53 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
 
     public void setStewQuantity(float quantity) 
     {
+        float oldQuantity = stewQuantity;
         stewQuantity = quantity;
+
+        useSeasoning(stewQuantity - oldQuantity);
+
         markDirty();
     }
 
     public void addStew(float adjustBy) 
     {
+        useSeasoning(adjustBy);
         stewQuantity += adjustBy;
+        markDirty();
+    }
+
+    /**
+     * Adjusts the amount of stewing in the stewpot by the given amount.
+     * If the amount of stewing exceeds the seasoning level, it will
+     * decrement the seasoning level and subtract the seasoning level from
+     * the amount of stewing.
+     * 
+     * @param stewAmount the amount of stewing to add
+     */
+    public void useSeasoning(float stewAmount)
+    {
+        if (stewAmount > 0)
+        {
+            unseasonedQuantity = unseasonedQuantity + stewAmount;
+
+            if (unseasonedQuantity >= STEW_SEASONING_LEVEL)
+            {
+                seasoningLevel--;
+                unseasonedQuantity -= STEW_SEASONING_LEVEL;
+            }
+        }
+
+        markDirty();
+    }
+
+    public int getSeasoningLevel()
+    {
+        return seasoningLevel;
+    }
+
+    public void setSeasoningLevel(int level)
+    {
+        seasoningLevel = level;
         markDirty();
     }
 
@@ -233,6 +278,7 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         }
         stewpotLocation = BlockPosUtil.readFromNBT(compound, TAG_STEWPOT_LOCATION);
         stewQuantity = compound.getFloat(TAG_STEW_QUANTITY);
+        seasoningLevel = compound.getInt(TAG_SEASONING_LEVEL);
     }
 
     /**
@@ -258,6 +304,7 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         BlockPosUtil.writeToNBT(compound, TAG_STEWPOT_LOCATION, stewpotLocation);
         compound.put(TAG_INGREDIENTS, ingredientTagList);
         compound.putFloat(TAG_STEW_QUANTITY, stewQuantity);
+        compound.putInt(TAG_SEASONING_LEVEL, seasoningLevel);
     }
 
     /**
@@ -270,6 +317,7 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
         // TODO: Serialize stew quantity to view and display it.
+
         // Sort ingredients by display name (case-insensitive, locale-safe)
         final List<ItemStorage> sorted =
             ingredientSet.stream()
