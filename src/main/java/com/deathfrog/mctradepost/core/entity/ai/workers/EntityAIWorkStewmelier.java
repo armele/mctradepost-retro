@@ -23,6 +23,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.inventory.InventoryCitizen;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingKitchen;
@@ -43,6 +44,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.CauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -61,15 +63,16 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     public static final Logger LOGGER = LogUtils.getLogger();
 
     protected static final float PERFECT_STEW_SKILL = 50.0f;
-    protected static final int FIND_HUNGRY_COOLDOWN = 100;
+    protected static final int FIND_HUNGRY_COOLDOWN = 20;
+    protected static final int SERVE_TRY_MAX = 1000;
     protected int findHungryCounter = 0;
-
+    protected int serveTryCounter = 0;
     protected IBuilding currentBowlPickupBuilding = null;
     protected ICitizenData currentHungryCitizen = null;
 
     public enum StewmelierState implements IAIState
     {
-        FIND_POT, MAKE_STEW, GATHER_INGREDIENTS, FIND_HUNGRY, SERVE_STEW, COLLECT_BOWLS;
+        FIND_POT, MAKE_STEW, FILL_STEW, GATHER_INGREDIENTS, FIND_HUNGRY, SERVE_STEW, COLLECT_BOWLS;
 
         @Override
         public boolean isOkayToEat()
@@ -95,7 +98,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             new AITarget<IAIState>(StewmelierState.MAKE_STEW, this::makeStew, 50),
             new AITarget<IAIState>(StewmelierState.SERVE_STEW, this::serveStew, 50),
             new AITarget<IAIState>(StewmelierState.COLLECT_BOWLS, this::collectBowls, 50),
-            new AITarget<IAIState>(WANDER, this::wander, 10)
+            new AITarget<IAIState>(WANDER, this::wander, 10),
+            new AITarget<IAIState>(StewmelierState.FILL_STEW, this::fillStew, 50)
         };
         super.registerTargets(targets);
         worker.setCanPickUpLoot(true);
@@ -109,13 +113,19 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
      */
     private IAIState decide()
     {
-        // TODO: Add experience and increment actions done.
-        // TODO: Add stats (bowls collected, stew served, ingredients used)
-
         Level world = building.getColony().getWorld();
+
         if (world == null || world.isClientSide())
         {
             return IDLE;
+        }
+
+        StewmelierIngredientModule stewModule = safeStewModule();
+        BlockPos stewpotPos = stewModule.getStewpotLocation();
+
+        if (stewpotPos == null || stewpotPos == BlockPos.ZERO)
+        {
+            return StewmelierState.FIND_POT;
         }
 
         if (!walkToStewPot())
@@ -123,18 +133,10 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return DECIDE;
         }
 
-        StewmelierIngredientModule stewModule = safeStewModule();
-
         if (stewModule.ingredientCount() == 0)
         {
             worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_INGREDIENTS), ChatPriority.BLOCKING));
             return WANDER;
-        }
-
-        BlockPos stewpotPos = stewModule.getStewpotLocation();
-        if (stewpotPos == null || stewpotPos == BlockPos.ZERO)
-        {
-            return StewmelierState.FIND_POT;
         }
 
         // The cauldron or campfire was destroyed or changed and it is no longer valid.
@@ -147,24 +149,63 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         // The seasoning request puts in an order for seasoning if there isn't any on hand.
         boolean hasSeasoning = checkForSeasoning();
         float stewQuantity = stewModule.getStewQuantity();
+        int stewInInventory = stewInInventory();
 
         // No seasoning, so we can't make stew. Serve what we have!
         if (stewQuantity > 0 && !hasSeasoning)
         {
+            if (stewInInventory < 16) 
+            {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Stew is in the pot, but not enough portioned into bowls; let's fill the bowls.", building.getColony().getID()));
+                return StewmelierState.FILL_STEW;
+            }
+
             if (findHungryCounter++ > FIND_HUNGRY_COOLDOWN)
             {
                 findHungryCounter = 0;
-                return StewmelierState.FIND_HUNGRY;
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has stew but no ingredients; let's find hungry people to serve.", building.getColony().getID()));
+
             }
 
-            if (!hungryCitizens.isEmpty())
+            if (!hungryCitizens.isEmpty() && stewInInventory > 0)
             {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has stew but no ingredients; serving the stew we have.", building.getColony().getID()));
                 return StewmelierState.SERVE_STEW;
             }
         }
 
         int ingredientsOnHand = checkForIngredientsInInventory();
-        boolean hasBowls = checkForBowls();
+        int bowlsInInventory = bowlsInInventory();
+
+        if (bowlsInInventory <= 0)
+        {
+            job.tickNoBowls();
+
+            if (job.checkForBowlInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_BOWLS), ChatPriority.BLOCKING));
+            }
+        }
+        else
+        {
+            job.resetBowlCounter();
+        }
+
+        if (stewInInventory >= 32)
+        {
+            if (!hungryCitizens.isEmpty())
+            {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has plenty of stew; serving hungry citizens.", building.getColony().getID()));
+                return StewmelierState.SERVE_STEW;
+            }
+
+            if (findHungryCounter++ > FIND_HUNGRY_COOLDOWN)
+            {
+                findHungryCounter = 0;
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has plenty of stew; let's find hungry people to serve.", building.getColony().getID()));
+                return StewmelierState.FIND_HUNGRY;
+            }
+        }
 
         if (ingredientsOnHand == 0)
         {
@@ -176,13 +217,22 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
             else
             {
-                if (!hasBowls)
+                if (bowlsInInventory <= 0)
                 {
+
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: No ingredients, and needs bowls.", building.getColony().getID()));
                     return StewmelierState.COLLECT_BOWLS;
                 }
                 
-                if (stewModule.getStewQuantity() > 0)
+                if (stewInInventory < 16 && stewModule.getStewQuantity() > 0)
                 {
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: No ingredients, needs more stew bowls to serve.", building.getColony().getID()));
+                    return StewmelierState.FILL_STEW;
+                }
+
+                if (stewInInventory > 0)
+                {
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: No ingredients, serving the stew we have.", building.getColony().getID()));
                     return StewmelierState.SERVE_STEW;
                 }
 
@@ -191,22 +241,38 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         }
         else
         {
+            if (bowlsInInventory <= 0)
+            {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, but needs bowls.", building.getColony().getID()));
+                return StewmelierState.COLLECT_BOWLS;
+            }
+
+            if (bowlsInInventory > 0 && stewInInventory < 16)
+            {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, but needs more stew bowls to serve.", building.getColony().getID()));
+                return StewmelierState.FILL_STEW;
+            }
+
             int choices = worker.getRandom().nextInt(100);
 
             if (choices < 30)
             {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, and will make more stew.", building.getColony().getID()));
                 return StewmelierState.MAKE_STEW;
             }
             else if (choices < 60)
             {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, and will serve stew.", building.getColony().getID()));
                 return StewmelierState.SERVE_STEW;
             }
             else if (choices < 90)
             {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, and will collect bowls.", building.getColony().getID()));
                 return StewmelierState.COLLECT_BOWLS;
             }
             else
             {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Has ingredients, but is stepping away for a moment.", building.getColony().getID()));
                 return WANDER;
             }
         }
@@ -221,12 +287,12 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
      */
     protected IAIState findHungry()
     {
-        StewmelierIngredientModule stewModule = safeStewModule();
-
         if (!walkToStewPot())
         {
             return StewmelierState.FIND_HUNGRY;
         }
+
+        TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Finding hungry people.", building.getColony().getID()));
 
         hungryCitizens.clear();
         List<ICitizenData> citizens = building.getColony().getCitizenManager().getCitizens();
@@ -251,8 +317,10 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
         }
 
-        if (hungryCitizens.isEmpty() || stewModule.getStewQuantity() <= 0)
+        if (hungryCitizens.isEmpty())
         {
+            TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Nobody is hungry for stew.", building.getColony().getID()));
+
             return DECIDE;
         }
 
@@ -291,6 +359,43 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         return hungriest;
     }
 
+    /**
+     * Attempts to fill the stewpot with the given amount of stew.
+     * Walks to the stewpot if it isn't already there, then attempts to reduce the number of empty BOWLs in the inventory by the given amount.
+     * If the reduction is successful, adds the given amount of stew to the module and adds the filled BOWLs to the inventory.
+     * 
+     * @return the next state to transition to, or DECIDE to stay in the current state.
+     */
+    protected IAIState fillStew()
+    {
+        StewmelierIngredientModule stewModule = safeStewModule();
+
+        if (!walkToStewPot())
+        {
+            return StewmelierState.FILL_STEW;
+        }    
+
+        float stewQuantity = stewModule.getStewQuantity();
+        int bowlsInInventory = bowlsInInventory();
+        int bowlsToFill = Math.min(64, bowlsInInventory);
+        bowlsToFill = Math.min(bowlsToFill, (int) Math.floor(stewQuantity));
+
+        ItemStack bowlStack = new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL));
+        ItemStack stewStack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()), bowlsToFill);
+
+        boolean didReduce = InventoryUtils.attemptReduceStackInItemHandler(getInventory(), bowlStack, bowlsToFill);
+
+        if (didReduce)
+        {
+            stewModule.addStew((float) -bowlsToFill);
+            InventoryUtils.addItemStackToItemHandler(getInventory(), stewStack);
+            incrementActionsDone();
+            worker.getCitizenExperienceHandler().addExperience(bowlsToFill / 4);
+        }
+
+        return DECIDE;
+    }
+
 
     /**
      * Checks if the worker has any seasoning in their inventory or the building's inventory.
@@ -308,6 +413,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return true;
         }
 
+        // It is ok to take seasoning from the building's inventory.
         if (InventoryUtils.hasItemInProvider(building, stack -> stack != null && ItemStack.isSameItem(stack, seasoningStack)))
         {
             boolean gotSome = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
@@ -321,7 +427,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
         }
 
-        // It is ok to take stew seasoning from the building.
+        // Check to see if we've already asked for more seasoning. If not, request more.
         final ImmutableList<IRequest<? extends Stack>> openRequests = building.getOpenRequestsOfType(worker.getCitizenData().getId(), TypeToken.of(Stack.class));
         boolean outstandingRequest = false;
 
@@ -346,16 +452,42 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     }
 
 
-    private boolean checkForBowls()
+    /**
+     * Returns the number of empty BOWLs in the worker's inventory.
+     * 
+     * @return the number of empty BOWLs in the worker's inventory.
+     */
+    private int bowlsInInventory()
     {
         ItemStack bowlStack = new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL));
-        
-        if (InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(), stack -> stack != null && ItemStack.isSameItem(stack, bowlStack)))
+        return InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), stack -> stack != null && ItemStack.isSameItem(stack, bowlStack));
+    }
+
+    /**
+     * Picks up stew from the kitchen if there is any, then
+     * returns the number of stew in the worker's inventory.
+     * 
+     * @return the number of stew in the worker's inventory.
+     */
+    private int stewInInventory()
+    {
+        ItemStack stewStack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()));
+
+        // It is ok to take stew from the building's inventory.
+        if (InventoryUtils.hasItemInProvider(building, stack -> stack != null && ItemStack.isSameItem(stack, stewStack)))
         {
-            return true;
+            boolean gotSome = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building,
+                InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
+                    stack -> stack != null && ItemStack.isSameItem(stack, stewStack)),
+                worker.getInventoryCitizen());
+
+            if (gotSome)
+            {
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Picked up stew from the building.", building.getColony().getID()));
+            }
         }
 
-        return false;
+        return InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), stack -> stack != null && ItemStack.isSameItem(stack, stewStack));
     }
 
     /**
@@ -506,7 +638,6 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return StewmelierState.MAKE_STEW;
         }
 
-        // Count seasoning and add seasoning logic to makeStew AI.
         ItemStack seasoningStack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.STEW_SEASONING.get()));
         int seasoning = InventoryUtils.getItemCountInItemHandler(worker.getInventoryCitizen(), stack -> stack != null && ItemStack.isSameItem(stack, seasoningStack));
 
@@ -527,10 +658,12 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 continue;
             }
 
+            TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Stew seasoning level before seasoning: {}", building.getColony().getID(), stewModule.getSeasoningLevel()));
+
             // Season the stew when necessary!
             if (stewModule.getSeasoningLevel() <= 0)
             {
-                boolean seasoned = InventoryUtils.attemptReduceStackInItemHandler(worker.getInventoryCitizen(), ingredientStack, 1);
+                boolean seasoned = InventoryUtils.attemptReduceStackInItemHandler(worker.getInventoryCitizen(), seasoningStack, 1);
                 if (seasoned)
                 {
                     worker.setItemInHand(InteractionHand.MAIN_HAND, seasoningStack);
@@ -543,6 +676,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 }
                 else
                 {
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Out of seasoning.", building.getColony().getID()));
                     return DECIDE;
                 }
             }
@@ -557,16 +691,16 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
             if (used)
             {
+                int skill = getPrimarySkillLevel();
+                stewModule.addStew(1.0f + (1.0f * ((float) skill / PERFECT_STEW_SKILL)));
                 ingredientsUsed++;
             }
         }
 
-        if (ingredientsUsed > 0)
+        if (ingredientsUsed > 0 && stewModule.getStewQuantity() < StewmelierIngredientModule.STEW_LEVEL_2)
         {
             incrementActionsDone();
             worker.getCitizenExperienceHandler().addExperience(ingredientsUsed);
-            int skill = getPrimarySkillLevel();
-            stewModule.addStew(ingredientsUsed + ((float)ingredientsUsed * ((float) skill / PERFECT_STEW_SKILL)));
 
             return StewmelierState.MAKE_STEW;
         }
@@ -575,8 +709,16 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         return DECIDE;
     }
 
+    /**
+     * Serves stew to a hungry citizen.
+     * Picks a hungry citizen and walks to them. If it successfully reaches the citizen, it will attempt to transfer two stew items from the worker's inventory to the citizen's inventory. If the transfer is successful, it will increment the actions done counter, decrement the citizen's saturation, and reset the current hungry citizen.
+     * If the transfer is not successful, it will reset the current hungry citizen and return to the DECIDE state.
+     * @return the next AI state to transition to.
+     */
     protected IAIState serveStew()
     {
+        int stewInInventory = stewInInventory();
+
         // Pick a hungry citizen.
         if (currentHungryCitizen == null)
         {
@@ -584,21 +726,108 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
             if (currentHungryCitizen == null)
             {
-                return DECIDE;
+                if (findHungryCounter++ > FIND_HUNGRY_COOLDOWN)
+                {
+                    findHungryCounter = 0;
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: I am ready to serve stew; let's find hungry people to serve.", building.getColony().getID()));
+                    return StewmelierState.FIND_HUNGRY;
+                }
+                else
+                {
+                    TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: I am ready to serve stew; but there are no hungry people to serve.", building.getColony().getID()));
+                    return DECIDE;
+                }
             }
+        }
+
+        if (stewInInventory < 2)
+        {
+            return StewmelierState.FILL_STEW;
+        }
+
+
+        if (currentHungryCitizen.getEntity().isEmpty()) 
+        { 
+            currentHungryCitizen=null; return DECIDE; 
         }
 
         // Walk to them
         AbstractEntityCitizen citizenEntity = currentHungryCitizen.getEntity().get();
         if (citizenEntity != null && !EntityNavigationUtils.walkToPos(worker, citizenEntity.blockPosition(), 3, false))
         {
+            serveTryCounter++;
+
+            if (serveTryCounter > SERVE_TRY_MAX)
+            {
+                serveTryCounter = 0;
+                currentHungryCitizen = null;
+                return DECIDE;
+            }
+
             return StewmelierState.SERVE_STEW;
         }
 
-        // TODO: serve the stew.
+        InventoryCitizen workerInventory = worker.getCitizenData().getInventory();
+
+        if (workerInventory == null)
+        {
+            currentHungryCitizen = null;
+            return DECIDE;
+        }
+
+        ItemStack twoItemStewStack =
+            extractTwoStew(workerInventory);
+
+        if (twoItemStewStack.isEmpty())
+        {
+            // No stew available — bail out cleanly
+            serveTryCounter = 0;
+            return DECIDE;
+        }
+
+        boolean didTransfer = InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(twoItemStewStack, currentHungryCitizen.getInventory());
+        
+        if (didTransfer)
+        {
+            serveTryCounter = 0;
+            incrementActionsDoneAndDecSaturation();
+            worker.getCitizenExperienceHandler().addExperience(1);
+            currentHungryCitizen = null;
+        }
 
         return DECIDE;
     }
+
+    /**
+     * Finds a PerpetualStew stack with at least 2 items and splits off exactly 2.
+     *
+     * @param inventory the source inventory
+     * @return a stack of size 2, or ItemStack.EMPTY if not available
+     */
+    @SuppressWarnings("null")
+    @Nonnull
+    private static ItemStack extractTwoStew(@Nonnull final IItemHandler inventory)
+    {
+        for (int slot = 0; slot < inventory.getSlots(); slot++)
+        {
+            ItemStack stack = inventory.getStackInSlot(slot);
+
+            if (stack.isEmpty())
+                continue;
+
+            if (!stack.is(MCTradePostMod.PERPETUAL_STEW.get()))
+                continue;
+
+            if (stack.getCount() < 2)
+                continue;
+
+            // split(2) mutates the original stack safely
+            return stack.split(2);
+        }
+
+        return ItemStack.EMPTY;
+    }
+
 
     /**
      * Walk to a building and collect all the bowls in it.
@@ -610,6 +839,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     protected IAIState collectBowls()
     {
 
+        ItemStack bowlReferenceStack = new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL));
+
         if (currentBowlPickupBuilding != null)
         {
             if (!walkToBuilding(currentBowlPickupBuilding))
@@ -618,13 +849,13 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
 
             boolean gotSome = false;
-            int trylimit = 5;
+            int trylimit = 3;
             
             // Take all the bowls in this building.
             do
             {
                 int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(currentBowlPickupBuilding,
-                        stack -> stack != null && ItemStack.isSameItem(stack, new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL))));
+                        stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack));
                 
                 if (slot >= 0)
                 {
@@ -643,6 +874,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             if (gotSome)
             {
                 currentBowlPickupBuilding = null;
+                worker.setItemInHand(InteractionHand.MAIN_HAND, bowlReferenceStack);
                 return DECIDE;
             }
 
@@ -658,7 +890,9 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 continue;
             }
 
-            if (InventoryUtils.hasItemInProvider(buildingEntry.getValue(), stack -> stack != null && ItemStack.isSameItem(stack, new ItemStack(NullnessBridge.assumeNonnull(Items.BOWL)))))
+            // LOGGER.info("Checking building at position {} of type {} for bowls.", buildingEntry.getKey(), buildingEntry.getValue().getClass().getSimpleName());
+
+            if (InventoryUtils.hasItemInProvider(buildingEntry.getValue(), stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack)))
             {
                 job.resetBowlCounter();
                 currentBowlPickupBuilding = buildingEntry.getValue();
@@ -666,11 +900,35 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
         }
 
-        job.tickNoBowls();
-
-        if (job.checkForBowlInteraction())
+        // If there are no bowls to pick up from other buildings, try to get bowls from a warehouse.
+        if (currentBowlPickupBuilding == null)
         {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_BOWLS), ChatPriority.BLOCKING));
+            IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(building.getPosition());
+            int bowlsInWarehouse = InventoryUtils.getItemCountInProvider(warehouse, stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack));
+
+            if (bowlsInWarehouse > 0)
+            {
+                currentBowlPickupBuilding = warehouse;
+                return StewmelierState.COLLECT_BOWLS;
+            }
+        }
+
+        // If there are no bowls to pick up from other buildings, try to get bowls from the kitchen itself (if there are more than a stack available).
+        if (currentBowlPickupBuilding == null)
+        {
+            int bowlsInKitchen = InventoryUtils.getItemCountInProvider(building, stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack));
+
+            if (bowlsInKitchen > bowlReferenceStack.getMaxStackSize())
+            {
+                int bowlsTakenFromKitchen = InventoryUtils.transferXOfFirstSlotInItemHandlerWithIntoNextFreeSlotInItemHandlerWithResult(building.getItemHandlerCap(), 
+                    stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack), 16, getInventory());
+
+                if (bowlsTakenFromKitchen > 0)
+                {
+                    job.resetBowlCounter();
+                    return DECIDE;
+                }
+            }
         }
 
         return DECIDE;
@@ -715,7 +973,21 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
      */
     private boolean walkToStewPot()
     {
-        return walkToSafePos(safeStewModule().getStewpotLocation());
+        Level level = building.getColony().getWorld();
+        BlockPos potLocation = safeStewModule().getStewpotLocation();
+
+        if (level == null || level.isClientSide())
+        {
+            return true;
+        }
+
+        // If our pot location has been reset or the cauldron is no longer valid, we can't walk to it... return that we are done with walking.
+        if (potLocation == null || potLocation == BlockPos.ZERO || !isCauldronCandidate(level, potLocation))
+        {
+            return true;
+        } 
+
+        return walkToSafePos(potLocation);
     }
 
     /**

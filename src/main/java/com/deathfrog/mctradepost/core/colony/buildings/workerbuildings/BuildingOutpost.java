@@ -181,7 +181,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * @return the serialized NBT tag.
      */
     @Override
-    public CompoundTag serializeNBT(@SuppressWarnings("null") HolderLookup.Provider provider)
+    public CompoundTag serializeNBT(HolderLookup.Provider provider)
     {
         CompoundTag compound = super.serializeNBT(provider);
         BlockPosUtil.write(compound, TAG_CONNECTED_STATION, getConnectedStation() != null ? getConnectedStation().getPosition() : BlockPos.ZERO);
@@ -211,8 +211,6 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * @param compound The CompoundTag containing the serialized state of the
      *                 outpost.
      */
-
-    @SuppressWarnings("null")
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compound) 
     {

@@ -755,7 +755,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                     {
                         TraceUtils.dynamicTrace(TRACE_OUTPOST,
                             () -> LOGGER.info("Unable to find food to request for {}.", citizen.getName()));
-                        // TODO: Consider an alert here to warn about food availability.
+                        // IDEA: Consider an alert here to warn about food availability.
                     }
                 }
                 else
@@ -1180,7 +1180,7 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     /**
      * Takes the existing workorder, loads the structure and tests the worker order if it is valid. Note that this adapts
      * EntityAIStructureBuilder.loadRequirements only in minor situations. 
-     * TODO: PR for base Minecolonies code that removes this kludgey workaround requiring double-maintenance.
+     * IDEA: PR for base Minecolonies code that removes this kludgey workaround requiring double-maintenance.
      */
     @Override
     public IAIState loadRequirements()

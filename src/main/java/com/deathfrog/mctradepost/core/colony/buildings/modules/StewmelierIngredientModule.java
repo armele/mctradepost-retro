@@ -13,11 +13,15 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.StewpotBlock;
 import com.ldtteam.structurize.api.BlockPosUtil;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingKitchen;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -43,6 +47,10 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     private static final String TAG_SEASONING_LEVEL = "seasoningLevel";
 
     private static final float STEW_SEASONING_LEVEL = 8.0f;
+
+    public static final int STEW_EMPTY = 0;
+    public static final int STEW_LEVEL_1 = 25;
+    public static final int STEW_LEVEL_2 = 50;
 
     protected BlockPos stewpotLocation = BlockPos.ZERO;
     protected float unseasonedQuantity = 0.0f;
@@ -181,15 +189,15 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         
         int stewLevel = 0;
 
-        if (stewQuantity > 50)
+        if (stewQuantity > STEW_LEVEL_2)
         {
             stewLevel = 3;
         }
-        else if (stewQuantity > 25)
+        else if (stewQuantity > STEW_LEVEL_1)
         {
             stewLevel = 2;
         }
-        else if (stewQuantity > 0)
+        else if (stewQuantity > STEW_EMPTY)
         {
             stewLevel = 1;
         }
@@ -316,8 +324,6 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     @Override
     public void serializeToView(@NotNull final RegistryFriendlyByteBuf buf)
     {
-        // TODO: Serialize stew quantity to view and display it.
-
         // Sort ingredients by display name (case-insensitive, locale-safe)
         final List<ItemStorage> sorted =
             ingredientSet.stream()
@@ -333,5 +339,34 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
             Utils.serializeCodecMess(buf, ingredient.getItemStack());
             buf.writeInt(ingredient.getAmount());
         }
+    }
+
+
+    /**
+     * Finds the closest kitchen to the given cauldron position.
+     *
+     * @param level the level containing the cauldron.
+     * @param cauldronPos the position of the cauldron.
+     * @return the kitchen building if found, null otherwise.
+     */
+    public static StewmelierIngredientModule kitchenFromCauldronPosition(@Nonnull Level level, final @Nonnull BlockPos cauldronPos)
+    {
+        IColony colony = IColonyManager.getInstance().getClosestColony(level, cauldronPos);
+        if (colony == null) return null;
+
+        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        {
+            if (building instanceof BuildingKitchen)
+            {
+                StewmelierIngredientModule module = building.getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS);
+
+                if (module != null && module.getStewpotLocation().equals(cauldronPos))
+                {
+                    return module;
+                }
+            }
+        }
+
+        return null;
     }
 }

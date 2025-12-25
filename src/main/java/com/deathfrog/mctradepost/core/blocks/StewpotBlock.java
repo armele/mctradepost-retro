@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StewmelierIngredientModule;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
@@ -169,6 +170,14 @@ public class StewpotBlock extends AbstractCauldronBlock
         if (state.getValue(LEVEL) <= 0)
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
+        // Identify module from cauldron position, and reduce the stew amount in the module.
+        StewmelierIngredientModule module = StewmelierIngredientModule.kitchenFromCauldronPosition(level, pos);
+
+        if (module == null)
+        {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
         // Create the filled stew item
         final ItemStack filledStew = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()));
 
@@ -189,8 +198,7 @@ public class StewpotBlock extends AbstractCauldronBlock
             player.drop(filledStew, false);
         }
 
-        // TODO: Identify module from cauldron position, and reduce the stew amount in the module.
-
+        module.addStew(-1.0f);
         level.playSound(null, pos, NullnessBridge.assumeNonnull(SoundEvents.BOTTLE_FILL), SoundSource.BLOCKS, 1.0F, 1.0F);
 
         return ItemInteractionResult.SUCCESS;

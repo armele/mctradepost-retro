@@ -351,7 +351,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     @Override
     public boolean onClimbable()
     {
-        // TODO: Lock climbing behind research.
+        // IDEA: Lock climbing behind research.
         BlockPos pos = this.blockPosition();
 
         if (pos == null)

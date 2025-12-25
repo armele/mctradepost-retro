@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.entity;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -23,7 +25,7 @@ public class CoinEntity extends ItemEntity
 
     BlockPos checkedPos = null;
 
-    public CoinEntity(Level level, double x, double y, double z, ItemStack stack)
+    public CoinEntity(@Nonnull Level level, double x, double y, double z, @Nonnull ItemStack stack)
     {
         super(level, x, y, z, stack);
         this.setUnlimitedLifetime();

@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
@@ -125,6 +126,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
@@ -329,7 +331,11 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetShop = BLOCKS.register(BlockHutPetShop.HUT_NAME, () -> new BlockHutPetShop());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutOutpost = BLOCKS.register(BlockHutOutpost.HUT_NAME, () -> new BlockHutOutpost());
 
-    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
+    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone(Properties.of()
+            .mapColor(NullnessBridge.assumeNonnull(MapColor.STONE))
+            .strength(2.0f, 6.0f)
+            .sound(NullnessBridge.assumeNonnull(SoundType.STONE))));
+            
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
         BLOCKS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID,
             () -> new StairBlock(MIXED_STONE.get().defaultBlockState(),  // base block state supplier

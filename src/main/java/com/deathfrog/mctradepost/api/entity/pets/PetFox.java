@@ -334,7 +334,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     @Override
     public boolean onClimbable()
     {
-        // TODO: Lock climbing behind research.
+        // IDEA: Lock climbing behind research.
         BlockPos pos = this.blockPosition();
 
         if (pos == null)

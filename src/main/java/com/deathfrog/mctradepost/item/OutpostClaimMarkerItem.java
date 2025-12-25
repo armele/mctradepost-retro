@@ -23,7 +23,7 @@ public class OutpostClaimMarkerItem extends Item
 {
     public static final String LINKED = "linked";
     
-    public OutpostClaimMarkerItem(Properties properties)
+    public OutpostClaimMarkerItem(@Nonnull Properties properties)
     {
         super(properties);
     }

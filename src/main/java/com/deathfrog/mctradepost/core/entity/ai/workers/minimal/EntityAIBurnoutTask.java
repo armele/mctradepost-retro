@@ -258,7 +258,7 @@ public class EntityAIBurnoutTask
      */
     protected IState cannotVacation()
     {
-        // TODO: impact citizen happiness
+        // IDEA: impact citizen happiness
         TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Unable to take a vacation: {}.", citizen.getName()));
         reset();
         return START_WORKING;
