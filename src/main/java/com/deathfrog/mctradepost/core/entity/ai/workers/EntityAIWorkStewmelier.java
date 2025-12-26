@@ -113,6 +113,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
      */
     private IAIState decide()
     {
+        // TODO: Add stats - ingredients used (by ingredient); stew served; bowls collected
         Level world = building.getColony().getWorld();
 
         if (world == null || world.isClientSide())
@@ -748,7 +749,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         if (currentHungryCitizen.getEntity().isEmpty()) 
         { 
-            currentHungryCitizen=null; return DECIDE; 
+            currentHungryCitizen=null; 
+            return DECIDE; 
         }
 
         // Walk to them
@@ -761,6 +763,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             {
                 serveTryCounter = 0;
                 currentHungryCitizen = null;
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Giving up on serving {} because I could not reach them after {} tries.", 
+                    building.getColony().getID(), currentHungryCitizen.getName(), serveTryCounter));
                 return DECIDE;
             }
 
@@ -789,6 +793,9 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         
         if (didTransfer)
         {
+            TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Gave stew to {} after {} tries.", 
+                building.getColony().getID(), currentHungryCitizen.getName(), serveTryCounter));
+
             serveTryCounter = 0;
             incrementActionsDoneAndDecSaturation();
             worker.getCitizenExperienceHandler().addExperience(1);
@@ -848,6 +855,9 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 return StewmelierState.COLLECT_BOWLS;
             }
 
+
+            TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Collecting bowls from {}.", building.getColony().getID(), currentBowlPickupBuilding.getCustomName()));
+
             boolean gotSome = false;
             int trylimit = 3;
             
@@ -896,8 +906,19 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             {
                 job.resetBowlCounter();
                 currentBowlPickupBuilding = buildingEntry.getValue();
+                
+                TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Colony {}: Going to {} to collect bowls.", building.getColony().getID(), currentBowlPickupBuilding.getCustomName()));
+
                 return StewmelierState.COLLECT_BOWLS;
             }
+        }
+
+        int bowlsInInventory = bowlsInInventory();
+
+        // We don't need more bowls from our backup locations if we have over a stack.
+        if (bowlsInInventory >= 64)
+        {
+            return DECIDE;
         }
 
         // If there are no bowls to pick up from other buildings, try to get bowls from a warehouse.
