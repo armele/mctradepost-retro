@@ -247,7 +247,7 @@ public class MCTradePostMod
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
     public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
-        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(5).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
 
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));

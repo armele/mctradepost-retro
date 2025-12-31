@@ -1,0 +1,27 @@
+{
+  "parent": "mctradepost:mctradepost/root",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:perpetual_stew"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.runs_on_stew.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.runs_on_stew.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "rewards": {
+    "experience": 100
+  },
+  "criteria": {
+    "served": {
+      "trigger": "mctradepost:runs_on_stew"
+    }
+  }
+}

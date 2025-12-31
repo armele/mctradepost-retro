@@ -26,6 +26,7 @@ public class MCTPInteractionInitializer
     public static final String NO_STEWPOT                   = "entity.stewmelier.nostewpot";
     public static final String NO_INGREDIENTS               = "entity.stewmelier.noingredients";
     public static final String NO_BOWLS                     = "entity.stewmelier.nobowls";
+    public static final String NOT_ON_MENU                  = "entity.stewmelier.onmenu";
 
     public static void injectInteractionHandlers() 
     {
@@ -71,5 +72,8 @@ public class MCTPInteractionInitializer
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_BOWLS),
           citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForStewpotInteraction());
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NOT_ON_MENU),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForMenuInteraction());
     }
 }

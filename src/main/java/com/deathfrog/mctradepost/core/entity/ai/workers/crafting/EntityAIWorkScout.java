@@ -747,9 +747,17 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                         
                         if (citizen.getJob() != null)
                         {
-                            outpostWorksite.createRequest(citizen, requestStack, true);
+                            try
+                            {
+                                outpostWorksite.createRequest(citizen, requestStack, true);
+                                didOrder = true;
+                            }
+                            catch (IllegalArgumentException e)
+                            {
+                                TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                                    () -> LOGGER.info("Request system error ordering food for outpost."));
+                            }
                         }
-                        didOrder = true;
                     }
                     else
                     {

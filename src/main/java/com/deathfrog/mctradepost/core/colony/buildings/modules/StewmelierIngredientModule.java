@@ -46,7 +46,8 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
     private static final String TAG_STEW_QUANTITY = "stewQuantity";
     private static final String TAG_SEASONING_LEVEL = "seasoningLevel";
 
-    private static final float STEW_SEASONING_LEVEL = 8.0f;
+    // Number of bowls a single seasoning item supports.
+    private static final float STEW_SEASONING_LEVEL = 4.0f;
 
     public static final int STEW_EMPTY = 0;
     public static final int STEW_LEVEL_1 = 25;
