@@ -1,0 +1,9 @@
+{
+  "companion_item": "minecraft:wheat_seeds",
+  "companion_item_count": 64,
+  "effect_type": "transform",
+  "target" : "mctradepost:stew_seasoning",
+  "radius": -1,
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
+}

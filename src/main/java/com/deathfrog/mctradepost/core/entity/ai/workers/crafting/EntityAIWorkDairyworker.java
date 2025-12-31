@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 
 /**
- * Baker AI class.
+ * Dairyworker AI class.
  */
 public class EntityAIWorkDairyworker extends AbstractEntityAICrafting<JobDairyworker, BuildingCowboy>
 {

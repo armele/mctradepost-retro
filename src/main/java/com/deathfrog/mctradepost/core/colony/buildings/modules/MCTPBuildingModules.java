@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingIte
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StewmelierIngredientModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
@@ -49,6 +50,15 @@ public class MCTPBuildingModules
     /**
      * Workers
      */
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule, WorkerBuildingModuleView> STEWMELIER_WORK      =
+      new BuildingEntry.ModuleProducer<>("stewmelier_work",
+        () -> new WorkerBuildingModule(MCTPModJobs.stewmelier.get(), Skill.Creativity, Skill.Focus, false, (b) -> 1),
+      () -> WorkerBuildingModuleView::new);
+
+    public static final BuildingEntry.ModuleProducer<StewmelierIngredientModule,StewmelierIngredientModuleView> STEWMELIER_INGREDIENTS =
+      new BuildingEntry.ModuleProducer<>("stewmelier_ingredients", 
+        () -> new StewmelierIngredientModule(),
+        () -> StewmelierIngredientModuleView::new);
 
     /**
      * Horticulture

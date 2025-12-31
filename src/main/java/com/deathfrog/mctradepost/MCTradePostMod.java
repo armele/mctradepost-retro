@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
@@ -30,6 +31,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.blocks.StewpotBlock;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutPetShop;
@@ -44,6 +46,7 @@ import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtensi
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.MCTPSettingsFactory;
@@ -123,6 +126,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.api.distmarker.Dist;
@@ -242,6 +246,9 @@ public class MCTradePostMod
     public static final DeferredItem<ItemFood> ENERGY_SHAKE = ITEMS.register("energy_shake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
+
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
 
@@ -252,6 +259,9 @@ public class MCTradePostMod
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> QUARTZ_MORTAR = ITEMS.register("quartz_mortar",
+        () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> STEW_SEASONING = ITEMS.register("stew_seasoning",
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> WISH_PLENTY = ITEMS.register("wish_plenty",
@@ -321,7 +331,11 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetShop = BLOCKS.register(BlockHutPetShop.HUT_NAME, () -> new BlockHutPetShop());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutOutpost = BLOCKS.register(BlockHutOutpost.HUT_NAME, () -> new BlockHutOutpost());
 
-    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone());
+    public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone(Properties.of()
+            .mapColor(NullnessBridge.assumeNonnull(MapColor.STONE))
+            .strength(2.0f, 6.0f)
+            .sound(NullnessBridge.assumeNonnull(SoundType.STONE))));
+            
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
         BLOCKS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID,
             () -> new StairBlock(MIXED_STONE.get().defaultBlockState(),  // base block state supplier
@@ -546,6 +560,16 @@ public class MCTradePostMod
 
     public static final DeferredBlock<BlockOutpostMarker> BLOCK_OUTPOST_MARKER =
         BLOCKS.register(ModBlocksInitializer.BLOCK_OUTPOST_MARKER_NAME, () -> new BlockOutpostMarker(Blocks.BLACK_BANNER.properties()));
+ 
+    public static final DeferredBlock<StewpotBlock> STEWPOT_FILLED =
+        BLOCKS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME,
+            () -> new StewpotBlock(BlockBehaviour.Properties.of()
+                .strength(2.0F)
+                .requiresCorrectToolForDrops()
+                .noOcclusion()
+            )
+        );
+
     /*
     * ITEMS (Block)
     */
@@ -728,6 +752,11 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WOVEN_KELP_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new BlockItem(WOVEN_KELP_SLAB.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
+        ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
+
+
 
     /*
     * Creative Mode Tabs
@@ -923,6 +952,7 @@ public class MCTradePostMod
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);
+            StewIngredientMessage.TYPE.register(registrar);
 
         }
 
@@ -1115,12 +1145,14 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.ENERGY_SHAKE.get());
                     event.accept(MCTradePostMod.VANILLA_MILKSHAKE.get());
                     event.accept(MCTradePostMod.BAR_NUTS.get());
+                    event.accept(MCTradePostMod.PERPETUAL_STEW.get());
                     event.accept(MCTradePostMod.COLD_BREW.get());
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());
                     event.accept(MCTradePostMod.END_MORTAR.get());
                     event.accept(MCTradePostMod.PRISMARINE_MORTAR.get());
                     event.accept(MCTradePostMod.QUARTZ_MORTAR.get());
+                    event.accept(MCTradePostMod.STEW_SEASONING.get());
                     event.accept(MCTradePostMod.MIXED_STONE.get());
                     event.accept(MCTradePostMod.MIXED_STONE_STAIRS.get());
                     event.accept(MCTradePostMod.MIXED_STONE_WALL.get());
@@ -1192,6 +1224,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
+                    event.accept(MCTradePostMod.STEWPOT_FILLED.get());
                 }
             });
 

@@ -188,7 +188,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (currentTargetAnimal != null)
         {
-            // TODO: Research to increase speed
             TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
             walkCommandSent = true;
@@ -247,7 +246,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (distance > 2 && !walkCommandSent)
         {
-            // TODO: Research to increase speed
             TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(localTargetAnimal, 1.0);
             walkCommandSent = true;

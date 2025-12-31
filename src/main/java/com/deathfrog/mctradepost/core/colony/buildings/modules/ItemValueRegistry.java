@@ -33,7 +33,7 @@ public class ItemValueRegistry
 {
     private static final Map<Item, Integer> itemValues = new HashMap<Item, Integer>();
 
-    // TODO: Make configurable - and tag based.  This all sucks :)
+    // IDEA: Make configurable - and tag based.  This all sucks :)
     // Temporary hack to bring down server start speeds.
     private static final Set<String> allowedMods = new HashSet<>(Arrays.asList("minecraft", "minecolonies", "mctradepost"));
     private static final Set<String> blacklistFilter = new HashSet<>(Arrays.asList("seed", "plank"));

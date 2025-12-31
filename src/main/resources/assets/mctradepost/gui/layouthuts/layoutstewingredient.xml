@@ -1,0 +1,21 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+            <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.stewmelier.ingredients)"/>
+            <list id="ingredientlist" size="170 160" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.ingredients.empty)" emptycolor="black">
+                <box size="100% 17" linewidth="1">
+                    <itemicon id="ingredientIcon" size="17 17" pos="0 0"/>
+                    <text id="ingredientName" size="90 12" pos="20 1" color="black"/>
+                    <text id="ingredientProtectedQuantity" size="12 12" pos="130 1" color="black"/>
+
+                    <button label="X" id="removeIngredient" pos="130 1" size="29 15"
+                                 source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="red"/>
+                </box>
+            </list>
+            <button id="addIngredient" size="86 17" pos="50 30" color="black"
+                         source="minecolonies:textures/gui/builderhut/builder_button_medium.png"
+                         label="$(com.minecolonies.coremod.gui.warehouse.add)"/>
+            <text size="180 11" pos="5 212" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.stewmelier.protected)" tooltip="$(com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip)"/>
+</window>

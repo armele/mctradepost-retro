@@ -1,0 +1,19 @@
+{
+  "type": "recipe",
+  "crafter": "enchanter_custom",
+  "inputs": [
+    {
+      "count": 64,
+      "id": "minecraft:wheat_seeds"
+    },
+    {
+      "id": "mctradepost:mctp_coin"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "count": 64,
+    "id": "mctradepost:stew_seasoning"
+  },
+  "show-tooltip": true
+}

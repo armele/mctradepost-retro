@@ -15,10 +15,12 @@ public class MCTPAdvancementTriggers
     public static final String ADV_RECYCLE_ITEM = "recycle_item";
     public static final String ADV_COMPLETE_VACATION = "complete_vacation";
     public static final String ADV_MAKE_WISH = "make_wish";
+    public static final String ADV_RUNS_ON_STEW = "runs_on_stew";
 
     public static final DeferredHolder<CriterionTrigger<?>, TrainPetTrigger>          PET_TRAINED           = DEFERRED_REGISTER.register(ADV_PET_TRAINED, TrainPetTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, ConnectColonyTrigger>     COLONY_CONNECTED      = DEFERRED_REGISTER.register(ADV_COLONY_CONNECTED, ConnectColonyTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, RecycleItemTrigger>       RECYCLE_ITEM          = DEFERRED_REGISTER.register(ADV_RECYCLE_ITEM, RecycleItemTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, CompleteVacationTrigger>  COMPLETE_VACATION     = DEFERRED_REGISTER.register(ADV_COMPLETE_VACATION, CompleteVacationTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, MakeWishTrigger>          MAKE_WISH             = DEFERRED_REGISTER.register(ADV_MAKE_WISH, MakeWishTrigger::new);
+    public static final DeferredHolder<CriterionTrigger<?>, RunsOnStewTrigger>        RUNS_ON_STEW          = DEFERRED_REGISTER.register(ADV_RUNS_ON_STEW, RunsOnStewTrigger::new);
 }

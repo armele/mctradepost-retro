@@ -33,7 +33,7 @@ public class CoinItem extends Item
     public static final int GOLD_MULTIPLIER = 8;
     public static final int DIAMOND_MULTIPLIER = 64;
 
-    public CoinItem(Properties properties)
+    public CoinItem(@Nonnull Properties properties)
     {
         super(properties);
     }
@@ -53,7 +53,7 @@ public class CoinItem extends Item
     {
         if (!level.isClientSide && stack.getItem() instanceof CoinItem)
         {
-            CoinEntity coin = new CoinEntity(level, location.getX(), location.getY(), location.getZ(), stack.copy());
+            CoinEntity coin = new CoinEntity(level, location.getX(), location.getY(), location.getZ(), NullnessBridge.assumeNonnull(stack.copy()));
             coin.setDeltaMovement(NullnessBridge.assumeNonnull(location.getDeltaMovement()));
             return coin;
         }

@@ -258,7 +258,7 @@ public class EntityAIBurnoutTask
      */
     protected IState cannotVacation()
     {
-        // TODO: impact citizen happiness
+        // IDEA: impact citizen happiness
         TraceUtils.dynamicTrace(TRACE_BURNOUT, () -> LOGGER.info("Unable to take a vacation: {}.", citizen.getName()));
         reset();
         return START_WORKING;
@@ -640,7 +640,6 @@ public class EntityAIBurnoutTask
             return VacationAIState.SEARCH_RESORT;
         }
 
-        // TODO: RESORT - if it is night time let them go home (set to IDLE)
         if (!citizen.getCitizenSleepHandler().isAsleep() &&
             BlockPosUtil.getDistance2D(bestResortPosition, citizen.blockPosition()) > MIN_DIST_TO_RESORT)
         {

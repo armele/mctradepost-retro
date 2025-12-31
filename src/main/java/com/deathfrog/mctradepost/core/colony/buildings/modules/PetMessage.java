@@ -135,7 +135,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                 break;
 
             case FREE:
-                // TODO
+                // Placeholder for future implementation of setting pets free.
                 break;
 
             case QUERY:

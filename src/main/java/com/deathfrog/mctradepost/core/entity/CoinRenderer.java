@@ -12,6 +12,4 @@ public class CoinRenderer extends ItemEntityRenderer
     {
         super(context);
     }
-
-    // TODO: [Enhancement: Spin the coin]
 }

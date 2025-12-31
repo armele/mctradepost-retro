@@ -34,7 +34,7 @@ public class JobDairyworker extends AbstractJobCrafter<EntityAIWorkDairyworker, 
     }
 
     /**
-     * Tick the bee interaction counter to determine the time when the interaction gets triggered.
+     * Tick the cow interaction counter to determine the time when the interaction gets triggered.
      */
     public void tickNoCows()
     {
@@ -45,7 +45,7 @@ public class JobDairyworker extends AbstractJobCrafter<EntityAIWorkDairyworker, 
     }
 
     /**
-     * Reset the bee interaction counter.
+     * Reset the cow interaction counter.
      */
     public void resetCounter()
     {

@@ -529,7 +529,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @return The compound tag containing the serialized state of the building.
      */    
     @Override
-    public CompoundTag serializeNBT(@SuppressWarnings("null") final HolderLookup.Provider provider)
+    public CompoundTag serializeNBT(final HolderLookup.Provider provider)
     {
         CompoundTag compound = super.serializeNBT(provider);
 

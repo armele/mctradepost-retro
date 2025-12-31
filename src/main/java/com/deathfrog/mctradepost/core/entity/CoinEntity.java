@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.entity;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -23,10 +25,10 @@ public class CoinEntity extends ItemEntity
 
     BlockPos checkedPos = null;
 
-    public CoinEntity(Level level, double x, double y, double z, ItemStack stack)
+    public CoinEntity(@Nonnull Level level, double x, double y, double z, @Nonnull ItemStack stack)
     {
         super(level, x, y, z, stack);
-        this.setUnlimitedLifetime(); // if you want it to persist
+        this.setUnlimitedLifetime();
     }
 
     public CoinEntity(EntityType<CoinEntity> type, Level level)
@@ -111,7 +113,7 @@ public class CoinEntity extends ItemEntity
         coin.setPos(itemEntity.getX(), itemEntity.getY(), itemEntity.getZ());
         coin.setDeltaMovement(NullnessBridge.assumeNonnull(itemEntity.getDeltaMovement()));
         coin.setItem(NullnessBridge.assumeNonnull(stack.copy()));
-        coin.setPickUpDelay(10); // Optional: short delay before player can pick it up
+        coin.setPickUpDelay(30); // Short delay before player can pick it up
 
         level.addFreshEntity(coin);
 

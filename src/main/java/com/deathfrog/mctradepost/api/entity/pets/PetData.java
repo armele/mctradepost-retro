@@ -453,8 +453,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
     }
 
-    // TODO: Implement scaling by trainer building level.
-    // TODO: Implement research effects.
+    // IDEA: Implement scaling by trainer building level.
+    // IDEA: Implement research effects.
 
 
     /**
