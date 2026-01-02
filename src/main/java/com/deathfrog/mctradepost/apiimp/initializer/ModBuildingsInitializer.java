@@ -69,6 +69,7 @@ public final class ModBuildingsInitializer
             marketBuilder.addBuildingModuleProducer(MCTPBuildingModules.SHOPKEEPER_WORK);
             marketBuilder.addBuildingModuleProducer(MCTPBuildingModules.ITEMLIST_SELLABLE);
             marketBuilder.addBuildingModuleProducer(MCTPBuildingModules.ECON_MODULE);
+            marketBuilder.addBuildingModuleProducer(MCTPBuildingModules.THRIFTSHOP);
             marketBuilder.addBuildingModuleProducer(MCTPBuildingModules.ECON_SETTINGS);
             marketBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             marketBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  

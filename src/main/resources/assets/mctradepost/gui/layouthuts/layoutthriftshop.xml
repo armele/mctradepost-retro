@@ -1,0 +1,15 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+            <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.thriftshop.offers)"/>
+            <list id="offerlist" size="170 160" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.thriftshop.empty)" emptycolor="black">
+                <box size="100% 17" linewidth="1">
+                    <itemicon id="offerIcon" size="17 17" pos="0 0"/>
+                    <text id="offerName" size="90 12" pos="20 1" color="black"/>
+
+                    <button label="Buy" id="offerTake" pos="130 1" size="33 15"
+                                 source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
+                </box>
+            </list>
+</window>

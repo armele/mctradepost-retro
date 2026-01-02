@@ -45,6 +45,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.ThriftShopOffersModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
@@ -526,6 +527,13 @@ public class BuildingMarketplace extends AbstractBuilding
     {
         super.onColonyTick(colony);
         advertisingCooldown--;
+
+        ThriftShopOffersModule thriftModule = this.getModule(MCTPBuildingModules.THRIFTSHOP);
+
+        if (thriftModule != null)
+        {
+            thriftModule.rollDailyOffers();
+        }
 
         if (advertisingCooldown > 0) return;
 
