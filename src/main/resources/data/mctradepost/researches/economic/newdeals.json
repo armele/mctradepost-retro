@@ -1,0 +1,38 @@
+{
+    "name": "New Deals",
+    "subtitle": "What do you have in the back?",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/capitalism",
+    "researchLevel": 2,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 4
+        },
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:marketplace",
+            "level": 4
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_gold"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_reroll",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_gold"
+}

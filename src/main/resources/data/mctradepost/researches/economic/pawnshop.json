@@ -1,0 +1,41 @@
+{
+    "name": "Pawn Shop",
+    "subtitle": "Some of this is interesting.",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/thriftshop",
+    "researchLevel": 3,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 1
+        }
+    ],
+    "costs": [
+        {
+            "count": 3,
+            "item": "mctradepost:mctp_coin_gold"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:compass"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:map"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_tier",
+            "level": 2
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_gold"
+}

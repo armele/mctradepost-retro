@@ -2,10 +2,8 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowThriftShopOffersModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
@@ -13,7 +11,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.Market
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.util.Utils;
-
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -23,6 +20,7 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
 {
     List<MarketOffer> offers = new ArrayList<>();
     protected long lastRoll = 0L;
+    int rerollCost = -1;
 
     /**
      * Read this view from a {@link RegistryFriendlyByteBuf}.
@@ -33,6 +31,7 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     public void deserialize(@NotNull final RegistryFriendlyByteBuf buf)
     {
         lastRoll = buf.readLong();
+        rerollCost = buf.readInt();
 
         offers.clear();
         int size = buf.readVarInt();
@@ -71,7 +70,7 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     {
         return new WindowThriftShopOffersModule(buildingView, this);
     }
-    
+
     /**
      * Get the icon of the module.
      * 
@@ -91,5 +90,15 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     public List<MarketOffer> getOffers()
     {
         return offers;
+    }
+
+    public long getLastRollDay()
+    {
+        return lastRoll;
+    }
+
+    public int getRerollCost()
+    {
+        return rerollCost;
     }
 }

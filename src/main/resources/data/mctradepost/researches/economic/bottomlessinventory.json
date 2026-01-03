@@ -1,0 +1,46 @@
+{
+    "name": "Bottomless Inventory",
+    "subtitle": "Buy as many as you need.",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/newdeals",
+    "researchLevel": 3,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 5
+        },
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:marketplace",
+            "level": 5
+        }
+    ],
+    "costs": [
+        {
+            "count": 2,
+            "item": "mctradepost:mctp_coin_diamond"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:bundle"
+        },
+        {
+            "count": 4,
+            "item": "minecraft:emerald_ore"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_bottomless",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_diamond"
+}

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.item.CoinItem;
 
 import net.minecraft.core.HolderLookup;
@@ -37,11 +38,12 @@ public final class MarketDailyRoller
      * @param offersPerTier the number of offers to roll per tier
      * @return a list of market offers, with earlier tiers first
      */
-    public static List<MarketOffer> rollDailyOffers(ServerLevel level, int colonyId, int commonOffers, int uncommonOffers, int rareOffers, int epicOffers)
+    public static List<MarketOffer> rollDailyOffers(ServerLevel level, BuildingMarketplace marketplace, int rerollIndex, int commonOffers, int uncommonOffers, int rareOffers, int epicOffers)
     {
         // Deterministic daily seed so restart doesn't reshuffle the day's market.
         final long day = level.getDayTime() / TICKS_PER_DAY;
-        final long seed = mixSeed(level.getSeed(), colonyId, -colonyId, day);
+        final long colonyId = marketplace.getColony().getID();
+        final long seed = mixSeed(level.getSeed(), colonyId, rerollIndex, day);
         final RandomSource rand = RandomSource.create(seed);
 
         final List<MarketOffer> out = new ArrayList<>();
@@ -49,25 +51,25 @@ public final class MarketDailyRoller
         // Tier 1
         if (commonOffers > 0)
         {
-            out.addAll(MarketTierSources.rollTier(level, rand, MarketTier.TIER1_COMMON, commonOffers));
+            out.addAll(MarketTierSources.rollTier(level, marketplace, rand, MarketTier.TIER1_COMMON, commonOffers));
         }
 
         // Tier 2
         if (uncommonOffers > 0)
         {
-            out.addAll(MarketTierSources.rollTier(level, rand, MarketTier.TIER2_UNCOMMON, uncommonOffers));
+            out.addAll(MarketTierSources.rollTier(level, marketplace, rand, MarketTier.TIER2_UNCOMMON, uncommonOffers));
         }
 
         // Tier 3
         if (rareOffers > 0)
         {
-            out.addAll(MarketTierSources.rollTier(level, rand, MarketTier.TIER3_RARE, rareOffers));
+            out.addAll(MarketTierSources.rollTier(level, marketplace, rand, MarketTier.TIER3_RARE, rareOffers));
         }
 
         // Tier 4
         if (epicOffers > 0)
         {
-            out.addAll(MarketTierSources.rollTier(level, rand, MarketTier.TIER4_EPIC, epicOffers));
+            out.addAll(MarketTierSources.rollTier(level, marketplace, rand, MarketTier.TIER4_EPIC, epicOffers));
         }        
         
         // De-dupe (by item+nbt) while keeping earlier tiers first
