@@ -45,6 +45,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.ThriftShopOffersModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
@@ -60,7 +61,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
-
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
@@ -185,31 +185,49 @@ public class BuildingMarketplace extends AbstractBuilding
     }
 
     /**
+     * Gets the shopkeeper of the marketplace, if any. Returns null if no shopkeeper is assigned.
+     * 
+     * @return the shopkeeper of the marketplace, or null if none is assigned.
+     */
+    public ICitizenData shopkeeper()
+    {
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
+
+        List<ICitizenData> employees = module.getAssignedCitizen();
+
+        if (employees.isEmpty())
+        {
+            return null;
+        }
+
+        ICitizenData shopkeeper = employees.get(0);
+
+        return shopkeeper;
+    }
+
+    /**
      * Returns true if the marketplace is open for business, i.e. if it has a shopkeeper assigned and the shopkeeper is working.
      * 
      * @return true if the marketplace is open for business, false otherwise.
      */
     public boolean isOpenForBusiness()
     {
-        List<ICitizenData> employees =
-            this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get())
-                .getAssignedCitizen();
+        ICitizenData shopkeeper = shopkeeper();
 
-        if (employees.isEmpty())
+        if (shopkeeper == null)
         {
             return false;
         }
 
-        final Optional<AbstractEntityCitizen> optionalEntityCitizen = employees.get(0).getEntity();
+        final Optional<AbstractEntityCitizen> optionalEntityCitizen = shopkeeper.getEntity();
 
-        if (!optionalEntityCitizen.isPresent())
+        if (optionalEntityCitizen == null || !optionalEntityCitizen.isPresent())
         {
             return false;
         }
 
-        AbstractEntityCitizen shopkeeper = optionalEntityCitizen.get();
-
-        IState workState = ((EntityCitizen) shopkeeper).getCitizenAI().getState();
+        AbstractEntityCitizen shopkeeperEntity = optionalEntityCitizen.get();
+        IState workState = ((EntityCitizen) shopkeeperEntity).getCitizenAI().getState();
 
         return CitizenAIState.WORKING.equals(workState);
     }
@@ -376,6 +394,28 @@ public class BuildingMarketplace extends AbstractBuilding
     }
 
     /**
+     * Retrieves the level of the primary skill of the shopkeeper assigned to this building.
+     * If there is no shopkeeper, or the shopkeeper is not assigned to a module, or the module does not have a primary skill, this method returns 0.
+     * 
+     * @return the level of the primary skill of the shopkeeper, or 0 if no suitable worker is found.
+     */
+    public int shopkeeperPrimarySkill()
+    {
+        int skill = 0;
+        
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
+
+        ICitizenData shopkeeper = shopkeeper();
+
+        if (shopkeeper != null)
+        {
+            skill = shopkeeper.getCitizenSkillHandler().getLevel(module.getPrimarySkill());
+        }
+
+        return skill;
+    }
+
+    /**
      * Mints a given number of trade coins, removing the corresponding amount of value from the building's economy.
      * 
      * @param player      the player using the minting function (not used, but required for later potential functionality)
@@ -527,6 +567,13 @@ public class BuildingMarketplace extends AbstractBuilding
         super.onColonyTick(colony);
         advertisingCooldown--;
 
+        ThriftShopOffersModule thriftModule = this.getModule(MCTPBuildingModules.THRIFTSHOP);
+
+        if (thriftModule != null)
+        {
+            thriftModule.rollDailyOffers(false);
+        }
+
         if (advertisingCooldown > 0) return;
 
         List<Integer> visitorIDs = new ArrayList<Integer>();
@@ -536,12 +583,12 @@ public class BuildingMarketplace extends AbstractBuilding
         // Once the marketplace is built, visitors start thinking about shopping...
         // Note: approach below for finding tavern mimics EventHandler.onEntityConverted
         final BlockPos tavernPos =
-            colony.getBuildingManager().getRandomBuilding(b -> !b.getModulesByType(TavernBuildingModule.class).isEmpty());
+            colony.getBuildingManager().getRandomBuilding(b -> !b.getModules(TavernBuildingModule.class).isEmpty());
         if (tavernPos != null)
         {
             // MCTradePostMod.LOGGER.info("Tavern module found - collecting visitor IDs.");
             final IBuilding tavern = colony.getBuildingManager().getBuilding(tavernPos);
-            TavernBuildingModule tavernModule = tavern.getFirstModuleOccurance(TavernBuildingModule.class);
+            TavernBuildingModule tavernModule = tavern.getModule(TavernBuildingModule.class);
             visitorIDs.addAll(tavernModule.getExternalCitizens());
         }
 

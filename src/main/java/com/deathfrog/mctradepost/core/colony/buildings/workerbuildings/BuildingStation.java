@@ -479,7 +479,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     public ICitizenData getStationmaster()
     {
         List<ICitizenData> employees =
-            this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get())
+            this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.stationmaster.get())
                 .getAssignedCitizen();
 
         if (employees.isEmpty())
@@ -529,7 +529,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @return The compound tag containing the serialized state of the building.
      */    
     @Override
-    public CompoundTag serializeNBT(final HolderLookup.Provider provider)
+    public CompoundTag serializeNBT(@SuppressWarnings("null") final HolderLookup.Provider provider)
     {
         CompoundTag compound = super.serializeNBT(provider);
 
@@ -565,6 +565,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param provider The holder lookup provider for item and block references.
      * @param compound The compound tag containing the serialized state of the building.
      */
+    @SuppressWarnings("null")
     @Override
     public void deserializeNBT(Provider provider, CompoundTag compound)
     {

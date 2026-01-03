@@ -160,7 +160,7 @@ public class EntityAIBurnoutTask
         final IJob<?> job = citizen.getCitizenData().getJob();
 
         final IBuilding citizenWorkBuilding = job.getWorkBuilding();
-        final WorkerBuildingModule module = citizenWorkBuilding.getModuleMatching(WorkerBuildingModule.class,
+        final WorkerBuildingModule module = citizenWorkBuilding.getModule(WorkerBuildingModule.class,
             m -> m.getAssignedCitizen().contains(citizen.getCitizenData()));
         Skill adverse = null;
 

@@ -10,7 +10,8 @@ import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.buildings.modules.IItemListModuleView;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.core.client.gui.modules.ItemListModuleWindow;
+import com.minecolonies.core.client.gui.modules.building.ItemListModuleWindow;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;

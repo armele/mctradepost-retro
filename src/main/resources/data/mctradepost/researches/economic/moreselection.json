@@ -1,0 +1,33 @@
+{
+    "name": "More Selection",
+    "subtitle": "Not enough!",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/selection",
+    "researchLevel": 3,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 1
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_gold"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_more",
+            "level": 2
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_gold"
+}

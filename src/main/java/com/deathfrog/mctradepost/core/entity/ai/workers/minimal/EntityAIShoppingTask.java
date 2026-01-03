@@ -2,11 +2,8 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-
 import javax.annotation.Nonnull;
-
 import org.slf4j.Logger;
-
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -20,7 +17,6 @@ import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.entity.ai.visitor.EntityAIVisitor.VisitorState;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
-
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 
 /* EntityAIShoppingTask inserted into the Visitor AI by the marketplace. */
@@ -30,10 +26,7 @@ public class EntityAIShoppingTask
 
     public enum ShoppingState implements IState
     {
-        GOING_SHOPPING,
-        IS_SHOPPING,
-        PICK_DISPLAY,
-        DONE_SHOPPING
+        GOING_SHOPPING, IS_SHOPPING, PICK_DISPLAY, DONE_SHOPPING
     }
 
     IVisitorData visitor = null;
@@ -45,15 +38,13 @@ public class EntityAIShoppingTask
     private static final int SHOPPING_COOLDOWN = MCTPConfig.shoppingCooldown.get();
 
     // Initialize them to a random point in the low end of the cooldown, to promote better distribution of when shopping happens
-    private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN / 4); 
+    private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN / 4);
 
     public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace)
     {
         this.visitor = visitor;
         this.marketplace = marketplace;
     }
-
-
 
     /**
      * Initializes the AI state machine transitions for the shopping task.
@@ -82,21 +73,27 @@ public class EntityAIShoppingTask
         // No shopping at night.
         if (!WorldUtil.isDayTime(marketplace.getColony().getWorld()))
         {
-            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} won't shop at night!", visitor.getEntity().get().getName()));
+            TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                () -> LOGGER.info("Visitor {} won't shop at night!", visitor.getEntity().get().getName()));
             return false;
         }
 
         // No shopping if the marketplace isn't open.
-        if (!marketplace.isOpenForBusiness()) 
+        if (!marketplace.isOpenForBusiness())
         {
-            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} can't shop - the store is closed.", visitor.getEntity().get().getName()));
+            TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                () -> LOGGER.info("Visitor {} can't shop - the store is closed.", visitor.getEntity().get().getName()));
             return false;
         }
 
         shoppingTimer = shoppingTimer - marketplace.getBuildingLevel();
 
-        if (shoppingTimer > 0) {
-            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} can't shop - taking a break with cooldown at: {}", visitor.getEntity().get().getName(), shoppingTimer));
+        if (shoppingTimer > 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                () -> LOGGER.info("Visitor {} can't shop - taking a break with cooldown at: {}",
+                    visitor.getEntity().get().getName(),
+                    shoppingTimer));
             return false;
         }
 
@@ -107,7 +104,8 @@ public class EntityAIShoppingTask
         }
         else
         {
-            TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName()));
+            TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                () -> LOGGER.info("Visitor {} does not need to shop.", visitor.getEntity().get().getName()));
             return false;
         }
     }
@@ -133,39 +131,48 @@ public class EntityAIShoppingTask
     /**
      * Attempts to navigate the visitor to the marketplace location.
      *
-     * @return the next shopping state, IS_SHOPPING if the visitor has reached 
-     *         the marketplace, otherwise GOING_SHOPPING if still en route.
+     * @return the next shopping state, IS_SHOPPING if the visitor has reached the marketplace, otherwise GOING_SHOPPING if still en
+     *         route.
      */
-    public IState isShopping() {
-        if (currentDisplay == null) {
+    public IState isShopping()
+    {
+        if (currentDisplay == null)
+        {
             return ShoppingState.PICK_DISPLAY;
         }
 
         SaleState state = currentDisplay.getSaleState();
 
-        if (state == null) {
+        if (state == null)
+        {
             currentDisplay = null;
             return ShoppingState.PICK_DISPLAY;
         }
 
-        switch (state) 
+        switch (state)
         {
             case NONE:
-                if (!currentDisplay.getStack().isEmpty()) {
-                    TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} has made an offer on a display not yet up for sale!", visitor.getEntity().get().getName()));
+                if (!currentDisplay.getStack().isEmpty())
+                {
+                    TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                        () -> LOGGER.info("Visitor {} has made an offer on a display not yet up for sale!",
+                            visitor.getEntity().get().getName()));
                     currentDisplay.setSaleState(SaleState.ORDER_PLACED);
-                    return ShoppingState.IS_SHOPPING;  
+                    return ShoppingState.IS_SHOPPING;
                 }
                 return ShoppingState.PICK_DISPLAY;
 
             case FOR_SALE:
-                TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} has made an offer!", visitor.getEntity().get().getName()));
+                TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                    () -> LOGGER.info("Visitor {} has made an offer!", visitor.getEntity().get().getName()));
                 currentDisplay.setSaleState(SaleState.ORDER_PLACED);
                 return ShoppingState.IS_SHOPPING;
 
             case ORDER_PLACED:
-                if (lingerTimer <= 0) {
-                    TraceUtils.dynamicTrace(TRACE_SHOPPER, () -> LOGGER.info("Visitor {} is tired of waiting for service.", visitor.getEntity().get().getName()));
+                if (lingerTimer <= 0)
+                {
+                    TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                        () -> LOGGER.info("Visitor {} is tired of waiting for service.", visitor.getEntity().get().getName()));
                     currentDisplay.setSaleState(SaleState.FOR_SALE);
                     currentDisplay = null;
                     return ShoppingState.DONE_SHOPPING;
@@ -177,12 +184,14 @@ public class EntityAIShoppingTask
                 currentDisplay = null;
                 lingerTimer = MAX_LINGER_TIME;
 
-                if (wantsToShop()) 
+                if (wantsToShop())
                 {
                     return ShoppingState.GOING_SHOPPING;
-                } else {
+                }
+                else
+                {
                     return ShoppingState.DONE_SHOPPING;
-                }   
+                }
 
             default:
                 return ShoppingState.DONE_SHOPPING;
@@ -190,28 +199,37 @@ public class EntityAIShoppingTask
     }
 
     /**
-     * Attempts to navigate the visitor to a random display case in the marketplace.
-     * If the visitor has already navigated to a display case, it will not change targets.
-     * If the visitor is not already at the marketplace and the navigation is incomplete, it will
+     * Attempts to navigate the visitor to a random display case in the marketplace. If the visitor has already navigated to a display
+     * case, it will not change targets. If the visitor is not already at the marketplace and the navigation is incomplete, it will
      * remain in the PICK_DISPLAY state and continue travelling.
      *
-     * @return the next shopping state, IS_SHOPPING if the visitor has reached the display case, otherwise PICK_DISPLAY if still en route.
+     * @return the next shopping state, IS_SHOPPING if the visitor has reached the display case, otherwise PICK_DISPLAY if still en
+     *         route.
      */
-    public IState pickDisplay() {
-        if (currentDisplay == null && marketplace.getDisplayShelvesWithItemsForSale().size() > 0) {
+    public IState pickDisplay()
+    {
+        if (currentDisplay == null && marketplace.getDisplayShelvesWithItemsForSale().size() > 0)
+        {
             final List<DisplayCase> displayPositions = marketplace.getDisplayShelvesWithItemsForSale();
             currentDisplay = displayPositions.get(ThreadLocalRandom.current().nextInt(displayPositions.size()));
         }
 
         // There's nothing for sale! Done shopping.
-        if (currentDisplay == null) {
+        if (currentDisplay == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                    () -> LOGGER.info("Visitor {} sees nothing is fore sale.", visitor.getEntity().get().getName()));
             return ShoppingState.DONE_SHOPPING;
         }
 
-        if (! EntityNavigationUtils.walkToPos(visitor.getEntity().get(), currentDisplay.getPos(), 2, true)) {
+        if (!EntityNavigationUtils.walkToPos(visitor.getEntity().get(), currentDisplay.getPos().below(), 1, true))
+        {
             return ShoppingState.PICK_DISPLAY;
         }
-        
+
+        TraceUtils.dynamicTrace(TRACE_SHOPPER,
+                    () -> LOGGER.info("Visitor {} has picked what they want!", visitor.getEntity().get().getName()));
+
         return ShoppingState.IS_SHOPPING;
     }
 

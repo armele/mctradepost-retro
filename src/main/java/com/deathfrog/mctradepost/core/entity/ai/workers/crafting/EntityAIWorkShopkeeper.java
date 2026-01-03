@@ -263,7 +263,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         final ImmutableList<ItemStorage> list =
-            building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
+            building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
         List<ItemStorage> sortedList = new ArrayList<>(list);
 
         // Optimize for the most valueable sellable items first.
@@ -396,8 +396,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
-        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-            () -> LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size()));
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size()));
 
         if (displayShelves.isEmpty())
         {
@@ -439,7 +438,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         setDelay(DECIDE_DELAY);
-        return START_WORKING;
+        return DECIDE;
     }
 
     /**
@@ -563,8 +562,10 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (building.getDisplayShelves().isEmpty())
         {
             Log.getLogger().error("Building {} has no display shelves in colony {}", building.getBuildingDisplayName(), building.getColony().getID());
-            return DECIDE;
+            return null;
         }
+
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - evaluating {} frames for filling.", building.getColony().getID(), building.getDisplayShelves().size()));
 
         // First pass: Find any empty item frame (considered available to fill)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
@@ -597,7 +598,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
         }
 
-        return DECIDE;
+        return null;
     }
 
     /**
@@ -613,8 +614,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (building.getDisplayShelves().isEmpty())
         {
             Log.getLogger().error("Building {} has no display shelves in colony {}", building.getBuildingDisplayName(), building.getColony().getID());
-            return DECIDE;
+            return null;
         }
+
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - evaluating {} frames for selling.", building.getColony().getID(), building.getDisplayShelves().size()));
+
+        int framesChecked = 0;
 
         // Find any filled item frame (considered eligible to be sold)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
@@ -655,9 +660,14 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                     }
                 }
             }
+
+            framesChecked++;
         }
 
-        return DECIDE;
+        final int finalFramesChecked = framesChecked;
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - checked {} frames for selling and found none with offers.", building.getColony().getID(), finalFramesChecked));
+
+        return null;
     }
 
     /**
@@ -769,7 +779,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
             final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
+                stack -> building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
                     .isItemInList(new ItemStorage(stack)));
 
 

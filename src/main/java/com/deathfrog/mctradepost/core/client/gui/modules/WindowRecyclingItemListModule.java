@@ -1,7 +1,7 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.minecolonies.api.colony.buildings.modules.IItemListModuleView;
-import com.minecolonies.core.client.gui.modules.ItemListModuleWindow;
+import com.minecolonies.core.client.gui.modules.building.ItemListModuleWindow;
 
 import net.minecraft.resources.ResourceLocation;
 

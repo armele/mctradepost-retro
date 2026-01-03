@@ -1,0 +1,20 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd"
+    size="190 244">
+     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+            <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
+                   label="$(com.minecolonies.coremod.gui.thriftshop.offers)"/>
+            <list id="offerlist" size="170 190" pos="13 28" emptytext="$(com.minecolonies.coremod.gui.thriftshop.empty)" emptycolor="black">
+                <box size="100% 17" linewidth="1">
+                <gradient id="gradient" size="162 15" pos="1 1"/>
+                    <itemicon id="offerIcon" size="17 17" pos="0 0"/>
+                    <text id="offerName" size="88 12" pos="18 2" color="black"/>
+                    <text id="offerPrice" size="30 12" pos="106 2" color="black"/>
+                    <button label="Buy" id="offerTake" pos="136 1" size="26 15"
+                                 source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
+                </box>
+            </list>
+
+    <text id="rerollPrice" size="40 12" pos="60 220" color="black"/>
+    <button label="Reroll" id="rerollOffers" pos="100 219" size="35 15"
+                    source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
+</window>

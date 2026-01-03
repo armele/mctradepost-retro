@@ -1143,7 +1143,7 @@ public class BuildingRecycling extends AbstractBuilding
     public List<ItemStorage> getPendingRecyclingQueue()
     {
         List<ItemStorage> pendingRecyclingQueue =
-            getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST))
+            getModule(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST))
                 .getPendingRecyclingQueue();
         return pendingRecyclingQueue;
     }

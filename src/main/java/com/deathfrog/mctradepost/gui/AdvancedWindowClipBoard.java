@@ -2,27 +2,31 @@ package com.deathfrog.mctradepost.gui;
 
 import com.minecolonies.api.colony.ICitizenDataView;
 import com.minecolonies.api.colony.IColonyView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
-import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.MinimumStack;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.resolver.player.IPlayerRequestResolver;
 import com.minecolonies.api.colony.requestsystem.resolver.retrying.IRetryingRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
-import com.minecolonies.core.client.gui.AbstractWindowRequestTree;
-import com.minecolonies.core.network.messages.server.colony.UpdateRequestStateMessage;
+import com.minecolonies.core.client.gui.AbstractWindowSkeleton;
+import com.minecolonies.core.client.gui.modules.RequestTreeWindowModule;
+import com.minecolonies.core.items.ItemClipboard;
+import com.minecolonies.core.network.messages.server.ItemSettingMessage;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceLocation;
 
-import com.google.common.collect.Lists;
+import com.google.common.reflect.TypeToken;
+import com.ldtteam.blockui.Color;
+import com.ldtteam.blockui.controls.Button;
 import com.minecolonies.api.util.Log;
-import org.jetbrains.annotations.NotNull;
 import java.util.*;
+import java.util.function.Supplier;
 
 import static com.minecolonies.api.util.constant.WindowConstants.CLIPBOARD_TOGGLE;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -30,212 +34,222 @@ import net.neoforged.api.distmarker.Dist;
 
 
 @OnlyIn(Dist.CLIENT)
-public class AdvancedWindowClipBoard extends AbstractWindowRequestTree 
+public class AdvancedWindowClipBoard extends AbstractWindowSkeleton 
 {
     public static final String ADVANCED_CLIPBOARD_TOGGLE = "playeronly";
 
     /**
-     * Resource suffix.
+     * The request tree module.
      */
-    private static final String BUILD_TOOL_RESOURCE_SUFFIX = "gui/advancedwindowclipboard.xml";
-
-    /**
-     * List of async request tokens.
-     */
-    private final List<IToken<?>> asyncRequest = new ArrayList<>();
-
-    /**
-     * The colony id.
-     */
-    private final IColonyView colony;
+    private final ClipboardRequestTreeWindowModule requestTreeWindowModule;
 
     /**
      * Hide or show not important requests.
      */
-    private boolean hide = false;
+    private boolean showImportant;
 
     /* Show only requests to be fulfilled by the player. */
     private boolean playerOnly = false;
 
-    public AdvancedWindowClipBoard(IColonyView colony)
+    /**
+     * Constructor of the clipboard GUI.
+     *
+     * @param colony the colony to check the requests for.
+     */
+    public AdvancedWindowClipBoard(final IColonyView colony, boolean showImportant)
     {
-        super(colony, null, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, BUILD_TOOL_RESOURCE_SUFFIX));
-        this.colony = colony;
-        for (final ICitizenDataView view : this.colony.getCitizens().values())
-        {
-            if (view.getJobView() != null)
-            {
-                asyncRequest.addAll(view.getJobView().getAsyncRequests());
-            }
-        }
+        super(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/advancedwindowclipboard.xml"));
+        this.showImportant = showImportant;
+        this.requestTreeWindowModule = registerLayoutModule(ClipboardRequestTreeWindowModule::new, new ClipboardRequestTreeWindowModule.Options(colony, () -> this.showImportant, () -> this.playerOnly), 16, 44);
+
         registerButton(CLIPBOARD_TOGGLE, this::toggleImportant);
         registerButton(ADVANCED_CLIPBOARD_TOGGLE, this::togglePlayerOnly);
+
+        paintButtonState();
     }
 
+    /**
+     * Toggles the visibility of non-important requests and sends a message to
+     * the server to save that setting on the clipboard item.
+     *
+     * @see ItemSettingMessage
+     */
     private void toggleImportant()
     {
-        this.hide = !this.hide;
+        this.showImportant = !this.showImportant;
+
+        paintButtonState();
+
+        new ItemSettingMessage(ItemClipboard.TAG_HIDEUNIMPORTANT, this.showImportant ? 1 : 0).sendToServer();
+        requestTreeWindowModule.refreshOpenRequests();
     }
 
     private void togglePlayerOnly()
     {
         this.playerOnly = !this.playerOnly;
         MCTradePostMod.LOGGER.info("Player Only filter set to: " + this.playerOnly);
+        requestTreeWindowModule.refreshOpenRequests();
     }
 
     /**
-     * Check if the given request is a player request.
-     * 
-     * @param request the request to check
-     * @return true if the request is a player request, false otherwise
+     * Paints the button state of the important toggle.
+     * <p>
+     * This function finds the important toggle button and sets its colors based on the state of hide.
+     * If hide is true, the button is set to green. Otherwise, it is set to red.
      */
-    protected boolean isPlayerRequest(final IRequest<?> request)
+    private void paintButtonState()
     {
-        boolean isPlayer = false;
+        final Button importantToggle = findPaneOfTypeByID("important", Button.class);
 
-        try
+        if (this.showImportant)
         {
-            final IRequestResolver<?> resolver = colony.getRequestManager().getResolverForRequest(request.getId());
-            if (resolver == null)
-            {
-                Log.getLogger().warn("---IRequestResolver Null in AdvancedWindowClipBoard---");
-                return false;
-            }
-
-            String resolverName = resolver.getRequesterDisplayName(colony.getRequestManager(), request).getString();
-            if (resolverName.equals("Player"))  {
-                isPlayer = true;
-            }
+            importantToggle.setColors(Color.getByName("green", 0));
         }
-        catch (Exception e)
+        else
         {
-            /*
-             * Do nothing we just need to know if it has a resolver or not.
-             */
-            Log.getLogger().warn("---Exception in AdvancedWindowClipBoard---", e);
+            importantToggle.setColors(Color.getByName("red", 0));
         }
-
-        return isPlayer;
     }
 
-    protected void addToFilteredRequests(IRequestManager manager, ArrayList<IRequest<?>> filteredRequests, IRequest<?> request)
+    private static class ClipboardRequestTreeWindowModule extends RequestTreeWindowModule
     {
-        if (isPlayerRequest(request)) {
-            filteredRequests.add(request);
+        private final Supplier<Boolean> showImportant;
+        private final Supplier<Boolean> playerOnly;
+
+        /**
+         * Constructor to initiate the window request tree windows.
+         *
+         * @param parent the parenting window.
+         * @param options the extra options for the module.
+         */
+        public ClipboardRequestTreeWindowModule(final AbstractWindowSkeleton parent, final Options options)
+        {
+            super(parent, options.colony);
+            this.showImportant = options.showImportant;
+            this.playerOnly = options.playerOnly;
         }
 
-        if (request.hasChildren()) {
-            
-            for (final Object o : request.getChildren())
-            {
-                if (o instanceof IToken<?>)
-                {
-                    final IToken<?> iToken = (IToken<?>) o;
-                    final IRequest<?> childRequest = manager.getRequestForToken(iToken);
+        /**
+         * Check if the given request is a player request.
+         * 
+         * @param request the request to check
+         * @return true if the request is a player request, false otherwise
+         */
+        protected boolean isPlayerRequest(final IRequest<?> request)
+        {
+            boolean isPlayer = false;
 
-                    if (childRequest != null)
+            try
+            {
+                final IRequestResolver<?> resolver = colony.getRequestManager().getResolverForRequest(request.getId());
+                if (resolver == null)
+                {
+                    Log.getLogger().warn("---IRequestResolver Null in AdvancedWindowClipBoard---");
+                    return false;
+                }
+
+                String resolverName = resolver.getRequesterDisplayName(colony.getRequestManager(), request).getString();
+                if (resolverName.equals("Player"))  {
+                    isPlayer = true;
+                }
+            }
+            catch (Exception e)
+            {
+                /*
+                * Do nothing we just need to know if it has a resolver or not.
+                */
+                Log.getLogger().warn("---Exception in AdvancedWindowClipBoard---", e);
+            }
+
+            return isPlayer;
+        }
+
+        @Override
+        protected Collection<IRequest<?>> getOpenRequests()
+        {
+            final boolean showImportant = this.showImportant.get();
+            final boolean playerOnly = this.playerOnly.get();
+
+            final IRequestManager requestManager = colony.getRequestManager();
+            final List<IRequest<?>> requests = new ArrayList<>();
+
+            final List<IToken<?>> asyncRequest = new ArrayList<>();
+            for (final ICitizenDataView view : this.colony.getCitizens().values())
+            {
+                if (view.getJobView() != null)
+                {
+                    asyncRequest.addAll(view.getJobView().getAsyncRequests());
+                }
+            }
+
+            try
+            {
+                final IPlayerRequestResolver resolver = requestManager.getPlayerResolver();
+                final IRetryingRequestResolver retryingRequestResolver = requestManager.getRetryingRequestResolver();
+
+                final Set<IToken<?>> requestTokens = new HashSet<>();
+                requestTokens.addAll(resolver.getAllAssignedRequests());
+                requestTokens.addAll(retryingRequestResolver.getAllAssignedRequests());
+
+                for (final IToken<?> token : requestTokens)
+                {
+                    IRequest<?> request = requestManager.getRequestForToken(token);
+                    while (request != null && request.hasParent())
                     {
-                        addToFilteredRequests(manager, filteredRequests, childRequest);
+                        request = requestManager.getRequestForToken(request.getParent());
+                    }
+
+                    if (request == null)
+                    {
+                        continue;
+                    }
+
+                    if (!showImportant && request.getType().equals(TypeToken.of(MinimumStack.class)))
+                    {
+                        continue;
+                    }
+
+                    if (!isPlayerRequest(request) && playerOnly) 
+                    {
+                        continue;
+                    }
+
+                    if (!requests.contains(request))
+                    {
+                        requests.add(request);
                     }
                 }
-            }
-        }
-    }
 
-    protected ArrayList<IRequest<?>> filterRequests(IRequestManager manager, IBuildingView buildingView, ArrayList<IRequest<?>> requests)
-    {
-        final ArrayList<IRequest<?>> filteredRequests = Lists.newArrayList();
-
-        requests.forEach(request -> {
-            addToFilteredRequests(manager, filteredRequests, request);
-        });
-
-        // MCTradePostMod.LOGGER.debug("Requests filtered. Number of original requests: {}, Number of filtered requests: {}", requests.size(), filteredRequests.size());
-
-
-        return filteredRequests;
-    }
-
-    @Override
-    public ImmutableList<IRequest<?>> getOpenRequestsFromBuilding(final IBuildingView building)
-    {
-        final ArrayList<IRequest<?>> requests = Lists.newArrayList();
-
-        if (colony == null)
-        {
-            return ImmutableList.of();
-        }
-
-        final IRequestManager requestManager = colony.getRequestManager();
-
-        if (requestManager == null)
-        {
-            return ImmutableList.of();
-        }
-
-        try
-        {
-            final IPlayerRequestResolver resolver = requestManager.getPlayerResolver();
-            final IRetryingRequestResolver retryingRequestResolver = requestManager.getRetryingRequestResolver();
-
-            final Set<IToken<?>> requestTokens = new HashSet<>();
-            requestTokens.addAll(resolver.getAllAssignedRequests());
-            requestTokens.addAll(retryingRequestResolver.getAllAssignedRequests());
-
-            for (final IToken<?> token : requestTokens)
-            {
-                IRequest<?> request = requestManager.getRequestForToken(token);
-
-                while (request != null && request.hasParent())
+                if (!showImportant)
                 {
-                    request = requestManager.getRequestForToken(request.getParent());
+                    requests.removeIf(req -> asyncRequest.contains(req.getId()));
                 }
 
-                if (request != null && !requests.contains(request))
+                LocalPlayer player = Minecraft.getInstance().player;
+
+                if (player == null)
                 {
-                    requests.add(request);
+                    return ImmutableList.of();
                 }
-            }
 
-            if (hide)
+                final BlockPos playerPos = player.blockPosition();
+                requests.sort(Comparator.comparing((IRequest<?> request) -> request.getRequester()
+                    .getLocation()
+                    .getInDimensionLocation()
+                    .distSqr(new Vec3i(playerPos.getX(), playerPos.getY(), playerPos.getZ()))).thenComparingInt((IRequest<?> request) -> request.getId().hashCode()));
+            }
+            catch (Exception e)
             {
-                requests.removeIf(req -> asyncRequest.contains(req.getId()));
+                Log.getLogger().warn("Exception trying to retrieve requests:", e);
+                requestManager.reset();
+                return ImmutableList.of();
             }
-
-            // Advanced clipboard functionality - only show requests to be fulfilled by the player
-            if (playerOnly) {
-                final ArrayList<IRequest<?>> filteredRequests = filterRequests(requestManager, building, requests);
-                requests.clear();
-                requests.addAll(filteredRequests);
-            }
-
-            @SuppressWarnings("null")
-            final BlockPos playerPos = Minecraft.getInstance().player.blockPosition();
-            
-            requests.sort(Comparator.comparing((IRequest<?> request) -> request.getRequester().getLocation().getInDimensionLocation()
-                    .distSqr(new Vec3i(playerPos.getX(), playerPos.getY(), playerPos.getZ())))
-                .thenComparingInt((IRequest<?> request) -> request.getId().hashCode()));
-        }
-        catch (Exception e)
-        {
-            Log.getLogger().warn("Exception trying to retreive requests:", e);
-            requestManager.reset();
-            return ImmutableList.of();
+            return ImmutableList.copyOf(requests);
         }
 
-        return ImmutableList.copyOf(requests);
+        private record Options(
+            IColonyView colony,
+            Supplier<Boolean> showImportant,
+            Supplier<Boolean> playerOnly) {}
     }
-
-    @Override
-    public boolean fulfillable(final IRequest<?> tRequest)
-    {
-        return false;
-    }
-
-    @Override
-    protected void cancel(@NotNull final IRequest<?> request)
-    {
-        new UpdateRequestStateMessage(colony, request.getId(), RequestState.CANCELLED, null).sendToServer();
-    }
-
 }

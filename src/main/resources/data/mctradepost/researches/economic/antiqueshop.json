@@ -1,0 +1,41 @@
+{
+    "name": "Antique Shop",
+    "subtitle": "My precious!",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/consignmentshop",
+    "researchLevel": 5,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 5
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:mctp_coin_diamond"
+        },
+        {
+            "count": 8,
+            "item": "minecraft:chorus_flower"
+        },
+        {
+            "count": 4,
+            "item": "minecraft:end_rod"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_tier",
+            "level": 4
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_diamond"
+}

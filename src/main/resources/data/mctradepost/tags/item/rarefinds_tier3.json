@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:blaze_rod",
+    "minecraft:blaze_powder",
+    "minecraft:nether_wart",
+    "minecraft:magma_cream",
+    "minecraft:ghast_tear",
+    "minecraft:crying_obsidian",
+    "minecraft:diamond",
+    "minecraft:emerald",
+    "minecraft:music_disc_otherside",
+    "minecraft:heart_of_the_sea",
+    "minecraft:netherite_scrap"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "parent": "mctradepost:mctradepost/station",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "minecraft:totem_of_undying"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.rare_find.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.rare_find.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "rewards": {
+    "experience": 100
+  },
+  "criteria": {
+    "served": {
+      "trigger": "mctradepost:rare_find"
+    }
+  }
+}

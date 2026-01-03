@@ -23,6 +23,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
 
     private static final int MAX_OUTPUT_SHOWN = 10;     // How many stacks of output items will we display?
 
+    private static final String REQUEST_WRAPPER = "requestx";
     /**
      * Scrollinglist of the resources.
      */
@@ -79,7 +80,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
                     return;
                 }
 
-                final Box wrapperBox = rowPane.findPaneOfTypeByID(WindowConstants.WINDOW_ID_REQUEST_BOX, Box.class);
+                final Box wrapperBox = rowPane.findPaneOfTypeByID(REQUEST_WRAPPER, Box.class);
                 wrapperBox.setPosition(wrapperBox.getX(), wrapperBox.getY());
                 wrapperBox.setSize(wrapperBox.getParent().getWidth(), wrapperBox.getHeight());
 

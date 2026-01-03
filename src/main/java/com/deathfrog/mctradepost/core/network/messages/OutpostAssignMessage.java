@@ -96,18 +96,18 @@ public class OutpostAssignMessage extends AbstractBuildingServerMessage<IBuildin
         final AbstractAssignedCitizenModule module;
         if (jobEntry == null)
         {
-            module = building.getFirstModuleOccurance(LivingBuildingModule.class);
+            module = building.getModule(LivingBuildingModule.class);
         }
         else
         {
-            module = building.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == jobEntry);
+            module = building.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == jobEntry);
         }
 
         if (assign && !module.isFull() && !building.equals(citizen.getHomeBuilding()))
         {
             if (citizen.getHomeBuilding() != null)
             {
-                citizen.getHomeBuilding().getFirstModuleOccurance(LivingBuildingModule.class).removeCitizen(citizen);
+                citizen.getHomeBuilding().getModule(LivingBuildingModule.class).removeCitizen(citizen);
             }
             module.assignCitizen(citizen);
         }

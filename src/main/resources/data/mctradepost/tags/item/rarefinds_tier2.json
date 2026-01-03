@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "#c:gunpowders",
+    "#c:dyes",
+    "#minecraft:flowers",
+    "minecraft:ender_pearl",
+    "minecraft:experience_bottle",
+    "minecraft:golden_carrot",
+    "minecraft:firework_rocket",
+    "minecraft:name_tag",
+    "minecraft:saddle",
+    "minecraft:book",
+    "minecraft:map",
+    "minecraft:compass",
+    "minecraft:clock",
+    "minecraft:red_sand"
+  ]
+}

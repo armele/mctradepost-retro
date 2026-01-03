@@ -1,0 +1,41 @@
+{
+    "name": "Consignment Shop",
+    "subtitle": "You don't see that too often...",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/pawnshop",
+    "researchLevel": 4,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 5,
+            "item": "mctradepost:mctp_coin_gold"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:ghast_tear"
+        },
+        {
+            "count": 4,
+            "item": "minecraft:nether_gold_ore"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/thriftshop_tier",
+            "level": 3
+        }
+    ],
+    "icon": "mctradepost:mctp_coin_gold"
+}

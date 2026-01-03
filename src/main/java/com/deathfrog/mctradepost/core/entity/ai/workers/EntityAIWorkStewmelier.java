@@ -697,7 +697,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                     worker.setItemInHand(InteractionHand.MAIN_HAND, seasoningStack);
                     worker.swing(InteractionHand.MAIN_HAND);
                     worker.playSound(NullnessBridge.assumeNonnull(SoundEvents.LAVA_AMBIENT),
-                        (float) SoundUtils.BASIC_VOLUME,
+                        (float) SoundUtils.BASIC_VOLUME - .2f,
                         (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(worker.getRandom()));
 
                     stewModule.setSeasoningLevel(1);
@@ -712,7 +712,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             worker.setItemInHand(InteractionHand.MAIN_HAND, ingredientStack);
             worker.swing(InteractionHand.MAIN_HAND);
             worker.playSound(NullnessBridge.assumeNonnull(SoundEvents.LAVA_AMBIENT),
-                (float) SoundUtils.BASIC_VOLUME,
+                (float) SoundUtils.BASIC_VOLUME - .2f,
                 (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(worker.getRandom()));
 
             boolean used = InventoryUtils.attemptReduceStackInItemHandler(worker.getInventoryCitizen(), ingredientStack, 1);
