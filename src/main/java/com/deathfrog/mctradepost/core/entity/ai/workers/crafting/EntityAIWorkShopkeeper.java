@@ -263,7 +263,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         final ImmutableList<ItemStorage> list =
-            building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
+            building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST)).getList();
         List<ItemStorage> sortedList = new ArrayList<>(list);
 
         // Optimize for the most valueable sellable items first.
@@ -779,7 +779,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
             final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> building.getModuleMatching(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
+                stack -> building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
                     .isItemInList(new ItemStorage(stack)));
 
 

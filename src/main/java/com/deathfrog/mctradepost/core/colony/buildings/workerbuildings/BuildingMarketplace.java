@@ -10,7 +10,6 @@ import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
-import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
@@ -62,8 +61,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
-import javax.swing.text.html.parser.Entity;
-
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
@@ -194,7 +191,7 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     public ICitizenData shopkeeper()
     {
-        WorkerBuildingModule module = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
 
         List<ICitizenData> employees = module.getAssignedCitizen();
 
@@ -406,7 +403,7 @@ public class BuildingMarketplace extends AbstractBuilding
     {
         int skill = 0;
         
-        WorkerBuildingModule module = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.shopkeeper.get());
 
         ICitizenData shopkeeper = shopkeeper();
 
@@ -586,12 +583,12 @@ public class BuildingMarketplace extends AbstractBuilding
         // Once the marketplace is built, visitors start thinking about shopping...
         // Note: approach below for finding tavern mimics EventHandler.onEntityConverted
         final BlockPos tavernPos =
-            colony.getBuildingManager().getRandomBuilding(b -> !b.getModulesByType(TavernBuildingModule.class).isEmpty());
+            colony.getBuildingManager().getRandomBuilding(b -> !b.getModules(TavernBuildingModule.class).isEmpty());
         if (tavernPos != null)
         {
             // MCTradePostMod.LOGGER.info("Tavern module found - collecting visitor IDs.");
             final IBuilding tavern = colony.getBuildingManager().getBuilding(tavernPos);
-            TavernBuildingModule tavernModule = tavern.getFirstModuleOccurance(TavernBuildingModule.class);
+            TavernBuildingModule tavernModule = tavern.getModule(TavernBuildingModule.class);
             visitorIDs.addAll(tavernModule.getExternalCitizens());
         }
 

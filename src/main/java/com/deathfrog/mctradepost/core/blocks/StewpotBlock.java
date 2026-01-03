@@ -76,7 +76,7 @@ public class StewpotBlock extends AbstractCauldronBlock
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
+    protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder)
     {
         builder.add(LEVEL);
     }
@@ -88,7 +88,7 @@ public class StewpotBlock extends AbstractCauldronBlock
      * @return true if the stewpot block is full, false otherwise
      */
     @Override
-    public boolean isFull(BlockState state)
+    public boolean isFull(@Nonnull BlockState state)
     {
         return state.getValue(LEVEL) >= 3;
     }
@@ -120,13 +120,13 @@ public class StewpotBlock extends AbstractCauldronBlock
      */
     @Override
     protected ItemInteractionResult useItemOn(
-        ItemStack stack,
-        BlockState state,
-        Level level,
-        BlockPos pos,
-        Player player,
-        InteractionHand hand,
-        BlockHitResult hitResult)
+        @Nonnull ItemStack stack,
+        @Nonnull BlockState state,
+        @Nonnull Level level,
+        @Nonnull BlockPos pos,
+        @Nonnull Player player,
+        @Nonnull InteractionHand hand,
+        @Nonnull BlockHitResult hitResult)
     {
 
         if (pos == null || level == null || player == null)

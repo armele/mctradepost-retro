@@ -180,6 +180,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * @param provider The holder lookup provider for item and block references.
      * @return the serialized NBT tag.
      */
+    @SuppressWarnings("null")
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider)
     {
@@ -211,6 +212,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
      * @param compound The CompoundTag containing the serialized state of the
      *                 outpost.
      */
+    @SuppressWarnings("null")
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compound) 
     {
@@ -903,10 +905,14 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
 
     }
 
-
+    /**
+     * Gets the scout of the outpost, if any. Returns null if no scout is assigned.
+     * 
+     * @return the scout of the outpost, or null if none is assigned.
+     */
     public ICitizenData getScout()
     {
-        List<ICitizenData> employees = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.scout.get()).getAssignedCitizen();
+        List<ICitizenData> employees = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.scout.get()).getAssignedCitizen();
         
         if (employees.isEmpty()) {
             return null;
@@ -915,6 +921,14 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         return employees.get(0);
     }
 
+    /**
+     * Check if the resources are in the bucket, and 
+     * move them to the worker inventory for use. If the resources are not in the bucket, 
+     * request them from the stationmaster.
+     * 
+     * @param requiredResources the resources required for the task
+     * @param worker the worker to whom to deliver the resources
+     */
     @Override
     public void checkOrRequestBucket(@Nullable final BuilderBucket requiredResources, final ICitizenData worker)
     {

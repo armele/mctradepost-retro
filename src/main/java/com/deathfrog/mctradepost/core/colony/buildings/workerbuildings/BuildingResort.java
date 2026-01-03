@@ -126,7 +126,7 @@ public class BuildingResort extends AbstractBuilding {
      */
     public int getGuestServicesSkillLevel() 
     {
-        WorkerBuildingModule module = this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get());
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get());
 
         if (module == null) 
         {
@@ -157,7 +157,7 @@ public class BuildingResort extends AbstractBuilding {
         // Clear out the guests list when there is no worker here, or the building is destroyed, etc. and don't do any of the advertising logic.
         if (this.getBuildingLevel() <= 0
               || !this.hasModule(WorkerBuildingModule.class)
-              || this.getModuleMatching(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get()).getAssignedCitizen().isEmpty())
+              || this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.guestservices.get()).getAssignedCitizen().isEmpty())
         {
             for (Vacationer guest : guests.values()) {
                 removeGuestFile(guest.getCivilianId());

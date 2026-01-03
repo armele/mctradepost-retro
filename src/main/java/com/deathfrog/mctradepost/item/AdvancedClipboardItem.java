@@ -13,12 +13,16 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.core.items.ItemClipboard;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
+
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -132,7 +136,17 @@ public class AdvancedClipboardItem extends ItemClipboard
         final IColonyView colonyView = ColonyId.readColonyViewFromItemStack(stack);
         if (colonyView != null)
         {
-            new AdvancedWindowClipBoard(colonyView).open();
+            boolean hide = false;
+
+            final CustomData current = stack.getOrDefault(NullnessBridge.assumeNonnull(DataComponents.CUSTOM_DATA), NullnessBridge.assumeNonnull(CustomData.EMPTY));
+            final CompoundTag compound = current.copyTag();
+
+            if (compound.contains(TAG_HIDEUNIMPORTANT))
+            {
+                hide = compound.getBoolean(TAG_HIDEUNIMPORTANT);
+            }
+
+            new AdvancedWindowClipBoard(colonyView, hide).open();
         }
         else
         {

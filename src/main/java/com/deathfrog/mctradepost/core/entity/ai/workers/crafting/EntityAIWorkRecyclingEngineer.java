@@ -213,7 +213,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             }
             else
             {
-                final List<ItemStorage> list = building.getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
+                final List<ItemStorage> list = building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
                 if (list.isEmpty() || building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
                 {
                     TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Maintain equipment while no warehouse orders need to be placed."));
@@ -619,7 +619,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         }
 
         final List<ItemStorage> list =
-            building.getModuleMatching(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
+            building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
         final List<ItemStorage> pendingRecyclingQueue = building.getPendingRecyclingQueue();
 
         if (list.isEmpty()  && building.getRecyclingProcessors().isEmpty())
@@ -648,7 +648,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                 worker.getCitizenData()
                     .createRequestAsync(new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, maxSize, 1));
 
-                ItemListModule module = building.getModuleMatching(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
+                ItemListModule module = building.getModule(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
 
                 // These are meant to be one-time calls to the warehouse for garbage to be recycled. Prevent requests
                 // that might result in items being crafted just to be recycled by turning off the item setting in the module list.
