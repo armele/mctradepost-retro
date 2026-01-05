@@ -940,13 +940,10 @@ public class MCTradePostMod
             );   
             
             // Register the payload handler for the ConfigurationPacket - used to update the client with ritual recipes they need to be aware of.
-            registrar.playBidirectional(
+            registrar.playToClient(
                 RitualPacket.TYPE,
                 RitualPacket.RITUAL_CODEC,
-                new DirectionalPayloadHandler<>(
-                    RitualPacket::handleDataInClientOnMain,
-                    RitualPacket::handleDataInServerOnMain
-                )
+                (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
             );  
 
             TradeMessage.TYPE.register(registrar);

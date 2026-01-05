@@ -2,7 +2,7 @@ package com.deathfrog.mctradepost.core.event.wishingwell.ritual;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
-import com.deathfrog.mctradepost.compat.jei.JEIMCTPPlugin;
+import com.deathfrog.mctradepost.compat.CompatHooks;
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -10,6 +10,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.util.Map;
@@ -42,6 +43,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
      *
      * @param ctx the payload context
      */
+    @OnlyIn(net.neoforged.api.distmarker.Dist.CLIENT)
     public void handleDataInClientOnMain(IPayloadContext ctx)
     {
         rituals.forEach((id, def) -> {
@@ -53,14 +55,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
 
         MCTradePostMod.LOGGER.info("Received {} rituals on client", rituals.size());
 
-        JEIMCTPPlugin.refreshRitualRecipes();
-    }
-
-    // Executed on the SERVER main thread (you probably won’t send this client->server,
-    // but the handler is required for bidirectional registration).
-    public void handleDataInServerOnMain(IPayloadContext ctx)
-    {
-        MCTradePostMod.LOGGER.warn("Client should never send RitualPackets to the server.");
+        CompatHooks.refreshRitualsJei();
     }
 
     /**
@@ -81,7 +76,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
         }
         catch (Exception e)
         {
-            MCTradePostMod.LOGGER.error("Failed to send RitualPacket to player: {}", player.getName().getString());
+            MCTradePostMod.LOGGER.error("Failed to send RitualPacket to player: {}", player.getName().getString(), e);
         }
         MCTradePostMod.LOGGER.info("Item values sent to player: {}", player.getName().getString());
     }

@@ -29,6 +29,7 @@ import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
+import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.MessageUtils;
@@ -185,6 +186,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         return null;
+    }
+
+    @Override
+    public IAIState afterRequestPickUp() 
+    {
+        return AIWorkerState.DECIDE;
     }
 
     /**
@@ -363,6 +370,25 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         setDelay(2);
         return START_WORKING;
+    }
+
+    /**
+     * Wait for the AI to receive new requests from the building. If the AI needs an item, but there are no open requests, the AI will
+     * transition to the GET_MATERIALS state to request items from the warehouse. If the AI does not need an item, the AI will
+     * transition back to the DECIDE state.
+     * 
+     * @return The next AI state to transition to.
+     */
+    protected @NotNull IAIState waitForRequests() 
+    {
+        IAIState state = super.waitForRequests();
+
+        if (state == NEEDS_ITEM)
+        {
+            return GET_MATERIALS;
+        }
+
+        return state;
     }
 
     /**

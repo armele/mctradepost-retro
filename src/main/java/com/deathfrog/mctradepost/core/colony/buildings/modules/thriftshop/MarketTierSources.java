@@ -299,43 +299,79 @@ public final class MarketTierSources
 
 
     /**
+     * Returns the highest market tier index that the given item is tagged with.
+     * <p>
+     * The method takes four boolean parameters, each representing whether the item is tagged with a specific market tier.
+     * If multiple tiers are tagged, the highest tier index is returned.
+     * If no tiers are tagged, 0 is returned.
+     * @param inTier1 whether the item is tagged with TIER1_COMMON
+     * @param inTier2 whether the item is tagged with TIER2_UNCOMMON
+     * @param inTier3 whether the item is tagged with TIER3_RARE
+     * @param inTier4 whether the item is tagged with TIER4_EPIC
+     * @return the highest market tier index that the item is tagged with, or 0 if the item is untagged
+     */
+    private static int tierIndex(boolean inTier1, boolean inTier2, boolean inTier3, boolean inTier4)
+    {
+        if (inTier4) return 4;
+        if (inTier3) return 3;
+        if (inTier2) return 2;
+        if (inTier1) return 1;
+        return 0; // untagged
+    }
+
+    /**
+     * Returns the integer index of the given market tier.
+     * <p>
+     * This is used to index into arrays of market data, such as prices and item lists.
+     * <p>
+     * The index is as follows: TIER1_COMMON=1, TIER2_UNCOMMON=2, TIER3_RARE=3, TIER4.EPIC=4.
+     * @param tier the market tier to get the index of
+     * @return the index of the given market tier
+     */
+    private static int tierIndex(MarketTier tier)
+    {
+        return switch (tier)
+        {
+            case TIER1_COMMON -> 1;
+            case TIER2_UNCOMMON -> 2;
+            case TIER3_RARE -> 3;
+            case TIER4_EPIC -> 4;
+        };
+    }
+
+    /**
      * Checks if the given item stack is sellable at the given market tier.
      * <p>
      * This method first checks if the stack is empty, in which case it returns false.
      * <p>
      * Then, it checks if the stack has the {@link ModTags#RARE_FINDS_BLACKLIST_TAG} tag, in which case it returns false.
      * <p>
-     * Finally, it checks if the stack has a tag that is specific to a different market tier. If so, it returns false.
+     * Finally, it checks if the stack has a tag that is specific to a higher market tier. If so, it returns false.
      * <p>
      * @param stack the item stack to check
      * @param tier the market tier to check against
      * @return true if the stack is sellable, false otherwise
      */
-    private static boolean isSellable(ItemStack stack, MarketTier tier)
+    private static boolean isSellable(ItemStack stack, MarketTier rollingTier)
     {
         if (stack.isEmpty()) return false;
         if (stack.is(ModTags.RARE_FINDS_BLACKLIST_TAG)) return false;
 
-        boolean inTier1 = stack.is(ModTags.RARE_FINDS_TIER1_TAG);
-        boolean inTier2 = stack.is(ModTags.RARE_FINDS_TIER2_TAG);
-        boolean inTier3 = stack.is(ModTags.RARE_FINDS_TIER3_TAG);
-        boolean inTier4 = stack.is(ModTags.RARE_FINDS_TIER4_TAG);
+        boolean in1 = stack.is(ModTags.RARE_FINDS_TIER1_TAG);
+        boolean in2 = stack.is(ModTags.RARE_FINDS_TIER2_TAG);
+        boolean in3 = stack.is(ModTags.RARE_FINDS_TIER3_TAG);
+        boolean in4 = stack.is(ModTags.RARE_FINDS_TIER4_TAG);
 
-        boolean taggedAnyTier = inTier1 || inTier2 || inTier3 || inTier4;
+        // Ownership: highest tier tag wins.
+        int ownedTier = tierIndex(in1, in2, in3, in4);
 
-        // If it’s tier-tagged at all, it must match THIS tier.
-        if (taggedAnyTier)
+        // If it’s tier-tagged at all, it may ONLY appear in its owned tier.
+        if (ownedTier > 0)
         {
-            return switch (tier)
-            {
-                case TIER1_COMMON -> inTier1;
-                case TIER2_UNCOMMON -> inTier2;
-                case TIER3_RARE -> inTier3;
-                case TIER4_EPIC -> inTier4;
-            };
+            return ownedTier == tierIndex(rollingTier);
         }
 
-        // Not explicitly tier-tagged → allowed to appear from any tier’s other sources.
+        // Untagged: allowed (subject to other rules)
         return true;
     }
 

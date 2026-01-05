@@ -164,7 +164,7 @@ public final class TaggedItemPicker
             // Log once to avoid spam
             if (MULTI_TIER_WARNED.add(itemId))
             {
-                LOGGER.warn("[RareFinds] Item {} appears in multiple tier tags: {}", itemId, tags);
+                LOGGER.info("[RareFinds] Item {} appears in multiple tier tags: {}", itemId, tags);
             }
         }
     }
