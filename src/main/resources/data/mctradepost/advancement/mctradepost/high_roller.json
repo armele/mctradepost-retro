@@ -23,10 +23,12 @@
     "crafted_mixed_stone": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
-        "item": {
-          "count": 1,
-          "items": ["mctradepost:mctp_coin_gold"]
-        }
+        "items": [
+          {
+            "items": ["mctradepost:mctp_coin_gold"],
+            "count": { "min": 1 }
+          }
+        ]
       }
     }
   }
