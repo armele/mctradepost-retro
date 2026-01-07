@@ -203,7 +203,8 @@
     "com.mctradepost.gui.visiblestatus.shopkeeper": "Selling Items",
     "mctradepost:shopkeeper.job.desc": "Good at capitalism. Bad for the world.",
     "mctradepost:shopkeeper.skills.desc": "Helps make sales faster.",
-    "entity.shopkeeper.noitems": "The shopkeeper in %s has no items to sell at the marketplace.",
+    "entity.shopkeeper.noitems": "I'm not sure what to sell! Configure the sellable items tab. If nothing is listed there yet, put something in my inventory analysis box so I can do a market analysis.",
+    "entity.shopkeeper.noinventory": "I have no inventory box in this market. Please repair the building!",
     "entity.shopkeeper.brokenframe": "One of the shopkeeper's display frames is broken. Please repair the building.",
     "entity.shopkeeper.noframes": "No display frames were found for the shopkeeper to use.",
     "entity.shopkeeper.nospaceforcoins" : "The shopkeeper does not have enough space to mint coins.",
@@ -525,6 +526,7 @@
     "mctradepost.stewmolier.ingredients_updated": "Perpetual stew ingredients updated.",
     "block.mctradepost.stewpot_filled": "Cauldron of Perpetual Stew",
     "com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip": "How many stacks to leave in the warehouse?",
-    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks"
+    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks",
+    "item.mctradepost.marketplace_frame": "Marketplace Frame"
 }
   

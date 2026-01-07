@@ -16,8 +16,8 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.jobs.JobGuestServices;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
@@ -30,6 +30,7 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.InventoryUtils;
@@ -98,6 +99,32 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     {
         TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Guest Services should have retrieved from building or placed an order for: {}", currentGuest));
         return CURE;
+    }
+
+    @Override
+    public IAIState afterRequestPickUp() 
+    {
+        return AIWorkerState.DECIDE;
+    }
+
+    /**
+     * Waits for the AI to receive new requests from the building. If the AI needs an item, but there are no open requests, the AI will
+     * transition to the DECIDE state to decide what to do next. If the AI does not need an item, the AI will transition back to the
+     * IDLE state.
+     * 
+     * @return The next AI state to transition to.
+     */
+    @Override
+    protected @NotNull IAIState waitForRequests() 
+    {
+        IAIState state = super.waitForRequests();
+
+        if (state == AIWorkerState.NEEDS_ITEM)
+        {
+            return DECIDE;
+        }
+
+        return state;
     }
 
     /**

@@ -26,12 +26,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -40,6 +38,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.FrameLikeAccess;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
@@ -61,6 +60,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT_MAX_BUILDING_LEVEL;
 
@@ -69,6 +70,7 @@ import static com.minecolonies.api.util.constant.BuildingConstants.CONST_DEFAULT
  */
 public class BuildingMarketplace extends AbstractBuilding
 {
+    public static final String STRUCT_TAG_INVENTORY_CONTAINER = "inventory";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     protected WellLocations ritualData = new WellLocations();
@@ -161,6 +163,29 @@ public class BuildingMarketplace extends AbstractBuilding
         return displayShelfContents;
     }
 
+    /**
+     * Returns the BlockPos of the inventory container in the marketplace building. If there are more than one inventory container, it
+     * will log a warning and use the first one.
+     * 
+     * @return the BlockPos of the inventory container
+     */
+    public BlockPos identifyInventoryPosition()
+    {
+        final List<BlockPos> inventoryContainers = getLocationsFromTag(STRUCT_TAG_INVENTORY_CONTAINER);
+
+        if (inventoryContainers.isEmpty())
+        {
+            return BlockPos.ZERO;
+        }
+
+        if (inventoryContainers.size() > 1)
+        {
+            LOGGER.warn("Marketplace for {} at {} has more than one inventory container. Using the first one.", this.getColony().getID(), this.getPosition());
+        }
+
+        return inventoryContainers.get(0);
+    }
+
     @NotNull
     @Override
     public String getSchematicName()
@@ -233,71 +258,78 @@ public class BuildingMarketplace extends AbstractBuilding
     }
 
     /**
-     * Registers a block position in the marketplace building. This is used to update the contents of display shelves. When a block is
-     * registered, it is checked if it is a display frame and if so, it is added to the collection of display shelves. If the display
-     * shelf is not already tracked, it is added to the displayShelfContents map.
-     * 
-     * @param block the block being registered.
-     * @param pos   the position of the block being registered.
-     * @param world the world that the block is in.
-     */
-    @Override
-    public void registerBlockPosition(@NotNull final BlockState block, @NotNull final BlockPos pos, @NotNull final Level world)
-    {
-        // MCTradePostMod.LOGGER.info("Registering Block Position: " + block + " at " + pos);
-        super.registerBlockPosition(block, pos, world);
-
-        List<ItemFrame> frames = world.getEntitiesOfClass(ItemFrame.class, new AABB(NullnessBridge.assumeNonnull(pos)));
-
-        if (!frames.isEmpty() && !displayShelfContents.containsKey(pos))
-        {
-            // MCTradePostMod.LOGGER.info("Adding display position: {}", pos);
-            displayShelfContents.put(pos, new DisplayCase(pos, frames.get(0).getUUID()));
-        }
-    }
-
-    /**
-     * Called when the colony's world is loaded and the display frame that was at the given position is not found. If the display frame
-     * exists in the world, it will be updated to reflect the current items in the display shelf contents.
-     * 
-     * @param pos The position of the display shelf.
+     * Called when the building is loaded from world and the display shelf at the given position is no longer present.
+     * This can happen if the building is moved, or if the display shelf is destroyed.
+     * <p>
+     * This function will attempt to resolve the display shelf by looking for a vanilla ItemFrame or a FastItemFrame block at the given position.
+     * If a frame-like block is found, it will be updated to reflect the current items in the display shelf contents.
+     * If no frame-like block is found, but the position is still an expected shelf position, the display shelf will be marked as missing.
+     * <p>
+     * If the display shelf is marked as missing and the building is built, a warning will be logged to indicate that a display shelf is missing.
+     * <p>
+     * This function is idempotent and can be called multiple times on the same building without causing harm.
+     * <p>
+     * The function takes a BlockPos argument, which is the position of the display shelf to be resolved.
      */
     public void lostShelfAtDisplayPos(@Nonnull BlockPos pos)
     {
-        if (displayShelfContents.containsKey(pos))
-        {
-            List<ItemFrame> frames = colony.getWorld().getEntitiesOfClass(ItemFrame.class, new AABB(pos));
-
-            // If a new frame can be found at the expected position, use it.
-            if (!frames.isEmpty())
-            {
-                displayShelfContents.put(pos,
-                    new DisplayCase(pos, frames.get(0).getUUID(), displayShelfContents.get(pos).getStack(), 0));
-                // Otherwise, issue a message about the missing frame.
-            }
-            else
-            {
-                List<BlockPos> expectedPositions = getLocationsFromTag(STRUCT_TAG_DISPLAY_SHELF);
-
-                // If this is no longer an expected shelf position (building has been relocated, for example), remove it.
-                if (!expectedPositions.contains(pos))
-                {
-                    displayShelfContents.remove(pos);
-                }
-                else
-                {
-                    displayShelfContents.put(pos, new DisplayCase(pos, null));
-                    if (this.isBuilt())
-                    {  
-                        // Only send this if the building is built, otherwise it will be ignored.
-                        MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
-                    }
-                }
-            }
-        }
-        else
+        if (!displayShelfContents.containsKey(pos))
         {
             MCTradePostMod.LOGGER.warn("Looking for a display shelf at {}", pos);
+            return;
+        }
+
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - evaluating lost shelf at {}", getColony().getID(), pos));
+
+        final Level level = colony.getWorld();
+        final DisplayCase existing = displayShelfContents.get(pos);
+
+        // 1) If this is no longer an expected shelf position, remove it (building moved, etc.)
+        final List<BlockPos> expectedPositions = getLocationsFromTag(STRUCT_TAG_DISPLAY_SHELF);
+        if (!expectedPositions.contains(pos))
+        {
+            displayShelfContents.remove(pos);
+            return;
+        }
+
+        // 2) Try to resolve frame-like (vanilla UUID/entity OR FastItemFrames block)
+        final FrameLikeAccess.FrameHandle handle =
+            FrameLikeAccess.resolve(level, pos, existing.getFrameId());
+
+        if (!handle.exists())
+        {
+            // Expected shelf pos, but neither entity nor frame-like block exists.
+            // Keep shelf entry but mark missing.
+            displayShelfContents.put(pos, new DisplayCase(pos, null));
+            if (this.isBuilt())
+            {
+                MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
+            }
+            return;
+        }
+
+        // 3) It exists. If it's a vanilla ItemFrame and we can discover its UUID, refresh it.
+        // (FrameLikeAccess might have resolved via tag/block; we still want the UUID if a real entity exists.)
+        AABB box = new AABB(pos).inflate(0.25);
+
+        final List<ItemFrame> frames = level.getEntitiesOfClass(ItemFrame.class, NullnessBridge.assumeNonnull(box));
+        if (!frames.isEmpty())
+        {
+            final ItemFrame frame = frames.get(0);
+
+            // Preserve whatever item we were tracking
+            displayShelfContents.put(pos, new DisplayCase(pos, frame.getUUID(), existing.getStack(), 0));
+            return;
+        }
+
+        // 4) Frame-like exists but no entity (Fast Item Frames case): keep the shelf, clear UUID
+        displayShelfContents.put(pos, new DisplayCase(pos, null, existing.getStack(), 0));
+
+        // update to reflect current items in the display shelf contents
+        ItemStack stored = existing.getStack();
+        if (stored != null && !stored.isEmpty() && handle.getItem().isEmpty())
+        {
+            handle.setItem(stored);
         }
     }
 
@@ -308,34 +340,40 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     private void syncDisplayFramesWithSavedItems()
     {
-        Level level = colony.getWorld();
+        final Level level = colony.getWorld();
         if (level == null) return;
 
         for (Map.Entry<BlockPos, DisplayCase> entry : displayShelfContents.entrySet())
         {
-            ItemStack stack = entry.getValue().getStack();
+            final BlockPos pos = entry.getKey();
+            final DisplayCase dc = entry.getValue();
+            if (dc == null) continue;
 
-            UUID frameID = entry.getValue().getFrameId();
+            final ItemStack saved = dc.getStack() == null ? ItemStack.EMPTY : dc.getStack();
+            final UUID frameId = dc.getFrameId(); // may be null with Fast Item Frames
 
-            if (frameID == null)
+            final FrameLikeAccess.FrameHandle handle = FrameLikeAccess.resolve(level, pos, frameId);
+
+            if (!handle.exists())
             {
-                MCTradePostMod.LOGGER.warn("Missing a display frame (no id) at {}", entry.getKey());
+                MCTradePostMod.LOGGER.warn("Missing a display frame/frame-like at {}", pos);
                 continue;
             }
 
-            ItemFrame frame = (ItemFrame) ((ServerLevel) level).getEntity(frameID);
+            // Optional: avoid redundant writes
+            final ItemStack current = handle.getItem();
+            @SuppressWarnings("null")
+            final boolean alreadyMatches =
+                ItemStack.isSameItemSameComponents(current, saved) && current.getCount() == saved.getCount();
 
-            if (frame == null)
+            if (!alreadyMatches)
             {
-                MCTradePostMod.LOGGER.warn("Missing a display frame at {}", entry.getKey());
-                continue;
+                final boolean ok = handle.setItem(saved);
+                if (!ok)
+                {
+                    MCTradePostMod.LOGGER.warn("Could not sync display frame/frame-like at {}", pos);
+                }
             }
-                
-            if (!stack.isEmpty())
-            {
-                frame.setItem(stack);
-            }
-
         }
     }
 

@@ -24,6 +24,7 @@ import com.minecolonies.core.tileentities.TileEntityRack;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
@@ -43,7 +44,9 @@ import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 
@@ -454,5 +457,61 @@ public class MCTPInventoryUtils
         enchantedItem.remove(NullnessBridge.assumeNonnull(DataComponents.ENCHANTMENTS));
 
         return book;
+    }
+
+    /**
+     * Returns true if:
+     * - there is no block entity, or
+     * - it exposes an inventory (Container or IItemHandler) and all slots are empty.
+     *
+     * "side" can be null (unsided).
+     */
+    public static boolean isContainerEmpty(@Nonnull Level level, @Nonnull BlockPos pos, @Nonnull Direction side)
+    {
+        if (level == null || level.isClientSide)
+        {
+            return true;
+        }
+
+        final BlockEntity be = level.getBlockEntity(pos);
+        if (be == null)
+        {
+            return true;
+        }
+
+        // 1) Vanilla-style inventory
+        if (be instanceof Container container)
+        {
+            for (int i = 0; i < container.getContainerSize(); i++)
+            {
+                if (!container.getItem(i).isEmpty())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 2) NeoForge capability-based inventory
+        final IItemHandler handler = level.getCapability(NullnessBridge.assumeNonnull(Capabilities.ItemHandler.BLOCK), pos, side);
+        if (handler != null)
+        {
+            for (int i = 0; i < handler.getSlots(); i++)
+            {
+                if (!handler.getStackInSlot(i).isEmpty())
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /** Convenience overload: unsided lookup. */
+    @SuppressWarnings("null")
+    public static boolean isContainerEmpty(Level level, BlockPos pos)
+    {
+        return isContainerEmpty(level, pos, null);
     }
 }

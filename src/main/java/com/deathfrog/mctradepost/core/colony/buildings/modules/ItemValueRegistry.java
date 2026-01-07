@@ -4,7 +4,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -27,7 +26,6 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
-import com.minecolonies.api.crafting.ItemStorage;
 
 public class ItemValueRegistry
 {
@@ -182,7 +180,7 @@ public class ItemValueRegistry
             }
             else
             {
-                value = appraiseLootValue(item, (ServerLevel) level);
+                value = appraiseLootValue(item);
                 itemValues.put(item, value); // Since we've calculated the value, add it to the map
             }
         }
@@ -308,7 +306,7 @@ public class ItemValueRegistry
      * @param level the level to use for getting the rarity
      * @return the estimated value of the item
      */
-    private static int appraiseLootValue(@Nonnull Item item, ServerLevel level)
+    private static int appraiseLootValue(@Nonnull Item item)
     {
         ItemStack stack = new ItemStack(item);
         Rarity rarity = stack.getRarity();
@@ -316,11 +314,11 @@ public class ItemValueRegistry
 
         switch (rarity)
         {
-            case COMMON -> value = 1;
-            case UNCOMMON -> value = 5;
+            case COMMON -> value = 0;
+            case UNCOMMON -> value = 3;
             case RARE -> value = 8;
-            case EPIC -> value = 13;
-            default -> value = 1;
+            case EPIC -> value = 21;
+            default -> value = 0;
         }
 
         if (startTracking)
@@ -331,9 +329,27 @@ public class ItemValueRegistry
         return value;
     }
 
+    /**
+     * Gets the value of the item, or -1 if it is not sellable, or 0 if it is unknown.
+     * If the value is unknown, it will be calculated based on the item's rarity.
+     * This value is then cached for future lookups.
+     *
+     * @param item the item to get the value for
+     * @return the value of the item, or -1 if it is not sellable, or 0 if it is unknown
+     */
     public static int getValue(Item item)
     {
-        return itemValues.getOrDefault(item, 1);
+        int value = itemValues.getOrDefault(item, 0);
+
+        // -1 means we know the item isn't sellable
+        // 0 means we don't have a value for it - fall back to a rarity appraisal.
+        if (item != null && value == 0)
+        {
+            value = appraiseLootValue(item);
+            itemValues.put(item, value);
+        }
+
+        return Math.max(value, 0);
     }
 
     public static int getValue(ItemStack item)
@@ -351,43 +367,7 @@ public class ItemValueRegistry
     {
         return itemValues;
     }
-
-    /**
-     * Retrieves a set of items that are sellable based on their registered values. If the item values are empty, logs an error
-     * message.
-     *
-     * @return a set of ItemStorage objects representing sellable items.
-     */
-    public static Set<ItemStorage> getSellableItems()
-    {
-        if (itemValues.isEmpty())
-        {
-            MCTradePostMod.LOGGER.error("getSellableItems called when itemValues is empty");
-        }
-        return itemValues.entrySet()
-            .stream()
-            .filter(e -> e.getValue() > 0)
-            .map(e -> new ItemStorage(new ItemStack(NullnessBridge.assumeNonnull(e.getKey()))))
-            .collect(Collectors.toSet());
-    }
-
-    /**
-     * Retrieves a set of item keys representing sellable items. Logs an error message if the item values map is empty.
-     *
-     * @return a set of strings representing the keys of sellable items.
-     */
-    public static Set<String> getSellableItemKeys()
-    {
-        if (itemValues.isEmpty())
-        {
-            MCTradePostMod.LOGGER.error("getSellableItemKeys called when itemValues is empty");
-        }
-        return itemValues.entrySet()
-            .stream()
-            .filter(e -> e.getValue() > 0)
-            .map(e -> e.getKey().toString())
-            .collect(Collectors.toSet());
-    }
+    
 
     /**
      * Logs all known item values to the mod logger.
@@ -434,13 +414,10 @@ public class ItemValueRegistry
                         continue;
                     }
                     
-                    // If the configured item exists, check the value, and add it if non-zero regardless of what mod it is from.
+                    // If the configured item exists, check the value, and add it regardless of what mod it is from.
                     if (BuiltInRegistries.ITEM.containsKey(rl))
                     {
-                        if (entry.getValue() > 0)
-                        {
-                            itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
-                        }
+                        itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
                     }
                     else
                     {
@@ -454,7 +431,7 @@ public class ItemValueRegistry
             MCTradePostMod.LOGGER.error("Error loading item_values.json", e);
         }
 
-        MCTradePostMod.LOGGER.info("Item seed values loaded.");
+        MCTradePostMod.LOGGER.info("Item marketplace values loaded.");
         // logValues();
     }
 
