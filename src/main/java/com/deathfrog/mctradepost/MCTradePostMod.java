@@ -757,8 +757,6 @@ public class MCTradePostMod
     public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
         ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
 
-
-
     /*
     * Creative Mode Tabs
     */

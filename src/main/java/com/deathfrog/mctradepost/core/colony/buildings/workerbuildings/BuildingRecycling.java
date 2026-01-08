@@ -26,6 +26,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
+import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe.Output;
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
@@ -61,6 +62,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -959,7 +961,22 @@ public class BuildingRecycling extends AbstractBuilding
         Optional<RecipeHolder<DeconstructionRecipe>> deconRecipe = findDeconstructionRecipe(inputStack, level);
 
         // For anything specified by a deconstruction recipe, use that without searching further.
-        if (deconRecipe.isPresent())
+        if (inputStack.getItem() instanceof SouvenirItem)
+        {
+            Item originalItem = SouvenirItem.getOriginal(inputStack);
+
+            if (originalItem == null)
+            {
+                return null;
+            }
+
+            ItemStack originalItemStack = new ItemStack(originalItem, inputStack.getCount());    
+
+            candidateMaterialsOutput = new Object2IntOpenHashMap<>();
+            candidateMaterialsOutput.addTo(new ItemStorage(originalItemStack), originalItemStack.getCount());
+            referenceResultStack = originalItemStack.copy();
+        } 
+        else if (deconRecipe.isPresent())
         {
             final Recipe<?> selectedRecipeForLogging = deconRecipe.get().value();
             TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE,

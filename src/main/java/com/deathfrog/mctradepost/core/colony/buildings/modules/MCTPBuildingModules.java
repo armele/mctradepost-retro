@@ -121,8 +121,7 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new MarketplaceItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),
-        () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, Component.translatable(EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI), false,
-          (buildingView) -> ItemValueRegistry.getSellableItems()));
+        () -> () -> new MarketplaceItemListModuleView(EntityAIWorkShopkeeper.SELLABLE_LIST, Component.translatable(EntityAIWorkShopkeeper.REQUESTS_TYPE_SELLABLE_UI)));
     
     public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> STATIONMASTER_WORK          =
       new BuildingEntry.ModuleProducer<>("stationmaster_work", 

@@ -12,6 +12,9 @@ import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
  */
 public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, JobShopkeeper>
 {
+    public static final int COUNTER_TRIGGER = 4;
+    protected int inventoryManagementCounter = 0;
+    protected int saleItemCounter = 0;
 
     /**
      * Initialize citizen data.
@@ -46,5 +49,66 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
         return super.getModel();
     }
 
+    /**
+     * Check if the interaction is valid/should be triggered.
+     *
+     * @return true if the interaction is valid/should be triggered.
+     */
+    public boolean checkForInventoryManagementInteraction()
+    {
+        return inventoryManagementCounter > COUNTER_TRIGGER;
+    }
+
+    /**
+     * Tick the menu interaction counter to determine the time when the interaction gets triggered.
+     */
+    public int tickNoInventoryManagement()
+    {
+        if (inventoryManagementCounter < 100) // to prevent unnecessary high counter when ignored by player
+        {
+            inventoryManagementCounter++;
+        }
+
+        return inventoryManagementCounter;
+    }
+
+    /**
+     * Reset the sale item interaction counter.
+     */
+    public void resetInventoryManagementCounter()
+    {
+        inventoryManagementCounter = 0;
+    }
+
+    /**
+     * Check if the interaction is valid/should be triggered.
+     *
+     * @return true if the interaction is valid/should be triggered.
+     */
+    public boolean checkForSaleItemsInteraction()
+    {
+        return saleItemCounter > COUNTER_TRIGGER;
+    }
+
+    /**
+     * Tick the menu interaction counter to determine the time when the interaction gets triggered.
+     */
+    public int tickNoSaleItem()
+    {
+        if (saleItemCounter < 100) // to prevent unnecessary high counter when ignored by player
+        {
+            saleItemCounter++;
+        }
+
+        return saleItemCounter;
+    }
+
+    /**
+     * Reset the sale item interaction counter.
+     */
+    public void resetSaleItemCounter()
+    {
+        saleItemCounter = 0;
+    }
 
 }

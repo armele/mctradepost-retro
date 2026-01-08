@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.ldtteam.blockui.Pane;
@@ -11,6 +12,7 @@ import com.ldtteam.blockui.views.ScrollingList;
 import com.minecolonies.api.colony.buildings.modules.IItemListModuleView;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.core.client.gui.modules.building.ItemListModuleWindow;
+import com.mojang.logging.LogUtils;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,6 +22,7 @@ import static org.jline.utils.AttributedStyle.WHITE;
 
 public class WindowMarketplaceItemListModule extends ItemListModuleWindow
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
     public static final String RESOURCE_VALUE = "resourceValue";
 
     public WindowMarketplaceItemListModule(IItemListModuleView moduleView, ResourceLocation res)
@@ -56,6 +59,7 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
+                // LOGGER.info("Updating element {}", index);
                 final ItemStack resource = currentDisplayedList.get(index).getItemStack();
                 final Text resourceLabel = rowPane.findPaneOfTypeByID(RESOURCE_NAME, Text.class);
                 resourceLabel.setText(resource.getHoverName());

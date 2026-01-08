@@ -4,11 +4,13 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.FrameLikeAccess;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.RequestUtil;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
@@ -23,6 +25,7 @@ import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
@@ -36,20 +39,24 @@ import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.modules.SettingsModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
+import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
 import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.mojang.logging.LogUtils;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -72,14 +79,13 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
  */
 public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeeper, BuildingMarketplace>
 {
-    public static final String ENTITY_SHOPKEEPER_NO_SALEABLE_ITEMS = "entity.shopkeeper.noitems";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final String ITEM_SOLD = "items_sold";
 
     public enum ShopkeeperState implements IAIState
     {
-        FILL_DISPLAYS, SELL_MERCHANDISE, MINT_COINS;
+        ANALYZE_INVENTORY, FILL_DISPLAYS, SELL_MERCHANDISE, MINT_COINS;
 
         @Override
         public boolean isOkayToEat()
@@ -97,16 +103,6 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * The block pos to which the AI is going.
      */
     private BlockPos currentTarget;
-
-    /**
-     * The number of times the AI will check if the player has set any items on the list until messaging him
-     */
-    private static final int TICKS_UNTIL_COMPLAIN = 12000;
-
-    /**
-     * The ticks elapsed since the last complain
-     */
-    private int ticksToComplain = 0;
 
     /**
      * Number of ticks that the AI should wait before deciding again
@@ -131,6 +127,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
     public static final int MINTING_COOLDOWN = 20;
     protected int mintCooldownCounter = MINTING_COOLDOWN;
+
+    protected BlockPos inventoryContainer = BlockPos.ZERO;
 
     /**
      * Worker status icon
@@ -162,6 +160,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             new AITarget<IAIState>(GET_MATERIALS, this::getMaterials, TICKS_SECOND),
             new AITarget<IAIState>(START_WORKING, this::decideWhatToDo, 10),
             new AITarget<IAIState>(DECIDE, this::decideWhatToDo, 10),
+            new AITarget<IAIState>(ShopkeeperState.ANALYZE_INVENTORY, this::analyzeInventory, 10),
             new AITarget<IAIState>(ShopkeeperState.SELL_MERCHANDISE, this::sellFromDisplay, 5),
             new AITarget<IAIState>(ShopkeeperState.FILL_DISPLAYS, this::fillDisplays, 10),
             new AITarget<IAIState>(ShopkeeperState.MINT_COINS, this::mintCoins, 50));
@@ -284,9 +283,19 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         if (sortedList.isEmpty())
         {
-            complain();
-            return getState();
+            int complaints = job.tickNoSaleItem();
+
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Has no items configured for sale ({} complaints).", building.getColony().getID(), complaints));
+
+            if (job.checkForSaleItemsInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+            }
+
+            return DECIDE;
         }
+
+        job.resetSaleItemCounter();
 
         // Move the item from the building to the worker.
         for (ItemStorage candidate : sortedList)
@@ -415,14 +424,40 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         if (coinsToMint > 0 && mintCooldownCounter-- <= 0)
         {
             mintCooldownCounter = MINTING_COOLDOWN;
-            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Coins are needed: {}", coinsToMint));
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Coins are needed: {}", building.getColony().getID(), coinsToMint));
             return ShopkeeperState.MINT_COINS;
+        }
+
+        if (BlockPos.ZERO.equals(inventoryContainer))
+        {
+            inventoryContainer = ((BuildingMarketplace) building).identifyInventoryPosition();
+
+            if (BlockPos.ZERO.equals(inventoryContainer))
+            {
+                int complaints = job.tickNoInventoryManagement();
+
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Has no inventory container ({} complaints).", building.getColony().getID(), complaints));
+
+                if (job.checkForInventoryManagementInteraction())
+                {
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SHOP_INVENTORY), ChatPriority.BLOCKING));
+                }
+            }
+        }
+
+        
+        if (!BlockPos.ZERO.equals(inventoryContainer) 
+            && !MCTPInventoryUtils.isContainerEmpty(world, inventoryContainer)
+            && worker.getRandom().nextInt(100) < 80)
+        {
+            job.resetInventoryManagementCounter();
+            return ShopkeeperState.ANALYZE_INVENTORY;
         }
 
         building.markExpectedShelfPositionsAsShelfLocations();
 
         Map<BlockPos, DisplayCase> displayShelves = building.getDisplayShelves();
-        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Deciding what to do. Display shelves: {}", displayShelves.size()));
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Deciding what to do. Display shelves: {}", building.getColony().getID(), displayShelves.size()));
 
         if (displayShelves.isEmpty())
         {
@@ -490,7 +525,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             coinsToMint = 0;
             
             TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                () -> LOGGER.info("Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", coinsToMint, stack));
+                () -> LOGGER.info("Colony {} Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", localBuilding.getColony().getID(), coinsToMint, stack));
             
             if (stack.isEmpty())
             {
@@ -592,6 +627,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - evaluating {} frames for filling.", building.getColony().getID(), building.getDisplayShelves().size()));
+        final Level world = building.getColony().getWorld();
 
         // First pass: Find any empty item frame (considered available to fill)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
@@ -602,26 +638,28 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             }
 
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
-            final Level world = building.getColony().getWorld();
 
             UUID frameId = displayCase.getFrameId();
 
-            ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+            // ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+            FrameLikeAccess.FrameHandle handle = FrameLikeAccess.resolve(world, displayLocation, frameId);
 
-            if (frame == null)
+            if (!handle.exists())
             {
                 building.lostShelfAtDisplayPos(displayLocation);
+                continue;
             }
-            else
+
+            if (handle.getItem().isEmpty())
             {
-                if (frame.getItem().isEmpty())
-                {
-                    this.currentTarget = displayLocation;
-                    setDelay(DECIDE_DELAY);
-                    worker.getCitizenData().setVisibleStatus(SELLING);
-                    return ShopkeeperState.FILL_DISPLAYS;
-                }
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - found empty frame for filling at {}", building.getColony().getID(), displayLocation));
+
+                this.currentTarget = displayLocation;
+                setDelay(DECIDE_DELAY);
+                worker.getCitizenData().setVisibleStatus(SELLING);
+                return ShopkeeperState.FILL_DISPLAYS;
             }
+
         }
 
         return null;
@@ -646,6 +684,8 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - evaluating {} frames for selling.", building.getColony().getID(), building.getDisplayShelves().size()));
 
         int framesChecked = 0;
+        
+        final Level world = building.getColony().getWorld();
 
         // Find any filled item frame (considered eligible to be sold)
         for (final BlockPos displayLocation : building.getDisplayShelves().keySet())
@@ -658,32 +698,30 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
             DisplayCase displayCase = building.getDisplayShelves().get(displayLocation);
 
-            final Level world = building.getColony().getWorld();
-
             UUID frameId = displayCase.getFrameId();
 
-            ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+            // ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+            FrameLikeAccess.FrameHandle handle = FrameLikeAccess.resolve(world, displayLocation, frameId);
 
-            if (frame == null)
+            if (!handle.exists())
             {
                 building.lostShelfAtDisplayPos(displayLocation);
+                continue;
             }
-            else
+
+            if (!handle.getItem().isEmpty())
             {
-                if (!frame.getItem().isEmpty())
+                BlockPos pos = displayLocation.immutable();
+                int ticks = displayCase.getTickcount();
+                displayCase.setTickcount(ticks + 1);        // Purely informational now. May be used in a future iteration.
+
+                if (displayCase.getSaleState() == SaleState.ORDER_PLACED)
                 {
-                    BlockPos pos = displayLocation.immutable();
-                    int ticks = displayCase.getTickcount();
-                    displayCase.setTickcount(ticks + 1);        // Purely informational now. May be used in a future iteration.
+                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: We should sell from case at {}!", building.getColony().getID(), pos));
 
-                    if (displayCase.getSaleState() == SaleState.ORDER_PLACED)
-                    {
-                        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: We should sell this!"));
-
-                        this.currentTarget = pos;
-                        worker.getCitizenData().setVisibleStatus(SELLING);
-                        return ShopkeeperState.SELL_MERCHANDISE;
-                    }
+                    this.currentTarget = pos;
+                    worker.getCitizenData().setVisibleStatus(SELLING);
+                    return ShopkeeperState.SELL_MERCHANDISE;
                 }
             }
 
@@ -737,58 +775,59 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         DisplayCase displayCase = building.getDisplayShelves().get(localCurrentTarget);
         UUID frameId = displayCase.getFrameId();
-        ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+        // ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+        FrameLikeAccess.FrameHandle handle = FrameLikeAccess.resolve(world, localCurrentTarget, frameId);
 
-        if (frame == null)
+        if (!handle.exists())
         {
             building.lostShelfAtDisplayPos(localCurrentTarget);
+            setDelay(AFTER_TASK_DELAY);
+            return START_WORKING;
         }
-        else
+
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Selling from display at {}.", building.getColony().getID(), localCurrentTarget));
+
+        ItemStack item = handle.getItem();
+
+        if (!item.isEmpty())
         {
-            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Shopkeeper: Selling from display {}.", frameId));
-
-            ItemStack item = frame.getItem();
-            if (!item.isEmpty())
+            if (item.getItem() instanceof SouvenirItem)
             {
-                if (item.getItem() instanceof SouvenirItem)
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
+                    () -> LOGGER.info("Colony {} Shopkeeper: Selling item {} from display at {}", building.getColony().getID(), item, localCurrentTarget));
+
+                // "Sell" the item — remove it from the frame
+                handle.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY)); 
+
+                // Calculate the value of the item and credit it to the economic module and stats module.
+                sellItem(item);
+                triggerEffect(localCurrentTarget);
+
+                // Add experience, stats, etc.
+                worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+                incrementActionsDoneAndDecSaturation();
+            }
+            else
+            {
+                // Remove the invalid item from the frame
+                handle.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY)); 
+
+                // Attempt to insert into the worker's inventory
+                ItemStack leftover = InventoryUtils.addItemStackToItemHandlerWithResult(worker.getInventoryCitizen(), item);
+
+                // If inventory is full and there are leftovers, drop it at the worker's feet
+                if (!leftover.isEmpty())
                 {
-                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                        () -> LOGGER.info("Shopkeeper: Selling item {} from display at {}", item, localCurrentTarget));
-
-                    // "Sell" the item — remove it from the frame
-                    frame.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));         // Empty the visual frame
-                    sellItem(item);                         // Calculate the value of the item and credit it to the economic module and
-                                                            // stats module.
-                    triggerEffect(localCurrentTarget);
-                    // Add experience, stats, etc.
-                    worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
-                    incrementActionsDoneAndDecSaturation();
-                }
-                else
-                {
-                    // Remove the invalid item from the frame
-                    frame.setItem(NullnessBridge.assumeNonnull(ItemStack.EMPTY));
-
-                    // Attempt to insert into the worker's inventory
-                    ItemStack leftover = InventoryUtils.addItemStackToItemHandlerWithResult(worker.getInventoryCitizen(), item);
-
-                    // If inventory is full and there are leftovers, drop it at the worker's feet
-                    if (!leftover.isEmpty())
-                    {
-                        InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
-                    }
-
-                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                        () -> LOGGER.info("Shopkeeper: removed unauthorized item {} from display at {}", item, currentTarget));
+                    InventoryUtils.spawnItemStack(world, worker.getX(), worker.getY(), worker.getZ(), leftover);
                 }
 
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                    () -> LOGGER.info("Shopkeeper: sold item {} from display at {}", item, currentTarget));
-
-                displayCase.setStack(NullnessBridge.assumeNonnull(ItemStack.EMPTY));                  // Note that the display case is empty
-                displayCase.setSaleState(SaleState.ORDER_FULFILLED);    // Mark the order as fulfilled
-                displayCase.setTickcount(-1);                           // Reset the timer.
+                    () -> LOGGER.info("Colony {} Shopkeeper: removed unauthorized item {} from display at {}", building.getColony().getID(), item, currentTarget));
             }
+
+            displayCase.setStack(NullnessBridge.assumeNonnull(ItemStack.EMPTY));    // Note that the display case is empty
+            displayCase.setSaleState(SaleState.ORDER_FULFILLED);                    // Mark the order as fulfilled
+            displayCase.setTickcount(-1);                                           // Reset the timer.
         }
 
         setDelay(AFTER_TASK_DELAY);
@@ -798,17 +837,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     /**
      * The AI will now fill the display stand that was found empty
      *
-     * @return the nex IAIState after doing this
+     * @return the next IAIState after doing this
      */
     private IAIState fillDisplays()
     {
+        // Acquire an item in hand if empty.
         if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
         {
             final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(worker.getInventoryCitizen(),
                 stack -> building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
                     .isItemInList(new ItemStorage(stack)));
-
-
 
             if (slot >= 0)
             {
@@ -838,23 +876,28 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         DisplayCase displayCase = building.getDisplayShelves().get(localCurrentTarget);
         UUID frameId = displayCase.getFrameId();
-        ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+        // ItemFrame frame = frameId == null ? null : (ItemFrame) ((ServerLevel) world).getEntity(frameId);
+        FrameLikeAccess.FrameHandle handle = FrameLikeAccess.resolve(world, localCurrentTarget, frameId);
 
-        if (frame == null)
+        if (!handle.exists())
         {
             building.lostShelfAtDisplayPos(localCurrentTarget);
+            setDelay(AFTER_TASK_DELAY);
+            return START_WORKING;
         }
-        else
+
+        // Insert the item into the display, replacing what's there
+        ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
+
+        // Only fill if empty
+        if (handle.getItem().isEmpty())
         {
-            // Insert the item into the frame, replacing what's there
-            ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
+            // Take the item from the inventory
+            ItemStack placed = heldItem.split(1);
 
-            if (frame.getItem().isEmpty())
+            if (!placed.isEmpty())
             {
-                // Take the item from the inventory();
-                ItemStack placed = heldItem.split(1);           
-                ItemStack souvenir = null;
-
+                ItemStack souvenir;
                 Item souvenirItem = MCTradePostMod.SOUVENIR.get();
 
                 // If the shopkeeper has gotten their hands on unsold souvenirs somehow, don't re-souvenir them.
@@ -864,20 +907,25 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 }
                 else
                 {
-                    souvenir = SouvenirItem.createSouvenir(NullnessBridge.assumeNonnull(placed.getItem()), computeItemValue(placed));
+                    souvenir = SouvenirItem.createSouvenir(
+                        NullnessBridge.assumeNonnull(placed.getItem()),
+                        computeItemValue(placed)
+                    );
                 }
 
                 final ItemStack souvenirFinal = souvenir.copy();
 
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                    () -> LOGGER.info("Shopkeeper: Placing souvenir {} in display at {}",
+                    () -> LOGGER.info("Colony {} Shopkeeper: Placing souvenir {} in display at {}",
+                        building.getColony().getID(),
                         SouvenirItem.toString(souvenirFinal),
                         currentTarget));
 
-                frame.setItem(souvenir);                        // Show the item
-                displayCase.setStack(souvenir);                 // Record what the case is holding (for persistance)
-                displayCase.setTickcount(0);          // Start counter for this display shelf
-                displayCase.setSaleState(SaleState.FOR_SALE);   // Mark the display as for sale
+                handle.setItem(souvenir);   
+
+                displayCase.setStack(souvenir);
+                displayCase.setTickcount(0);
+                displayCase.setSaleState(SaleState.FOR_SALE);
 
                 worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
                 this.incrementActionsDoneAndDecSaturation();
@@ -886,33 +934,97 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
                 incrementActionsDone();
             }
+        } 
+        else
+        {
+            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
+                () -> LOGGER.info("Colony {} Shopkeeper: Display at {} is not empty while attempting to fill it. Contains {}", building.getColony().getID(), currentTarget, handle.getItem()));
         }
 
         setDelay(AFTER_TASK_DELAY);
         return START_WORKING;
     }
 
+    /**
+     * Analyzes the inventory management chest of the marketplace and adds all non-empty items to the list of sellable items.
+     * If the inventory management chest is full, this method will attempt to move items from the chest into the building inventory.
+     * If the building inventory is full, this method will drop the excess items into the world.
+     * This method will return null if the inventory management chest is not found, or if there are no items to analyze.
+     * Otherwise, this method will return the DECIDE state.
+     * @return the next state to transition to, or null if there are no items to analyze.
+     */
+    protected IAIState analyzeInventory()
+    {
+        BlockPos localInvContainer = inventoryContainer;
+
+        if (localInvContainer != null && !localInvContainer.equals(BlockPos.ZERO))
+        {
+            if (!walkToSafePos(localInvContainer))
+            {
+                return getState();
+            }
+
+            MarketplaceItemListModule itemModule = building.getModule(MarketplaceItemListModule.class);
+
+            @SuppressWarnings("null")
+            final IItemHandler inventoryBoxHandler = world.getCapability(NullnessBridge.assumeNonnull(Capabilities.ItemHandler.BLOCK), localInvContainer, null);
+
+            if (inventoryBoxHandler != null)
+            {
+                for (int i = 0; i < inventoryBoxHandler.getSlots(); i++)
+                {
+                    ItemStack stackInSlot = inventoryBoxHandler.getStackInSlot(i);
+
+                    if (!stackInSlot.isEmpty())
+                    {
+                        boolean addToSaleList = true;
+                        int value = computeItemValue(stackInSlot);
+
+                        // Attempt to move the stack out of the inventory management chest into the building inventory
+                        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} Shopkeeper: Analyzed {} in inventory chest", building.getColony().getID(), stackInSlot));
+                    
+                        if (value == 0)
+                        {
+                            MessageUtils.format("Your shopkeeper determined %s has no value as a souvenir, and put it away.", stackInSlot.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            addToSaleList = false;
+                        }
+
+                        if (addToSaleList)
+                        {
+                            // Add the item to the list of things the shopkeeper can sell
+                            itemModule.addSellableItem(stackInSlot.getItem());
+                        }
+
+                        boolean canhold = InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(inventoryBoxHandler, i, building);
+
+                        // If there's no more room in the building inventory, drop the stack into the world.
+                        if (!canhold)
+                        {
+                            ItemStack dropStack = stackInSlot.copy();
+                            stackInSlot.setCount(0);
+                            MCTPInventoryUtils.InsertOrDropByQuantity(building, new ItemStorage(dropStack.copy()), dropStack.getCount());
+                        }
+                    }
+                }
+            }
+            else
+            {
+                LOGGER.warn("No inventory handling container found on the marketplace...");
+            }
+        }
+
+        return DECIDE;
+    }
+
+
+    /**
+     * Returns the number of times the AI should work before dumping the inventory.
+     * For the shopkeeper AI, this is always 1, meaning that the AI will work once before dumping the inventory.
+     */
     @Override
     protected int getActionsDoneUntilDumping()
     {
         return 1;
-    }
-
-    /**
-     * If the list of allowed items is empty, the AI will message all the officers of the colony asking for them to set the list.
-     * Happens more or less once a day if the list is not filled
-     */
-    private void complain()
-    {
-        if (ticksToComplain <= 0)
-        {
-            ticksToComplain = TICKS_UNTIL_COMPLAIN;
-            MessageUtils.format(ENTITY_SHOPKEEPER_NO_SALEABLE_ITEMS, building.getColony().getName()).sendTo(building.getColony()).forAllPlayers();
-        }
-        else
-        {
-            ticksToComplain--;
-        }
     }
 
     @Override
