@@ -20,12 +20,6 @@ public class OutpostView extends AbstractBuildingBuilderView
     public void deserialize(@NotNull RegistryFriendlyByteBuf buf) 
     {
         super.deserialize(buf);
-        outpostLevel = buf.readInt();
     }
 
-    @Override
-    public int getBuildingLevel()
-    {
-        return outpostLevel;
-    }
 }

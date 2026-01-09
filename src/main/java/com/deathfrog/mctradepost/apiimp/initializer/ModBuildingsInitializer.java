@@ -148,8 +148,6 @@ public final class ModBuildingsInitializer
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_LIVING);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.BED);
             outpostBuilder.addBuildingModuleProducer(MCTPBuildingModules.OUTPOST_EXPORTS);
-            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDING_RESOURCES);
-            outpostBuilder.addBuildingModuleProducer(BuildingModules.BUILDER_SETTINGS);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             outpostBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE);  
             ModBuildings.outpost = outpostBuilder.createBuildingEntry();

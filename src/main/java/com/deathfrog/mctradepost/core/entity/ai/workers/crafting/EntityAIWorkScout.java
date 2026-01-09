@@ -16,7 +16,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostSh
 import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
-import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.placement.structure.IStructureHandler;
 import com.ldtteam.structurize.util.BlueprintPositionInfo;
 import com.minecolonies.api.blocks.AbstractBlockHut;
@@ -28,9 +27,6 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
-import com.minecolonies.api.colony.workorders.IBuilderWorkOrder;
-import com.minecolonies.api.colony.workorders.IWorkOrder;
-import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
@@ -38,32 +34,18 @@ import com.minecolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.equipment.ModEquipmentTypes;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
-import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.FoodUtils;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.api.util.Tuple;
-import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.Constants;
-import com.minecolonies.api.util.constant.TranslationConstants;
-import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 import com.minecolonies.core.colony.buildings.modules.RestaurantMenuModule;
-import com.minecolonies.core.colony.buildings.modules.settings.BuilderModeSetting;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
-import com.minecolonies.core.colony.workorders.WorkOrderBuilding;
-import com.minecolonies.core.colony.workorders.WorkOrderMiner;
-import com.minecolonies.core.entity.ai.workers.AbstractEntityAIStructureWithWorkOrder;
-import com.minecolonies.core.entity.ai.workers.util.BuildingProgressStage;
-import com.minecolonies.core.entity.ai.workers.util.BuildingStructureHandler;
+import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
-import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
-import com.minecolonies.core.entity.pathfinding.pathjobs.PathJobMoveCloseToXNearY;
 import com.minecolonies.core.entity.pathfinding.pathresults.PathResult;
-import com.minecolonies.core.tileentities.TileEntityDecorationController;
 import com.minecolonies.core.util.WorkerUtil;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -72,9 +54,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -84,9 +64,8 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*
 import java.util.Collection;
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST_REQUESTS;
 
-public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<JobScout, BuildingOutpost>
+public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, BuildingOutpost>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -105,10 +84,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     private final static VisibleCitizenStatus SCOUTING = new VisibleCitizenStatus(
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_scouting.png"),
         "com.mctradepost.gui.visiblestatus.scouting");
-
-    private final static VisibleCitizenStatus BUILDING = new VisibleCitizenStatus(
-        ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/icons/work/outpost_building.png"),
-        "com.mctradepost.gui.visiblestatus.building");
 
     public enum ScoutStates implements IAIState
     {
@@ -155,7 +130,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
             new AITarget<IAIState>(ScoutStates.MAKE_DELIVERY, this::makeDelivery, 10),
             new AITarget<IAIState>(ScoutStates.ORDER_FOOD, this::orderFood, 10),
             new AITarget<IAIState>(ScoutStates.RETURN_PRODUCTS, this::returnProducts, 10),
-            new AITarget<IAIState>(ScoutStates.BUILD, this::startWorkingAtOwnBuilding, 20),
             new AITarget<IAIState>(WANDER, this::wander, 10)
         );
         worker.setCanPickUpLoot(true);
@@ -225,12 +199,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
 
             worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.RETURN_PRODUCTS;
-        }
-
-        if (checkForWorkOrder())
-        {
-            worker.getCitizenData().setVisibleStatus(BUILDING);
-            return ScoutStates.BUILD;
         }
 
         if (worker.getRandom().nextInt(100) < Constants.WANDER_CHANCE)
@@ -749,8 +717,13 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
                         {
                             try
                             {
-                                outpostWorksite.createRequest(citizen, requestStack, true);
-                                didOrder = true;
+                                boolean outstandingRequest = building.isItemStackInRequest(toOrder.getItemStack());
+
+                                if (!outstandingRequest)
+                                {
+                                    outpostWorksite.createRequest(citizen, requestStack, true);
+                                    didOrder = true;
+                                }
                             }
                             catch (IllegalArgumentException e)
                             {
@@ -782,66 +755,12 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
         return true;
     }
 
-    /**
-     * Checks if we got a valid workorder.
-     *
-     * @return true if we got a workorder to work with
-     */
-    protected boolean checkForWorkOrder()
-    {
-        if (!building.hasWorkOrder())
-        {
-            building.setProgressPos(null, BuildingProgressStage.CLEAR);
-            worker.getCitizenData().setStatusPosition(null);
-            return false;
-        }
-
-        final IWorkOrder wo = building.getWorkOrder();
-
-        if (wo == null)
-        {
-            building.setWorkOrder(null);
-            building.setProgressPos(null, null);
-            worker.getCitizenData().setStatusPosition(null);
-            return false;
-        }
-
-        final IBuilding workBuilding = job.getColony().getBuildingManager().getBuilding(wo.getLocation());
-        if (workBuilding == null && wo instanceof WorkOrderBuilding && wo.getWorkOrderType() != WorkOrderType.REMOVE)
-        {
-            this.building.complete(worker.getCitizenData());
-            return false;
-        }
-
-        // The Scout can only build at their own outpost.
-        if (workBuilding != null &&
-            !workBuilding.getLocation().getInDimensionLocation().equals(building.getLocation().getInDimensionLocation()))
-        {
-            building.setProgressPos(null, BuildingProgressStage.CLEAR);
-            worker.getCitizenData().setStatusPosition(null);
-            return false;
-        }
-
-        return true;
-    }
-
     @Override
     public void tick()
     {
         super.tick();
     }
 
-    @Override
-    public int getPlaceSpeedLevel()
-    {
-        return getPrimarySkillLevel();
-    }
-
-    @Override
-    public boolean shallReplaceSolidSubstitutionBlock(Block arg0, BlockState arg1)
-    {
-        return false;
-    }
 
     @Override
     protected boolean mineBlock(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
@@ -948,381 +867,6 @@ public class EntityAIWorkScout extends AbstractEntityAIStructureWithWorkOrder<Jo
     public IAIState afterDump()
     {
         return ScoutStates.RETURN_PRODUCTS; 
-    }
-
-    /**
-     * Guard to prevent timing issues in Outpost-delivered requests from killing our building loop.
-     * Calls super.structureStep and catches any exceptions that may occur in the process, returning DECIDE if an exception is caught.
-     * 
-     * @return The next AI state to transition to.
-     */
-    @Override
-    public IAIState structureStep()
-    {
-        IAIState nextState = DECIDE;
-
-        // Giant kludge to the problem of builder not seeing rack contents!
-        /*
-        if (building.getOutpostLevel() == 0)
-        {
-            for (int i = 0; i < outpost.getItemHandlerCap().getSlots(); i++)
-            {
-                if (!InventoryUtils.transferItemStackIntoNextFreeSlotInItemHandler(outpost.getItemHandlerCap(), i, worker.getInventoryCitizen()))
-                {
-                    break;
-                }
-            }
-        }
-        */
-
-        // Guard to prevent timing issues in Outpost-delivered requests from
-        // killing our building loop.
-        try
-        {
-            nextState = super.structureStep();
-        }
-        catch (IllegalArgumentException e)
-        {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.warn("MineColonies request system error while considering structure step: {}", e));
-            nextState = DECIDE;
-        }
-
-        return nextState;
-    }
-
-    @Override
-    public IAIState pickUpMaterial()
-    {
-        IAIState nextState = null;
-        
-        try 
-        {
-            nextState = super.pickUpMaterial();
-        } 
-        catch (IllegalArgumentException e) {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request system error while considering pickUpMaterial - request may have been cancelled while shipping. {}", e ));
-            nextState = DECIDE;
-        }
-
-        return nextState;
-    }
-
-
-    /**
-     * Note that this reproduces EntityAIStructureBuilder.walkToConstructionSite
-     * Copied here to satisfy the required abstract method.
-     * 
-     * @param currentBlock the current block position of the worker
-     * @return true if the worker can continue navigating to the construction site, false otherwise
-     */
-    @Override
-    public boolean walkToConstructionSite(final BlockPos currentBlock)
-    {
-
-        if (building.getWorkOrder() == null)
-        {
-            return false;
-        }
-
-        if (workFrom != null && workFrom.getX() == currentBlock.getX() &&
-            workFrom.getZ() == currentBlock.getZ() &&
-            workFrom.getY() >= currentBlock.getY())
-        {
-            // Reset working position when standing ontop
-            workFrom = null;
-        }
-
-        if (workFrom == null)
-        {
-            if (gotoPath == null || gotoPath.isCancelled())
-            {
-                final PathJobMoveCloseToXNearY pathJob =
-                    new PathJobMoveCloseToXNearY(world, currentBlock, building.getWorkOrder().getLocation(), 4, worker);
-                gotoPath = ((MinecoloniesAdvancedPathNavigate) worker.getNavigation()).setPathJob(pathJob, currentBlock, 1.0, false);
-                pathJob.getPathingOptions().dropCost = 200;
-                pathJob.extraNodes = 0;
-            }
-            else if (gotoPath.isDone())
-            {
-                if (gotoPath.getPath() != null)
-                {
-                    workFrom = gotoPath.getPath().getTarget();
-                }
-                gotoPath = null;
-            }
-
-            if (prevBlockPosition != null)
-            {
-                return BlockPosUtil.dist(prevBlockPosition, currentBlock) <= 10;
-            }
-            return false;
-        }
-
-        if (!walkToSafePos(workFrom))
-        {
-            // Something might have changed, new wall and we can't reach the position anymore. Reset workfrom if stuck.
-            if (worker.getNavigation() instanceof MinecoloniesAdvancedPathNavigate pathNavigate &&
-                pathNavigate.getStuckHandler().getStuckLevel() > 0)
-            {
-                workFrom = null;
-            }
-            return false;
-        }
-
-        if (BlockPosUtil.getDistance2D(worker.blockPosition(), currentBlock) > 5)
-        {
-            if (BlockPosUtil.dist(workFrom, building.getWorkOrder().getLocation()) < 100)
-            {
-                prevBlockPosition = currentBlock;
-                workFrom = null;
-                return true;
-            }
-            workFrom = null;
-            return false;
-        }
-
-        prevBlockPosition = currentBlock;
-        return true;
-    }
-
-    /**
-     * Loads the structure given the name, rotation and position.
-     * Adapted from EntityAIStructureBuilder.loadStructure to work with the Outpost "fake level" workaround
-     *
-     * @param workOrder the work order.
-     * @param position  the position to set it.
-     * @param removal   if removal step.
-     */
-    @Override
-    public void loadStructure(@NotNull final IBuilderWorkOrder workOrder, final BlockPos position, final boolean removal)
-    {
-
-        BlockPos localPosition = position;
-
-        if (localPosition == null || BlockPos.ZERO.equals(localPosition))
-        {
-            return;
-        }
-
-        IBuilding colonyBuilding =
-            worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(localPosition);
-        final BlockEntity entity = world.getBlockEntity(localPosition);
-
-        if (!(colonyBuilding instanceof BuildingOutpost outpost))
-        {
-            super.loadStructure(workOrder, localPosition, removal);
-            return;
-        }
-
-        WorkOrderBuilding altWorkOrder = WorkOrderBuilding.create(WorkOrderType.BUILD, colonyBuilding);
-
-        TraceUtils.dynamicTrace(TRACE_OUTPOST,
-            () -> LOGGER.info("Using outpost specific loadStructure with structure path: {}", altWorkOrder.getStructurePath()));
-
-        // Code below is copied from EntityAIStructureBuilder.loadStructure and modified
-        // for the special Outpost "fake level" workaround.
-        this.loadingBlueprint = true;
-        workOrder.loadBlueprint(world, (blueprint -> {
-            if (blueprint == null)
-            {
-                handleSpecificCancelActions();
-                LOGGER.warn("Couldn't find structure with name: " + altWorkOrder.getStructurePath() +
-                    " in: " +
-                    workOrder.getStructurePack() +
-                    ". Aborting loading procedure");
-                this.loadingBlueprint = false;
-                return;
-            }
-
-            final BuildingStructureHandler<JobScout, BuildingOutpost> structure;
-
-            if (removal)
-            {
-                structure = new BuildingStructureHandler<>(world,
-                    workOrder,
-                    this,
-                    new BuildingProgressStage[] {BuildingProgressStage.REMOVE_WATER, BuildingProgressStage.REMOVE});
-                building.setTotalStages(2);
-            }
-            else if ((outpost != null && (outpost.getOutpostLevel() > 0 || outpost.hasParent())) ||
-                (entity instanceof TileEntityDecorationController &&
-                    Utils.getBlueprintLevel(((TileEntityDecorationController) entity).getBlueprintPath()) != -1))
-            {
-                structure = new BuildingStructureHandler<>(world,
-                    workOrder,
-                    this,
-                    new BuildingProgressStage[] {BuildingProgressStage.CLEAR,
-                        BuildingProgressStage.BUILD_SOLID,
-                        BuildingProgressStage.WEAK_SOLID,
-                        BuildingProgressStage.CLEAR_WATER,
-                        BuildingProgressStage.CLEAR_NON_SOLIDS,
-                        BuildingProgressStage.DECORATE,
-                        BuildingProgressStage.SPAWN});
-                building.setTotalStages(5);
-            }
-            else
-            {
-                structure = new BuildingStructureHandler<>(world,
-                    workOrder,
-                    this,
-                    new BuildingProgressStage[] {BuildingProgressStage.CLEAR,
-                        BuildingProgressStage.BUILD_SOLID,
-                        BuildingProgressStage.WEAK_SOLID,
-                        BuildingProgressStage.CLEAR_WATER,
-                        BuildingProgressStage.CLEAR_NON_SOLIDS,
-                        BuildingProgressStage.DECORATE,
-                        BuildingProgressStage.SPAWN});
-                building.setTotalStages(6);
-            }
-
-            setStructurePlacer(structure);
-
-            if (getProgressPos() != null)
-            {
-                structure.setStage(getProgressPos().getB());
-            }
-            this.loadingBlueprint = false;
-        }));
-    }
-
-    /**
-     * Takes the existing workorder, loads the structure and tests the worker order if it is valid. Note that this adapts
-     * EntityAIStructureBuilder.loadRequirements only in minor situations. 
-     * IDEA: PR for base Minecolonies code that removes this kludgey workaround requiring double-maintenance.
-     */
-    @Override
-    public IAIState loadRequirements()
-    {
-        final IBuilderWorkOrder workOrder = building.getWorkOrder();
-
-        if (workOrder == null)
-        {
-            // LOGGER.warn("No work order when loading requirements - bailing to IDLE");
-            return IDLE;
-        }
-
-        // We need this workaround ONLY for level one outposts (due to their "fake 1" level).
-        // Bounce to super if we're past that point.
-        if (building.getOutpostLevel() > 0)
-        {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("We can use the base Minecolonies code: {}, {}", building.getOutpostLevel(), workOrder.isCleared()));
-            return super.loadRequirements();
-        }
-
-        TraceUtils.dynamicTrace(TRACE_OUTPOST,
-            () -> LOGGER.info(
-                "Attempting special clear. Outpost level: {}, is cleared: {}, building work order {}, blueprint: {}, structurePlacer {}",
-                building.getOutpostLevel(),
-                workOrder.isCleared(),
-                building.getWorkOrder(),
-                building.getWorkOrder() == null ? null : building.getWorkOrder().getBlueprint(),
-                structurePlacer));
-
-        if (building.getWorkOrder() == null || building.getWorkOrder().getBlueprint() == null || structurePlacer == null)
-        {
-            final BlockPos pos = workOrder.getLocation();
-            if (workOrder instanceof WorkOrderBuilding &&
-                worker.getCitizenColonyHandler().getColonyOrRegister().getBuildingManager().getBuilding(pos) == null)
-            {
-                // LOGGER.warn("AbstractBuilding does not exist - removing build request");
-                worker.getCitizenColonyHandler().getColonyOrRegister().getWorkManager().removeWorkOrder(workOrder);
-                return IDLE;
-            }
-
-            final boolean removal = workOrder.getWorkOrderType() == WorkOrderType.REMOVE;
-
-            loadStructure(workOrder, pos, removal);
-            workOrder.setCleared(false);
-            workOrder.setRequested(removal);
-
-            final IBuilderWorkOrder wo = building.getWorkOrder();
-            if (wo == null)
-            {
-                LOGGER.error(String.format("Worker (%d:%d) ERROR - Starting and missing work order",
-                    worker.getCitizenColonyHandler().getColonyOrRegister().getID(),
-                    worker.getCitizenData().getId()), new Exception());
-                building.setWorkOrder(null);
-                return IDLE;
-            }
-
-            if (wo instanceof WorkOrderBuilding)
-            {
-                final IBuilding woBuilding = job.getColony().getBuildingManager().getBuilding(wo.getLocation());
-                if (woBuilding == null)
-                {
-                    LOGGER.error(String.format("Worker (%d:%d) ERROR - Starting and missing building(%s)",
-                        worker.getCitizenColonyHandler().getColonyOrRegister().getID(),
-                        worker.getCitizenData().getId(),
-                        wo.getLocation()), new Exception());
-                    return IDLE;
-                }
-
-                MessageUtils
-                    .forCitizen(worker,
-                        TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_BUILDER_BUILD_START,
-                        this.building.getWorkOrder().getDisplayName())
-                    .sendTo(worker.getCitizenColonyHandler().getColonyOrRegister().getMessagePlayerEntities());
-            }
-            else if (!(wo instanceof WorkOrderMiner))
-            {
-                MessageUtils
-                    .forCitizen(worker,
-                        TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_BUILDER_BUILD_START,
-                        building.getWorkOrder().getDisplayName())
-                    .sendTo(worker.getCitizenColonyHandler().getColonyOrRegister().getMessagePlayerEntities());
-                ;
-            }
-            return getState();
-        }
-
-        if (building.getWorkOrder().isRequested())
-        {
-            return afterStructureLoading();
-        }
-
-        final AbstractBuildingStructureBuilder buildingWorker = building;
-        if (requestMaterials())
-        {
-            building.getWorkOrder().setRequested(true);
-        }
-        int newQuantity = buildingWorker.getNeededResources().values().stream().mapToInt(ItemStorage::getAmount).sum();
-        if (building.getWorkOrder().getAmountOfResources() == 0 || newQuantity > building.getWorkOrder().getAmountOfResources())
-        {
-            building.getWorkOrder().setAmountOfResources(newQuantity);
-        }
-
-        return getState();
-    }
-
-    /**
-     * Start working at the own building. If the AI can't walk to the building, it will return the current state. Otherwise, it will
-     * transition to the LOAD_STRUCTURE state.
-     *
-     * @return the next state to transition to.
-     */
-    protected IAIState startWorkingAtOwnBuilding()
-    {
-        if (!walkToBuilding())
-        {
-            return getState();
-        }
-
-        worker.getCitizenData().setVisibleStatus(BUILDING);
-
-        return LOAD_STRUCTURE;
-    }
-
-    @Override
-    public void setStructurePlacer(final BuildingStructureHandler<JobScout, BuildingOutpost> structure)
-    {
-        if (building.getWorkOrder().getIteratorType().isEmpty())
-        {
-            final String mode = BuilderModeSetting.getActualValue(building);
-            building.getWorkOrder().setIteratorType(mode);
-        }
-
-        structurePlacer = new Tuple<>(new StructurePlacer(structure, building.getWorkOrder().getIteratorType()), structure);
     }
 
     @Override

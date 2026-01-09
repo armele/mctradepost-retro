@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost;
 import java.io.IOException;
 
 import org.slf4j.Logger;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
@@ -795,6 +796,9 @@ public class MCTradePostMod
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
     {
+
+        mixinDebugInfo();
+
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
         
@@ -846,6 +850,19 @@ public class MCTradePostMod
         ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
 
         LOGGER.info("MCTradePost mod initialized.");
+    }
+
+    private void mixinDebugInfo() 
+    {
+        System.out.println("[MCTP] Mixin version: " + MixinEnvironment.getCurrentEnvironment().getVersion());
+        System.out.println("[MCTP] Mixin compat: " + MixinEnvironment.getCurrentEnvironment().getCompatibilityLevel());
+        var env = MixinEnvironment.getCurrentEnvironment();
+        System.out.println("[MCTP] Mixin version: " + env.getVersion());
+        System.out.println("[MCTP] Mixin compat: " + env.getCompatibilityLevel());
+
+        var src = MixinEnvironment.class.getProtectionDomain().getCodeSource();
+        System.out.println("[MCTP] Mixin loaded from: " + (src != null ? src.getLocation() : "<unknown>"));
+  
     }
 
     /**

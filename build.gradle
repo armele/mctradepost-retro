@@ -68,7 +68,11 @@ runs {
         // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
         systemProperty 'forge.enabledGameTestNamespaces', project.mod_id    
         workingDirectory = file("run")  
-        // workingDirectory = file("C:\\Users\\amele\\curseforge\\minecraft\\Instances\\All the Mods 10 - ATM10")
+        if (project.hasProperty("mixinDebug")) {
+            systemProperty "mixin.debug", "true"
+            systemProperty "mixin.verbose", "true"
+            systemProperty "mixin.dumpTargetOnFailure", "true"
+        }
     }
 
     server {
@@ -103,14 +107,8 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'org.ow2.asm:asm-analysis:9.7'
-        force 'org.ow2.asm:asm:9.7'
-        force 'org.ow2.asm:asm-tree:9.7'
-        force 'org.ow2.asm:asm-util:9.7'
-        force 'org.ow2.asm:asm-commons:9.7'
-    }
+configurations.configureEach {
+    exclude group: "net.fabricmc", module: "sponge-mixin"
 }
 
 dependencies {
@@ -149,6 +147,9 @@ dependencies {
 
     // Runtime for dev only (so it loads in runClient/runServer)
     localRuntime("mezz.jei:jei-1.21.1-neoforge:19.27.0.336")
+
+    // For modern mixin support
+    implementation("org.spongepowered:mixin:0.8.7")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

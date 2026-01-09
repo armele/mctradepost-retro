@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.deathfrog.mctradepost.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityRotationDebugMixin"
+  ],
+  "client": [],
+  "server": []
+}
