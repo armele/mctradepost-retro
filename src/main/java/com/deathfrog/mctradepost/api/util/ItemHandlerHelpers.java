@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -22,6 +23,8 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
 
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST_REQUESTS;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -31,7 +34,10 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
@@ -41,10 +47,13 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.ItemStackUtils;
+import com.mojang.logging.LogUtils;
 
 // --- Utilities to obtain a handler or provider for a block position ---
 public final class ItemHandlerHelpers
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+
     /** Try capability; if missing, wrap the Container (handles double chests). */
     public static Optional<IItemHandler> getHandler(@Nonnull Level level, @Nonnull BlockPos pos, @org.jetbrains.annotations.Nullable Direction side)
     {
@@ -111,14 +120,14 @@ public final class ItemHandlerHelpers
      * @param allowPartial whether to allow partial satisfaction
      * @return the item storage that satisfies the request, or null if not found
      */
-    public static ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, IItemHandler inv, boolean allowPartial)
+    public static ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, IItemHandler inv, boolean allowPartial, Level level)
     {
         final IRequestable payload = request.getRequest();
-        final Predicate<ItemStack> matcher = matcherFor(payload);
+        final Predicate<ItemStack> matcher = matcherFor(payload, level.registryAccess());
 
         if (matcher == null)
         {
-            // LOGGER.info("Unknown requestable type {}.", payload.getClass().getName());
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.warn("Unknown requestable type {}.", payload.getClass().getName()));
             return null;
         }
 
@@ -126,7 +135,7 @@ public final class ItemHandlerHelpers
 
         int have = 0;
 
-        // LOGGER.info("Looking for {} across {} slots.", required, inv.getSlots());
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Looking for {} {} across {} slots. Request status {}", required, request.getLongDisplayString(), inv.getSlots(), request.getState()));
         List<ItemStack> matchingStacks = new ArrayList<>();
 
         for (int slot = 0; slot < inv.getSlots(); slot++)
@@ -137,9 +146,12 @@ public final class ItemHandlerHelpers
             {
                 matchingStacks.add(stack);
                 have += stack.getCount();
+
+                LOGGER.info("Found {} matching items.", stack.getCount());
+
                 if (have >= required) 
                 {
-                    // LOGGER.info("Found enough matching items: {}", have);
+                    LOGGER.info("Found enough matching items: {}", have);
                     return new ItemStorage(stack.getItem(), required);
                 }
             }
@@ -152,7 +164,7 @@ public final class ItemHandlerHelpers
                 .orElse(ItemStack.EMPTY);
             return new ItemStorage(biggestStack.getItem(), have); 
         }
-        // LOGGER.info("Not enough matching items: {}", have);
+        LOGGER.info("Not enough matching items: {}", have);
 
         return null;
     }
@@ -162,9 +174,14 @@ public final class ItemHandlerHelpers
      * Builds a predicate that tells whether an inventory ItemStack qualifies for the requestable. Extend this as you introduce new
      * requestable types.
      */
-    public static Predicate<ItemStack> matcherFor(IRequestable req)
+    public static Predicate<ItemStack> matcherFor(IRequestable req, RegistryAccess registryAccess)
     {
-        // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
+        if (req instanceof IDeliverable deliverable)
+        {
+            return st -> deliverable.matches(st);
+        }
+        
+    // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
         if (req instanceof Stack)
         {
             Stack specificStack = (Stack) req;
@@ -283,6 +300,12 @@ public final class ItemHandlerHelpers
      */
     public static int requiredCountFor(IRequestable req)
     {
+
+        if (req instanceof IDeliverable deliverable)
+        {
+            return deliverable.getCount();
+        }
+
         if (req instanceof Stack s)
         {
             // Assume just the minumum.

@@ -16,9 +16,6 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostSh
 import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
-import com.ldtteam.structurize.placement.structure.IStructureHandler;
-import com.ldtteam.structurize.util.BlueprintPositionInfo;
-import com.minecolonies.api.blocks.AbstractBlockHut;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -30,7 +27,6 @@ import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.api.entity.ai.workers.util.IBuilderUndestroyable;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.equipment.ModEquipmentTypes;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
@@ -53,15 +49,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.util.TriPredicate;
 import net.neoforged.neoforge.items.IItemHandler;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
@@ -95,18 +94,6 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             return true;
         }
     }
-
-    /**
-     * Predicate defining things we don't want the builders to ever touch.
-     */
-    protected TriPredicate<BlueprintPositionInfo, BlockPos, IStructureHandler> DONT_TOUCH_PREDICATE = (info, worldPos, handler) -> {
-        final BlockState worldState = handler.getWorld().getBlockState(worldPos);
-
-        return worldState.getBlock() instanceof IBuilderUndestroyable || worldState.getBlock() == Blocks.BEDROCK ||
-            worldState.is(NullnessBridge.assumeNonnull(ModTags.TRACK_TAG)) ||
-            (info.getBlockInfo().getState().getBlock() instanceof AbstractBlockHut && handler.getWorldPos().equals(worldPos) &&
-                worldState.getBlock() instanceof AbstractBlockHut);
-    };
 
     Collection<IToken<?>> resolverBlacklist = null;
     protected ItemStack currentDeliverableSatisfier = null;
@@ -253,6 +240,8 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
         int returnCount = 0;
 
+        Set<Item> protectedCrops = new HashSet<>();
+
         for (BlockPos workLocation : building.getWorkBuildings())
         {
             IBuilding outpostBuilding = building.getColony().getBuildingManager().getBuilding(workLocation);
@@ -269,6 +258,13 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
                     if (module.isItemInList(candidate))
                     {
+                        // The first stack of anything plantable in the outpost will not be returned so it remains available to the farmer for planting.
+                        if (inSlot.is(ModTags.OUTPOST_CROPS_TAG) && !protectedCrops.contains(inSlot.getItem()))
+                        {
+                            protectedCrops.add(inSlot.getItem());
+                            continue;
+                        }
+
                         int toTake = inSlot.getCount();
                         // This actually removes from the inventory
                         ItemStack extracted = handler.extractItem(i, toTake, /*simulate*/ false);
@@ -393,7 +389,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             }
             catch (IllegalArgumentException e)
             {
-                LOGGER.warn("Unable to get resolver for request {} ({})", request, e.getLocalizedMessage());
+                LOGGER.warn("Colony {} Scout - Unable to get resolver for request {} ({})", building.getColony().getID(), request, e.getLocalizedMessage());
                 // request.setState(requestManager, RequestState.CANCELLED);
                 // building.getColony().getRequestManager().updateRequestState(request.getId(), RequestState.CANCELLED);
                 continue;
@@ -405,34 +401,51 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             {
                 OutpostShipmentTracking shipmentTracking = building.trackingForRequest(request);
 
+                if (shipmentTracking == null || shipmentTracking.getState() == OutpostOrderState.DELIVERED || shipmentTracking.getState() == OutpostOrderState.CANCELLED)
+                {
+                    continue;
+                }
+
                 TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                    () -> LOGGER.info("Checking if satisfiable from the building: {} with state {}",
+                    () -> LOGGER.info("Colony {} Scout - Checking if satisfiable from the building: {} with state {}",
+                        building.getColony().getID(),
                         request.getLongDisplayString(),
                         request.getState()));
                 // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
                 ItemStorage satisfier = building.inventorySatisfiesRequest(request, true);
-
-                if (satisfier != null)
+                
+                if (satisfier == null)
                 {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("We have something to deliver: {}", satisfier));
-
-                    currentDeliverableSatisfier = satisfier.getItemStack().copy();
-                    currentDeliverableRequest = request;
-                    shipmentTracking.setState(OutpostOrderState.RECEIVED);
-
-                    // Once we have the necessary thing in the outpost, we can mark all remaining outstanding children as no longer
-                    // needed, and remove them.
-                    /*
-                    for (IToken<?> child : request.getChildren())
-                    {
-                        // IRequest<?> childRequest = requestManager.getRequestForToken(child);
-                        requestManager.updateRequestState(child, RequestState.RESOLVED);
-                        // request.removeChild(child);
-                    }
-                    */
-
-                    return ScoutStates.MAKE_DELIVERY;
+                    int deliveries = request.getDeliveries() == null ? 0 : request.getDeliveries().size();
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Colony {} Scout - Nothing in building matches request: {}; {} deliveries in progress.", 
+                        building.getColony().getID(), request.getLongDisplayString(), deliveries));
+                    continue;
                 }
+
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Colony {} Scout - We have something to deliver: {}", building.getColony().getID(), satisfier));
+                Item satisfyingItem = satisfier.getItemStack().getItem();
+
+                if (satisfyingItem == null || satisfyingItem.equals(Items.AIR))
+                {
+                    continue;
+                }
+
+                currentDeliverableSatisfier = new ItemStack(satisfyingItem, satisfier.getAmount());
+                currentDeliverableRequest = request;
+                shipmentTracking.setState(OutpostOrderState.RECEIVED);
+
+                // Once we have the necessary thing in the outpost, we can mark all remaining outstanding children as no longer
+                // needed, and remove them.
+                /*
+                for (IToken<?> child : request.getChildren())
+                {
+                    // IRequest<?> childRequest = requestManager.getRequestForToken(child);
+                    requestManager.updateRequestState(child, RequestState.RESOLVED);
+                    // request.removeChild(child);
+                }
+                */
+
+                return ScoutStates.MAKE_DELIVERY;
             }
         }
 
@@ -452,13 +465,14 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     public IAIState makeDelivery()
     {
 
-        ItemStack localSatisfier = currentDeliverableSatisfier;
+        ItemStack localSatisfier = currentDeliverableSatisfier.copy();
 
         if (localSatisfier == null)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("No current deliverable satisfier in makeDelivery."));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Colony {} Scout - No current deliverable satisfier in makeDelivery.", building.getColony().getID()));
 
             currentDeliverableRequest = null;
+            currentDeliverableSatisfier = null;
             return DECIDE;
         }
 
@@ -467,15 +481,20 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
         if (deliveryTarget == null)
         {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("Colony {} Scout - No delivery target for delivery: {} - marking complete.", building.getColony().getID(), localSatisfier));
             // If for some reason we don't have a delivery target, assume the shipment is in its final destination.
-            markDeliverySuccessful(currentDeliverableRequest, tracking);
+            markDeliveryComplete(currentDeliverableRequest, tracking, false);
             return DECIDE;
         }
 
         if (deliveryTarget != null &&
             deliveryTarget.getLocation().getInDimensionLocation().equals(building.getLocation().getInDimensionLocation()))
         {
-            markDeliverySuccessful(currentDeliverableRequest, tracking);
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("Colony {} Scout - Delivery target is the outpost. No final step needed: {} - marking complete.", building.getColony().getID(), localSatisfier));
+            markDeliveryComplete(currentDeliverableRequest, tracking, true);
+            deliveryTarget.markDirty();
             return DECIDE;
         }
 
@@ -483,21 +502,17 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         {
             // Somewhere along the line something got cancelled, and we aren't expecting this any more...
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("No tracking for delivery: {} - repairing.", localSatisfier));
+                () -> LOGGER.info("Colony {} Scout - No tracking for delivery: {} - cancelling delivery.", building.getColony().getID(), localSatisfier));
+            currentDeliverableSatisfier = null;
+            currentDeliverableRequest = null;
 
-            if (!getInventory().isEmpty())
-            {
-                tracking = new OutpostShipmentTracking(OutpostOrderState.READY_FOR_DELIVERY);
-            }
-            else
-            {
-                tracking = new OutpostShipmentTracking(OutpostOrderState.DELIVERED);
-            }
+            return DECIDE;
         }
 
         final OutpostShipmentTracking trackingForLog = tracking;
         TraceUtils.dynamicTrace(TRACE_OUTPOST,
-            () -> LOGGER.info("Making delivery of {} to {} (tracking status {})",
+            () -> LOGGER.info("Colony {} Scout - Making delivery of {} to {} (tracking status {})",
+                building.getColony().getID(),
                 localSatisfier,
                 deliveryTarget.getBuildingDisplayName(),
                 trackingForLog.getState()));
@@ -508,7 +523,8 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             if (!EntityNavigationUtils.walkToBuilding(this.worker, deliveryTarget) && !getInventory().isEmpty())
             {
                 TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                    () -> LOGGER.info("Walking to {} with delivery: {}",
+                    () -> LOGGER.info("Colony {} Scout - Walking to {} with delivery: {}",
+                        building.getColony().getID(),
                         deliveryTarget.getBuildingDisplayName(),
                         localSatisfier));
                 return getState();
@@ -523,6 +539,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                 try
                 {
                     InventoryUtils.transferItemStackIntoNextFreeSlotInProvider(worker.getInventoryCitizen(), slot, deliveryTarget);
+                    deliveryTarget.markDirty();
                 }
                 catch (NullPointerException e)
                 {
@@ -532,8 +549,11 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                 }
 
                 worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
-
-                markDeliverySuccessful(currentDeliverableRequest, tracking);
+                
+                // markDeliveryComplete(currentDeliverableRequest, tracking, true);
+                deliveryTarget.getColony().getRequestManager().overruleRequest(currentDeliverableRequest.getId(), localSatisfier);
+                
+                deliveryTarget.markDirty();
             }
             else
             {
@@ -553,38 +573,32 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         }
 
         // Pick up the item.
-        int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building,
-            stack -> stack != null && ItemStack.matches(stack, localSatisfier));
+        boolean moved = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(building.getItemHandlerCap(), stack -> stack != null && ItemStack.isSameItem(stack, localSatisfier), localSatisfier.getCount(), worker.getInventoryCitizen());
 
-        if (slot >= 0)
+        if (moved)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item to deliver found in slot {}.", slot));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Item to deliver ({}) found and retrieved.", localSatisfier));
 
-            ItemStorage deliveryItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot).copy());
-            boolean moved = InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
+            int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
+                s -> s != null && ItemStack.isSameItem(s, localSatisfier));
 
-            if (moved)
+            if (held >= 0)
             {
-                int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                    s -> s != null && ItemStack.matches(s, localSatisfier));
+                ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(held);
 
-                if (held >= 0)
+                if (!stackInSlot.isEmpty())
                 {
-                    ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(held);
-
-                    if (!stackInSlot.isEmpty())
-                    {
-                        worker.setItemInHand(InteractionHand.MAIN_HAND, stackInSlot);
-                    }
+                    worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(stackInSlot.copy()));
                 }
-                else
-                {
-                    worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
-                }
-
-                tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
+            }
+            else
+            {
+                worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
             }
 
+            tracking.setState(OutpostOrderState.READY_FOR_DELIVERY);
+
+            final ItemStorage deliveryItem = new ItemStorage(localSatisfier, localSatisfier.getCount());
             TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Scout delivering item (final leg) {}.", deliveryItem));
         }
         else
@@ -605,19 +619,24 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      * 
      * @param tracking the shipment tracking to mark as delivered
      */
-    protected void markDeliverySuccessful(IRequest<?> request, OutpostShipmentTracking tracking)
+    protected void markDeliveryComplete(IRequest<?> request, OutpostShipmentTracking tracking, boolean successful)
     {
+        tracking.setState(successful ? OutpostOrderState.DELIVERED : OutpostOrderState.CANCELLED);
+
         TraceUtils.dynamicTrace(TRACE_OUTPOST,
-            () -> LOGGER.info("Delivery of {} (tracking status {}) has reached its destination.",
+            () -> LOGGER.info("Delivery of {} (tracking status {}, request state {}) has reached its destination.",
                 currentDeliverableSatisfier,
-                tracking.getState()));
+                tracking.getState(),
+                request.getState()
+            ));
 
         if (request != null)
         {
-            building.getColony().getRequestManager().updateRequestState(request.getId(), RequestState.COMPLETED);
+            if (request.getState() == RequestState.IN_PROGRESS || request.getState() == RequestState.FOLLOWUP_IN_PROGRESS)
+            {
+                building.getColony().getRequestManager().updateRequestState(request.getId(), successful ? RequestState.RESOLVED : RequestState.FAILED);
+            }
         }
-
-        tracking.setState(OutpostOrderState.DELIVERED);
 
         incrementActionsDoneAndDecSaturation();
         worker.getCitizenExperienceHandler().addExperience(DEFAULT_SCOUT_XP);

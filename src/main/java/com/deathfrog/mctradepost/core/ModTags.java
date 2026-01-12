@@ -42,4 +42,8 @@ public class ModTags
     public static final ResourceLocation RARE_FINDS_TIER4_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "rarefinds_tier4");
     @SuppressWarnings("null")
     public @Nonnull static final TagKey<Item> RARE_FINDS_TIER4_TAG = ItemTags.create(RARE_FINDS_TIER4_TAG_KEY);
+
+    public static final ResourceLocation OUTPOST_CROPS_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "outpost_crops");
+    @SuppressWarnings("null")
+    public @Nonnull static final TagKey<Item> OUTPOST_CROPS_TAG = ItemTags.create(OUTPOST_CROPS_KEY);
 }

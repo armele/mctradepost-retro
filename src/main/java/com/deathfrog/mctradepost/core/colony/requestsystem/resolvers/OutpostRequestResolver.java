@@ -281,6 +281,14 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     }
 
 
+    /**
+     * Determines if this resolver can resolve the given request.
+     * This resolver can resolve requests if the requesting building is an outpost (or outpost child building) and the outpost is connected to this building.
+     * If the request is a delivery, it also checks if the start position of the delivery is not a station.
+     * @param manager the request manager for the colony.
+     * @param requestToCheck the request to check if this resolver can resolve it.
+     * @return true if this resolver can resolve the request, false otherwise.
+     */
    @Override
    public boolean canResolveRequest(@NotNull IRequestManager manager, IRequest<? extends IDeliverable> requestToCheck) 
    {
@@ -367,6 +375,14 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
         return isOutpostBuilding;
     }
 
+    /**
+     * Resolves the given request for the given building.
+     * This method is called by the outpost request resolver when it has finished resolving the request.
+     * It marks the request as resolved and logs the resolution of the request.
+     * @param manager the request manager for the colony.
+     * @param request the request to resolve.
+     * @param building the building that made the request.
+     */
     @Override
     public void resolveForBuilding(@NotNull IRequestManager manager,
         @NotNull IRequest<? extends IDeliverable> request,

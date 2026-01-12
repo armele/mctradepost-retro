@@ -33,7 +33,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingR
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 
 
-@EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = MCTradePostMod.MODID)
 public final class ModBuildingsInitializer
 {
     // public final static DeferredRegister<BuildingEntry> DEFERRED_REGISTER = DeferredRegister.create(CommonMinecoloniesAPIImpl.BUILDINGS, MCTradePostMod.MODID);

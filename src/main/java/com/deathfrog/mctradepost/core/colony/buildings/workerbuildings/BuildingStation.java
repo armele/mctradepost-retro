@@ -2,7 +2,6 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +49,6 @@ import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
-import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -71,7 +69,6 @@ import com.minecolonies.core.datalistener.CustomVisitorListener;
 import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
-import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -140,11 +137,6 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * Delay for spawning more visitors when a spot opens up.
      */
     private int noVisitorTime = 10000;
-
-    /**
-     * List of requests that have been removed from the queue.
-     */
-    protected final List<IToken<?>> handledRequestList = new ArrayList<>();
 
     public final static String EXPORT_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.exports";
     public final static String FUNDING_ITEMS = "com.deathfrog.mctradepost.gui.workerhuts.station.funding";
@@ -924,6 +916,11 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             return;
         }
 
+        /**
+         * List of requests that have been removed from the queue.
+         */
+        final List<IToken<?>> handledRequestList = new ArrayList<>();
+
         final IStandardRequestManager requestManager = (IStandardRequestManager) this.getColony().getRequestManager();
 
         final List<IToken<?>> openTaskList = module.getMutableRequestList();
@@ -1003,124 +1000,6 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         module.getMutableRequestList().removeAll(reqsToRemove);
         module.markDirty();
         handledRequestList.addAll(reqsToRemove);
-
-        // Cycle through any still outstanding outpost requests (even if not in our task list)
-        // and see if we have something they need. Add a delivery for it, if so.
-        for (BuildingOutpost outpost : findConnectedOutposts())
-        {
-            final Collection<IRequest<?>> remainingRequests = outpost.getOutstandingOutpostRequests(false);
-
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                () -> LOGGER.info("Analyzing {} requests for outpost: {} in colony {}.",
-                    remainingRequests.size(),
-                    outpost.getBuildingDisplayName(),
-                    this.getColony().getID()));
-
-            if (remainingRequests == null || remainingRequests.isEmpty())
-            {
-                continue;
-            }
-
-            for (IRequest<?> request : remainingRequests)
-            {
-                if (handledRequestList.contains(request.getId()) || request.hasChildren())
-                {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                        () -> LOGGER.info(
-                            "Delivery Request {} (state {}) - {} was already shipped or is scheduled to be shipped - skipping.",
-                            request.getId(),
-                            request.getState(),
-                            request.getLongDisplayString()));
-                    continue;
-                }
-
-                // Set up a delivery in our task list for this request if it is missing.
-                boolean addedDelivery = addTaskForDeliveryIfMissing(request, outpost);
-
-                // If we didn't add a task to deliver this request, see if we can satisfy it with our inventory.
-                if (!addedDelivery)
-                {
-                    ItemStorage satisfier = inventorySatisfiesRequest(request, true);
-
-                    if (satisfier != null)
-                    {
-                        // Attempting to use the request system to generate the delivery request (which will populate our work queue).
-                        // If this doesn't work, we'll have to ship it and let the cancellation logic at the outpost handle it.
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} has a satisfier: {}",
-                                request.getId(),
-                                request.getState(),
-                                request.getLongDisplayString(),
-                                satisfier));
-                        Delivery delivery = new Delivery(this.getLocation(),
-                            outpost.getLocation(),
-                            satisfier.getItemStack().copyWithCount(satisfier.getAmount()),
-                            0);
-                        IToken<?> deliveryRequestToken = outpost.createRequest(delivery, true);
-                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
-                        deliveryRequest.setParent(request.getId());
-                        request.addChild(deliveryRequestToken);
-
-                        requestManager.updateRequestState(request.getId(), RequestState.IN_PROGRESS);
-
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} had a delivery created: {} (state {})",
-                                request.getId(),
-                                request.getState(),
-                                request.getLongDisplayString(),
-                                deliveryRequestToken,
-                                deliveryRequest.getState()));
-
-                        handledRequestList.add(request.getId());
-                    }
-                    else
-                    {
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                            () -> LOGGER.info("Outstanding Request {} (state {}) - {} has no satisfier.",
-                                request.getId(),
-                                request.getState(),
-                                request.getLongDisplayString()));
-
-                        if (!request.hasChildren() && request instanceof IDeliverable outstandingNeed)
-                        {
-                            IDeliverable deliverableCopy =
-                                ((IDeliverable) request.getRequest()).copyWithCount(outstandingNeed.getCount());
-                            IToken<?> copyToken = this.createRequest(deliverableCopy, false);
-
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                                () -> LOGGER.info(
-                                    "Outstanding Request {} (state {}) - {} has no child steps and is a deliverable - creating a new request for the station: {}",
-                                    request.getId(),
-                                    request.getState(),
-                                    request.getLongDisplayString(),
-                                    copyToken));
-                        }
-                        else if (!request.hasChildren() && request instanceof ItemStackRequest stackrequest)
-                        {
-                            IToken<?> copyToken = this.createRequest(stackrequest.getRequest(), false);
-
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                                () -> LOGGER.info("Outstanding Request {} (state {}) - {} is echoed to {}",
-                                    request.getId(),
-                                    request.getState(),
-                                    request.getLongDisplayString(),
-                                    copyToken));
-                        }
-                        else
-                        {
-                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                                () -> LOGGER.info(
-                                    "Outstanding Request {} (state {}) - {} is not being echoed. Children: {}, Instance: {}",
-                                    request.getId(),
-                                    request.getState(),
-                                    request.getLongDisplayString(),
-                                    request.getChildren().size(),
-                                    request.getClass().getSimpleName()));
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /**

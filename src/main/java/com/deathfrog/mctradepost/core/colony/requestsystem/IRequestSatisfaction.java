@@ -18,6 +18,6 @@ public interface IRequestSatisfaction extends IBuilding
      */
     default ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, boolean allowPartial)
     {
-        return ItemHandlerHelpers.inventorySatisfiesRequest(request, getItemHandlerCap(), allowPartial);
+        return ItemHandlerHelpers.inventorySatisfiesRequest(request, getItemHandlerCap(), allowPartial, this.getColony().getWorld());
     }
 }

@@ -138,7 +138,6 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                 ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost, reverse);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
-                exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
                 exportData.setInsufficientFunds(nsf);
                 exportData.setShipmentCountdown(shipmentCountdown);
@@ -381,11 +380,15 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     @Override
     public void onColonyTick(@NotNull IColony colony) 
     { 
+        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} - examining {} exports.", colony.getID(), exportList.size()));
+
         for (ExportData exportData : exportList) 
         {
             int shipDistance = exportData.getShipDistance();
             if (shipDistance >= 0)
             { 
+                exportData.spawnCartForTrade();
+
                 // Check for completion before the next move.
                 if (shipDistance >= exportData.getTrackDistance())
                 {
@@ -405,14 +408,13 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
                 shipDistance = shipDistance + nextDistance;
 
-                exportData.spawnCartForTrade();
                 exportData.setShipDistance(shipDistance);
 
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment in transit of {} {} for {} at {} of {}", exportData.getQuantity(),  exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} - Shipment in transit of {} {} for {} at {} of {}", colony.getID(), exportData.getQuantity(),  exportData.getTradeItem().getItem(), exportData.getCost(), exportData.getShipDistance(), exportData.getTrackDistance()));
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Export of {} {} for {} not shipping.", exportData.getQuantity(), exportData.getTradeItem().getItemStack().getHoverName(), exportData.getCost()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} - Export of {} {} for {} not shipping.", colony.getID(), exportData.getQuantity(), exportData.getTradeItem().getItemStack().getHoverName(), exportData.getCost()));
             }
         }
     }

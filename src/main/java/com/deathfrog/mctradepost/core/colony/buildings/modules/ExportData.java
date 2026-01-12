@@ -133,33 +133,53 @@ public class ExportData
      */
     public @Nullable GhostCartEntity spawnCartForTrade(List<BlockPos> path)
     {
-        if (path == null || path.isEmpty()) return null;
+        if (path == null || path.isEmpty()) 
+        {
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null or empty path while spawning cart: {}", this));
+            return null;
+        }
 
         ServerLevel level = (ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld();
         
-        if (level == null) return null;
+        if (level == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null level while spawning cart: {}", this));
+            return null;
+        }
 
         BlockPos startPos = path.getFirst();
 
-        if (startPos == null || !startPos.equals(BlockPos.ZERO)) return null;
+        if (startPos == null || startPos.equals(BlockPos.ZERO)) 
+        {
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null or ZERO start position for path while spawning cart: {}", this));
+            return null;
+        }
 
         ChunkUtil.ensureChunkLoaded(level, startPos);
 
-        GhostCartEntity cart =
+        GhostCartEntity newCart =
             GhostCartEntity.spawn(level, NullnessBridge.assumeNonnull(ImmutableList.copyOf(path)), isReverse());
 
-        if (cart == null) return null;
+        if (newCart == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null cart spawned from GhostCartEntity.spawn(): {}", this));
+            return null;
+        }
 
         ItemStack tradeItem = this.getTradeItem().getItemStack().copy();
 
-        if (tradeItem.isEmpty()) return null;
+        if (tradeItem.isEmpty()) 
+        {
+            TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Empty trade item while spawning cart: {}", this));
+            return null;
+        }
 
-        cart.setTradeItem(tradeItem);
-        this.setCart(cart);
+        newCart.setTradeItem(tradeItem);
+        this.setCart(newCart);
 
         ChunkUtil.releaseChunkTicket(level, startPos, 1);
 
-        return cart;
+        return newCart;
     }
 
     /**
@@ -172,12 +192,12 @@ public class ExportData
     {
         if (this.cart != null && this.cart.hasPath()) return cart;
 
-        if (sourceStation == null) return null;
-
         TrackConnectionResult tcr = null;
         
         if (!isReverse())
         {
+            if (sourceStation == null) return null;
+
             tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
         }
         else
@@ -196,9 +216,11 @@ public class ExportData
             if (this.cart == null)
             {
                 this.cart = spawnCartForTrade(tcr.path);
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Spawning cart for trade: {}", this));
             }
             else
             {
+                TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Setting path for existing cart: {}", this));
                 this.cart.setPath(tcr.path, isReverse());
             }
         }

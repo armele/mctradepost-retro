@@ -62,7 +62,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         SHIPMENT_INITIATED,     // Connected station has started the shipment
         RECEIVED,               // Outpost has received the order from the connected station
         READY_FOR_DELIVERY,     // Scout is ready to deliver the order (it is in their inventory)
-        DELIVERED               // Scout has delivered the order to the necessary place in the outpost
+        DELIVERED,              // Scout has delivered the order to the necessary place in the outpost
+        CANCELLED               // Something went wrong and we had to cancel this order.
     };
 
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -154,6 +155,19 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     public boolean isDisconnected()
     {
         return connectedStation == null;
+    }
+
+    /**
+     * Returns true if the outpost can be built by a builder at the given level, false otherwise.
+     * A builder can build the outpost at level n if the outpost is currently at level n-1.
+     * 
+     * @param newLevel the level that the outpost is being upgraded to
+     * @return true if the outpost can be built by a builder at the given level, false otherwise
+     */
+    @Override
+    public boolean canBeBuiltByBuilder(int newLevel) 
+    {
+        return getBuildingLevel() + 1 == newLevel;
     }
 
     /**
@@ -414,6 +428,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             if (tracking == null 
                 || request == null
                 || tracking.getState() == OutpostOrderState.DELIVERED 
+                || tracking.getState() == OutpostOrderState.CANCELLED 
                 || request.getState() == RequestState.CANCELLED 
                 || request.getState() == RequestState.FAILED
                 || request.getState() == RequestState.COMPLETED)

@@ -18,7 +18,7 @@ import net.neoforged.neoforge.common.ModConfigSpec.ConfigValue;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 
-@EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = MCTradePostMod.MODID)
 public class MCTPConfig
 {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();

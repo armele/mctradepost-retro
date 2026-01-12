@@ -29,7 +29,7 @@ public abstract class EntityRotationDebugMixin
         new RuntimeException("Stack trace for invalid yaw").printStackTrace();
 
         // preserve vanilla behavior
-        Util.logAndPauseIfInIde(msg);
+        Util.logAndPauseIfInIde(msg + "");
     }
 
     @Redirect(
@@ -48,6 +48,6 @@ public abstract class EntityRotationDebugMixin
         new RuntimeException("Stack trace for invalid pitch").printStackTrace();
 
         // preserve vanilla behavior
-        Util.logAndPauseIfInIde(msg);
+        Util.logAndPauseIfInIde(msg + "");
     }
 }

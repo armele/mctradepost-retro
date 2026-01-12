@@ -178,7 +178,7 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
 
                         if (!stack.isEmpty())
                         {
-                            didAdd = didAdd || outpostInventory.add(new ItemStorage(stack.copy(), 1, true, true));
+                            didAdd = didAdd || outpostInventory.add(new ItemStorage(stack.getItem(), 1));
                         }
                     }
 
