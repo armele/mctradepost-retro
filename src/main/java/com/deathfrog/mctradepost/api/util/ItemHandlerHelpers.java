@@ -4,7 +4,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -36,6 +35,7 @@ import javax.annotation.Nonnull;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
@@ -47,6 +47,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.equipment.registry.EquipmentTypeEntry;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.core.util.DomumOrnamentumUtils;
 import com.mojang.logging.LogUtils;
 
 // --- Utilities to obtain a handler or provider for a block position ---
@@ -123,11 +124,15 @@ public final class ItemHandlerHelpers
     public static ItemStorage inventorySatisfiesRequest(@NotNull IRequest<? extends IRequestable> request, IItemHandler inv, boolean allowPartial, Level level)
     {
         final IRequestable payload = request.getRequest();
-        final Predicate<ItemStack> matcher = matcherFor(payload, level.registryAccess());
+        final ItemStack domumStack = DomumOrnamentumUtils.getRequestedStack(request);
+        final boolean isDomum = !domumStack.isEmpty();
+        final Predicate<ItemStack> matcher = isDomum ? domumMatcher(domumStack) : matcherFor(payload);
+
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Inventory analysis for {} a requestable of class {} (Domum? {}).", request.getLongDisplayString(), payload.getClass().getName(), isDomum));
 
         if (matcher == null)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.warn("Unknown requestable type {}.", payload.getClass().getName()));
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Unknown requestable type {}.", payload.getClass().getName()));
             return null;
         }
 
@@ -135,24 +140,27 @@ public final class ItemHandlerHelpers
 
         int have = 0;
 
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Looking for {} {} across {} slots. Request status {}", required, request.getLongDisplayString(), inv.getSlots(), request.getState()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Looking for {} of these across {} slots. Request status {}", required, inv.getSlots(), request.getState()));
         List<ItemStack> matchingStacks = new ArrayList<>();
 
         for (int slot = 0; slot < inv.getSlots(); slot++)
         {
             final ItemStack stack = inv.getStackInSlot(slot);
+            
             if (stack.isEmpty()) continue;
+
             if (matcher.test(stack))
             {
                 matchingStacks.add(stack);
                 have += stack.getCount();
 
-                LOGGER.info("Found {} matching items.", stack.getCount());
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Found {} matching items.", stack.getCount()));
 
                 if (have >= required) 
                 {
-                    LOGGER.info("Found enough matching items: {}", have);
-                    return new ItemStorage(stack.getItem(), required);
+                    final int localHave = have;
+                    TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Found enough matching items: {} for a need of {}", localHave, required));
+                    return new ItemStorage(stack.copy(), required);
                 }
             }
         }
@@ -162,9 +170,11 @@ public final class ItemHandlerHelpers
             ItemStack biggestStack = matchingStacks.stream()
                 .max(Comparator.comparingInt(ItemStack::getCount))
                 .orElse(ItemStack.EMPTY);
-            return new ItemStorage(biggestStack.getItem(), have); 
+            return new ItemStorage(biggestStack.copy(), have); 
         }
-        LOGGER.info("Not enough matching items: {}", have);
+
+        final int localHave = have;
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Not enough matching items: {}", localHave));
 
         return null;
     }
@@ -174,18 +184,22 @@ public final class ItemHandlerHelpers
      * Builds a predicate that tells whether an inventory ItemStack qualifies for the requestable. Extend this as you introduce new
      * requestable types.
      */
-    public static Predicate<ItemStack> matcherFor(IRequestable req, RegistryAccess registryAccess)
+    public static Predicate<ItemStack> matcherFor(IRequestable req)
     {
         if (req instanceof IDeliverable deliverable)
         {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("IDeliverable for matching - class {}.", req.getClass().getName()));
+
             return st -> deliverable.matches(st);
         }
         
-    // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
+        // 1) Concrete Stack: match exact item+components (1.21+), ignore requested count here.
         if (req instanceof Stack)
         {
             Stack specificStack = (Stack) req;
             final ItemStack wanted = specificStack.getStack();
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Stack for matching: {}", wanted.toString()));
 
             if (wanted.isEmpty()) return st -> false;
 
@@ -197,7 +211,17 @@ public final class ItemHandlerHelpers
         {
             final ItemStack wanted = d.getStack();
 
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Delivery for matching: {}", wanted.toString()));
+
             if (wanted.isEmpty()) return st -> false;
+
+            final IMateriallyTexturedBlock domumBlock = DomumOrnamentumUtils.getBlock(wanted);
+            final boolean isDomum = domumBlock != null;
+
+            if (isDomum)
+            {
+                return domumMatcher(wanted);
+            }
 
             return st -> !st.isEmpty() && ItemStack.isSameItem(st, wanted);
         }
@@ -212,6 +236,7 @@ public final class ItemHandlerHelpers
             {
                 return st -> false;
             }
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("StackList of size {} for matching.", wanteds.size()));
 
             return st -> !st.isEmpty() && wanteds.stream().anyMatch(w -> w != null && ItemStack.isSameItem(st, w));
         }
@@ -222,6 +247,8 @@ public final class ItemHandlerHelpers
             final EquipmentTypeEntry type = tool.getEquipmentType();
             final int min = tool.getMinLevel();             // -1 means “no minimum”
             final int max = tool.getMaxLevel();             // Integer.MAX_VALUE means “no maximum”
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Tool for matching: {}", tool.toString()));
 
             // Use the same logic MineColonies uses:
             return st -> !st.isEmpty() && ItemStackUtils.hasEquipmentLevel(st, type, min, max);
@@ -257,6 +284,39 @@ public final class ItemHandlerHelpers
         return null; // unknown type
     }
 
+
+    /**
+     * Returns a predicate that checks whether the given ItemStack is the same
+     * item (and components) as the given Domum Ornamentum ItemStack.
+     *
+     * @param domumStack the Domum Ornamentum ItemStack to compare against
+     * @return a predicate to check if a given ItemStack is the same as the Domum Ornamentum ItemStack
+     */
+    public static Predicate<ItemStack> domumMatcher(ItemStack domumStack) 
+    {
+        return stack -> 
+        {
+            if (stack == null || domumStack == null)
+            {
+                return false;
+            }
+
+            boolean same = ItemStack.isSameItemSameComponents(stack, domumStack);
+
+            /*
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () ->
+                LOGGER.info("Domum Stack = {} with components {}, stack = {} with components {}, - matches? {}",
+                    domumStack == null ? "null" : domumStack.toString(),
+                    domumStack == null ? "null" : domumStack.getComponents(),
+                    stack == null ? "null" : stack.toString(),
+                    stack == null ? "null" : stack.getComponents(), same)
+            );
+            */
+
+            return same;
+
+        };
+    }
 
     /**
      * Creates a predicate that checks if an item stack matches the given HolderSet<Item>.

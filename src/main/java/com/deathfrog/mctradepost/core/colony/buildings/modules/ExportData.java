@@ -13,14 +13,17 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
+import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
+import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.core.util.DomumOrnamentumUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -282,11 +285,19 @@ public class ExportData
     /**
      * Predicate for the different usages to check if inventory contains a given item.
      *
-     * @param cure the expected cure item.
-     * @return the predicate for checking if the cure exists.
+     * @param cure the expected export item item.
+     * @return the predicate for checking if the export item exists.
      */
     public static Predicate<ItemStack> hasExportItem(final ItemStorage exportItem)
     {
+        final IMateriallyTexturedBlock domumBlock = DomumOrnamentumUtils.getBlock(exportItem.getItemStack());
+        final boolean isDomum = domumBlock != null;
+
+        if (isDomum)
+        {
+            return ItemHandlerHelpers.domumMatcher(exportItem.getItemStack());
+        }
+
         return stack -> isExportItem(stack, exportItem);
     }
 

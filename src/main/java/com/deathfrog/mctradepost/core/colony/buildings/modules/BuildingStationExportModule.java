@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -367,6 +368,21 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      */
     public void clearExports() 
     {
+        for (ExportData exportData : exportList) 
+        {
+            if (exportData.getShipDistance() >= 0)
+            {
+                // Refund trade-in-progress items to the building.
+                MCTPInventoryUtils.insertOrDropByQuantity(building, exportData.getTradeItem());
+            }
+
+            // Discard the cart.
+            GhostCartEntity cart = exportData.getCart();
+            if (cart != null) 
+            {
+                cart.discard();
+            }
+        }
         exportList.clear();
         markDirty();
     }

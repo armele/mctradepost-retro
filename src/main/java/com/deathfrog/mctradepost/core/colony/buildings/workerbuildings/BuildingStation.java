@@ -736,7 +736,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             // If the remote station has been destroyed, refund the shipped items to the shipping station.
             // No funds will be recived (but the destination station is not refunded).
-            MCTPInventoryUtils.InsertOrDropByQuantity(this, exportData.getTradeItem(), exportData.getQuantity());
+            MCTPInventoryUtils.insertOrDropByQuantity(this, exportData.getTradeItem());
             exportData.setShipDistance(-1);
             GhostCartEntity cart = exportData.getCart();
             if (cart != null)
@@ -747,7 +747,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             return;
         }
 
-        MCTPInventoryUtils.InsertOrDropByQuantity(remoteStation, exportData.getTradeItem(), exportData.getQuantity());
+        MCTPInventoryUtils.insertOrDropByQuantity(remoteStation, exportData.getTradeItem());
 
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
         if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))
@@ -952,7 +952,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                     () -> LOGGER.info("Request {} is currently assigned to resolver: {}",
-                        request.getLongDisplayString(),
+                        request.getShortDisplayString(),
                         currentlyAssignedResolver));
             }
             catch (IllegalArgumentException e)
@@ -961,7 +961,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 // requestManager.getRequestHandler().registerRequest(request);
                 // requestManager.assignRequest(request.getId());
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
-                    () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getLongDisplayString(), e));
+                    () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getShortDisplayString(), e));
                 continue;
             }
 
@@ -980,7 +980,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 () -> LOGGER.info("Analyzing request in state {} with Outpost tracking {} - details: {}",
                     request.getState(),
                     tracking,
-                    request.getLongDisplayString()));
+                    request.getShortDisplayString()));
 
             if ((tracking.getState() == OutpostOrderState.NEEDED || tracking.getState() == OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING ||
                 tracking.getState() == OutpostOrderState.ITEM_READY_TO_SHIP) && !handledRequestList.contains(request.getId()) &&
@@ -1022,7 +1022,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                 () -> LOGGER.info("Outstanding Request {} - {} (state {}) about to be marked as resolved.",
                     request.getId(),
-                    request.getLongDisplayString(),
+                    request.getShortDisplayString(),
                     request.getState()));
 
             if (request.getState() == RequestState.IN_PROGRESS)
@@ -1033,7 +1033,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                     () -> LOGGER.info("Outstanding Request {} - {} (state {}) post-update.",
                         request.getId(),
-                        request.getLongDisplayString(),
+                        request.getShortDisplayString(),
                         request.getState()));
 
                 if (request.getParent() != null)
@@ -1042,7 +1042,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                         () -> LOGGER.info("Parent Request {} - {} (state {}) post-update.",
                             parent.getId(),
-                            parent.getLongDisplayString(),
+                            parent.getShortDisplayString(),
                             parent.getState()));
                 }
             }
@@ -1077,7 +1077,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                     () -> LOGGER.info("Delivery Request {} - {} from {} to {} is missing a target building at that location.",
                         request.getId(),
-                        request.getLongDisplayString(),
+                        request.getShortDisplayString(),
                         delivery.getStart().getInDimensionLocation().toShortString(),
                         delivery.getTarget().getInDimensionLocation().toShortString()));
                 return false;
@@ -1096,14 +1096,14 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     () -> LOGGER.info("Delivery Request {} (state {}) - {} added to station queue.",
                         request.getId(),
                         request.getState(),
-                        request.getLongDisplayString()));
+                        request.getShortDisplayString()));
             }
             else
             {
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                     () -> LOGGER.info("Delivery Request {} - {} from {} to {} is not a station {} to outpost {} request.",
                         request.getId(),
-                        request.getLongDisplayString(),
+                        request.getShortDisplayString(),
                         delivery.getStart().getInDimensionLocation().toShortString(),
                         delivery.getTarget().getInDimensionLocation().toShortString(),
                         this.getPosition().toShortString(),
@@ -1145,12 +1145,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             () -> LOGGER.info("Checking if satisfiable: {} (state {}) - {}",
                 request.getId(),
                 request.getState(),
-                request.getLongDisplayString()));
+                request.getShortDisplayString()));
         // Check if the building has a qualifying item and ship it if so. Determine state change of request status.
         ItemStorage satisfier = inventorySatisfiesRequest(request, true);
 
         if (satisfier != null)
         {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Station has something to ship: {}", satisfier));
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Station has something to ship: {}", satisfier));
             initiateShipment(satisfier, request, outpost, car);
             satisfied = true;
@@ -1187,7 +1188,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             LOGGER.error("Shipments should not be initiated with nothing to deliver. Associated request: {} (State {}) - {}",
                 associatedRequest.getId(),
                 associatedRequest.getState(),
-                associatedRequest.getLongDisplayString());
+                associatedRequest.getShortDisplayString());
             return;
         }
 
@@ -1208,7 +1209,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 thingsToDeliver,
                 outpostDestination.getBuildingDisplayName(),
                 associatedRequest == null ? "null" : associatedRequest.getId(),
-                associatedRequest == null ? "null" : associatedRequest.getLongDisplayString()));
+                associatedRequest == null ? "null" : associatedRequest.getShortDisplayString()));
     }
 
     /**

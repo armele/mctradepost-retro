@@ -17,7 +17,7 @@ public class OutpostLivingBuildingModule extends LivingBuildingModule
     @Override
     public int getModuleMax()
     {
-        return OUTPOST_RESIDENTS;
+        return building.getBuildingLevel() > 0 ? OUTPOST_RESIDENTS : 0;
     }    
 
     @Override

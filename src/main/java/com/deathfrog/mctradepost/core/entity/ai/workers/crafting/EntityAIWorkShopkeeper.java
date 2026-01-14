@@ -1002,7 +1002,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                         {
                             ItemStack dropStack = stackInSlot.copy();
                             stackInSlot.setCount(0);
-                            MCTPInventoryUtils.InsertOrDropByQuantity(building, new ItemStorage(dropStack.copy()), dropStack.getCount());
+                            MCTPInventoryUtils.insertOrDropByQuantity(building, new ItemStorage(dropStack.copy(), dropStack.getCount()));
                         }
                     }
                 }

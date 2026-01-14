@@ -527,8 +527,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             currentExport.setLastShipDay(building.getColony().getDay());
 
             final ItemStack cargoCopy = currentExport.getTradeItem().getItemStack().copy();
-            ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy());
-            ItemStorage refundIfNeeded = new ItemStorage(cargoCopy.copy());
+            ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
+            ItemStorage refundIfNeeded = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
 
             // Remove the outbound export from this building/worker
             if (MCTPInventoryUtils.combinedInventoryRemoval(building, removeFromStorage, currentExport.getQuantity())) 
@@ -537,7 +537,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Receiving station no longer has adequate funds.  Restoring items.", building.getColony().getID()));
-                    MCTPInventoryUtils.InsertOrDropByQuantity(building, refundIfNeeded, currentExport.getQuantity());
+                    MCTPInventoryUtils.insertOrDropByQuantity(building, refundIfNeeded);
 
                     currentExport = null;
                     incrementActionsDoneAndDecSaturation();

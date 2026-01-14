@@ -57,7 +57,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     @Override
     public int getSuitabilityMetric(@NotNull IRequestManager manager, @NotNull IRequest<? extends IDeliverable> request)
     {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking OutpostRequestResolver suitability metric for request {} - {}  (state {}) .", request.getId(), request.getLongDisplayString(), request.getState()));
+        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Checking OutpostRequestResolver suitability metric for request {} - {}  (state {}) .", request.getId(), request.getShortDisplayString(), request.getState()));
         return -1;
     }
 
