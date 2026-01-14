@@ -225,6 +225,10 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         {
             PetRegistryUtil.registerWorkLocation(colony, worldPosition);
         }
+        else 
+        {
+            LOGGER.warn("No colony found for Pet Working Block at {}", this.getBlockPos().toShortString());
+        }
 
         if (this.hasCustomName()) 
         {

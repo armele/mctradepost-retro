@@ -527,8 +527,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             currentExport.setLastShipDay(building.getColony().getDay());
 
             final ItemStack cargoCopy = currentExport.getTradeItem().getItemStack().copy();
-            ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy());
-            ItemStorage refundIfNeeded = new ItemStorage(cargoCopy.copy());
+            ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
+            ItemStorage refundIfNeeded = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
 
             // Remove the outbound export from this building/worker
             if (MCTPInventoryUtils.combinedInventoryRemoval(building, removeFromStorage, currentExport.getQuantity())) 
@@ -536,8 +536,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 // Remove the inbound payment from remote building/worker.
                 if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
                 {
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Receiving station no longer has adequate funds.  Restoring items."));
-                    MCTPInventoryUtils.InsertOrDropByQuantity(building, refundIfNeeded, currentExport.getQuantity());
+                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Receiving station no longer has adequate funds.  Restoring items.", building.getColony().getID()));
+                    MCTPInventoryUtils.insertOrDropByQuantity(building, refundIfNeeded);
 
                     currentExport = null;
                     incrementActionsDoneAndDecSaturation();
@@ -546,7 +546,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No longer enough {} in worker inventory to ship.", currentExport.getTradeItem().getItem()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: No longer enough {} in worker inventory to ship.", building.getColony().getID(), currentExport.getTradeItem().getItem()));
                 currentExport = null;
                 return AIWorkerState.DECIDE;
             }
@@ -554,18 +554,18 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
             GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.path);
             if (cart == null) {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Could not spawn cart for export: {}", currentExport));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Could not spawn cart for export: {}", building.getColony().getID(), currentExport));
             }
 
             building.markTradesDirty();
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Shipment initiated for export: {}", 
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Shipment initiated for export: {}", building.getColony().getID(), 
                 currentExport.getTradeItem().getItemStack().getHoverName()));
 
             currentExport = null;
         }
         else
         {
-            LOGGER.warn("Asked to send a shipment with an invalid current export to initiate shipment for: {}", currentExport);
+            LOGGER.warn("Colony {} send shipment: Asked to send a shipment with an invalid current export to initiate shipment for: {}", building.getColony().getID(), currentExport);
             currentExport = null;
         }
         

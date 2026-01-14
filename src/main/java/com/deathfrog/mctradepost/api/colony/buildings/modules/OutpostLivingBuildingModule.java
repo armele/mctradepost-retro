@@ -12,12 +12,12 @@ import com.mojang.logging.LogUtils;
 public class OutpostLivingBuildingModule extends LivingBuildingModule
 {
     public static final Logger LOGGER = LogUtils.getLogger();
-    public static final int OUTPOST_RESIDENTS = 2;
+    public static final int OUTPOST_RESIDENTS = 3;
 
     @Override
     public int getModuleMax()
     {
-        return OUTPOST_RESIDENTS;
+        return building.getBuildingLevel() > 0 ? OUTPOST_RESIDENTS : 0;
     }    
 
     @Override

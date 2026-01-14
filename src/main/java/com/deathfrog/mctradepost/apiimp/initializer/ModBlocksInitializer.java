@@ -12,7 +12,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
-@EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = MCTradePostMod.MODID)
 public final class ModBlocksInitializer
 {
     public final static String THATCH_NAME = "thatch";

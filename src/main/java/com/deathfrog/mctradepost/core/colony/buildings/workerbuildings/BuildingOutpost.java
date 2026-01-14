@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -22,11 +20,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -41,7 +36,6 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnectio
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.minecolonies.api.MinecoloniesAPIProxy;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -51,20 +45,14 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
-import com.minecolonies.api.colony.workorders.WorkOrderType;
-import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.BlockPosUtil;
-import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
+import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
-import com.minecolonies.core.colony.buildings.utils.BuilderBucket;
-
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
-public class BuildingOutpost extends AbstractBuildingStructureBuilder implements ITradeCapable, IRequestSatisfaction
+public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, IRequestSatisfaction
 {
     public enum OutpostOrderState
     {
@@ -74,7 +62,8 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         SHIPMENT_INITIATED,     // Connected station has started the shipment
         RECEIVED,               // Outpost has received the order from the connected station
         READY_FOR_DELIVERY,     // Scout is ready to deliver the order (it is in their inventory)
-        DELIVERED               // Scout has delivered the order to the necessary place in the outpost
+        DELIVERED,              // Scout has delivered the order to the necessary place in the outpost
+        CANCELLED               // Something went wrong and we had to cancel this order.
     };
 
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -169,6 +158,19 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
     }
 
     /**
+     * Returns true if the outpost can be built by a builder at the given level, false otherwise.
+     * A builder can build the outpost at level n if the outpost is currently at level n-1.
+     * 
+     * @param newLevel the level that the outpost is being upgraded to
+     * @return true if the outpost can be built by a builder at the given level, false otherwise
+     */
+    @Override
+    public boolean canBeBuiltByBuilder(int newLevel) 
+    {
+        return getBuildingLevel() + 1 == newLevel;
+    }
+
+    /**
      * Serializes the outpost's state into an NBT tag. The tag contains the following elements:
      * <ul>
      * <li>"ConnectedStation": the position of the building station that is connected to this outpost by tracks, stored as a BlockPos.</li>
@@ -244,8 +246,8 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
     public void serializeToView(@NotNull RegistryFriendlyByteBuf buf, boolean fullSync) 
     {
             super.serializeToView(buf, fullSync);
-            buf.writeInt(this.getOutpostLevel());
     }
+    
     /**
      * Writes the request tracking data to the provided CompoundTag.
      *
@@ -394,102 +396,6 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
     }
 
     /**
-     * Requests that the outpost be upgraded to the next level.
-     * If the outpost is currently at level 0 and the parent building is at level 1 or higher, the outpost will be built.
-     * If the outpost is not at the maximum level and the parent building is at a lower level, the outpost will be upgraded.
-     * If the outpost is at the maximum level, a message will be sent to the player indicating that no upgrade is available.
-     * If the outpost requires a research effect to be upgraded and the effect is not yet researched, a message will be sent to the player indicating that the research effect is required.
-     * If the outpost requires a research effect to be upgraded and the effect has already been researched but the outpost is not yet at the required level, a message will be sent to the player indicating that the outpost requires an upgrade.
-     * 
-     * NOTE that this uses the Outpost "fake level" workaround.
-     * 
-     * @param player the player requesting the upgrade
-     * @param builder the position of the builder requesting the upgrade
-     */
-    @Override
-    public void requestUpgrade(Player player, BlockPos builder)
-    {
-        BlockPos useBuilder = outpostBuilderPosition(player, builder);
-
-        final ResourceLocation hutResearch = colony.getResearchManager().getResearchEffectIdFrom(this.getBuildingType().getBuildingBlock());
-
-        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
-              colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) < 1)
-        {
-            MessageUtils.format(TranslationConstants.WARNING_BUILDING_REQUIRES_RESEARCH_UNLOCK).sendTo(player);
-            return;
-        }
-        if (MinecoloniesAPIProxy.getInstance().getGlobalResearchTree().hasResearchEffect(hutResearch) &&
-              (colony.getResearchManager().getResearchEffects().getEffectStrength(hutResearch) <= getOutpostLevel()))
-        {
-            MessageUtils.format(TranslationConstants.WARNING_BUILDING_REQUIRES_RESEARCH_UPGRADE).sendTo(player);
-            return;
-        }
-
-        final IBuilding parentBuilding = colony.getBuildingManager().getBuilding(getParent());
-
-        if (getOutpostLevel() == 0 && (parentBuilding == null || parentBuilding.getBuildingLevel() > 0))
-        {
-            requestWorkOrder(WorkOrderType.BUILD, useBuilder);
-        }
-        else if (getOutpostLevel() < getMaxBuildingLevel() && (parentBuilding == null || getOutpostLevel() < parentBuilding.getBuildingLevel() || parentBuilding.getBuildingLevel() >= parentBuilding.getMaxBuildingLevel()))
-        {
-            requestWorkOrder(WorkOrderType.UPGRADE, useBuilder);
-        }
-        else
-        {
-            MessageUtils.format(TranslationConstants.WARNING_NO_UPGRADE).sendTo(player);
-        }
-    }
-
-    @Override
-    protected void requestWorkOrder(WorkOrderType type, BlockPos builder) 
-    {
-        super.requestWorkOrder(type, outpostBuilderPosition(null, builder));
-    }
-
-    @Override
-    public boolean canBeBuiltByBuilder(int newLevel) 
-    {
-        return getBuildingLevel() + 1 == newLevel;
-    }
-
-    /**
-     * Returns the current building level of this outpost.
-     * If the building level is 0, returns 1, as the outpost is always considered to be at least level 1
-     * for the purposes of other colony logic.
-     * 
-     * Otherwise, returns the building level as determined by the superclass.
-     * @return the current building level of this outpost
-     */
-    @Override
-    public int getBuildingLevel() 
-    {
-        if (super.getBuildingLevel() == 0)
-        {
-            return 1;
-        }
-        
-        return super.getBuildingLevel();
-    }
-
-
-    /**
-     * Returns the current building level of this outpost,
-     * reflecting a "0" level outpost if currently unbuilt.
-     * 
-     * Note that this differs from getBuildingLevel() only if the outpost is at level 0.
-     * Kludgey workaround since we want to do things at level 0 that Minecolonies code base
-     * assumes cannot happen until level 1.
-     * 
-     * @return the current building level of this outpost (without the outpost bump)
-     */
-    public int getOutpostLevel()
-    {
-        return super.getBuildingLevel();
-    }
-
-    /**
      * Called every tick that the colony updates.
      * 
      * @param colony the colony that this building is a part of
@@ -522,6 +428,7 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
             if (tracking == null 
                 || request == null
                 || tracking.getState() == OutpostOrderState.DELIVERED 
+                || tracking.getState() == OutpostOrderState.CANCELLED 
                 || request.getState() == RequestState.CANCELLED 
                 || request.getState() == RequestState.FAILED
                 || request.getState() == RequestState.COMPLETED)
@@ -592,6 +499,15 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
         }
     }
     
+
+    /**
+     * Called when the building has finished upgrading. Resets the flag to re-check for tagged positions.
+     * <p>
+     * This is necessary because the when the building is upgraded, we need to re-read the
+     * positions to ensure that any new ones in the new level are known. Additionally, it
+     * will re-check if a connected station is found in the colony.
+     * @param buildingLevel the new level of the building.
+     */
     @Override
     public void onUpgradeComplete(int buildingLevel) 
     {
@@ -920,46 +836,5 @@ public class BuildingOutpost extends AbstractBuildingStructureBuilder implements
     
         return employees.get(0);
     }
-
-    /**
-     * Check if the resources are in the bucket, and 
-     * move them to the worker inventory for use. If the resources are not in the bucket, 
-     * request them from the stationmaster.
-     * 
-     * @param requiredResources the resources required for the task
-     * @param worker the worker to whom to deliver the resources
-     */
-    @Override
-    public void checkOrRequestBucket(@Nullable final BuilderBucket requiredResources, final ICitizenData worker)
-    {
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("BuildingOutpost.checkOrRequestBucket in {}.", this.getColony().getName()));
-        super.checkOrRequestBucket(requiredResources, worker);
-    }
-
-    /**
-     * Check if the resources are in the bucket, and 
-     * move them to the worker inventory for use.
-     *
-     * @param stack the stack to check.
-     * @return true if so.
-     */
-    public boolean hasResourceInBucket(final ItemStack stack)
-    {
-        final int hashCode = stack.getComponentsPatch().hashCode();
-        final String key = stack.getDescriptionId() + "-" + hashCode;
-        boolean hasit = getRequiredResources() != null && getRequiredResources().getResourceMap().containsKey(key);
-
-        TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("BuildingOutpost.hasResourceInBucket in {} looking for {}. Found? {}", this.getColony().getName(), stack.getHoverName(), hasit));
-
-        if (getScout() != null && hasit)
-        { 
-            ItemStorage toTransfer = new ItemStorage(stack.copy());
-
-            InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(this, toTransfer, getScout().getInventory());
-        }
-
-        return hasit;
-    }
-
 
 }

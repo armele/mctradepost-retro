@@ -442,6 +442,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.ingredients_used": "Used: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.bowls_collected": "%d Bowls From %s",
     "com.minecolonies.coremod.gui.townhall.stats.rarefind": "Rare Finds Purchased: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.kitchens_stocked": "Kitchens Stocked: %d",
 
     "com.mctradepost.recycler.no_input_box": "No input box found on the recycling center. Try repairing the building.",
     "com.mctradepost.recycler.no_output_box": "No output box found on the recycling center. Try repairing the building.",

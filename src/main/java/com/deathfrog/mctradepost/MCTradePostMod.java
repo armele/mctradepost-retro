@@ -795,6 +795,7 @@ public class MCTradePostMod
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
     {
+
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
         
@@ -902,7 +903,7 @@ public class MCTradePostMod
         ModBuildingsInitializer.injectBuildingModules();
     }
 
-    @EventBusSubscriber(modid = MCTradePostMod.MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = MCTradePostMod.MODID)
     public class NetworkHandler {
 
         /**
@@ -1005,7 +1006,7 @@ public class MCTradePostMod
     }
 
 
-    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD)
+    @EventBusSubscriber(modid = MODID)
     public class ModServerEventHandler
     {
         /**
@@ -1106,7 +1107,7 @@ public class MCTradePostMod
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
-    @EventBusSubscriber(modid = MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    @EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents
     {
 

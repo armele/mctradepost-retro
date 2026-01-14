@@ -301,8 +301,10 @@ public class MCTPInventoryUtils
      * @param itemToDeposit     The item to deposit.
      * @param amountToDeposit   The amount of the item to deposit.
      */
-    public static void InsertOrDropByQuantity(IBuilding building, ItemStorage itemToDeposit, int amountToDeposit) 
+    public static void insertOrDropByQuantity(IBuilding building, ItemStorage itemToDeposit) 
     {
+        int amountToDeposit = itemToDeposit.getAmount();
+
         if (building == null || building.getItemHandlerCap() == null || itemToDeposit == null || itemToDeposit.getItemStack() == null) 
         {
             MCTradePostMod.LOGGER.warn("No building, building inventory or deposit item found attempting to deposit {} {} - this should not happen.", amountToDeposit, itemToDeposit);

@@ -775,7 +775,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             .map(ste -> "    at " + ste)
             .collect(Collectors.joining("\n"));
 
-        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info(
             "[GhostCart {}] DISCARD at dim={} pos=({}, {}, {}) " +
                 "reason={} startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
             this.getId(),
@@ -799,7 +799,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             .map(ste -> "    at " + ste)
             .collect(Collectors.joining("\n"));
 
-        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.info(
             "[GhostCart {}] CREATE at dim={} pos=({}, {}, {}) " +
                 "startIdx={} targetIdx={} desiredIdx={} pathSize={} gameTime={}\n{}",
             this.getId(),

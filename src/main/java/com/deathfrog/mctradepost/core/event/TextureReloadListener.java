@@ -19,12 +19,10 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import static net.neoforged.fml.common.EventBusSubscriber.Bus.MOD;
-
 /**
  * Specific texture reload listener.
  */
-@EventBusSubscriber(value= Dist.CLIENT, modid = MCTradePostMod.MODID, bus=MOD)
+@EventBusSubscriber(value= Dist.CLIENT, modid = MCTradePostMod.MODID)
 public class TextureReloadListener extends SimplePreparableReloadListener<TextureReloadListener.TexturePacks>
 {
     /**
