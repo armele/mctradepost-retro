@@ -162,7 +162,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         }
         catch (Exception e)
         {
-            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+            LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         petData = new PetData<PetFox>(this, compound);
@@ -228,22 +228,24 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     public void tick()
     {
         super.tick();
-
-        if (!goalsInitialized && petData != null) 
+        
+        if (petData != null && !petData.areGoalsInitialized()) 
         {
             resetGoals();
         }
-        
+
         if (petData != null)
         {
             petData.tick(this.level());
             petData.aiWatchdogTick();
             petData.logActiveGoals();
         }
-
-        // debugGoals();
+        else
+        {
+            LOGGER.warn("Failed to tick pet {}: petData is null", this);
+        }
     }
-
+    
     public void debugGoals()
     {
         if (!this.level().isClientSide && this.tickCount % 40 == 0) {
@@ -317,6 +319,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
         pathNavigation.getPathingOptions().setEnterDoors(true);
         pathNavigation.getPathingOptions().setCanOpenDoors(true);
+        pathNavigation.getPathingOptions().setEnterGates(true);
         pathNavigation.getPathingOptions().withDropCost(1D);
         pathNavigation.getPathingOptions().withJumpCost(1D);
         pathNavigation.getPathingOptions().setPassDanger(false);
@@ -466,7 +469,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
 
         // Only update originalName if we are NOT in debug mode
         // (i.e., a real in-game name/tag or command)
-        if (this.getPetData() != null && !TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS)) 
+        if (this.getPetData() != null && !TraceUtils.isTracing(TraceUtils.TRACE_PETACTIVEGOAL)) 
         {
             this.getPetData().setOriginalName(newName);
         }

@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "key": {
+      "C": { "item": "mctradepost:mctp_coin" },
+      "F": { "item": "minecolonies:durum" },
+      "L": { "item": "minecraft:lead" }
+    },
+    "pattern": [
+      "FLF",
+      "FCF",
+      "FFF"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:wish_gathering_cow"
+    }
+}
+  

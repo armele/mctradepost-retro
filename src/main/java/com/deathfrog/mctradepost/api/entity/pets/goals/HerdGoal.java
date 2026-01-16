@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETHERDGOALS;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -31,7 +31,6 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -48,8 +47,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     private static final int REPATH_COOLDOWN_TICKS = 10;
     private static final double REPATH_IF_TARGET_MOVED_SQ = 3.0 * 3.0;
     private int lastRepathTick = -REPATH_COOLDOWN_TICKS;
-    private static final int HERD_TARGET_FALLBACK_RADIUS = 4; // try 1..4 blocks around target
-    private static final int HERD_TARGET_FALLBACK_Y = 1;      // allow +/-1 vertical
     
     private final P pet;
     private BlockPos herdTarget;
@@ -114,7 +111,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     {
         if (goalLogToggle != resultingState)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, loggingStatement);
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, loggingStatement);
             goalLogToggle = resultingState;
         }
     }
@@ -188,7 +185,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (currentTargetAnimal != null)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
             walkCommandSent = true;
         }   
@@ -219,14 +216,14 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         final Animal localTargetAnimal = currentTargetAnimal;
         if (localTargetAnimal == null) 
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No target on tick()."));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("No target on tick()."));
             reset();
             return;
         }
 
         if (herdTarget == null || BlockPos.ZERO.equals(herdTarget)) 
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No herding destination on tick()."));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("No herding destination on tick()."));
             reset();
             return;
         }
@@ -236,7 +233,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (navigationResult != null && navigationResult.failedToReachDestination()) 
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Failed to reach {} at {}", localTargetAnimal, targetPos));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Failed to reach {} at {}", localTargetAnimal, targetPos));
 
             reset();
             return;
@@ -246,7 +243,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (distance > 2 && !walkCommandSent)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
             navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(localTargetAnimal, 1.0);
             walkCommandSent = true;
             targetStuckSteps = 0;
@@ -261,7 +258,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
                 if ((targetDistance < HERDING_DISTANCE * 2 ) || targetStuckSteps > PetData.STUCK_STEPS)
                 {
-                    final boolean navOk = tryPathAnimalToBestHerdTarget(localTargetAnimal, herdTarget, 1.0);
+                    final boolean navOk = tryPathAnimalToHerdTarget(localTargetAnimal, herdTarget, 1.0);
 
                     if (!navOk)
                     {
@@ -269,13 +266,13 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
                         localTargetAnimal.getNavigation().stop();
 
                         // Nudge it.
-                        nudgeAnimalToward(localTargetAnimal, herdTarget, 0.4f);
+                        nudgeAnimalToward(localTargetAnimal, herdTarget, 0.2f);
                     }
                 }
                 else
                 {
                     // Nudge herded animal toward the target
-                    nudgeAnimalToward(localTargetAnimal, herdTarget, .02f);
+                    nudgeAnimalToward(localTargetAnimal, herdTarget, .06f);
                 }
 
                 final BlockPos currentTargetPos = localTargetAnimal.blockPosition();
@@ -298,7 +295,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
+                TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Animal is close enough to target position: {}", herdTarget));
                 StatsUtil.trackStatByName(pet.getTrainerBuilding(), BuildingPetshop.ANIMALS_HERDED, localTargetAnimal.getName(), 1);
                 reset();
             }
@@ -316,7 +313,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         if (pet.getStuckTicks() > PetData.STUCK_STEPS)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetPos, pet.getStuckTicks()));
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Nudging pet towards target position: {}. Stuck steps: {}", targetPos, pet.getStuckTicks()));
 
             double dx = (pet.getRandom().nextDouble() - 0.5) * 0.5;
             double dz = (pet.getRandom().nextDouble() - 0.5) * 0.5;
@@ -330,121 +327,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         repathIfNeeded(localTargetAnimal);
 
     }
-
-
-    /**
-     * Attempts to path the given animal to the given target position at the given speed.
-     * If the animal cannot path to the target position, it will attempt to find a
-     * reachable position within HERD_TARGET_FALLBACK_RADIUS blocks of the target that
-     * is also within HERD_TARGET_FALLBACK_Y blocks of the target on the Y axis.
-     * It will then try to path to this fallback position instead.
-     * If no fallback position can be found, the method will return false.
-     * If the animal is able to path to either the target or the fallback position, the
-     * method will return true.
-     * 
-     * @param animal the animal to path
-     * @param herdTarget the target position to path to
-     * @param speed the speed to path at
-     * @return true if the animal was able to path to the target or the fallback position, false otherwise
-     */
-    private boolean tryPathAnimalToBestHerdTarget(final Animal animal, final BlockPos herdTarget, final double speed)
-    {
-        // First try the true target
-        if (tryPathAnimalToHerdTarget(animal, herdTarget, speed))
-        {
-            return true;
-        }
-
-        // Otherwise find closest reachable “near target” position
-        final BlockPos fallback = findClosestReachableNear(animal, herdTarget, HERD_TARGET_FALLBACK_RADIUS, HERD_TARGET_FALLBACK_Y);
-        if (fallback == null)
-        {
-            return false;
-        }
-
-        return tryPathAnimalToHerdTarget(animal, fallback, speed);
-    }
-
-    /**
-     * Finds the closest reachable position to the given center within the specified radius.
-     * Also considers positions within the given yRange above/below the center.
-     * The best position is the one with the lowest score, which is a combination of the distance
-     * to the center and the distance to the animal itself.
-     *
-     * @param animal the animal that is trying to herd
-     * @param center the center position to search around
-     * @param radius the maximum distance from the center to search
-     * @param yRange the maximum distance above/below the center to search
-     * @return the closest reachable position, or null if none were found
-     */
-    private BlockPos findClosestReachableNear(final Animal animal, final BlockPos center, final int radius, final int yRange)
-    {
-        final Level level = animal.level();
-        BlockPos best = null;
-        double bestScore = Double.MAX_VALUE; // lower is better
-
-        // Expand outward so we naturally prefer “closest to the real herdTarget”
-        for (int r = 1; r <= radius; r++)
-        {
-            for (int dy = -yRange; dy <= yRange; dy++)
-            {
-                for (int dx = -r; dx <= r; dx++)
-                {
-                    for (int dz = -r; dz <= r; dz++)
-                    {
-                        // outer shell only (saves work, keeps preference to smaller r)
-                        if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
-
-                        final @Nonnull BlockPos cand = NullnessBridge.assumeNonnull(center.offset(dx, dy, dz));
-
-                        if (!level.isLoaded(cand)) continue;
-                        if (!isStandable(level, cand)) continue;
-
-                        // Ask the animal's navigator if it can build a path.
-                        // Accuracy 1..2 tends to be more reliable than 0.
-                        Path p = animal.getNavigation().createPath(cand, 1);
-                        if (p == null) p = animal.getNavigation().createPath(cand, 2);
-                        if (p == null) continue;
-
-                        // Score: prefer candidates closest to center; tie-break by distance from animal.
-                        final double toCenter = cand.distSqr(center);
-                        final double toAnimal = cand.distSqr(NullnessBridge.assumeNonnull(animal.blockPosition()));
-                        final double score = (toCenter * 10.0) + toAnimal;
-
-                        if (score < bestScore)
-                        {
-                            bestScore = score;
-                            best = cand.immutable();
-                        }
-                    }
-                }
-            }
-
-            // early exit: if we found something at this radius, you can return immediately
-            // to prefer “closest tested reachable” strictly.
-            if (best != null)
-            {
-                return best;
-            }
-        }
-
-        return best;
-    }
-
-    /**
-     * Basic “standable” check: feet space + head space clear, and solid-ish ground beneath.
-     * Adjust if your pets/animals have special movement.
-     */
-    private boolean isStandable(final Level level, final @Nonnull BlockPos pos)
-    {
-        if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) return false;
-        final @Nonnull BlockPos head = NullnessBridge.assumeNonnull(pos.above());
-        if (!level.getBlockState(head).getCollisionShape(level, head).isEmpty()) return false;
-
-        final @Nonnull BlockPos below = NullnessBridge.assumeNonnull(pos.below());
-        return level.getBlockState(below).isFaceSturdy(level, below, net.minecraft.core.Direction.UP);
-    }
-
 
     /**
      * Checks if the pet should re-path to the target animal. Will re-path if the target animal has moved a certain distance, the pet is stuck, the path has failed, or the pet is not within a certain distance of the target animal and a walk command has not been sent yet.
@@ -500,13 +382,6 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
 
         // If it didn't accept the command, treat as failure immediately
         if (!accepted)
-        {
-            return false;
-        }
-
-        // Some navigators "accept" but still have no path / no progress
-        // Prefer these checks if available in your mappings/version.
-        if (animal.getNavigation().isDone())
         {
             return false;
         }

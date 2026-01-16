@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingItemsModuleView;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.ldtteam.blockui.Color;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
@@ -18,9 +20,12 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
@@ -37,12 +42,14 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
     private static final String LABEL_PETLIST = "petlist";
     private static final String LABEL_TYPE = "pettype";
     private static final String LABEL_TRAINING_ITEM = "trainingitem";
+    private static final String LABEL_COIN_ITEM = "coinitem";
     private static final String LABEL_HOWTO = "howto";
 
     /**
      * Resource scrolling list.
      */
     private final ScrollingList petList;
+    protected final int husbandryResearch;
 
 
     /**
@@ -54,6 +61,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
     public WindowPetTrainingItemsModule(final PetTrainingItemsModuleView moduleView)
     {
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
+        husbandryResearch = (int) moduleView.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.HUSBANDRY);  
 
         petList = this.window.findPaneOfTypeByID(LABEL_PETLIST, ScrollingList.class);
 
@@ -86,6 +94,8 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
         petList.show();
         petList.setDataProvider(new ScrollingList.DataProvider()
         {
+            List<PetTypes> activePetTypes = new ArrayList<PetTypes>();
+
             /**
              * The number of rows of the list.
              * 
@@ -94,7 +104,19 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
             @Override
             public int getElementCount()
             {
-                return PetTypes.values().length;
+
+                if (activePetTypes.size() > 0) return activePetTypes.size();
+
+                // Make the list smart enough to be research-aware.
+                for (PetTypes type : PetTypes.values())
+                {
+                    if (type.isPet() == true || husbandryResearch > 0)
+                    {
+                        activePetTypes.add(type);
+                    }
+                }
+
+                return activePetTypes.size();
             }
 
             /**
@@ -115,7 +137,8 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
 
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
 
-                Entity previewEntity = PetTypes.values()[index].getEntityType().create(level);
+                PetTypes petTypeEntry = activePetTypes.get(index);
+                Entity previewEntity = petTypeEntry.getEntityType().create(level);
                 
                 if (previewEntity != null)
                 {
@@ -125,7 +148,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                     hoverPaneBuilder.build();
                     entityIcon.show();
                     final Text petType = rowPane.findPaneOfTypeByID(LABEL_TYPE, Text.class);
-                    Component type = PetTypes.values()[index].getEntityType().getDescription();
+                    Component type = petTypeEntry.getEntityType().getDescription();
                     String typeText = type.getString() + "";
                     petType.setText(Component.literal(typeText));       // If we use the component directly it comes out white for some reason
                     petType.setColors(Color.getByName("black", 0));
@@ -136,10 +159,17 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                 }
 
                 final ItemIcon trainingStackDisplay = rowPane.findPaneOfTypeByID(LABEL_TRAINING_ITEM, ItemIcon.class);
-                if (!PetTypes.values()[index].getTrainingItem().isEmpty())
+                if (!petTypeEntry.getTrainingItem().isEmpty())
                 {
                     trainingStackDisplay.setVisible(true);
-                    trainingStackDisplay.setItem(PetTypes.values()[index].getTrainingItem());
+                    trainingStackDisplay.setItem(petTypeEntry.getTrainingItem());
+                }
+
+                final ItemIcon coinStackDisplay = rowPane.findPaneOfTypeByID(LABEL_COIN_ITEM, ItemIcon.class);
+                if (petTypeEntry.getCoinCost() > 0)
+                {
+                    coinStackDisplay.setVisible(true);
+                    coinStackDisplay.setItem(new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.MCTP_COIN_ITEM.get()), petTypeEntry.getCoinCost()));
                 }
             }
 

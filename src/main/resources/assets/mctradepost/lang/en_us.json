@@ -208,6 +208,8 @@
     "entity.shopkeeper.brokenframe": "One of the shopkeeper's display frames is broken. Please repair the building.",
     "entity.shopkeeper.noframes": "No display frames were found for the shopkeeper to use.",
     "entity.shopkeeper.nospaceforcoins" : "The shopkeeper does not have enough space to mint coins.",
+    "entity.animaltrainer.nomarketplace" : "Finding this animals isn't free! I need a marketplace from which to draw funds.",
+    "entity.animaltrainer.nsf" : "There aren't enough funds to acquire and train your animals.",
 
     "block.mctradepost.blockhutresort": "Resort",
     "block.minecolonies.blockhutresort": "Resort",
@@ -378,13 +380,17 @@
     "com.mctradepost.research.effects.thriftshop_more.description": "Increase the number of Rare Finds in the Marketplace by x%s.",
     "com.mctradepost.research.effects.thriftshop_reroll.description": "Allows the ability to pay for new Rare Finds in the same game day.",
     "com.mctradepost.research.effects.thriftshop_bottomless.description": "Purchase common or uncommon items as many times as you like - while they're available.",
+    "com.mctradepost.research.effects.husbandry.description": "Allows your animal trainer to acquire husbandry animals.",
 
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "Trade availability has changed in connected stations!",
 
     "item.mctradepost.wish_health": "Wish of Health",
     "item.mctradepost.wish_plenty": "Wish of Plenty",
-
+    "item.mctradepost.wish_gathering_cow": "Wish of Herding",
+    "item.mctradepost.wish_gathering_pig": "Wish of Droving",
+    "item.mctradepost.wish_gathering_chicken": "Wish of Flocking",
+    "item.mctradepost.wish_gathering_sheep": "Wish of Shepherding",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "item.mctradepost.mctp_coin_gold": "Gold Trade Coin (‡)",
@@ -419,6 +425,10 @@
     "com.mctradepost.core.gui.modules.outpost.residents": "Outpost Residents",
     "com.mctradepost.core.gui.modules.outpost.exports": "Return to Colony",
 
+    "com.mctradepost.wishgather.marker.set.tooltip" : "Use a wishing well to gather your animals at %s",
+    "com.mctradepost.wishgather.marker.unset.tooltip" : "Right click on a block to set a gathering location for your animals.",
+    "com.mctradepost.wishgather.clicked" : "Gathering point established at %s",
+
     "com.minecolonies.coremod.gui.townhall.stats.current_balance": "‡ Impact: %d",
     "com.minecolonies.coremod.gui.townhall.stats.vacations.completed": "Vacations Completed: %d",
     "com.minecolonies.coremod.gui.townhall.stats.treats.served": "Served: %d %s",
@@ -427,6 +437,7 @@
     "com.minecolonies.coremod.gui.townhall.stats.imports_received": "Imported: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.tracks_validated": "Track Validations: %d",
     "com.minecolonies.coremod.gui.townhall.stats.pets_trained": "Pets Trained: %d",
+    "com.minecolonies.coremod.gui.townhall.stats.other_acquired": "Animals Acquired: %d",
     "com.minecolonies.coremod.gui.townhall.stats.items_recovered": "Recovered: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.animals_herded": "Animals Herded: %d %s",
     "com.minecolonies.coremod.gui.townhall.stats.items_scavenged": "Scavenged: %d %s",
@@ -454,8 +465,8 @@
     "com.minecolonies.coremod.gui.petstore.workbuilding" : "Work Building",
     "com.minecolonies.coremod.gui.petstore.empty" : "No Trained Animals",
     "com.minecolonies.coremod.gui.petstore.trainingitems" : "Training Items",
-    "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Pets",
-    "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer in order to determine what kind of pet they will train.",
+    "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Animals",
+    "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer. (‡) costs will be deducted from your marketplace balance.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
     "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 

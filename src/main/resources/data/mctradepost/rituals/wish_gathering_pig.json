@@ -1,0 +1,9 @@
+{
+  "companion_item": "mctradepost:wish_gathering_pig",
+  "companion_item_count": 1,
+  "effect_type": "summon",
+  "target" : "minecraft:pig",
+  "radius": 100,
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
+}

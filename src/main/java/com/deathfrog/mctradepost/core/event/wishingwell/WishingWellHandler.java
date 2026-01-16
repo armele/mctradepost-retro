@@ -23,6 +23,7 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
+import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -407,16 +408,6 @@ public class WishingWellHandler
     }
 
     /**
-     * Process a ritual summon effect at the given BlockPos within the ServerLevel. This will summon entities of the specified type at
-     * or near the target location.
-     *
-     * @param level  the ServerLevel to process the ritual in
-     * @param pos    the BlockPos of the wishing well structure
-     * @param ritual the ritual definition containing the target entity type and summon count
-     * @return true if the ritual was triggered, false otherwise
-     */
-
-    /**
      * Process a ritual slay effect at the given BlockPos within the ServerLevel. This will remove all entities of the specified type
      * within the given radius.
      * 
@@ -572,7 +563,7 @@ public class WishingWellHandler
      * @param ritual the ritual definition containing the effect details
      * @return true if the ritual was successfully triggered, false otherwise
      */
-    private static boolean processRitualSummon(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual)
+    private static boolean processRitualSummon(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
     {
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
         if (colony == null)
@@ -581,6 +572,7 @@ public class WishingWellHandler
             return false;
         }
 
+        BlockPos targetSummonPosition = pos;
         List<? extends Entity> targets = new ArrayList<>();
 
         if (RAIDER_TAG.equals(ritual.target()))
@@ -593,7 +585,26 @@ public class WishingWellHandler
         }
         else
         {
-            targets = gatherSummonTargets(level, pos, ritual);
+            ItemStack companionItem = state.companionItems.get(0).getItem();
+
+            // Special case for any wish of gathering - use the linked block position
+            if (companionItem.getItem() instanceof WishGatheringItem)
+            {
+                BlockPos gatheringLocation = WishGatheringItem.getLinkedBlockPos(companionItem);
+
+                if (gatheringLocation == null || BlockPos.ZERO.equals(gatheringLocation))
+                {
+                    LOGGER.warn("Summoning ritual called with unset target location.");
+                    MessageUtils.format("Summoning ritual called with unset target location.")
+                        .sendTo(colony)
+                        .forAllPlayers();
+                    return false;
+                }
+
+                targetSummonPosition = gatheringLocation;
+            }
+
+            targets = gatherSummonTargets(level, targetSummonPosition, ritual);
         }
 
         for (Entity entity : targets)
@@ -603,9 +614,18 @@ public class WishingWellHandler
                 // Generate random offset within nearby blocks in X and Z
                 int offsetX = level.random.nextInt(16) - 8;
                 int offsetZ = level.random.nextInt(16) - 8;
-                BlockPos targetPos = pos.offset(offsetX, 3, offsetZ);
+                BlockPos targetPos = targetSummonPosition.offset(offsetX, 3, offsetZ);
 
                 // Teleport them near the ritual location
+                entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
+            }
+            else    
+            {
+                // Generate random offset within nearby blocks in X and Z
+                int offsetX = level.random.nextInt(2) - 1;
+                int offsetZ = level.random.nextInt(2) - 1;
+
+                BlockPos targetPos = targetSummonPosition.offset(offsetX, 1, offsetZ);
                 entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
             }
         }
@@ -994,7 +1014,7 @@ public class WishingWellHandler
                         break;
 
                     case RitualManager.RITUAL_EFFECT_SUMMON:
-                        if (processRitualSummon(level, pos, ritual))
+                        if (processRitualSummon(level, pos, ritual, state))
                         {
                             result = RitualResult.COMPLETED;
                         }

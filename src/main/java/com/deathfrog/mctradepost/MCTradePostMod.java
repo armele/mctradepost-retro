@@ -9,6 +9,7 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
+import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
@@ -71,6 +72,7 @@ import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
+import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
@@ -270,6 +272,18 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WISH_HEALTH = ITEMS.register("wish_health",
         () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<WishGatheringItem> WISH_GATHERING_COW = ITEMS.register("wish_gathering_cow",
+        () -> new WishGatheringItem(new Item.Properties(), PetTypes.COW));
+        
+    public static final DeferredItem<WishGatheringItem> WISH_GATHERING_PIG = ITEMS.register("wish_gathering_pig",
+        () -> new WishGatheringItem(new Item.Properties(), PetTypes.PIG));
+
+    public static final DeferredItem<WishGatheringItem> WISH_GATHERING_CHICKEN = ITEMS.register("wish_gathering_chicken",
+        () -> new WishGatheringItem(new Item.Properties(), PetTypes.CHICKEN));
+
+    public static final DeferredItem<WishGatheringItem> WISH_GATHERING_SHEEP = ITEMS.register("wish_gathering_sheep",
+        () -> new WishGatheringItem(new Item.Properties(), PetTypes.SHEEP));
 
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
@@ -1221,6 +1235,10 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WOVEN_KELP_SLAB.get());
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
+                    event.accept(MCTradePostMod.WISH_GATHERING_COW.get());
+                    event.accept(MCTradePostMod.WISH_GATHERING_PIG.get());
+                    event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());
+                    event.accept(MCTradePostMod.WISH_GATHERING_SHEEP.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                     event.accept(MCTradePostMod.STEWPOT_FILLED.get());
                 }

@@ -22,7 +22,10 @@ public class TraceUtils {
     public static final String TRACE_STATION =          "station";
     public static final String TRACE_GUESTSERVICES =    "guestservices";
     public static final String TRACE_ANIMALTRAINER =    "animaltrainer";
-    public static final String TRACE_PETGOALS =         "petgoals";
+    public static final String TRACE_PETACTIVEGOAL =    "petactivegoal";
+    public static final String TRACE_PETSCAVENGEGOALS = "petscavengegoals";
+    public static final String TRACE_PETOTHERGOALS =    "petothergoals";
+    public static final String TRACE_PETHERDGOALS =     "petherdgoals";
     public static final String TRACE_OUTPOST =          "outpost";
     public static final String TRACE_CART =             "cart";
     public static final String TRACE_OUTPOST_REQUESTS = "outpostrequests";
@@ -98,7 +101,10 @@ public class TraceUtils {
         keys.add(TRACE_STATION);
         keys.add(TRACE_GUESTSERVICES);
         keys.add(TRACE_ANIMALTRAINER);
-        keys.add(TRACE_PETGOALS);
+        keys.add(TRACE_PETACTIVEGOAL);
+        keys.add(TRACE_PETSCAVENGEGOALS);
+        keys.add(TRACE_PETOTHERGOALS);
+        keys.add(TRACE_PETHERDGOALS);
         keys.add(TRACE_OUTPOST);
         keys.add(TRACE_CART);
         keys.add(TRACE_OUTPOST_REQUESTS);

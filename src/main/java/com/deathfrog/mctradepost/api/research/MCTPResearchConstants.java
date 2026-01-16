@@ -17,6 +17,7 @@ public class MCTPResearchConstants {
     public static final ResourceLocation THRIFTSHOP_MORE            = getResearchEffectID("thriftshop_more");
     public static final ResourceLocation THRIFTSHOP_REROLL          = getResearchEffectID("thriftshop_reroll");
     public static final ResourceLocation THRIFTSHOP_BOTTOMLESS      = getResearchEffectID("thriftshop_bottomless");
+    public static final ResourceLocation HUSBANDRY                  = getResearchEffectID("husbandry");
 
     public static ResourceLocation getResearchEffectID(String researchName) {
         return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "effects/" + researchName);

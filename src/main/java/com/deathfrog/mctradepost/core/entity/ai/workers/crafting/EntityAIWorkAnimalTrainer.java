@@ -22,10 +22,15 @@ import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetHelper;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import java.util.Optional;
@@ -37,6 +42,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -47,11 +53,13 @@ import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.api.util.constant.ColonyConstants;
+import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
 import com.minecolonies.core.entity.ai.workers.crafting.AbstractEntityAICrafting;
 import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
@@ -64,12 +72,14 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final String PETS_TRAINED = "pets_trained";
+    public static final String OTHER_ACQUIRED = "other_acquired";
     public static final String PETS_FED = "pets_fed";
     public static final String WORKSTATIONS_EMPTIED = "workstations_emptied";
     public static final double EMPTY_CHANCE = .10;
     public static final double FEEDING_CHANCE = .25;
 
     public static final int PETCHECK_FREQUENCY = 20;
+    public static final int RAISE_FREQUENCY = 20;
     public static final int PETFOOD_SIZE = 8;
 
     private List<ITradePostPet> hungryPets = new ArrayList<>();
@@ -77,6 +87,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
     private ITradePostPet currentTargetPet = null;
     private int petCheckCooldown = PETCHECK_FREQUENCY;
+    protected int raiseCooldown = RAISE_FREQUENCY;
     private BlockPos currentWorkLocation = null;
 
     public enum AnimalTrainerStates implements IAIState
@@ -158,9 +169,10 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return AnimalTrainerStates.EMPTY_WORKSITES;
         }
 
-        if (building.getPets().size() < (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
+        if (raiseCooldown-- <= 0)
         {
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Room for pets. I should raise one!"));
+            raiseCooldown = RAISE_FREQUENCY;
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} - Animal Trainer: Check on requests to raise pets.", building.getColony().getID()));
             return AnimalTrainerStates.RAISE_PET;
         }
 
@@ -514,46 +526,132 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return getState();
         }
 
+        BlockPos marketPos = building.getColony().getBuildingManager().getBestBuilding(building.getPosition(), BuildingMarketplace.class);
+
+        if (marketPos == null || BlockPos.ZERO.equals(marketPos))
+        {
+            int complaints = job.tickNoMarketplace();
+
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has no access to a marketplace ({} tries).", building.getColony().getID(), complaints));
+
+            if (job.checkNoMarketplaceInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+            }
+
+            return DECIDE;
+        }
+
+        BuildingMarketplace marketplace = (BuildingMarketplace) building.getColony().getBuildingManager().getBuilding(marketPos);
+
+        if (marketplace == null)
+        {
+            int complaints = job.tickNoMarketplace();
+
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has no access to a marketplace ({} tries).", building.getColony().getID(), complaints));
+
+            if (job.checkNoMarketplaceInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+            }
+
+            return DECIDE;
+        }
+
+        job.resetNoMarketplaceCounter();
+
+        BuildingEconModule econ = marketplace.getModule(MCTPBuildingModules.ECON_MODULE);
+        int coinValue = MCTPConfig.tradeCoinValue.get();
+
+        List<PetTypes> activePetTypes = new ArrayList<PetTypes>();
+        int husbandryResearch = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.HUSBANDRY);  
+
+        // Make the list of animals to raise smart enough to be research-aware.
         for (PetTypes type : PetTypes.values())
         {
-            ItemStack trainingStack = type.getTrainingItem();
+            if (type.isPet() == true || husbandryResearch > 0)
+            {
+                activePetTypes.add(type);
+            }
+        }
+
+        for (PetTypes petType : activePetTypes)
+        {
+            ItemStack trainingStack = petType.getTrainingItem();
 
             int count = MCTPInventoryUtils.combinedInventoryCount(building, new ItemStorage(trainingStack));
             if (count < trainingStack.getCount())
             {
                 continue;
             }
+            
+            int costNeeded = petType.getCoinCost() * coinValue;
+            if (econ.getTotalBalance() < costNeeded)
+            {
+                int complaints = job.tickNSF();
+
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has insufficient funds ({} tries).", building.getColony().getID(), complaints));
+
+                if (job.checkNSF())
+                {
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+                }
+                continue;
+            }
+
+            job.resetNSFCounter();
+
+            if (petType.isPet())
+            {
+                if (building.getPets().size() >= (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
+                {
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: No room for more pets at this time - skipping request for {}.", building.getColony().getID(), petType.getTypeName()));
+
+                    continue;
+                }
+            }
+
+            // Deduct the coin cost.
+            econ.deposit(-costNeeded);
 
             MCTPInventoryUtils.combinedInventoryRemoval(building, new ItemStorage(trainingStack), trainingStack.getCount());
             
             try
             {
                 // Instantiate the pet
-                Animal pet = type.getPetClass()
+                Animal pet = petType.getPetClass()
                     .getConstructor(EntityType.class, Level.class)
-                    .newInstance(type.getEntityType(), building.getColony().getWorld());
+                    .newInstance(petType.getEntityType(), building.getColony().getWorld());
 
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
-                    () -> LOGGER.info("Raising a pet: {}", type.getPetClass().getSimpleName()));
+                    () -> LOGGER.info("Raising a pet: {}", petType.getPetClass().getSimpleName()));
 
                 if (pet instanceof ITradePostPet)
                 {
+                    AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
+                            player -> MCTPAdvancementTriggers.PET_TRAINED.get().trigger(NullnessBridge.assumeNonnull(player)));
+
+                    StatsUtil.trackStat(building, PETS_TRAINED, 1);
+                    worker.getCitizenExperienceHandler().addExperience(2.0);
+
                     @SuppressWarnings({"rawtypes", "unchecked"})
                     PetHelper helper = new PetHelper(pet);
                     helper.doRegistration(building);
                 }
+                else
+                {
+                    BlockPos spawnPos = PetHelper.findNearbyValidSpawn(building.getColony().getWorld(), building.getPosition(), 3);
+                    pet.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                    building.getColony().getWorld().addFreshEntity(pet);
+                    
+                    StatsUtil.trackStat(building, OTHER_ACQUIRED, 1);
+                    worker.getCitizenExperienceHandler().addExperience(1.0);
+                }
                 
-                AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
-                        player -> MCTPAdvancementTriggers.PET_TRAINED.get().trigger(NullnessBridge.assumeNonnull(player)));
-
-                StatsUtil.trackStat(building, PETS_TRAINED, 1);
-                worker.getCitizenExperienceHandler().addExperience(2.0);
-                
-                break;
             }
             catch (ReflectiveOperationException e)
             {
-                MCTradePostMod.LOGGER.error("Failed to instantiate pet of type: " + type.name(), e);
+                MCTradePostMod.LOGGER.error("Failed to instantiate pet of type: " + petType.name(), e);
             }
         }
 

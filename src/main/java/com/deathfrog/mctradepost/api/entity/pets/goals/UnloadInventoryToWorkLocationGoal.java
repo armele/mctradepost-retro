@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETOTHERGOALS;
 
 import java.util.EnumSet;
 import java.util.Optional;
@@ -136,7 +136,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
         float fillPct = ((float) fullSlots / totalSlots);
 
         final int fullSlotsForLogging = fullSlots;
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, full slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, fullSlotsForLogging, totalSlots));
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, full slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, fullSlotsForLogging, totalSlots));
 
         return fillPct >= unloadThreshold;
     }
@@ -462,7 +462,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
             return;
         }
 
-         TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Trying unload for pet {}.", pet.getUUID()));
+         TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Trying unload for pet {}.", pet.getUUID()));
         
         // Use your shared helper to find a target inventory at this position
         Optional<IItemHandler> optHandler =
@@ -470,7 +470,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         if (optHandler.isEmpty())
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () ->
+            TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () ->
                 LOGGER.info("Pet {}: no inventory (cap or container) found at {}. Aborting unload.",
                     pet.getUUID(), pos.toShortString()));
 

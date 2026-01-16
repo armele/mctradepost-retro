@@ -231,7 +231,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         }
         catch (Exception e)
         {
-            LOGGER.error("Failed to deserialize parent entity data from tag: {}", compound, e);
+            LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         petData = new PetData<>(this, compound);
@@ -268,8 +268,8 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     public void tick()
     {
         super.tick();
-
-        if (!goalsInitialized && petData != null)
+        
+        if (petData != null && !petData.areGoalsInitialized()) 
         {
             resetGoals();
         }
@@ -280,7 +280,10 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
             petData.aiWatchdogTick();
             petData.logActiveGoals();
         }
-
+        else
+        {
+            LOGGER.warn("Failed to tick pet {}: petData is null", this);
+        }
     }
 
     /**
@@ -331,6 +334,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
         pathNavigation.getPathingOptions().setEnterDoors(true);
         pathNavigation.getPathingOptions().setCanOpenDoors(true);
+        pathNavigation.getPathingOptions().setEnterGates(true);
         pathNavigation.getPathingOptions().withDropCost(1D);
         pathNavigation.getPathingOptions().withJumpCost(1D);
         pathNavigation.getPathingOptions().setPassDanger(false);
@@ -466,7 +470,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
 
         // Only update originalName if we are NOT in debug mode
         // (i.e., a real in-game name/tag or command)
-        if (this.getPetData() != null && !TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS)) 
+        if (this.getPetData() != null && !TraceUtils.isTracing(TraceUtils.TRACE_PETACTIVEGOAL)) 
         {
             this.getPetData().setOriginalName(newName);
         }

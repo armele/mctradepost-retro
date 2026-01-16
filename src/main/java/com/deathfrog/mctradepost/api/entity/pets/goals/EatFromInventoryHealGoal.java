@@ -15,7 +15,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETOTHERGOALS;
 
 import java.util.Objects;
 
@@ -101,7 +101,7 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
 
         if (logThrottleCounter <= 0)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Want to heal - food item: {} (have {}).", foodItem, numFood));
+            TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Want to heal - food item: {} (have {}).", foodItem, numFood));
             logThrottleCounter = LOG_THROTTLE;
         }
 
@@ -175,7 +175,7 @@ public class EatFromInventoryHealGoal<P extends Animal & ITradePostPet> extends 
      */
     private void consumeOneAndHeal()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Healing pet - food: {}.", foodItem));
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Healing pet - food: {}.", foodItem));
 
         IItemHandler inv = pet.getInventory();
         if (inv == null) 

@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETOTHERGOALS;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -218,7 +218,7 @@ public class ReturnToWaterGoal<P extends Animal & ITradePostPet> extends Goal
         }
 
         // No path: treat as failure deterministically (avoid start/stop loops)
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.debug("ReturnToWater: no path to {}, blacklisting + cooldown.", target));
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.debug("ReturnToWater: no path to {}, blacklisting + cooldown.", target));
         blacklistTarget(target);
         cooldownTicks = COOLDOWN_TICKS_ON_FAIL;
         targetWaterPos = null;

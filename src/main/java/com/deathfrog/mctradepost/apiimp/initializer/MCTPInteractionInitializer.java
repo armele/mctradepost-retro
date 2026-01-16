@@ -12,7 +12,9 @@ import static com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIB
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
+import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStewmelier;
@@ -31,6 +33,8 @@ public class MCTPInteractionInitializer
     public static final String NOT_ON_MENU                  = "entity.stewmelier.onmenu";
     public static final String NO_SHOP_INVENTORY            = "entity.shopkeeper.noinventory";
     public static final String NO_SALE_ITEMS                = "entity.shopkeeper.noitems";
+    public static final String NO_MARKETPLACE               = "entity.animaltrainier.nomarketplace";
+    public static final String ANIMAL_NSF                   = "entity.animaltrainier.nsf";
 
     public static void injectInteractionHandlers() 
     {
@@ -85,5 +89,11 @@ public class MCTPInteractionInitializer
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_SALE_ITEMS),
           citizen -> citizen.getWorkBuilding() instanceof BuildingMarketplace && citizen.getJob(JobShopkeeper.class).checkForSaleItemsInteraction());
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_MARKETPLACE),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingPetshop && citizen.getJob(JobAnimalTrainer.class).checkNoMarketplaceInteraction());
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(ANIMAL_NSF),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingPetshop && citizen.getJob(JobAnimalTrainer.class).checkNSF());
     }
 }

@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETSCAVENGEGOALS;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -140,7 +140,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             long now = pet.level().getGameTime();
             if (now <= this.resumeUntilTick)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} is resuming scavenge at {}", pet.getUUID(), this.targetPos));
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Pet {} is resuming scavenge at {}", pet.getUUID(), this.targetPos));
                 return true;
             }
             else
@@ -206,7 +206,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             navigationPos = targetPos;
         }
 
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
+        TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
 
         return true;
     }
@@ -218,15 +218,18 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
      * 
      * @param reason the reason the goal is blocked
      */
-    private void logBlock(String format, Object... args) 
+    private void logBlock(String format, Object... args)
     {
-        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+        if (!TraceUtils.isTracing(TraceUtils.TRACE_PETSCAVENGEGOALS)) return;
 
-        if (debugging)
-        {
-            LOGGER.info("[SCAVENGE-WATER][BLOCK] uuid={} tick={} reason=" + format, pet.getUUID(), pet.tickCount, args);
-        }
+        Object[] allArgs = new Object[2 + args.length];
+        allArgs[0] = pet.getUUID();
+        allArgs[1] = pet.tickCount;
+        System.arraycopy(args, 0, allArgs, 2, args.length);
+
+        LOGGER.info("[SCAVENGE-WATER][BLOCK] uuid={} tick={} reason=" + format, allArgs);
     }
+
 
     /**
      * Begins moving the pet to the target scavenge location if it exists.
@@ -357,11 +360,11 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             float roll = pet.getRandom().nextFloat();
             pet.swing(InteractionHand.MAIN_HAND);
 
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
+            TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Reached target position during ScavengeWaterResourceGoal.tick. Harvest roll is: {} with a chance of {}", roll, chanceToFind));
 
             if (roll < chanceToFind)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Successful harvest attempt."));
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Successful harvest attempt."));
 
                 searchTries = 0;
                 harvest(localTargetPos);

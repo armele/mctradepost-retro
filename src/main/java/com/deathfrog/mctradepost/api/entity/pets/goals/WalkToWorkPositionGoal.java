@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.api.entity.pets.goals;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETOTHERGOALS;
 
 import java.util.EnumSet;
 import java.util.Optional;
@@ -96,7 +96,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
         emergencyThisRun = mob.getHealth() < mob.getMaxHealth();
         if (emergencyThisRun)
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.canUse: Emergency run to: {}", mob.getUUID(), targetPos));
+            TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.canUse: Emergency run to: {}", mob.getUUID(), targetPos));
 
             return true;
         }
@@ -210,7 +210,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
                 return;
             }
 
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", localMob.getUUID()));
+            TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Pet {} Looking for food in the work location.", localMob.getUUID()));
 
             // Pick up food from the working location if there is any
             Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(localLevel, localTargetPos, null);
@@ -228,7 +228,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             if (foodslot >= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} Picking up some food.", localMob.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Pet {} Picking up some food.", localMob.getUUID()));
                 boolean gotFood = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, foodslot, localMob.getInventory());
 
                 if (gotFood)
@@ -253,7 +253,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
 
             if ((pathTries < MAX_TRIES) && localMob.getNavigation().isDone() && retryCooldown <= 0)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", localTargetPos));
+                TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("WalkToWorkPositionGoal.tick: Retry path to {}", localTargetPos));
 
                 PathingUtil.flexiblePathing(localMob, localTargetPos, speedModifier);
                 pathTries++;
@@ -270,7 +270,7 @@ public class WalkToWorkPositionGoal<P extends Animal & ITradePostPet> extends Go
     @Override
     public void stop()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.stop: {}, {}, {}, {}, {}", mob.getUUID(), emergencyThisRun, feedingTries, pathTries, retryCooldown));
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Pet {} WalkToWorkPositionGoal.stop: {}, {}, {}, {}, {}", mob.getUUID(), emergencyThisRun, feedingTries, pathTries, retryCooldown));
 
         emergencyThisRun = false;
         feedingTries = 0;

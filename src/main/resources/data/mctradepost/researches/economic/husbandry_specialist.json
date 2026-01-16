@@ -1,0 +1,41 @@
+{
+    "name": "Husbandry Specialist",
+    "subtitle": "I can find you a cow!",
+    "branch": "economic",
+    "parentResearch": "mctradepost:economic/bestfriend",
+    "researchLevel": 2,
+    "sortOrder" : 0,
+    "exclusiveChildResearch": false,
+    "no-reset" : false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:petshop",
+            "level": 2
+        }
+    ],
+    "costs": [
+        {
+            "count": 3,
+            "item": "mctradepost:mctp_coin"
+        },
+        {
+            "count": 8,
+            "item": "minecraft:wheat"
+        },
+        {
+            "count": 8,
+            "item": "minecraft:carrot"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/husbandry",
+            "level": 1
+        }
+    ],
+    "icon": "mctradepost:mctp_coin"
+}

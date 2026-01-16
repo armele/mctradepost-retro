@@ -1,7 +1,5 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
-
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +67,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETGOALS;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.*;
 
 public class  PetData<P extends Animal & ITradePostPet & IHerdingPet> 
 {
@@ -408,7 +406,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void assignPetGoals()
     {
-        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning pet goals for pet {}:", this.animal.getUUID()));
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Assigning pet goals for pet {}:", this.animal.getUUID()));
 
         this.assignBasicGoals();
         this.assignGoalFromWorkLocation();
@@ -486,12 +484,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         switch (role)
         {
             case HERDING:
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning herding goals for pet {}:", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Assigning herding goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HerdGoal<P>(this.getAnimal()));
                 break;
 
             case SCAVENGE_LAND:
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeForResourceGoal<>(
                     this.getAnimal(),
                     16,                      // search radius
@@ -519,7 +517,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 break;
 
             case SCAVENGE_WATER:
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Assigning scavenge_water goals for pet {}:", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_water goals for pet {}:", this.animal.getUUID()));
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeWaterResourceGoal<>(
                     this.getAnimal(), 
                     8,
@@ -574,7 +572,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             // (first second): make sure control flags aren’t stuck off
             if (stallTicks == STALL_PHASE1)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet {}: checking control flags.", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("Pet stall tick. Pet {}: checking control flags.", this.animal.getUUID()));
                 getAnimal().goalSelector.enableControlFlag(Goal.Flag.MOVE);
                 getAnimal().goalSelector.enableControlFlag(Goal.Flag.LOOK);
                 getAnimal().targetSelector.enableControlFlag(Goal.Flag.TARGET);
@@ -582,13 +580,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             // (~2s): clear stale path to let goals start fresh
             if (stallTicks == STALL_PHASE2)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Clear stale path to let goals start fresh.", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("Pet stall tick. Pet  {}: Clear stale path to let goals start fresh.", this.animal.getUUID()));
                 getAnimal().getNavigation().stop();
             }
             // (~5s): single soft goal refresh (once)
             if (stallTicks == STALL_PHASE3)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet stall tick. Pet  {}: Resetting goals.", this.animal.getUUID()));
+                TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("Pet stall tick. Pet  {}: Resetting goals.", this.animal.getUUID()));
                 getAnimal().resetGoals();
             }
         }
@@ -596,7 +594,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             if (stallTicks >= STALL_PHASE1)
             {
-                TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {}: Recovered. Active: {}, getAnimal().isAlive(): {}, getAnimal().isPassenger(): {}, getAnimal().isLeashed(): {}, getAnimal().isNoAi(): {}", 
+                TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("Pet {}: Recovered. Active: {}, getAnimal().isAlive(): {}, getAnimal().isPassenger(): {}, getAnimal().isLeashed(): {}, getAnimal().isNoAi(): {}", 
                     this.animal.getUUID(), active, getAnimal().isAlive(), getAnimal().isPassenger(), getAnimal().isLeashed(), getAnimal().isNoAi()));
             }
 
@@ -777,7 +775,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public void logActiveGoals()
     {
         if (animal.level().isClientSide) return;
-        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETACTIVEGOAL);
 
         if (!debugging) return;
 
@@ -789,7 +787,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (getAnimal() == null) 
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No pet data while logging active goal in PetData."));
+            TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("No pet data while logging active goal in PetData."));
             return;
         }
 
@@ -816,7 +814,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             if (wrapped.isRunning())
             {
                 goalFound = true;
-                TraceUtils.dynamicTrace(TRACE_PETGOALS,
+                TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL,
                     () -> LOGGER.info("Active Target Goal for pet {}: {}, with tick count {}." , this.getAnimal().getUUID(), goal.getClass().getSimpleName(), animal.tickCount));
             }
         }
@@ -1225,7 +1223,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         try
         {
-            TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Resetting pet goals for pet {}:", this.animal.getUUID()));
+            TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("Resetting pet goals for pet {}:", this.animal.getUUID()));
 
             animal.goalSelector.enableControlFlag(Goal.Flag.MOVE);
             animal.goalSelector.enableControlFlag(Goal.Flag.LOOK);
@@ -1285,7 +1283,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 {
                     try
                     {
-                        TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("{}: Stopping goal {}.", this.animal.getUUID(), goal.getClass().getSimpleName()));
+                        TraceUtils.dynamicTrace(TRACE_PETACTIVEGOAL, () -> LOGGER.info("{}: Stopping goal {}.", this.animal.getUUID(), goal.getClass().getSimpleName()));
                         wrapped.stop();
                     }
                     catch (Exception ignored)
@@ -1412,7 +1410,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (getAnimal() == null) return;
 
-        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETGOALS);
+        boolean debugging = TraceUtils.isTracing(TraceUtils.TRACE_PETACTIVEGOAL);
 
         if (debugging)
         {
@@ -1435,7 +1433,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             // In normal gameplay: restore the true saved name
             this.getAnimal().setCustomName(this.originalName);
-            this.getAnimal().setCustomNameVisible(false); // or false, depending on your preference
+            this.getAnimal().setCustomNameVisible(false);
         }
     }
 

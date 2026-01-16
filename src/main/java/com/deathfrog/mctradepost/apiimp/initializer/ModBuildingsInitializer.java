@@ -49,7 +49,7 @@ public final class ModBuildingsInitializer
     }
 
     /**
-     * Registers and initializes the marketplace and resort buildings in the DEFERRED_REGISTER.
+     * Registers and initializes the custom buildings in the DEFERRED_REGISTER.
      * This method creates building entries for each building type, specifying their respective
      * building blocks, producers, view producers, and registry names.
      * Additional module producers can be added to each building entry as needed.
