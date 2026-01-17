@@ -12,6 +12,12 @@
     "minecraft:music_disc_otherside",
     "minecraft:heart_of_the_sea",
     "minecraft:netherite_scrap",
-    "minecolonies:ancienttome"
+    "minecolonies:ancienttome",
+    "minecraft:diamond_shovel",
+    "minecraft:diamond_hoe",
+    {"id": "#mysticalagriculture:mysticalagriculture_seeds_elemental", "required": false},
+    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier1", "required": false},
+    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier2", "required": false},
+    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier3", "required": false}
   ]
 }

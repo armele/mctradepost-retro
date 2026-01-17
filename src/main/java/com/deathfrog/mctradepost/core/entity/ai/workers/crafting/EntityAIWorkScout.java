@@ -736,7 +736,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                         {
                             try
                             {
-                                boolean outstandingRequest = building.isItemStackInRequest(toOrder.getItemStack());
+                                boolean outstandingRequest = outpostWorksite.isItemStackInRequest(toOrder.getItemStack());
 
                                 if (!outstandingRequest)
                                 {

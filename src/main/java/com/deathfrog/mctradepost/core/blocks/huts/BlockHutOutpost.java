@@ -69,7 +69,6 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         }
     }
 
-
     /**
      * Retrieves the linked block position from the given item stack.
      *
@@ -81,7 +80,6 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
     {
         return stack.getOrDefault(LINKED_BLOCK_POS(), NullnessBridge.assumeNonnull(BlockPos.ZERO));
     }
-
 
     /**
      * Checks if the given item stack has a linked block position.

@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class TrackPathConnection
 {
+    public static final int RAIL_CHUNK_RADIUS = 2;
     private static final int MAX_DEPTH = 10000; // Prevent runaway traversal
 
     public static class TrackConnectionResult
@@ -212,7 +213,7 @@ public class TrackPathConnection
         {
             if (loadChunks)
             {
-                ChunkUtil.ensureChunkLoaded(level, nxt);
+                ChunkUtil.ensureChunkLoadedByTicket(level, nxt, RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
             }
         }
 

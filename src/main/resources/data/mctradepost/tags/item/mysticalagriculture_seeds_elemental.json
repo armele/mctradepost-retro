@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "mysticalagriculture:air_seeds", "required": false },
+    { "id": "mysticalagriculture:earth_seeds", "required": false },
+    { "id": "mysticalagriculture:water_seeds", "required": false },
+    { "id": "mysticalagriculture:fire_seeds", "required": false }
+  ]
+}

@@ -1,10 +1,10 @@
 {
   "replace": false,
   "values": [
-    "#c:seeds",
     "#c:strings",
     "#c:mushrooms",
-    "#c:crops",
+    {"id": "#c:fruits", "required": false},
+    {"id": "#c:vegetables", "required": false},
     "#minecraft:saplings",
     "#mctradepost:vegetable",
     "minecraft:bread",
@@ -19,7 +19,7 @@
     "minecraft:clay_ball",
     "minecraft:flint",
     "minecraft:sand",
-    "minecraft:rotten_flesh",
+    "minecraft:rotten_flesh", 
     "minecraft:rooted_dirt",
     "minecraft:gravel",
     "minecraft:coarse_dirt",

@@ -22,8 +22,11 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
+import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
@@ -45,6 +48,7 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TypeConstants;
@@ -101,11 +105,70 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         return ModBuildings.OUTPOST_ID;
     }
 
+    /**
+     * Requests a work order for the outpost, and if the outpost is currently at level 0, forces the chunk to load for the
+     * building to proceed.
+     *
+     * @param type the type of work order to request
+     * @param builder the position of the builder requesting the work order
+     */
+    @Override
+    protected void requestWorkOrder(WorkOrderType type, final BlockPos builder)
+    {
+        if (getBuildingLevel() == 0)
+        {
+            forceChunkForBuilding(true);
+        }
+
+        super.requestWorkOrder(type, builder);
+    }
+
+    /**
+     * Called when this outpost is destroyed. This method is responsible for releasing the force load on the chunk for the outpost.
+     */
+    @Override
+    public void onDestroyed()
+    {
+        super.onDestroyed();
+        forceChunkForBuilding(false);
+    }
+
+    /**
+     * If level 0, keep the chunk around the outpost loaded so the builder can build it.
+     * After level 0 fall back to the regular colony chunk handling.  At that point there
+     * should be a local builder available.
+     */
+    protected void forceChunkForBuilding(boolean load)
+    {
+        Level level = getColony().getWorld();
+        BlockPos pos = getPosition();
+
+        if (level == null || pos == null || level.isClientSide) return;
+
+        if (load)
+        {
+            ChunkUtil.ensureChunkLoadedByTicket((ServerLevel)level, pos, 0, ChunkUtil.OUTPOST_TICKET);
+        }
+        else
+        {
+            ChunkUtil.releaseChunkTicket((ServerLevel) level, pos, 0, ChunkUtil.OUTPOST_TICKET);
+        }
+    }
+
+    /**
+     * Called when the outpost is restarted (i.e. when it is rebuilt after being destroyed).
+     * This method will re-establish the connection to the connected station (if it still exists),
+     * and will force the chunks around the outpost to be loaded if the outpost is at level 1 or higher.
+     * This is necessary because the outpost needs to be able to access the connected station in order to
+     * function properly.
+     * 
+     * @param citizen The data of the citizen who is restarting the outpost
+     */
     @Override
     public void onRestart(ICitizenData citizen)
     {
         super.onRestart(citizen);
-
+        
         establishConnectedStation();
     }
     
@@ -240,6 +303,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         }
 
         readRequestTrackingFromNbt(provider, compound);
+
     }
 
     @Override
@@ -444,6 +508,16 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
                 requestTracking.remove(request.getId());
             }
         }
+
+        // if the outpost is pending construction and has no level, force chunk loading
+        if (isPendingConstruction() && getBuildingLevel() == 0)
+        {
+            forceChunkForBuilding(true);
+        }
+        else
+        {
+            forceChunkForBuilding(false);
+        }
     }
 
     /**
@@ -514,6 +588,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         super.onUpgradeComplete(buildingLevel);
         
         establishConnectedStation();
+
+        forceChunkForBuilding(false);
     }
 
     /**

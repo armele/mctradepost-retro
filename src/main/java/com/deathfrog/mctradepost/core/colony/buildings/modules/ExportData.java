@@ -18,6 +18,7 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
@@ -158,7 +159,7 @@ public class ExportData
             return null;
         }
 
-        ChunkUtil.ensureChunkLoaded(level, startPos);
+        ChunkUtil.ensureChunkLoadedByTicket(level, startPos, TrackPathConnection.RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
 
         GhostCartEntity newCart =
             GhostCartEntity.spawn(level, NullnessBridge.assumeNonnull(ImmutableList.copyOf(path)), isReverse());
@@ -180,7 +181,7 @@ public class ExportData
         newCart.setTradeItem(tradeItem);
         this.setCart(newCart);
 
-        ChunkUtil.releaseChunkTicket(level, startPos, 1);
+        ChunkUtil.releaseChunkTicket(level, startPos, TrackPathConnection.RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
 
         return newCart;
     }

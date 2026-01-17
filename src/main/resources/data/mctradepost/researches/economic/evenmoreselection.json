@@ -19,8 +19,16 @@
     ],
     "costs": [
         {
-            "count": 1,
+            "count": 3,
             "item": "mctradepost:mctp_coin_diamond"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:nether_star"
+        },
+        {
+            "count": 8,
+            "item": "minecraft:chorus_flower"
         }
     ],
     "effects": [

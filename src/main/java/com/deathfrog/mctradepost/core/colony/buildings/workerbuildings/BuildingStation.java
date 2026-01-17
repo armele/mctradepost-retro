@@ -321,13 +321,32 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
 
             // Restore track connection information if not present (for example, after restoring from a save)
-            if (getTrackConnectionResult(remoteStation) == null)
+            TrackConnectionResult tcr = getTrackConnectionResult(remoteStation);
+            if (tcr == null)
             {
+                TraceUtils.dynamicTrace(TRACE_STATION,
+                    () -> LOGGER.info("Colony {} - no track connection result between station {} and remote station {}. Repairing.", 
+                    building.getColony().getID(), building.getPosition(), remoteStation));
+
                 TrackConnectionResult trackConnectionResult =
                     TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(),
                         this.getRailStartPosition(),
                         remoteStation.getRailStartPosition(),
-                        false);
+                        true);
+                putTrackConnectionResult(remoteStation, trackConnectionResult);
+                markTradesDirty();
+            } 
+            else if (tcr != null && tcr.connected && (tcr.path == null || tcr.path.isEmpty()))
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION,
+                    () -> LOGGER.info("Colony {} - allegedly connected track connection result between station {} and remote station {} has no path. Repairing.", 
+                    building.getColony().getID(), building.getPosition(), remoteStation));
+
+                TrackConnectionResult trackConnectionResult =
+                    TrackPathConnection.arePointsConnectedByTracks((ServerLevel) this.getColony().getWorld(),
+                        this.getRailStartPosition(),
+                        remoteStation.getRailStartPosition(),
+                        true);
                 putTrackConnectionResult(remoteStation, trackConnectionResult);
                 markTradesDirty();
             }
