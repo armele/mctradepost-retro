@@ -8,6 +8,7 @@ import com.minecolonies.core.network.messages.server.colony.building.RecallCitiz
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostLivingBuildingModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.views.OutpostView;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.Text;
 import com.minecolonies.api.colony.ICitizenDataView;
 import com.minecolonies.api.util.constant.Constants;
@@ -40,6 +41,15 @@ public class OutpostWindowHutLiving extends AbstractModuleWindow<OutpostLivingBu
     public void onOpened()
     {
         super.onOpened();
+
+        Text editBox = findPaneOfTypeByID("name", Text.class);
+        Button editButton = findPaneOfTypeByID("editName", Button.class);
+        Button buildButton = findPaneOfTypeByID("build", Button.class);
+        
+        if (editBox != null) editBox.hide();
+        if (editButton != null) editButton.hide();
+        if (buildButton != null) buildButton.hide();
+
         citizen = findPaneOfTypeByID(LIST_CITIZEN, ScrollingList.class);
         citizen.setDataProvider(new ScrollingList.DataProvider()
         {

@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "rootsclassic:verdant_sprig", "required": false },
+    { "id": "rootsclassic:nightshade", "required": false },
+    { "id": "rootsclassic:blackcurrant", "required": false },
+    { "id": "rootsclassic:redcurrant", "required": false },
+    { "id": "rootsclassic:whitecurrant", "required": false }
+  ]
+}
