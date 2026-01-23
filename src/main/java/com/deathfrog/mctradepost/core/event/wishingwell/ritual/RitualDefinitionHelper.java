@@ -13,7 +13,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import static com.deathfrog.mctradepost.core.event.wishingwell.WishingWellHandler.RAIDER_TAG;
+import static com.deathfrog.mctradepost.core.event.wishingwell.ritual.SummonRitualProcessor.RAIDER_TAG;
 
 public class RitualDefinitionHelper
 {

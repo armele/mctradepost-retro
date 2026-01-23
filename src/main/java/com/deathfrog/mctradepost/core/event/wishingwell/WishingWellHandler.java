@@ -1,47 +1,27 @@
 // Part 1: WishingWellHandler to manage fountain rituals
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
-import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
-import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
-import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
-import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
-import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
-import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
-import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
-import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
-import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.CommunityRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.OutpostRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
-import com.minecolonies.api.colony.ICitizenData;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.SummonRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.TransformRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.WeatherRitualProcessor;
 import com.deathfrog.mctradepost.item.CoinItem;
-import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
-import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
-import com.minecolonies.api.colony.colonyEvents.IColonyEvent;
-import com.minecolonies.api.colony.colonyEvents.IColonyRaidEvent;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
-import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
-import com.minecolonies.api.entity.citizen.happiness.ExpirationBasedHappinessModifier;
-import com.minecolonies.api.entity.citizen.happiness.StaticHappinessSupplier;
-import com.minecolonies.api.entity.mobs.AbstractEntityMinecoloniesRaider;
-import com.minecolonies.api.util.MessageUtils;
-import com.minecolonies.api.util.constant.HappinessConstants;
-import com.minecolonies.core.colony.Colony;
-import com.minecolonies.core.datalistener.model.Disease;
-import com.minecolonies.core.network.messages.client.CircleParticleEffectMessage;
 import com.minecolonies.core.util.AdvancementUtils;
-import com.minecolonies.core.util.ChunkDataHelper;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -73,8 +53,6 @@ public class WishingWellHandler
 
     private static final int MAX_WISHINGWELL_COOLDOWN = 100;
     private static int wishingWellCooldown = MAX_WISHINGWELL_COOLDOWN;
-
-    public static final String RAIDER_TAG = "minecolonies:raider";
 
     /**
      * Handles level tick events for server-side wishing well structures. This method checks each registered wishing well location to
@@ -256,7 +234,7 @@ public class WishingWellHandler
      * @param level the server level
      * @param pos   the position of the well
      */
-    private static void showRitualEffect(@Nonnull ServerLevel level, @Nonnull BlockPos pos)
+    public static void showRitualEffect(@Nonnull ServerLevel level, @Nonnull BlockPos pos)
     {
         // Lightning visual
         LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(level);
@@ -408,538 +386,6 @@ public class WishingWellHandler
     }
 
     /**
-     * Process a ritual slay effect at the given BlockPos within the ServerLevel. This will remove all entities of the specified type
-     * within the given radius.
-     * 
-     * @param level  the ServerLevel to process the ritual in
-     * @param pos    the BlockPos of the wishing well structure
-     * @param ritual the ritual definition containing the target entity type and radius
-     * @return true if the ritual was triggered, false otherwise
-     */
-    private static boolean processRitualSlay(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual)
-    {
-        List<? extends Entity> targets = gatherSummonTargets(level, pos, ritual);
-
-        targets.forEach(Entity::discard);
-
-        LOGGER.info("Slay ritual of {} completed at {} with a radius of {}, slaying {}",
-            ritual.target(),
-            pos,
-            ritual.radius(),
-            targets.size());
-        showRitualEffect(level, pos);
-
-        return true;
-    }
-
-    /**
-     * Processes a weather ritual at the specified BlockPos within the ServerLevel. Based on the ritual definition, it sets the weather
-     * to clear, rain, or storm for the remainder of the day. If the target weather type is unknown, the ritual is ignored.
-     *
-     * @param level  the ServerLevel where the ritual is taking place
-     * @param pos    the BlockPos of the wishing well structure
-     * @param ritual the ritual definition containing the target weather type
-     * @return true if the ritual was successfully triggered, false otherwise
-     */
-    private static boolean processRitualWeather(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual)
-    {
-        int restOfDay = 24000 - (int) (level.getDayTime() % 24000);
-        int clearTime = 0;
-        int weatherTime = 0;
-        boolean isRaining = false;
-        boolean isThundering = false;
-
-        String weather = ritual.target();
-        // LOGGER.info("Ritual target {} resolved to {}", ritual.target(), entityType);
-
-        if (weather == null)
-        {
-            LOGGER.info("No weather target provided during Weather ritual.");
-            return false;
-        }
-        else if (weather.equals("clear"))
-        {
-            clearTime = restOfDay;
-            weatherTime = 0;
-            isRaining = false;
-            isThundering = false;
-        }
-        else if (weather.equals("rain"))
-        {
-            clearTime = 0;
-            weatherTime = restOfDay;
-            isRaining = true;
-            isThundering = false;
-        }
-        else if (weather.equals("storm"))
-        {
-            clearTime = 0;
-            weatherTime = restOfDay;
-            isRaining = true;
-            isThundering = true;
-        }
-        else
-        {
-            LOGGER.info("Unknown weather ritual of {} ignored at {} ", weather, pos);
-            return false;
-        }
-
-        level.setWeatherParameters(clearTime, weatherTime, isRaining, isThundering);
-
-        LOGGER.info("Weather ritual of {} completed at {} ", weather, pos);
-        showRitualEffect(level, pos);
-
-        return true;
-    }
-
-    /**
-     * Gathers the entities participating in the ongoing raid event (if any) within the given colony.
-     * 
-     * @param colony the colony to search for an ongoing raid event
-     * @return a (possibly empty) list of entities participating in the ongoing raid event
-     */
-    protected static List<? extends Entity> gatherRaidTargets(IColony colony)
-    {
-        List<? extends Entity> targets = new ArrayList<>();
-
-        // IRaiderManager raidManager = colony.getRaiderManager();
-        for (IColonyEvent event : colony.getEventManager().getEvents().values())
-        {
-            if (event instanceof IColonyRaidEvent)
-            {
-                targets = ((IColonyRaidEvent) event).getEntities();
-                break;
-            }
-        }
-
-        return targets;
-    }
-
-    /**
-     * Gathers entities of a specific type within a certain radius of the given BlockPos or globally.
-     * 
-     * @param level  the ServerLevel to search for entities
-     * @param pos    the BlockPos used as the center of the search radius or globally if the radius is negative
-     * @param ritual the ritual definition containing the target entity type and radius
-     * @return a list of entities of the target type within the search radius
-     */
-    protected static List<? extends Entity> gatherSummonTargets(@Nonnull ServerLevel level,
-        @Nonnull BlockPos pos,
-        RitualDefinitionHelper ritual)
-    {
-        List<? extends Entity> targets = new ArrayList<>();
-        EntityType<?> entityType = ritual.getTargetAsEntityType();
-
-        if (entityType == null)
-        {
-            LOGGER.warn("No entity type found for {} during Slay ritual.", ritual.target());
-            return targets;
-        }
-
-        Double radius = (double) ritual.radius();
-
-        if (radius < 0)
-        {
-            // Global: all loaded entities of this type
-            targets = level.getEntities(entityType, entity -> entity.getType().equals(entityType));
-        }
-        else
-        {
-            // Local purge
-            AABB box = new AABB(pos).inflate(radius);
-            targets = level.getEntities(entityType, NullnessBridge.assumeNonnull(box), entity -> entity.getType().equals(entityType));
-        }
-
-        return targets;
-    }
-
-    /**
-     * Processes a raid end ritual at the specified BlockPos within the ServerLevel. This ritual targets all entities involved in an
-     * ongoing raid within the colony located at the given position. The targeted entities are teleported to a random location near the
-     * ritual site and subsequently slain.
-     *
-     * @param level  the ServerLevel where the ritual is taking place
-     * @param pos    the BlockPos of the wishing well structure
-     * @param ritual the ritual definition containing the effect details
-     * @return true if the ritual was successfully triggered, false otherwise
-     */
-    private static boolean processRitualSummon(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual, RitualState state)
-    {
-        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
-        if (colony == null)
-        {
-            LOGGER.warn("No colony found at {} where this ritual was attempted: {}", pos, ritual.describe());
-            return false;
-        }
-
-        BlockPos targetSummonPosition = pos;
-        List<? extends Entity> targets = new ArrayList<>();
-
-        if (RAIDER_TAG.equals(ritual.target()))
-        {
-            targets = gatherRaidTargets(colony);
-            if (targets.size() == 0)
-            {
-                LOGGER.warn("No raid event found at {} where this ritual was attempted: {}", pos, ritual.describe());
-            }
-        }
-        else
-        {
-            ItemStack companionItem = state.companionItems.get(0).getItem();
-
-            // Special case for any wish of gathering - use the linked block position
-            if (companionItem.getItem() instanceof WishGatheringItem)
-            {
-                BlockPos gatheringLocation = WishGatheringItem.getLinkedBlockPos(companionItem);
-
-                if (gatheringLocation == null || BlockPos.ZERO.equals(gatheringLocation))
-                {
-                    LOGGER.warn("Summoning ritual called with unset target location.");
-                    MessageUtils.format("Summoning ritual called with unset target location.")
-                        .sendTo(colony)
-                        .forAllPlayers();
-                    return false;
-                }
-
-                targetSummonPosition = gatheringLocation;
-            }
-
-            targets = gatherSummonTargets(level, targetSummonPosition, ritual);
-        }
-
-        for (Entity entity : targets)
-        {
-            if (entity instanceof AbstractEntityMinecoloniesRaider)
-            {
-                // Generate random offset within nearby blocks in X and Z
-                int offsetX = level.random.nextInt(16) - 8;
-                int offsetZ = level.random.nextInt(16) - 8;
-                BlockPos targetPos = targetSummonPosition.offset(offsetX, 3, offsetZ);
-
-                // Teleport them near the ritual location
-                entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
-            }
-            else    
-            {
-                // Generate random offset within nearby blocks in X and Z
-                int offsetX = level.random.nextInt(2) - 1;
-                int offsetZ = level.random.nextInt(2) - 1;
-
-                BlockPos targetPos = targetSummonPosition.offset(offsetX, 1, offsetZ);
-                entity.teleportTo(targetPos.getX() + 0.5, targetPos.getY() + 0.5, targetPos.getZ() + 0.5);
-            }
-        }
-
-        LOGGER.info("Summoning ritual completed at {}, bringing {} entities.", pos, targets.size());
-        showRitualEffect(level, pos);
-
-        return true;
-    }
-
-    /**
-     * Processes a transformation ritual at the specified BlockPos within the ServerLevel. This ritual transforms companion items into
-     * a target item, as defined in the ritual. If the number of companion items is insufficient, the ritual cannot proceed.
-     *
-     * @param level  the ServerLevel where the ritual is taking place
-     * @param pos    the BlockPos of the wishing well structure
-     * @param ritual the ritual definition containing the target item and companion item count
-     * @param state  the current state of the ritual, including companion item count
-     * @return RitualResult indicating whether the ritual was completed, needed ingredients, or failed due to an error
-     */
-    public static RitualResult processRitualTransform(@Nonnull ServerLevel level,
-        @Nonnull BlockPos pos,
-        RitualDefinitionHelper ritual,
-        RitualState state)
-    {
-        if (state.getCompanionCount() < ritual.companionItemCount())
-        {
-            return RitualResult.NEEDS_INGREDIENTS;
-        }
-
-        try
-        {
-            Item targetItem = ritual.getTargetAsItem();
-
-            if (targetItem == null)
-            {
-                return RitualResult.FAILED;
-            }
-
-            MCTPInventoryUtils.dropItemsInWorld(level, pos, new ItemStack(targetItem, ritual.companionItemCount()));
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Failed to drop items for ritual", e);
-            return RitualResult.FAILED;
-        }
-        showRitualEffect(level, pos);
-        return RitualResult.COMPLETED;
-    }
-
-    /**
-     * Processes a community ritual at the specified BlockPos within the ServerLevel. This ritual gives a random effect to each citizen
-     * in the colony, based on the companion item used. If the number of companion items is insufficient, the ritual cannot proceed.
-     * 
-     * @param marketplace the marketplace where the ritual is taking place
-     * @param pos         the BlockPos of the wishing well structure
-     * @param ritual      the ritual definition containing the target item and companion item count
-     * @param state       the current state of the ritual, including companion item count
-     * @return RitualResult indicating whether the ritual was completed, needed ingredients, or failed due to an error
-     */
-    public static RitualResult processRitualCommunity(@Nonnull BuildingMarketplace marketplace,
-        @Nonnull BlockPos pos,
-        RitualDefinitionHelper ritual,
-        RitualState state)
-    {
-        ServerLevel currentLevel = (ServerLevel) marketplace.getColony().getWorld();
-
-        if (currentLevel == null)
-        {
-            return RitualResult.FAILED;
-        }
-
-        if (state.getCompanionCount() < ritual.companionItemCount())
-        {
-            return RitualResult.NEEDS_INGREDIENTS;
-        }
-
-        try
-        {
-            Item companionItem = BuiltInRegistries.ITEM.get(ritual.companionItem());
-            List<ICitizenData> citizens = marketplace.getColony().getCitizenManager().getCitizens();
-
-            for (ICitizenData citizen : citizens)
-            {
-                if (!citizen.getEntity().isPresent())
-                {
-                    continue;
-                }
-
-                AbstractEntityCitizen entity = citizen.getEntity().get();
-
-                if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get()))
-                {
-                    if (citizen.getEntity().isPresent())
-                    {
-                        entity.setHealth(entity.getMaxHealth());
-                        citizen.setSaturation(ICitizenData.MAX_SATURATION);
-                        citizen.setJustAte(true);
-                        citizen.getCitizenHappinessHandler()
-                            .addModifier(new ExpirationBasedHappinessModifier(HappinessConstants.HADGREATFOOD,
-                                2.0,
-                                new StaticHappinessSupplier(2.0),
-                                5));
-
-                        entity.playSound(NullnessBridge.assumeNonnull(SoundEvents.NOTE_BLOCK_HARP.value()),
-                            (float) SoundUtils.BASIC_VOLUME,
-                            (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
-                        new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
-                            .sendToTrackingEntity(entity);
-                    }
-                }
-                else if (companionItem.equals(MCTradePostMod.WISH_HEALTH.get()))
-                {
-                    ICitizenDiseaseHandler diseaseHandler = citizen.getCitizenDiseaseHandler();
-                    final Disease disease = diseaseHandler.getDisease();
-                    if (disease != null)
-                    {
-                        diseaseHandler.cure();
-                        entity.playSound(NullnessBridge.assumeNonnull(SoundEvents.NOTE_BLOCK_HARP.value()),
-                            (float) SoundUtils.BASIC_VOLUME,
-                            (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
-                        new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
-                            .sendToTrackingEntity(entity);
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Failed to process community ritual.", e);
-            return RitualResult.FAILED;
-        }
-
-        showRitualEffect(currentLevel, pos);
-        return RitualResult.COMPLETED;
-    }
-
-    /**
-     * Processes an outpost ritual at the specified BlockPos within the ServerLevel. This ritual sets up an outpost claim marker at the
-     * specified BlockPos and connects it to the nearest station. It handles all validations to ensure outposts are in valid locations.
-     * 
-     * @param level       the ServerLevel where the ritual is taking place
-     * @param pos         the BlockPos of the wishing well structure
-     * @param ritual      the ritual definition containing the target item and companion item count
-     * @param state       the current state of the ritual, including companion item count
-     * @param marketplace the BuildingMarketplace containing the Colony and its buildings
-     * @return RitualResult indicating whether the ritual was completed, needed ingredients, or failed due to an error
-     **/
-    public static RitualResult processRitualOutpost(@Nonnull BuildingMarketplace marketplace,
-        @Nonnull BlockPos pos,
-        RitualDefinitionHelper ritual,
-        RitualState state)
-    {
-        ServerLevel level = (ServerLevel) marketplace.getColony().getWorld();
-
-        if (level == null)
-        {
-            return RitualResult.FAILED;
-        }
-
-        if (state.getCompanionCount() < ritual.companionItemCount())
-        {
-            return RitualResult.NEEDS_INGREDIENTS;
-        }
-
-        if (!MCTPConfig.outpostEnabled.get())
-        {
-            LOGGER.warn("The Outpost is disabled on this server.", state.getCompanionCount());
-            MessageUtils.format("The Outpost is disabled on this server.").sendTo(marketplace.getColony()).forAllPlayers();
-            return RitualResult.FAILED;
-        }
-
-        IBuilding outpostBuilding =
-            marketplace.getColony().getBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.outpost);
-        if (outpostBuilding != null)
-        {
-            LOGGER.warn("Only one outpost may be claimed per colony.", state.getCompanionCount());
-            MessageUtils.format("Only one outpost may be claimed per colony.").sendTo(marketplace.getColony()).forAllPlayers();
-            return RitualResult.FAILED;
-        }
-
-        double outpostClaimLevel =
-            marketplace.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.OUTPOST_CLAIM);
-
-        if (outpostClaimLevel == 0)
-        {
-            MessageUtils.format("To wish for an outpost claim you must first complete the research.")
-                .sendTo(marketplace.getColony())
-                .forAllPlayers();
-            return RitualResult.FAILED;
-        }
-
-        try
-        {
-            if (state.getCompanionCount() != 1)
-            {
-                LOGGER.warn(
-                    "Outpost ritual called with incorrect number of companion items ({}). One and only one outpost claim marker is required.",
-                    state.getCompanionCount());
-                MessageUtils.format("One and only one outpost claim marker is required.")
-                    .sendTo(marketplace.getColony())
-                    .forAllPlayers();
-                return RitualResult.FAILED;
-            }
-
-            ItemStack companionItem = state.companionItems.get(0).getItem();
-
-            if (!(companionItem.getItem() instanceof OutpostClaimMarkerItem))
-            {
-                LOGGER.warn("Outpost ritual called with unrecognized companion item.");
-                MessageUtils.format("Outpost ritual called with unrecognized companion item.")
-                    .sendTo(marketplace.getColony())
-                    .forAllPlayers();
-                return RitualResult.FAILED;
-            }
-
-            BlockPos claimLocation = OutpostClaimMarkerItem.getLinkedBlockPos(companionItem);
-
-            if (claimLocation == null || BlockPos.ZERO.equals(claimLocation))
-            {
-                LOGGER.warn("Outpost ritual called with unset claim location.");
-                MessageUtils.format("Outpost ritual called with unset claim location.")
-                    .sendTo(marketplace.getColony())
-                    .forAllPlayers();
-                return RitualResult.FAILED;
-            }
-
-            boolean connected = false;
-            Colony colony = (Colony) marketplace.getColony();
-
-            BlockPos colonyCenter = colony.getCenter();
-            int maxDistance = MCTPConfig.maxDistance.get();
-
-            if (colonyCenter.distSqr(claimLocation) > (maxDistance * maxDistance))
-            {
-                LOGGER.warn("Outpost ritual called distance greater than max distance.");
-                MessageUtils.format("Outpost distance is too large - the maximum is " + maxDistance + ".")
-                    .sendTo(marketplace.getColony())
-                    .forAllPlayers();
-                return RitualResult.FAILED;
-            }
-
-            List<BuildingStation> stations = new ArrayList<>();
-
-            Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
-            for (IBuilding building : buildings)
-            {
-                if (building instanceof BuildingStation station)
-                {
-                    stations.add(station);
-                    TrackConnectionResult result =
-                        TrackPathConnection.arePointsConnectedByTracks((ServerLevel) marketplace.getColony().getWorld(),
-                            claimLocation,
-                            station.getRailStartPosition(),
-                            true);
-
-                    if (result.isConnected())
-                    {
-                        connected = true;
-                        break;
-                    }
-                }
-            }
-
-            if (stations.isEmpty())
-            {
-                LOGGER.warn("A station is required for the outpost ritual.");
-                MessageUtils.format("A station is required for the outpost ritual.").sendTo(marketplace.getColony()).forAllPlayers();
-                return RitualResult.FAILED;
-            }
-
-            if (connected)
-            {
-                final int range = 1;
-                boolean canClaim = ChunkDataHelper.canClaimChunksInRange(colony.getWorld(), claimLocation, range + 1);
-
-                if (canClaim)
-                {
-                    ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, range, (ServerLevel) colony.getWorld(), false);
-                    BlockOutpostMarker.placeOutpostMarker(level, claimLocation, null);
-                }
-                else
-                {
-                    LOGGER.warn("The attempted claim is too close to another colony.");
-                    MessageUtils.format("The attempted claim is too close to another colony.")
-                        .sendTo(marketplace.getColony())
-                        .forAllPlayers();
-                    return RitualResult.FAILED;
-                }
-            }
-            else
-            {
-                LOGGER.warn("The outpost claim at {} must be connected to one of these train stations {} via track.",
-                    claimLocation,
-                    stations);
-                MessageUtils.format("The outpost claim location must be connected to a train station via track.")
-                    .sendTo(marketplace.getColony())
-                    .forAllPlayers();
-                return RitualResult.FAILED;
-            }
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Failed to drop items for ritual", e);
-            return RitualResult.FAILED;
-        }
-
-        showRitualEffect(level, pos);
-        MessageUtils.format("An outpost has been claimed at " + pos.toShortString()).sendTo(marketplace.getColony()).forAllPlayers();
-
-        return RitualResult.COMPLETED;
-    }
-
-    /**
      * Triggers an effect based on the companion item thrown into the wishing well. If the companion item is rotten flesh, all zombies
      * within a 16-block radius are removed, simulating a "zombie purge" ritual. If the item is an iron sword, a "raid suppression"
      * ritual is logged. If the item is neither, an unknown ritual item message is logged.
@@ -992,7 +438,7 @@ public class WishingWellHandler
                 switch (ritual.effect())
                 {
                     case RitualManager.RITUAL_EFFECT_SLAY:
-                        if (processRitualSlay(level, pos, ritual))
+                        if (SummonRitualProcessor.processRitualSlay(level, pos, ritual))
                         {
                             result = RitualResult.COMPLETED;
                         }
@@ -1003,7 +449,7 @@ public class WishingWellHandler
                         break;
 
                     case RitualManager.RITUAL_EFFECT_WEATHER:
-                        if (processRitualWeather(level, pos, ritual))
+                        if (WeatherRitualProcessor.processRitualWeather(level, pos, ritual))
                         {
                             result = RitualResult.COMPLETED;
                         }
@@ -1014,7 +460,7 @@ public class WishingWellHandler
                         break;
 
                     case RitualManager.RITUAL_EFFECT_SUMMON:
-                        if (processRitualSummon(level, pos, ritual, state))
+                        if (SummonRitualProcessor.processRitualSummon(level, pos, ritual, state))
                         {
                             result = RitualResult.COMPLETED;
                         }
@@ -1025,15 +471,15 @@ public class WishingWellHandler
                         break;
 
                     case RitualManager.RITUAL_EFFECT_TRANSFORM:
-                        result = processRitualTransform(level, pos, ritual, state);
+                        result = TransformRitualProcessor.processRitualTransform(level, pos, ritual, state);
                         break;
 
                     case RitualManager.RITUAL_EFFECT_COMMUNITY:
-                        result = processRitualCommunity(marketplace, pos, ritual, state);
+                        result = CommunityRitualProcessor.processRitualCommunity(marketplace, pos, ritual, state);
                         break;
 
                     case RitualManager.RITUAL_EFFECT_OUTPOST:
-                        result = processRitualOutpost(marketplace, pos, ritual, state);
+                        result = OutpostRitualProcessor.processRitualOutpost(marketplace, pos, ritual, state);
                         break;
 
                     default:

@@ -285,6 +285,9 @@ public class MCTradePostMod
     public static final DeferredItem<WishGatheringItem> WISH_GATHERING_SHEEP = ITEMS.register("wish_gathering_sheep",
         () -> new WishGatheringItem(new Item.Properties(), PetTypes.SHEEP));
 
+    public static final DeferredItem<Item> WISH_SHELTER = ITEMS.register("wish_shelter",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
@@ -1239,6 +1242,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_GATHERING_PIG.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_SHEEP.get());
+                    event.accept(MCTradePostMod.WISH_SHELTER.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                     event.accept(MCTradePostMod.STEWPOT_FILLED.get());
                 }
