@@ -1,0 +1,52 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "up"
+      }
+    },
+    {
+      "apply": {
+        "model": "mctradepost:block/timber_frame/checkerboard"
+      },
+      "when": {
+        "facing": "down"
+      }
+    }
+  ]
+}

@@ -107,7 +107,15 @@
     "block.mctradepost.rough_brick_stairs": "Rough Brick Stairs",
     "block.mctradepost.rough_brick_wall": "Rough Brick Wall",
     "block.mctradepost.rough_brick_slab": "Rough Brick Slab",
-
+    "item.mctradepost.diagonal_brick": "Diagonal Brick",
+    "item.mctradepost.diagonal_brick_stairs": "Diagonal Brick Stairs",
+    "item.mctradepost.diagonal_brick_wall": "Diagonal Brick Wall",
+    "item.mctradepost.diagonal_brick_slab": "Diagonal Brick Slab",
+    "block.mctradepost.diagonal_brick": "Diagonal Brick",
+    "block.mctradepost.diagonal_brick_stairs": "Diagonal Brick Stairs",
+    "block.mctradepost.diagonal_brick_wall": "Diagonal Brick Wall",
+    "block.mctradepost.diagonal_brick_slab": "Diagonal Brick Slab",
+    
     "item.mctradepost.rough_stone": "Rough Stone",
     "item.mctradepost.rough_stone_stairs": "Rough Stone Stairs",
     "item.mctradepost.rough_stone_wall": "Rough Stone Wall",
@@ -193,6 +201,8 @@
     "mctradepost.timber.frame.type.side_slab": "Side Stacked Slab",
     "block.mctradepost.side_slab_interleaved": "Side Stacked Slab Interleaved",
     "mctradepost.timber.frame.type.side_slab_interleaved": "Side Stacked Slab Interleaved",
+    "block.mctradepost.checkerboard": "Checkerboard Frame",
+    "mctradepost.timber.frame.type.checkerboard": "Checkerboard Frame",
 
     "block.mctradepost.blockhutmarketplace": "Marketplace",
     "block.minecolonies.blockhutmarketplace": "Marketplace",
@@ -391,6 +401,7 @@
     "item.mctradepost.wish_gathering_pig": "Wish of Droving",
     "item.mctradepost.wish_gathering_chicken": "Wish of Flocking",
     "item.mctradepost.wish_gathering_sheep": "Wish of Shepherding",
+    "item.mctradepost.wish_shelter": "Wish of Shelter",
 
     "item.mctradepost.mctp_coin": "Trade Coin (‡)",
     "item.mctradepost.mctp_coin_gold": "Gold Trade Coin (‡)",
@@ -538,7 +549,6 @@
     "mctradepost.stewmolier.ingredients_updated": "Perpetual stew ingredients updated.",
     "block.mctradepost.stewpot_filled": "Cauldron of Perpetual Stew",
     "com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip": "How many stacks to leave in the warehouse?",
-    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks",
-    "item.mctradepost.marketplace_frame": "Marketplace Frame"
+    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks"
 }
   

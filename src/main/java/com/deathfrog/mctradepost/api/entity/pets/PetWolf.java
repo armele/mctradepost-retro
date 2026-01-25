@@ -155,7 +155,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
         catch (Exception e)
         {
-            LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
+            // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         petData = new PetData<PetWolf>(this, compound);

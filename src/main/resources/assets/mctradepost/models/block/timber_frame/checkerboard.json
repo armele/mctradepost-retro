@@ -1,0 +1,4 @@
+{
+  "parent": "mctradepost:block/timber_frame/checkerboard_spec",
+  "loader": "domum_ornamentum:materially_textured"
+}

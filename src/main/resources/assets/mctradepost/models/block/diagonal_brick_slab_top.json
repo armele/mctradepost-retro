@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab_top",
+  "textures": {
+    "bottom": "mctradepost:block/diagonal_brick",
+    "top":    "mctradepost:block/diagonal_brick",
+    "side":   "mctradepost:block/diagonal_brick"
+  }
+}

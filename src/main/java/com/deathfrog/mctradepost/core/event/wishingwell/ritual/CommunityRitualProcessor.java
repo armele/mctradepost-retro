@@ -22,12 +22,14 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.Ritua
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.IAssignsCitizen;
+import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenDiseaseHandler;
 import com.minecolonies.api.entity.citizen.happiness.ExpirationBasedHappinessModifier;
 import com.minecolonies.api.entity.citizen.happiness.StaticHappinessSupplier;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.HappinessConstants;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingBarracksTower;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingGateHouse;
@@ -54,9 +56,12 @@ public class CommunityRitualProcessor
     protected static final Map<Class<? extends IJob<?>>, Integer> JOB_PRIORITIES = Map.ofEntries(
         Map.entry(JobChef.class, 100),
         Map.entry(JobCook.class, 80),
+        Map.entry(JobBuilder.class, 70),
         Map.entry(JobHealer.class, 60),
         Map.entry(JobDeliveryman.class, 50),
+        Map.entry(JobFarmer.class, 45),
         Map.entry(JobBaker.class, 40),
+        Map.entry(JobUndertaker.class, 35),
         Map.entry(JobBlacksmith.class, 30),
         Map.entry(JobStonemason.class, 25),
         Map.entry(JobSawmill.class, 20)
@@ -188,15 +193,11 @@ public class CommunityRitualProcessor
         {
             private final ICitizenData citizen;
             private final int          jobPriority;
-            private final BlockPos     workPos;
-            private final BlockPos     currentHomePos;
 
-            public HomeAssignment(ICitizenData citizen, int jobPriority, BlockPos workPos, BlockPos currentHomePos)
+            public HomeAssignment(ICitizenData citizen, int jobPriority)
             {
                 this.citizen = citizen;
                 this.jobPriority = jobPriority;
-                this.workPos = workPos;
-                this.currentHomePos = currentHomePos;
             }
 
             public ICitizenData getCitizen()
@@ -209,14 +210,46 @@ public class CommunityRitualProcessor
                 return jobPriority;
             }
 
+            /**
+             * Returns the BlockPos of the citizen's workplace. If the citizen is a deliveryman, this will be the BlockPos of the warehouse they are assigned to
+             * (if any). Otherwise, this will be the BlockPos of the citizen's work building.
+             * @return The BlockPos of the citizen's workplace, or null if the citizen does not have a work building or is a deliveryman without a warehouse.
+             */
             public BlockPos getWorkPos()
             {
-                return workPos;
+                if (citizen.getWorkBuilding() == null)
+                {
+                    return null;
+                }
+
+                if (citizen.getJob() instanceof JobDeliveryman deliveryJob)
+                {
+                    IWareHouse warehouse = deliveryJob.findWareHouse();
+
+                    if (warehouse != null)
+                    {
+                        return warehouse.getPosition();
+                    }
+                }
+
+                return citizen.getWorkBuilding().getPosition();
             }
 
             public BlockPos getCurrentHomePos()
             {
-                return currentHomePos;
+                return citizen.getHomePosition();
+            }
+
+            public int getDistanceToWork()
+            {
+                BlockPos workPos = getWorkPos();
+                BlockPos currentHomePos = getCurrentHomePos();
+
+                if (workPos == null || currentHomePos == null)
+                {
+                    return Integer.MAX_VALUE;
+                }
+                return BlockPosUtil.distManhattan(workPos, currentHomePos);
             }
         }
 
@@ -256,19 +289,19 @@ public class CommunityRitualProcessor
             }
 
             int citizenJobPriority = 0;
-            BlockPos currentHomePos = citizen.getHomePosition();
             IBuilding workBuilding = citizen.getWorkBuilding();
-            BlockPos workPos = null;
 
             if (workBuilding != null)
             {
-                workPos = workBuilding.getPosition();
                 citizenJobPriority = JOB_PRIORITIES.getOrDefault(citizen.getJob().getClass(), 10);
             }
 
-            HomeAssignment assignment = new HomeAssignment(citizen, citizenJobPriority, workPos, currentHomePos);
+            HomeAssignment assignment = new HomeAssignment(citizen, citizenJobPriority);
             assignments.add(assignment);
         }
+
+        int totalAssigned = 0;
+        int totalSavings = 0;
 
         try
         {
@@ -276,11 +309,7 @@ public class CommunityRitualProcessor
             assignments.sort(Comparator
                 .comparingInt(HomeAssignment::getJobPriority).reversed()
                 // tie-breaker: fix worst commute first
-                .thenComparingInt(a -> {
-                    BlockPos cur = a.getCurrentHomePos();
-                    return -(cur == null || a.getWorkPos() == null ? Integer.MAX_VALUE : BlockPosUtil.distManhattan(a.getWorkPos(), cur));
-                })
-            );
+                .thenComparingInt(HomeAssignment::getDistanceToWork));
 
             final Set<ICitizenData> unassignedCitizens = new HashSet<>();
             final List<BlockPos> allHouses = new ArrayList<>(housingMap.keySet());
@@ -300,16 +329,16 @@ public class CommunityRitualProcessor
                     .limit(CANDIDATE_HOUSES)
                     .toList();
 
-                BlockPos current = a.getCurrentHomePos();
-                int currentDist = (current == null) ? Integer.MAX_VALUE : BlockPosUtil.distManhattan(a.getWorkPos(), current);
+                int currentDist = a.getDistanceToWork();
 
                 for (BlockPos possibleNewHousePos : candidates)
                 {
                     HousingData houseData = housingMap.get(possibleNewHousePos);
                     int newDist = BlockPosUtil.distManhattan(a.getWorkPos(), possibleNewHousePos);
+                    int savings = currentDist - newDist;
 
                     // Only consider this house if it is a meaningful improvement over the current house
-                    if (currentDist - newDist >= MIN_IMPROVEMENT)
+                    if (savings >= MIN_IMPROVEMENT)
                     {
                         ICitizenData evicted = insertToHouseIfCloser(houseData.getLivingModule(), a.getCitizen(), newDist);
 
@@ -321,9 +350,11 @@ public class CommunityRitualProcessor
 
                         if (evicted == null || !evicted.equals(a.getCitizen()))
                         {
-                            // It wasn't our candidate citizen; they were successfully assigned to new house
+                            // Our candidate citizen was successfully assigned to new house
                             if (unassignedCitizens.contains(a.getCitizen()))
                             {
+                                totalSavings += savings;
+                                totalAssigned++;
                                 // If they were in our unassigned list, remove them (they found a home)
                                 unassignedCitizens.remove(a.getCitizen());
                             }
@@ -351,6 +382,7 @@ public class CommunityRitualProcessor
                     IAssignsCitizen livingModule = houseData.getLivingModule();
                     if (!livingModule.isFull())
                     {
+                        totalAssigned++;
                         livingModule.assignCitizen(unassigned);
                         break;
                     }
@@ -363,6 +395,14 @@ public class CommunityRitualProcessor
             return RitualResult.FAILED;
         }
 
+        if (totalAssigned > 0)
+        {
+            MessageUtils.format(totalAssigned + " citizens have been assigned to homes, with an average of " + Math.round((float) totalSavings / (float) totalAssigned) + " commute distance savings.").sendTo(marketplace.getColony()).forAllPlayers();
+        }
+        else
+        {
+            MessageUtils.format("No citizens were assigned to closer homes.").sendTo(marketplace.getColony()).forAllPlayers();
+        }
 
         WishingWellHandler.showRitualEffect(currentLevel, pos);
         return RitualResult.COMPLETED;

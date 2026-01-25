@@ -5,6 +5,10 @@
     "mctradepost:weathered_rough_stone_stairs",
     "mctradepost:weathered_rough_stone_wall",
     "mctradepost:weathered_rough_stone_slab",
+    "mctradepost:diagonal_brick",
+    "mctradepost:diagonal_brick_stairs",
+    "mctradepost:diagonal_brick_wall",
+    "mctradepost:diagonal_brick_slab",
     "mctradepost:quartz_plaster"
   ]
 }

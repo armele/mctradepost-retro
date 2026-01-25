@@ -162,7 +162,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         }
         catch (Exception e)
         {
-            LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
+            // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
         petData = new PetData<PetFox>(this, compound);

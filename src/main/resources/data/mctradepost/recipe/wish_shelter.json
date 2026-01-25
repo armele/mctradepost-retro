@@ -4,7 +4,7 @@
     "key": {
       "C": { "item": "mctradepost:mctp_coin" },
       "D": { "tag": "minecraft:doors" },
-      "S": { "item": "mctradepost:seasoning" }
+      "S": { "item": "mctradepost:stew_seasoning" }
     },
     "pattern": [
       "SDS",

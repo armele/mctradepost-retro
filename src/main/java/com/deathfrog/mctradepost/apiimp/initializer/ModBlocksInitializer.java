@@ -31,6 +31,10 @@ public final class ModBlocksInitializer
     public final static String ROUGH_BRICK_STAIRS_NAME = "rough_brick_stairs";
     public final static String ROUGH_BRICK_WALL_NAME = "rough_brick_wall";
     public final static String ROUGH_BRICK_SLAB_NAME = "rough_brick_slab";
+    public final static String DIAGONAL_BRICK_NAME = "diagonal_brick";
+    public final static String DIAGONAL_BRICK_STAIRS_NAME = "diagonal_brick_stairs";
+    public final static String DIAGONAL_BRICK_WALL_NAME = "diagonal_brick_wall";
+    public final static String DIAGONAL_BRICK_SLAB_NAME = "diagonal_brick_slab";
     public final static String ROUGH_STONE_NAME = "rough_stone";
     public final static String ROUGH_STONE_STAIRS_NAME = "rough_stone_stairs";
     public final static String ROUGH_STONE_WALL_NAME = "rough_stone_wall";

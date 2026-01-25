@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "mctradepost:diagonal_brick"
+    }
+  },
+  "result": {
+    "id": "mctradepost:diagonal_brick_slab",
+    "count": 6
+  }
+}

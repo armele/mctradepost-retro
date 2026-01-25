@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "key": {
+      "S": { "item": "mctradepost:diagonal_brick" }
+    },
+    "pattern": [
+      "S  ",
+      "SS ",
+      "SSS"
+    ],
+    "result": {
+      "count": 4,
+      "id": "mctradepost:diagonal_brick_stairs"
+    }
+}
+  
