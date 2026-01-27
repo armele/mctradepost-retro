@@ -35,6 +35,7 @@
     "mctradepost:woven_kelp",
     "minecraft:ice",
     "minecraft:packed_ice",
-    "minecraft:blue_ice"
+    "minecraft:blue_ice",
+    "minecolonies:composted_dirt"
   ]
 }

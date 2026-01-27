@@ -479,7 +479,7 @@
     "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Animals",
     "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer. (‡) costs will be deducted from your marketplace balance.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
-    "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging",
+    "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging\nDredger: Dredging",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
     "entity.mctradepost.pet_wolf": "Pet Wolf",
     "entity.mctradepost.pet_fox": "Pet Fox",
