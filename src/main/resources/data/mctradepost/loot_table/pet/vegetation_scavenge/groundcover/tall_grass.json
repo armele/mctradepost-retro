@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 5},
+        { "type": "item", "name": "minecraft:short_grass", "weight": 8 },
+        { "type": "item", "name": "minecraft:tall_grass", "weight": 8 },
+        { "type": "item", "name": "minecraft:wheat_seeds", "weight": 4 },
+        { "type": "item", "name": "minecraft:beetroot_seeds", "weight": 13 },
+        { "type": "item", "name": "minecraft:string", "weight": 4 },
+        { "type": "item", "name": "minecolonies:durum", "weight": 1, "quality": 1 },
+        { "type": "item", "name": "minecolonies:eggplant", "weight": 1, "quality": 1 },
+        { "type": "item", "name": "minecolonies:garlic", "weight": 1, "quality": 1 },
+        { "type": "item", "name": "minecolonies:onion", "weight": 1, "quality": 1 },
+        { "type": "item", "name": "minecolonies:mint", "weight": 1, "quality": 1 }
+
+      ]
+    }
+  ]
+}

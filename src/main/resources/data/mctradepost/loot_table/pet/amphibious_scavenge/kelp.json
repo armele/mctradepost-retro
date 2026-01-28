@@ -4,10 +4,12 @@
     {
       "rolls": 1,
       "entries": [
-        { "type": "item", "name": "minecraft:kelp", "weight": 4 },
-        { "type": "item", "name": "minecraft:gravel", "weight": 1 },
-        { "type": "item", "name": "minecraft:sand", "weight": 1 },
-        { "type": "item", "name": "minecraft:dirt", "weight": 1 }
+        { "type": "item", "name": "minecraft:kelp", "weight": 4, "quality": 0  },
+        { "type": "item", "name": "minecraft:seagrass", "weight": 2, "quality": 0  },
+        { "type": "item", "name": "minecraft:gravel", "weight": 1, "quality": 0  },
+        { "type": "item", "name": "minecraft:sand", "weight": 1, "quality": 0  },
+        { "type": "item", "name": "minecraft:dirt", "weight": 1, "quality": 0  },
+        { "type": "item", "name": "minecolonies:rice", "weight": 1, "quality": 2 }
       ]
     }
   ]

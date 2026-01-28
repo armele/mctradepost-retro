@@ -2,10 +2,13 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
+import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -13,8 +16,10 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetAssignmentModule;
 import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -149,6 +154,51 @@ public class BuildingPetshop extends AbstractBuilding
             }
         }
     }
+
+
+    /**
+     * Gets the animal trainer of the pet shop, if any. Returns null if no animal trainer is assigned.
+     * 
+     * @return the animal trainer of the pet shop, or null if none is assigned.
+     */
+    public ICitizenData trainer()
+    {
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.animaltrainer.get());
+
+        List<ICitizenData> employees = module.getAssignedCitizen();
+
+        if (employees.isEmpty())
+        {
+            return null;
+        }
+
+        ICitizenData trainer = employees.get(0);
+
+        return trainer;
+    }
+
+    /**
+     * Retrieves the level of the primary skill of the animal trainer assigned to this building.
+     * If there is no animal trainer, or the animal trainer is not assigned to a module, or the module does not have a primary skill, this method returns 0.
+     * 
+     * @return the level of the primary skill of the animal trainer, or 0 if no suitable worker is found.
+     */
+    public int trainerPrimarySkill()
+    {
+        int skill = 0;
+        
+        WorkerBuildingModule module = this.getModule(WorkerBuildingModule.class, m -> m.getJobEntry() == MCTPModJobs.animaltrainer.get());
+
+        ICitizenData trainer = trainer();
+
+        if (trainer != null)
+        {
+            skill = trainer.getCitizenSkillHandler().getLevel(module.getPrimarySkill());
+        }
+
+        return skill;
+    }
+
 
     // Armadillo
     // Bat (flying)

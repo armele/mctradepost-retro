@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:sweet_berry_bush",
+    "minecraft:cocoa",
+    "minecraft:cave_vines",
+    "minecraft:cave_vines_plant",
+    "minecraft:vine",
+    "minecraft:pumpkin",
+    "minecraft:melon_stem",
+    "minecraft:pumpkin_stem",
+    "minecraft:melon"
+  ]
+}

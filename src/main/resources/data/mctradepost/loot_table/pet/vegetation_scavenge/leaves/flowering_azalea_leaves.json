@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 4 },
+        { "type": "item", "name": "minecraft:stick", "weight": 4 },
+        { "type": "item", "name": "minecraft:azalea", "weight": 2 },
+        { "type": "item", "name": "minecraft:flowering_azalea", "weight": 2 },
+        { "type": "item", "name": "minecraft:string", "weight": 1 }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "item",
+          "name": "minecraft:honeycomb",
+          "conditions": [
+            {
+              "condition": "minecraft:random_chance", "chance": 0.025
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

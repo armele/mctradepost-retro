@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetHelper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -10,11 +11,14 @@ import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
+import com.minecolonies.api.colony.permissions.Action;
+import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -24,6 +28,7 @@ import org.slf4j.Logger;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.Nonnull;
@@ -38,7 +43,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
     public enum PetAction
     {
-        ASSIGN, FREE, QUERY
+        ASSIGN, FREE, QUERY, SUMMON
     }
 
     private PetAction petAction = PetAction.ASSIGN;
@@ -78,9 +83,9 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
         buf.writeBlockPos(localWorkLoc);
         buf.writeInt(this.petAction.ordinal());
 
-        if (this.entityUuid != null)
+        if (petAction != PetAction.QUERY)
         {
-            buf.writeUUID(this.entityUuid); 
+            buf.writeUUID(NullnessBridge.assumeNonnull(entityUuid));
         }
     }
     
@@ -111,38 +116,105 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
             return;
         }
 
-        UUID localUuid = entityUuid;
-        if (localUuid == null)
+        if (!(trainerBuilding instanceof BuildingPetshop petshop))
         {
+            MCTradePostMod.LOGGER.error("Invalid trainer building: {} - this building is not a petshop.", trainerBuilding);
             return;
         }
 
-        Entity entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+        if (!colony.getPermissions().hasPermission(player, Action.MANAGE_HUTS))
+        {
+            MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.noperms")).sendTo(player);
+            return;
+        }
+
+        PetAssignmentModule petModule = petshop.getModule(MCTPBuildingModules.PET_ASSIGNMENT);
+        UUID localUuid = entityUuid;
+        Entity entity = null;
 
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, 
             () -> MCTradePostMod.LOGGER.info("Server execution of PetMessage. Colony: {}, Trainer Building: {}, Entity: {}, Work Location: {}, Pet Action: {}", 
-            colony, trainerBuilding, entity, workLocation, petAction));
+            colony, trainerBuilding, localUuid, workLocation, petAction));
 
         switch (petAction)
         {
             case ASSIGN:
-                if (entity != null && entity instanceof ITradePostPet pet) 
+                if (localUuid == null)
                 {
+                    return;
+                }
+
+                entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+
+                Set<BlockPos> workLocations = petModule.gatherWorkLocations(colony);
+
+                if (entity != null && entity instanceof ITradePostPet pet && workLocations.contains(workLocation)) 
+                {
+                    if (!pet.getTrainerBuilding().equals(trainerBuilding))
+                    {
+                        MCTradePostMod.LOGGER.error("Attempt to assign pet {} to work location {} in building {}, but its trainer building is {}. Aborting assignment.",
+                            pet, workLocation, trainerBuilding, pet.getTrainerBuilding());
+                        return;
+                    }
+
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Setting work location: {}", workLocation));
                     pet.setWorkLocation(workLocation);
-                    ((BuildingPetshop) trainerBuilding).markPetsDirty();
+                    petshop.markPetsDirty();
                 } 
                 break;
 
             case FREE:
-                // Placeholder for future implementation of setting pets free.
+                if (localUuid == null)
+                {
+                    return;
+                }
+
+                entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+
+                if (entity != null && entity instanceof ITradePostPet pet) 
+                {
+                    if (!pet.getTrainerBuilding().equals(trainerBuilding))
+                    {
+                        MCTradePostMod.LOGGER.error("Attempt to free pet {} from building {}, but its trainer building is {}. Aborting assignment.",
+                            pet, trainerBuilding, pet.getTrainerBuilding());
+                        return;
+                    }
+
+                    entity.discard();
+                    MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.freed")).sendTo(player);
+                    petshop.markPetsDirty();
+                } 
                 break;
 
             case QUERY:
-                PetAssignmentModule petModule = ((BuildingPetshop) trainerBuilding).getModule(MCTPBuildingModules.PET_ASSIGNMENT);
                 petModule.gatherWorkLocations(colony);
-                ((BuildingPetshop) trainerBuilding).markPetsDirty();
+                petshop.markPetsDirty();
                 colony.getPackageManager().addCloseSubscriber(player);
+                break;
+
+            case SUMMON:
+                if (localUuid == null)
+                {
+                    return;
+                }
+
+                entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+
+                if (entity != null && entity instanceof ITradePostPet pet) 
+                {
+                    if (!pet.getTrainerBuilding().equals(trainerBuilding))
+                    {
+                        MCTradePostMod.LOGGER.error("Attempt to summon pet {} to building {}, but its trainer building is {}. Aborting assignment.",
+                            pet, trainerBuilding, pet.getTrainerBuilding());
+                        return;
+                    }
+
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Summoning pet: {}", pet));
+                    BlockPos targetPos = PetHelper.findNearbyValidSpawn(trainerBuilding.getColony().getWorld(), trainerBuilding.getPosition(), 3);
+                    entity.teleportTo(targetPos.getX(), targetPos.getY(), targetPos.getZ());
+                    MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.summoned")).sendTo(player);
+                    petshop.markPetsDirty();
+                } 
                 break;
 
         }

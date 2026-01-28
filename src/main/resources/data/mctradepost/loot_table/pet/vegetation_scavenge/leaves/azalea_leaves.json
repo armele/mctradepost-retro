@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 3 },
+        { "type": "item", "name": "minecraft:stick", "weight": 3 },
+        { "type": "item", "name": "minecraft:azalea", "weight": 2 },
+        { "type": "item", "name": "minecraft:flowering_azalea", "weight": 2 }
+      ]
+    }
+  ]
+}

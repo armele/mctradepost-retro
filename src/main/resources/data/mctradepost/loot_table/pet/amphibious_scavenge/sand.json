@@ -4,10 +4,12 @@
     {
       "rolls": 1,
       "entries": [
-        { "type": "item", "name": "minecraft:clay_ball", "weight": 1 },
-        { "type": "item", "name": "minecraft:gravel", "weight": 1 },
-        { "type": "item", "name": "minecraft:sand", "weight": 5 },
-        { "type": "item", "name": "minecraft:dirt", "weight": 2 }
+        { "type": "item", "name": "minecraft:clay_ball", "weight": 11, "quality": 0  },
+        { "type": "item", "name": "minecraft:gravel", "weight": 11, "quality": 0  },
+        { "type": "item", "name": "minecraft:sand", "weight": 15, "quality": 0  },
+        { "type": "item", "name": "minecraft:dirt", "weight": 12, "quality": 0  },
+        { "type": "item", "name": "minecraft:iron_nugget", "weight": 2, "quality": 2 },
+        { "type": "item", "name": "minecraft:gold_nugget", "weight": 1, "quality": 3 }
       ]
     }
   ]

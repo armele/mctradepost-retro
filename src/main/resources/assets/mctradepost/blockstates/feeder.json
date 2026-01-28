@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "hanging=false,facing=north": { "model": "mctradepost:block/feeder", "y": 0 },
+    "hanging=false,facing=east":  { "model": "mctradepost:block/feeder", "y": 90 },
+    "hanging=false,facing=south": { "model": "mctradepost:block/feeder", "y": 180 },
+    "hanging=false,facing=west":  { "model": "mctradepost:block/feeder", "y": 270 },
+
+    "hanging=true,facing=north": { "model": "mctradepost:block/feeder_hanging", "y": 0 },
+    "hanging=true,facing=east":  { "model": "mctradepost:block/feeder_hanging", "y": 90 },
+    "hanging=true,facing=south": { "model": "mctradepost:block/feeder_hanging", "y": 180 },
+    "hanging=true,facing=west":  { "model": "mctradepost:block/feeder_hanging", "y": 270 }
+  }
+}

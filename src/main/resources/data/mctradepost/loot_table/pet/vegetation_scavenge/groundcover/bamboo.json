@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 3 },
+        { "type": "item", "name": "minecraft:bamboo", "weight": 6 },
+        { "type": "item", "name": "minecraft:stick", "weight": 2 },
+        { "type": "item", "name": "minecraft:string", "weight": 1, "quality": 1 }
+      ]
+    }
+  ]
+}

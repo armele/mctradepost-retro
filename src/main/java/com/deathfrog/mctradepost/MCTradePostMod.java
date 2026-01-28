@@ -9,6 +9,7 @@ import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
+import com.deathfrog.mctradepost.api.entity.pets.PetParrot;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -26,6 +27,7 @@ import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
 import com.deathfrog.mctradepost.core.blocks.BlockCheckerboard;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
+import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
@@ -97,8 +99,10 @@ import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.AxolotlRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.EntityRendererProvider.Context;
 import net.minecraft.client.renderer.entity.FoxRenderer;
 import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.entity.ParrotRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.BlockPos;
@@ -112,6 +116,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.animal.Fox;
+import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
@@ -340,6 +345,11 @@ public class MCTradePostMod
         () -> EntityType.Builder.of(PetAxolotl::new, MobCategory.CREATURE)
             .sized(EntityType.AXOLOTL.getDimensions().width(), EntityType.AXOLOTL.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_axolotl").toString()));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<PetParrot>> PET_PARROT = ENTITIES.register("pet_parrot",
+        () -> EntityType.Builder.of(PetParrot::new, MobCategory.CREATURE)
+            .sized(EntityType.PARROT.getDimensions().width(), EntityType.PARROT.getDimensions().height())
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_parrot").toString()));
 
     /*
     * BLOCKS
@@ -587,6 +597,8 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockDredger> DREDGER =
         BLOCKS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockDredger(THATCH.get().properties().lightLevel(state -> 4)));
 
+    public static final DeferredBlock<BlockFeeder> FEEDER =
+        BLOCKS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockFeeder(THATCH.get().properties().lightLevel(state -> 4)));
 
     public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
@@ -791,6 +803,9 @@ public class MCTradePostMod
     
     public static final DeferredItem<Item> DREDGER_ITEM =
         ITEMS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockItem(DREDGER.get(), new Item.Properties()));   
+
+    public static final DeferredItem<Item> FEEDER_ITEM =
+        ITEMS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockItem(FEEDER.get(), new Item.Properties()));   
 
     public static final DeferredItem<Item> WOVEN_KELP_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_NAME, () -> new BlockItem(WOVEN_KELP.get(), new Item.Properties()));
@@ -1068,10 +1083,12 @@ public class MCTradePostMod
          * @param event The event that triggers the creation of entity attributes.
          */
         @SubscribeEvent
-        public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
+        public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) 
+        {
             event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
             event.put(MCTradePostMod.PET_FOX.get(), Fox.createAttributes().build());
             event.put(MCTradePostMod.PET_AXOLOTL.get(), Axolotl.createAttributes().build());
+            event.put(MCTradePostMod.PET_PARROT.get(), Parrot.createAttributes().build());
         }
 
         /**
@@ -1268,6 +1285,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.MARINE_BASALT_SLAB.get());	
                     event.accept(MCTradePostMod.TROUGH.get());
                     event.accept(MCTradePostMod.SCAVENGE.get());
+                    event.accept(MCTradePostMod.FEEDER.get());
                     event.accept(MCTradePostMod.DREDGER.get());
                     event.accept(MCTradePostMod.WOVEN_KELP.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
@@ -1304,6 +1322,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_PARROT.get(), ParrotRenderer::new);
         }
 
         /**
@@ -1329,7 +1348,7 @@ public class MCTradePostMod
             Font font = Minecraft.getInstance().font;
             ItemInHandRenderer itemInHandRenderer = Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer();
 
-            var context = new EntityRendererProvider.Context(
+            Context context = new EntityRendererProvider.Context(
                 dispatcher,
                 itemRenderer,
                 blockRenderer,

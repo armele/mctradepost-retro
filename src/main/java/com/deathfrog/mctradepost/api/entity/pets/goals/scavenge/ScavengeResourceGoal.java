@@ -1,4 +1,4 @@
-package com.deathfrog.mctradepost.api.entity.pets.goals;
+package com.deathfrog.mctradepost.api.entity.pets.goals.scavenge;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETSCAVENGEGOALS;
 
@@ -9,9 +9,8 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
-import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.entity.pets.goals.ForageGoal;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.PetUtil;
@@ -21,16 +20,10 @@ import com.minecolonies.api.util.StatsUtil;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.animal.Animal;
@@ -46,7 +39,7 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends Goal
+public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     // check every 8 ticks (~0.4s)
@@ -57,13 +50,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
     // Number of tries to search for items at a given target position before moving on.
     private static final int MAX_SEARCH_TRIES = 10;
-
-    public static final String WATER_SCAVENGE_TAG = "amphibious_scavenge";
-    public static final String LOOT_BASE = "pet/" + WATER_SCAVENGE_TAG;
-    private static final ResourceLocation WATER_SCAVENGE_TAG_RESOURCE = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, WATER_SCAVENGE_TAG);
-    private static final TagKey<Block> WATER_SCAVENGE_BLOCK_TAG =
-        TagKey.create(NullnessBridge.assumeNonnull(Registries.BLOCK), NullnessBridge.assumeNonnull(WATER_SCAVENGE_TAG_RESOURCE));
-
 
     private final P pet;
     private final int searchRadius;
@@ -83,8 +69,11 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
     private long nextGateTime = 0L; 
     private int searchTries = MAX_SEARCH_TRIES;
 
-    public ScavengeWaterResourceGoal(P pet, int searchRadius, float chanceToFind, IBuilding trainerBuilding, int cooldownTicks)
+    private final IScavengeProfile<P> profile;
+
+    public ScavengeResourceGoal(P pet, IScavengeProfile<P> profile, int searchRadius, float chanceToFind, IBuilding trainerBuilding, int cooldownTicks)
     {
+        this.profile = profile;
         this.pet = pet;
         this.searchRadius = searchRadius;
         this.chanceToFind = chanceToFind;
@@ -128,9 +117,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             return false;
         }
 
-        if (!PetRoles.SCAVENGE_WATER.equals(pet.getPetData().roleFromWorkLocation(pet.level())))
+        if (!profile.requiredRole().equals(pet.getPetData().roleFromWorkLocation(pet.level())))
         {
-             logBlock("Can't scavenge: pet is not a water scavenger");
+             logBlock("Can't scavenge: pet is not this type of scavenger");
             return false;
         }
 
@@ -191,28 +180,22 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             return false;
         }
 
-        targetPos = findWaterScavengeLocation();
+        targetPos = profile.findTarget(pet, searchRadius);
         if (targetPos == null) 
         {
             logBlock("Can't scavenge: targetPosition is null");
             return false;
         }
 
-        navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
+        navigationPos = profile.navigationAnchor(pet, targetPos);
 
-        // If our target position is already at the top, use it as the navigation position.
-        if (navigationPos == null) 
-        {
-            navigationPos = targetPos;
-        }
-
-        TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Target position found during ScavengeWaterResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
+        TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Target position found during ScavengeResourceGoal.canUse: {} - navigation to {}", targetPos, navigationPos));
 
         return true;
     }
 
     /**
-     * Logs a message when the scavenge water resource goal is blocked.
+     * Logs a message when the scavenge resource goal is blocked.
      * 
      * <p>This is only active when the TRACING_PETGOALS trace is enabled.</p>
      * 
@@ -227,7 +210,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         allArgs[1] = pet.tickCount;
         System.arraycopy(args, 0, allArgs, 2, args.length);
 
-        LOGGER.info("[SCAVENGE-WATER][BLOCK] uuid={} tick={} reason=" + format, allArgs);
+        LOGGER.info("[SCAVENGE][BLOCK] uuid={} tick={} reason=" + format, allArgs);
     }
 
 
@@ -255,9 +238,9 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         }
         if (this.targetPos == null) return;
 
-        // Recompute nav anchor (water surface / ice edge); fallback to targetPos
-        this.navigationPos = PathingUtil.findTopOfWaterColumn(pet.level(), targetPos);
-        BlockPos anchor = (this.navigationPos != null) ? this.navigationPos : this.targetPos;
+        // Recompute nav anchor
+        this.navigationPos = profile.navigationAnchor(localPet, this.targetPos);
+        BlockPos anchor = navigationPos;
 
         boolean moved = anchor != null && PathingUtil.flexiblePathing(localPet, anchor, 1.0);
 
@@ -285,13 +268,13 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         if (targetPos == null)
         {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No Target position found during ScavengeWaterResourceGoal.canContinueToUse"));
+            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("No Target position found during ScavengeResourceGoal.canContinueToUse"));
 
             return false;
         }
 
         // TraceUtils.dynamicTrace(TRACE_PETGOALS, 
-        //    () -> LOGGER.info("Continuation of ScavengeWaterResourceGoal.canContinueToUse at {}: navigation done: {}, hasArrived: {}, searchTries: {}"
+        //    () -> LOGGER.info("Continuation of ScavengeResourceGoal.canContinueToUse at {}: navigation done: {}, hasArrived: {}, searchTries: {}"
         //    , targetPos, pet.getNavigation().isDone(), hasArrived, searchTries));
 
         if (!hasArrived)
@@ -325,11 +308,11 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             return;
         }
 
-        // Re-path if the path is done but we haven't arrived yet (common with underwater floors)
+        // Re-path if the path is done but we haven't arrived yet
         if (!hasArrived && pet.getNavigation().isDone())
         {
             // try again (nudge Y up a bit so land navigators don’t stop short on water floors)
-            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + 1.0, localNavigationPos.getZ() + 0.5, 1.0);
+            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + profile.navigationYOffset(), localNavigationPos.getZ() + 0.5, 1.0);
 
             // also guard against loops: burn a try occasionally when we hit "done but not arrived"
             if (searchTries > 0)
@@ -349,7 +332,7 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         if (hasArrived && !pet.blockPosition().closerToCenterThan(centerOfNavPos, 2.25))
         {
             // We slid by or got pushed too far.  Let's nudge back in range.
-            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + 1.0, localNavigationPos.getZ() + 0.5, .3);
+            pet.getNavigation().moveTo(localNavigationPos.getX() + 0.5, localNavigationPos.getY() + profile.navigationYOffset(), localNavigationPos.getZ() + 0.5, .3);
         }
 
     
@@ -425,15 +408,12 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         BlockState harvestSpotState = level.getBlockState(pos);
         final Block harvestSpot = harvestSpotState.getBlock();
 
-        if (harvestSpot == null || !harvestSpotState.is(NullnessBridge.assumeNonnull(WATER_SCAVENGE_BLOCK_TAG)))
+        if (harvestSpot == null || !profile.isHarvestable(level, pos, harvestSpotState))
         {
             return;
         }
 
-        // Use block ID (e.g. "minecraft:clay") to build a loot table ID (e.g. "mctradepost:pet/amphibious_scavenge/clay")
-        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(harvestSpot);
-        String lootPath = LOOT_BASE + "/" + blockId.getPath();
-        ResourceLocation lootTableLocation = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, lootPath);
+        ResourceLocation lootTableLocation = profile.lootTableFor(level, pos, harvestSpotState);
 
         if (lootTableLocation == null) return;
 
@@ -450,10 +430,10 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
 
         Vec3 centerPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(pos));
 
-        // IDEA: Modify luck based on animal trainer skill level
+        // Modify luck based on animal trainer skill level
         LootParams lootParams = new LootParams.Builder(level).withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
             .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet)
-            .withLuck(0.0f) 
+            .withLuck(pet.getLuck()) 
             .create(NullnessBridge.assumeNonnull(LootContextParamSets.EMPTY));
 
         if (lootParams == null) return;
@@ -472,16 +452,12 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
             // Track the stat with item name
             if (trainerBuilding != null)
             {
-                StatsUtil.trackStatByName(trainerBuilding, ScavengeForResourceGoal.ITEMS_SCAVENGED, itemEntity.getDisplayName().getString(), 1);
+                StatsUtil.trackStatByName(trainerBuilding, ForageGoal.ITEMS_SCAVENGED, itemEntity.getDisplayName().getString(), 1);
             }
 
         }
 
-        // Additional particles and sound
-        level.sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.BUBBLE),
-            pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5,
-            20, 0.5, 0.5, 0.5, 0.1);
-        level.playSound(null, pos, NullnessBridge.assumeNonnull(SoundEvents.SHOVEL_FLATTEN), SoundSource.BLOCKS, 1.0f, 1.0f);
+        profile.onSuccessfulHarvest(level, pos, pet);
 
     }
 
@@ -542,87 +518,6 @@ public class ScavengeWaterResourceGoal<P extends Animal & ITradePostPet> extends
         pet.getNavigation().stop();
         nextGateTime = 0L;
         stuckCount = 0;
-    }
-
-
-    /**
-     * Finds a suitable location for the pet to scavenge for water resources within the given search radius.
-     * A suitable location is one that is either:
-     * 1) A solid non-water floor with a 1-2 deep column of water/ice above it.
-     * 2) A single ice block with open/air above it.
-     * <p>
-     * The search is done by randomly offsetting from the pet's work location within the search radius,
-     * and checking if the resulting location satisfies the above conditions. This is done up to 20 times.
-     * If no suitable location is found, null is returned.
-     * @return a suitable location for scavenging water resources, or null if no suitable location is found.
-     */
-    @SuppressWarnings("null")
-    private BlockPos findWaterScavengeLocation()
-    {
-        final Level level = pet.level();
-        final BlockPos origin = pet.getWorkLocation();
-
-        if (level == null || origin == null)
-        {
-            // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("findWaterScavengeLocation: level or origin is null"));
-            return null;
-        }
-
-        for (int tries = 0; tries < 20; tries++)
-        {
-            final BlockPos candidate = origin.offset(pet.getRandom().nextInt(searchRadius * 2) - searchRadius,
-                pet.getRandom().nextInt(3) - 2,
-                pet.getRandom().nextInt(searchRadius * 2) - searchRadius);
-
-            if (candidate == null) continue;
-
-            BlockState state = level.getBlockState(candidate);
-            BlockState above = level.getBlockState(candidate.above());
-            BlockState twoAbove = level.getBlockState(candidate.above().above());
-            BlockState threeAbove = level.getBlockState(candidate.above().above().above());
-
-            // 1) Solid non-water (true floor): not water, not ice, not air
-            boolean floorIsSolidNonWater = !state.getFluidState().is(FluidTags.WATER) && !state.is(PathingUtil.ICY) && !state.isAir();
-
-            // 2) Single ice plate case: a single ice block with open/air above
-            boolean icePlateau = state.is(PathingUtil.ICY) && PathingUtil.isOpenOrIce(above);
-
-            // 3) Shallow columns of water/ice 1–2 deep above a solid floor
-            boolean depth1 = PathingUtil.isWaterOrIce(above) && PathingUtil.isOpenOrIce(twoAbove);
-
-            boolean depth2 = PathingUtil.isWaterOrIce(above) && PathingUtil.isWaterOrIce(twoAbove) && PathingUtil.isOpenOrIce(threeAbove);
-
-            // Final accept:
-            // - Either a solid non-water floor with a 1–2 deep column above,
-            // - OR a single ice block “plateau” with air/open above it.
-            boolean shallowWater =  (floorIsSolidNonWater && (depth1 || depth2)) || icePlateau;
-
-            BlockState[] neighborhood = new BlockState[] {
-                state,
-                level.getBlockState(candidate.below()),
-                level.getBlockState(candidate.north()),
-                level.getBlockState(candidate.south()),
-                level.getBlockState(candidate.east()),
-                level.getBlockState(candidate.west()),
-                level.getBlockState(candidate.above())
-            };
-
-            boolean hasScavengeMaterials = false;
-            for (BlockState s : neighborhood) 
-            {
-                if (s.is(WATER_SCAVENGE_BLOCK_TAG)) 
-                {
-                    hasScavengeMaterials = true;
-                    break;
-                }
-            }
-
-            if (shallowWater && hasScavengeMaterials) {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 
 }

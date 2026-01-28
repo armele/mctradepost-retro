@@ -6,6 +6,9 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToWaterGoal;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.MinecoloniesNavResultProxy;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.VanillaNavResult;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -23,6 +26,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
@@ -355,7 +359,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     @Override
     public boolean onClimbable()
     {
-        // IDEA: Lock climbing behind research.
         BlockPos pos = this.blockPosition();
 
         if (pos == null)
@@ -364,6 +367,44 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         }
 
         return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
+    }
+
+    /**
+     * Gets the luck of the pet. This is a value between 0 and 1 that determines how often the pet will find items while scavenging.
+     * A higher value means the pet will find items more often.
+     * If the pet data is null, this method returns 0.
+     * @return the luck of the pet
+     */
+    @Override
+    public float getLuck()
+    {
+        if (petData == null) 
+        {
+            return 0.0f;
+        }
+
+        return petData.getLuck();
+    }
+
+    /**
+     * Handles damage to this pet, adjusting the damage based on the damage source and the pet's
+     * role in the colony. If the pet is on the client side, no damage is applied.
+     *
+     * @param damageSource the source of the damage
+     * @param damage the amount of damage to apply
+     * @return whether the damage was successfully applied
+     */
+    @Override
+    public boolean hurt(@Nonnull DamageSource damageSource, float damage)
+    {
+        if (this.level().isClientSide) return false;
+
+        if (petData != null)
+        {
+            damage = petData.adjustDamage(damageSource, damage);
+        }
+
+        return super.hurt(damageSource, damage);
     }
 
     /**
@@ -474,5 +515,32 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         {
             this.getPetData().setOriginalName(newName);
         }
+    }
+
+
+    /**
+     * Moves the pet to the given entity, at a given speed. This is a wrapper around the
+     * MineColoniesAdvancedPathNavigate.walkToEntity method if that navigation is available,
+     * otherwise it falls back to the vanilla navigation.
+     * 
+     * @param targetEntity the entity to move to
+     * @param speed the speed at which to move (1.0 is normal speed)
+     * @return the result of the movement, which is a PathResult containing the result of the
+     *         pathfinding job
+     */
+    @Override
+    public IPetNavResult moveToEntity(@Nonnull Entity targetEntity, double speed)
+    {
+        final PathNavigation nav = this.getNavigation();
+
+        if (nav instanceof MinecoloniesAdvancedPathNavigate mcNav)
+        {
+            return new MinecoloniesNavResultProxy(mcNav.walkToEntity(targetEntity, speed));
+        }
+
+        // Vanilla / Flying navigation
+        boolean ok = nav.moveTo(targetEntity, speed);
+
+        return new VanillaNavResult(this, targetEntity, ok, 2.0);
     }
 }

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 3 },
+        { "type": "item", "name": "minecraft:stick", "weight": 3 },
+        { "type": "item", "name": "minecraft:jungle_sapling", "weight": 2 },
+        {
+          "type": "item",
+          "name": "minecraft:cocoa_beans",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "min": 1, "max": 1 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
