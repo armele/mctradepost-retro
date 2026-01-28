@@ -7,6 +7,9 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.MinecoloniesNavResultProxy;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.VanillaNavResult;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -25,6 +28,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -188,6 +192,29 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
             }
         }
     }
+
+
+    /**
+     * Handles damage to this pet, adjusting the damage based on the damage source and the pet's
+     * role in the colony. If the pet is on the client side, no damage is applied.
+     *
+     * @param damageSource the source of the damage
+     * @param damage the amount of damage to apply
+     * @return whether the damage was successfully applied
+     */
+    @Override
+    public boolean hurt(@Nonnull DamageSource damageSource, float damage)
+    {
+        if (this.level().isClientSide) return false;
+
+        if (petData != null)
+        {
+            damage = petData.adjustDamage(damageSource, damage);
+        }
+
+        return super.hurt(damageSource, damage);
+    }
+
 
     /**
      * Resets the state of this pet's AI goals and targets, by clearing all existing goals and targets and re-registering them.
@@ -473,6 +500,32 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         {
             this.getPetData().setOriginalName(newName);
         }
+    }
+
+    /**
+     * Moves the pet to the given entity, at a given speed. This is a wrapper around the
+     * MineColoniesAdvancedPathNavigate.walkToEntity method if that navigation is available,
+     * otherwise it falls back to the vanilla navigation.
+     * 
+     * @param targetEntity the entity to move to
+     * @param speed the speed at which to move (1.0 is normal speed)
+     * @return the result of the movement, which is a PathResult containing the result of the
+     *         pathfinding job
+     */
+    @Override
+    public IPetNavResult moveToEntity(@Nonnull Entity targetEntity, double speed)
+    {
+        final PathNavigation nav = this.getNavigation();
+
+        if (nav instanceof MinecoloniesAdvancedPathNavigate mcNav)
+        {
+            return new MinecoloniesNavResultProxy(mcNav.walkToEntity(targetEntity, speed));
+        }
+
+        // Vanilla / Flying navigation
+        boolean ok = nav.moveTo(targetEntity, speed);
+
+        return new VanillaNavResult(this, targetEntity, ok, 2.0);
     }
 
 }

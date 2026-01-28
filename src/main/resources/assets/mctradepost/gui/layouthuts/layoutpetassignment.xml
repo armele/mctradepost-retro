@@ -20,6 +20,10 @@
                         <button id="button" size="130 17" pos="0 0" source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png" color="black"
                                 label="$(com.minecolonies.coremod.gui.petstore.workbuilding)"/>
                     </dropdown>
+                    <button id="summonPet" pos="35 35" size="14 15" label="$(com.minecolonies.coremod.gui.petstore.summon)" color="black"
+                                    source="mctradepost:textures/gui/modules/home.png"/>
+                    <button id="freePet" pos="55 35" size="14 15" label="$(com.minecolonies.coremod.gui.petstore.setfree)" color="black"
+                                    source="mctradepost:textures/gui/modules/opencollar.png"/>
                 </box>
             </list>
 </window>

@@ -5,5 +5,6 @@ public enum PetRoles
     NONE,
     HERDING,
     SCAVENGE_LAND,
-    SCAVENGE_WATER
+    SCAVENGE_WATER,
+    SCAVENGE_VEGETATION
 }

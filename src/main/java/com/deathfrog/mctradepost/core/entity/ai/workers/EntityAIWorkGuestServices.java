@@ -184,6 +184,10 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
             IToken<?> id = request.getId();
             if (!request.canBeDelivered() || citizen.isRequestAsync(id) || tryCounter > HARD_DELIVERY_ACCEPTANCE_COUNTER)
             {
+
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Colony {} - Guest Services cleanStuckRequests() clearing stuck request: {}", 
+                    building.getColony().getID(), request.getLongDisplayString()));
+
                 building.markRequestAsAccepted(citizen, id);
                 cleared = true;
             }

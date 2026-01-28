@@ -21,6 +21,7 @@ public enum PetTypes
     WOLF(new ItemStack(NullnessBridge.assumeNonnull(Items.BONE), 16), 3, PetWolf.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_WOLF.get()), "Wolf", true),
     FOX(new ItemStack(NullnessBridge.assumeNonnull(Items.SWEET_BERRIES), 16), 3, PetFox.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_FOX.get()), "Fox", true),
     AXOLOTL(new ItemStack(NullnessBridge.assumeNonnull(Items.KELP), 16), 3, PetAxolotl.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_AXOLOTL.get()), "Axolotl", true),
+    PARROT(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockCorn.asItem()), 16), 3, PetParrot.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_PARROT.get()), "Parrot", true),
     COW(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockDurum.asItem()), 16), 2, Cow.class, NullnessBridge.assumeNonnull(EntityType.COW), "Cow", false),
     PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false),
     CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false),
@@ -189,6 +190,7 @@ public enum PetTypes
             case PetTypes.WOLF -> new PetData<PetWolf>(null, compound);
             case PetTypes.FOX -> new PetData<PetFox>(null, compound);
             case PetTypes.AXOLOTL -> new PetData<PetAxolotl>(null, compound);
+            case PetTypes.PARROT -> new PetData<PetParrot>(null, compound);
             default -> throw new IllegalArgumentException("Unknown pet type: " + type.getTypeName());
         };
 

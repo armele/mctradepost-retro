@@ -2,9 +2,13 @@ package com.deathfrog.mctradepost.api.entity.pets;
 
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
+import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -29,6 +33,8 @@ public interface ITradePostPet
     public ItemStackHandler getInventory();
 
     public void resetGoals();
+
+    public IPetNavResult moveToEntity(@Nonnull Entity targetEntity, double speed);
 
     default String petInfo()
     {

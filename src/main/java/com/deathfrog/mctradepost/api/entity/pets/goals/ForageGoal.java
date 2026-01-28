@@ -27,7 +27,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerLevel;
 
-public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends Goal
+public class ForageGoal<P extends Animal & ITradePostPet> extends Goal
 {
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -45,7 +45,7 @@ public class ScavengeForResourceGoal<P extends Animal & ITradePostPet> extends G
     private boolean hasArrived = false;
     private long lastScavengeTime = 0;
 
-    public ScavengeForResourceGoal(P pet,
+    public ForageGoal(P pet,
         int searchRadius,
         double maxLight,
         float chanceToFind,

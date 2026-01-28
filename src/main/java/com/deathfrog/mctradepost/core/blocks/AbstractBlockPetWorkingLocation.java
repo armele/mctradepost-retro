@@ -82,13 +82,15 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         {
             MCTradePostMod.TROUGH.get(),
             MCTradePostMod.SCAVENGE.get(),
-            MCTradePostMod.DREDGER.get()
+            MCTradePostMod.DREDGER.get(),
+            MCTradePostMod.FEEDER.get()
         };
     }
         
     @Override
     protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder)
     {
+        super.createBlockStateDefinition(builder);
         builder.add(FACING);
     }
 

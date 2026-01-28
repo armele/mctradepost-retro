@@ -87,6 +87,7 @@ public final class ModBlocksInitializer
     public final static String TROUGH_NAME = "trough";
     public final static String SCAVENGE_NAME = "scavenge";
     public final static String DREDGER_NAME = "dredger";
+    public final static String FEEDER_NAME = "feeder";
 
     private ModBlocksInitializer()
     {

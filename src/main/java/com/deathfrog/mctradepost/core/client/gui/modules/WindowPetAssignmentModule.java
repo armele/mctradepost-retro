@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
+import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.EntityIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
@@ -53,6 +54,9 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
      */
     private final ScrollingList petList;
 
+    public static String TAG_BUTTON_SUMMONPET = "summonPet";
+    public static String TAG_BUTTON_FREEPET = "freePet";
+
     /**
      * Constructor for the minimum stock window view.
      *
@@ -62,6 +66,9 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
     public WindowPetAssignmentModule(final PetAssignmentModuleView moduleView)
     {
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
+
+        registerButton(TAG_BUTTON_SUMMONPET, this::summonPet);
+        registerButton(TAG_BUTTON_FREEPET, this::freePet);
 
         petList = this.window.findPaneOfTypeByID("petlist", ScrollingList.class);
 
@@ -277,6 +284,36 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
             }
 
         });
+    }
+
+
+
+    /**
+     * Frees the pet associated with the given button.
+     * @param button the button to free the pet associated with.
+     */
+    @SuppressWarnings("rawtypes")
+    private void freePet(@NotNull final Button button)
+    {
+        final int row = petList.getListElementIndexByPane(button);
+        ImmutableList<PetData> pets = ((PetshopView) buildingView).getPets();
+        UUID selectedPet = pets.get(row).getEntityUuid();
+        PetMessage petMessage = new PetMessage(buildingView, PetAction.FREE, selectedPet);
+        petMessage.sendToServer();
+    }
+
+    /**
+     * Frees the pet associated with the given button.
+     * @param button the button to free the pet associated with.
+     */
+    @SuppressWarnings("rawtypes")
+    private void summonPet(@NotNull final Button button)
+    {
+        final int row = petList.getListElementIndexByPane(button);
+        ImmutableList<PetData> pets = ((PetshopView) buildingView).getPets();
+        UUID selectedPet = pets.get(row).getEntityUuid();
+        PetMessage petMessage = new PetMessage(buildingView, PetAction.SUMMON, selectedPet);
+        petMessage.sendToServer();
     }
 
 }

@@ -8,6 +8,7 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.S
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.DUMPING;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,12 +42,15 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
@@ -70,6 +74,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnimalTrainer, BuildingPetshop>
 {
+
+    /**
+     * How many times the AI should attempt to find an allegedly delivered item before giving up on it.
+     */
+    protected int deliverAcceptanceCounter = 0;
+    protected static final int SOFT_DELIVERY_ACCEPTANCE_COUNTER = 10;
+    protected static final int HARD_DELIVERY_ACCEPTANCE_COUNTER = 20;
+
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final String PETS_TRAINED = "pets_trained";
     public static final String OTHER_ACQUIRED = "other_acquired";
@@ -136,6 +148,84 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     public Class<BuildingPetshop> getExpectedBuildingClass()
     {
         return BuildingPetshop.class;
+    }
+
+
+    @Override
+    public IAIState afterRequestPickUp() 
+    {
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} - Animal Trainer afterRequestPickUp: {}", building.getColony().getID()));
+        return super.afterRequestPickUp();
+    }
+
+    /**
+     * Waits for the AI to receive new requests from the building. If the AI needs an item, but there are no open requests, the AI will
+     * transition to the DECIDE state to decide what to do next. If the AI does not need an item, the AI will transition back to the
+     * IDLE state.
+     * 
+     * @return The next AI state to transition to.
+     */
+    @Override
+    protected @NotNull IAIState waitForRequests() 
+    {
+        IAIState state = super.waitForRequests();
+
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} - Animal Trainer waitForRequests() has open sync request? {} Has completed reqeusts to pick up? {} state: {}. deliverAcceptanceCounter: {}", 
+            building.getColony().getID(), building.hasOpenSyncRequest(worker.getCitizenData()), building.hasCitizenCompletedRequestsToPickup(worker.getCitizenData()), state, deliverAcceptanceCounter));
+
+        if (state != AIWorkerState.NEEDS_ITEM) 
+        {
+            deliverAcceptanceCounter = 0;
+            return state;
+        }
+
+        if (deliverAcceptanceCounter++ < SOFT_DELIVERY_ACCEPTANCE_COUNTER || building.hasOpenSyncRequest(worker.getCitizenData())) 
+        {
+            return state;
+        }
+
+        boolean clearedSomething = cleanStuckRequests(deliverAcceptanceCounter);
+
+        if (clearedSomething)
+        {
+            deliverAcceptanceCounter = 0;
+        }
+
+        // If we didn't clear anything, staying in NEEDS_ITEM is more honest than DECIDE.
+        return clearedSomething ? AIWorkerState.DECIDE : AIWorkerState.NEEDS_ITEM;
+    }
+
+    /**
+     * Cleans stuck requests from the building's request queue that are not deliverable anymore (for example, if a request is async, but the
+     * citizen is not available to pick it up anymore).
+     * 
+     * @return true if any requests were cleared, false otherwise.
+     */
+    protected boolean cleanStuckRequests(int tryCounter)
+    {
+        ICitizenData citizen = worker.getCitizenData();
+        Collection<IRequest<?>> completed = building.getCompletedRequestsOfCitizenOrBuilding(citizen);
+
+        boolean cleared = false;
+
+        // Copy IDs to avoid concurrent modification surprises.
+        List<IRequest<?>> snapshot = new ArrayList<>(completed);
+
+        for (IRequest<?> request : snapshot)
+        {
+            IToken<?> id = request.getId();
+            if (!request.canBeDelivered() || citizen.isRequestAsync(id) || tryCounter > HARD_DELIVERY_ACCEPTANCE_COUNTER)
+            {
+
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} - Animal Trainer cleanStuckRequests() clearing stuck request: {}", 
+                    building.getColony().getID(), request.getLongDisplayString()));
+
+                building.markRequestAsAccepted(citizen, id);
+                cleared = true;
+            }
+        }
+
+        return cleared;
     }
 
     /**

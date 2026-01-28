@@ -170,10 +170,13 @@
     "block.mctradepost.scavenge": "Mushroom Scavenging Base",
     "item.mctradepost.dredger": "Dredger",
     "block.mctradepost.dredger": "Dredger",
+    "item.mctradepost.feeder": "Feeder",
+    "block.mctradepost.feeder": "Feeder",
 
     "block.mctradepost.trough.shortname": "Herd",
     "block.mctradepost.scavenge.shortname": "Scavenge",
     "block.mctradepost.dredger.shortname": "Dredge",
+    "block.mctradepost.feeder.shortname": "Forage",
 
     "item.mctradepost.petworkinglocation.blocktrough": "Pet working location: Corral",
     "item.mctradepost.petworkinglocation.expanded.blocktrough": "Place within a husbandry building to have your pet help keep animals corralled.",
@@ -481,9 +484,16 @@
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
     "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging\nDredger: Dredging",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
+    "com.minecolonies.coremod.gui.petstore.summon" : "Summon pet back to trainer",
+    "com.minecolonies.coremod.gui.petstore.setfree" : "Retire pet to a farm in the countryside",
+    "com.minecolonies.coremod.gui.petstore.freed" : "Your pet has retired to a farm in the countryside!",
+    "com.minecolonies.coremod.gui.petstore.summoned" : "Your pet has been summoned back to the trainer!",
+    "com.minecolonies.coremod.gui.petstore.noperms" : "You don't have permission in this pet shop.",
+
     "entity.mctradepost.pet_wolf": "Pet Wolf",
     "entity.mctradepost.pet_fox": "Pet Fox",
     "entity.mctradepost.pet_axolotl": "Pet Axolotl",
+    "entity.mctradepost.pet_parrot": "Pet Parrot",
     "entity.mctradepost.ghost_cart" : "Trade Cart",
     "entity.mctradepost.pet_inventory"  : "Pet Inventory",
 

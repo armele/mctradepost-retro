@@ -15,14 +15,17 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.EatFromInventoryHealGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.OpenGateOrDoorGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeForResourceGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ScavengeWaterResourceGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.ForageGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.ScavengeResourceGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.VegetationScavengeProfile;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengeProfile;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
+import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.ldtteam.blockui.mod.Log;
@@ -46,6 +49,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -459,12 +463,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      * Assigns a goal to the pet based on the work location, if the work location is valid.
      *
      * If the work location is a herd, assigns a {@link HerdGoal HerdGoal}.
-     * If the work location is a scavenge for land, assigns a {@link ScavengeForResourceGoal ScavengeForResourceGoal}.
-     * If the work location is a scavenge for water, assigns a {@link ScavengeWaterResourceGoal ScavengeWaterResourceGoal}.
+     * If the work location is a scavenge for land, assigns a {@link ForageGoal ScavengeForResourceGoal}.
+     * If the work location is a scavenge for water, assigns a {@link ScavengeResourceGoal ScavengeWaterResourceGoal}.
      *
      * @see HerdGoal
-     * @see ScavengeForResourceGoal
-     * @see ScavengeWaterResourceGoal
+     * @see ForageGoal
+     * @see ScavengeResourceGoal
      */
     public void assignGoalFromWorkLocation()
     {
@@ -490,7 +494,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             case SCAVENGE_LAND:
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeForResourceGoal<>(
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ForageGoal<>(
                     this.getAnimal(),
                     16,                      // search radius
                     8.0,                     // light level (optional to ignore)
@@ -507,7 +511,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                         Item mushroomItem = mushroomBlock.asItem();
                         
                         // Track the stat with item name
-                        StatsUtil.trackStatByName(this.getTrainerBuilding(), ScavengeForResourceGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
+                        StatsUtil.trackStatByName(this.getTrainerBuilding(), ForageGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
 
                         // Place the mushroom
                         this.getAnimal().level().setBlock(NullnessBridge.assumeNonnull(pos), NullnessBridge.assumeNonnull(mushroomBlock.defaultBlockState()), 3);
@@ -518,9 +522,22 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             case SCAVENGE_WATER:
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_water goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeWaterResourceGoal<>(
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
                     this.getAnimal(), 
+                    new WaterScavengeProfile<>(),
                     8,
+                    0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
+                    this.getTrainerBuilding(),
+                    200            // cooldown (10 seconds)
+                ));
+                break;
+
+            case SCAVENGE_VEGETATION:
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_vegetation goals for pet {}:", this.animal.getUUID()));
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
+                    this.getAnimal(), 
+                    new VegetationScavengeProfile<>(),
+                    12,
                     0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     200            // cooldown (10 seconds)
@@ -714,6 +731,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (block instanceof BlockDredger)
         {
             return PetRoles.SCAVENGE_WATER;
+        }
+
+        if (block instanceof BlockFeeder)
+        {
+            return PetRoles.SCAVENGE_VEGETATION;
         }
 
         return PetRoles.NONE;
@@ -1466,5 +1488,36 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 }
             }
         }
+    }
+
+    /**
+     * Adjusts the damage a pet takes from a damage source.
+     * Currently, this reduces all player damage significantly, and makes vegetation scavengers immune to sweet berry bush damage.
+     * @param damageSource the damage source
+     * @param damage the unadjusted damage
+     * @return the adjusted damage
+     */
+    public float adjustDamage(DamageSource damageSource, float damage) 
+    { 
+        PetRoles role = this.roleFromWorkLocation(this.getAnimal().level());
+
+        // Reduce all player damage significantly
+        if (damageSource.getEntity() instanceof Player)
+        {
+            damage *= 0.1f;
+        }
+
+        // Role-based adjustments
+        if (role == PetRoles.SCAVENGE_VEGETATION)
+        {
+            // Immunity to sweet berry bush damage for vegetation scavengers.
+            if (damageSource.is(NullnessBridge.assumeNonnull(DamageTypes.SWEET_BERRY_BUSH)))
+            {
+                return 0.0F;
+            }
+        }
+
+        return damage; 
+
     }
 }

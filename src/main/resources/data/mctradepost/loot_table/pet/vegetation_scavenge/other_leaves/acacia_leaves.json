@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 3 },
+        { "type": "item", "name": "minecraft:stick", "weight": 3 },
+        { "type": "item", "name": "minecraft:acacia_sapling", "weight": 2 }
+      ]
+    }
+  ]
+}

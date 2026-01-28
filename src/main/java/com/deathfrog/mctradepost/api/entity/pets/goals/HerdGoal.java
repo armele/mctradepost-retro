@@ -14,13 +14,12 @@ import com.deathfrog.mctradepost.api.entity.pets.IHerdingPet;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.StatsUtil;
-import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
-import com.minecolonies.core.entity.pathfinding.pathresults.PathResult;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -57,7 +56,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     private boolean walkCommandSent = false;
     private static final int SEARCH_RADIUS = 100;
     private static final int HERDING_DISTANCE = 8;
-    private PathResult<?> navigationResult = null;
+    private IPetNavResult navigationResult = null;
 
     public HerdGoal(P herdingPet)
     {
@@ -182,11 +181,12 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
     @Override
     public void start()
     {
+        Animal localTargetAnimal = currentTargetAnimal;
 
-        if (currentTargetAnimal != null)
+        if (localTargetAnimal != null)
         {
-            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Starting towards target: {}", currentTargetAnimal));
-            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(currentTargetAnimal, 1.0);
+            TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Starting towards target: {}", localTargetAnimal));
+            navigationResult = pet.moveToEntity(localTargetAnimal, 1.0);
             walkCommandSent = true;
         }   
     }
@@ -244,7 +244,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         if (distance > 2 && !walkCommandSent)
         {
             TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Restarting towards target. Distance: {}", distance));
-            navigationResult = ((MinecoloniesAdvancedPathNavigate)pet.getNavigation()).walkToEntity(localTargetAnimal, 1.0);
+            navigationResult = pet.moveToEntity(localTargetAnimal, 1.0);
             walkCommandSent = true;
             targetStuckSteps = 0;
         }
@@ -349,7 +349,7 @@ public class  HerdGoal<P extends Animal & ITradePostPet & IHerdingPet> extends G
         // Repath only if we need to, and not too often
         if (cooldownReady && (pathFailed || petStuck || (!walkCommandSent && distance > 2) || targetMovedEnough))
         {
-            navigationResult = ((MinecoloniesAdvancedPathNavigate) pet.getNavigation()).walkToEntity(targetAnimal, 1.0);
+            navigationResult = pet.moveToEntity(targetAnimal, 1.0);
             walkCommandSent = true;
             lastRepathTick = pet.tickCount;
             didRepath = true;

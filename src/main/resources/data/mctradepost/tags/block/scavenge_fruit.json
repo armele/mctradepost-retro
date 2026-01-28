@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:sweet_berry_bush",
+    "minecraft:cocoa",
+    "minecraft:cave_vines",
+    "minecraft:cave_vines_plant"
+  ]
+}

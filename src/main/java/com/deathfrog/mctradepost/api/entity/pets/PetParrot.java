@@ -5,7 +5,6 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToWaterGoal;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.MinecoloniesNavResultProxy;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.VanillaNavResult;
@@ -28,60 +27,67 @@ import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
+
+public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet
 {
     public static final Logger LOGGER = LogUtils.getLogger();
     public int logCooldown = 0;
 
-    protected PetData<PetAxolotl> petData = null;
-    protected boolean goalsInitialized = false;
+    protected PetData<PetParrot> petData = null;
 
     protected BlockPos targetPosition = BlockPos.ZERO;
     protected int stuckTicks = 0;
 
-    public PetAxolotl(EntityType<? extends Axolotl> entityType, Level level)
+    public PetParrot(EntityType<? extends Parrot> entityType, Level level)
     {
         super(entityType, level);
+        this.moveControl = new FlyingMoveControl(this, 10, true);
+
+        pathfindingMalus();
+
         petData = new PetData<>(this);
         registerGoals();
     }
 
-    public BlockPos getTargetPosition()
+    /**
+     * Configure the pathfinding malus for this entity.
+     * The malus is a penalty value that the entity's pathfinding AI will add to the cost of a node when calculating the path.
+     * A higher value means the entity will avoid the node more.
+     * 
+     * Parrots are configured to avoid fire (hard), lava (hard), and water (avoid but can fly over).
+     * They are also configured to avoid "other" danger nodes (like berry bushes) to a lesser extent.
+     */
+    private void pathfindingMalus()
     {
-        return this.targetPosition;
-    }
+        // Avoid hazards hard
+        this.setPathfindingMalus(PathType.DAMAGE_FIRE, 16.0F);
+        this.setPathfindingMalus(PathType.DANGER_FIRE, 8.0F);
+        this.setPathfindingMalus(PathType.LAVA, 16.0F);
 
-    @Override
-    public void setTargetPosition(BlockPos targetPosition)
-    {
-        this.targetPosition = targetPosition;
-    }
+        // Water: Parrots *avoid* water, but they can fly over it fine.
+        // This malus affects nodes *in* water / near water classification.
+        this.setPathfindingMalus(PathType.WATER, 2.0F);
 
-    public void incrementStuckTicks()
-    {
-        this.stuckTicks++;
-    }
-
-    public int getStuckTicks()
-    {
-        return this.stuckTicks;
-    }
-
-    public void clearStuckTicks()
-    {
-        this.stuckTicks = 0;
+        // If you want them to not “panic-fly” through berry bushes, etc.
+        this.setPathfindingMalus(PathType.DAMAGE_OTHER, 8.0F);
+        this.setPathfindingMalus(PathType.DANGER_OTHER, 4.0F);
     }
 
     @Override
@@ -99,31 +105,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
     }
 
     @Override
-    public void setWorkLocation(BlockPos location)
-    {
-        if (petData == null)
-        {
-            petData = new PetData<>(this);
-            return;
-        }
-
-        petData.setWorkLocation(location);
-        
-        resetGoals();
-    }
-
-    @Override
-    public BlockPos getWorkLocation()
-    {
-        if (petData == null)
-        {
-            return null;
-        }
-
-        return petData.getWorkLocation();
-    }
-
-    @Override
     public String getAnimalType()
     {
         if (petData == null) return null;
@@ -131,62 +112,26 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         return petData.getAnimalType();
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * A pet will never want to attack another entity.
+     * 
+     * @param target the target to check
+     * @param owner  the owner of the pet
+     * @return false always
+     */
     @Override
-    public PetData<PetAxolotl> getPetData()
+    public boolean wantsToAttack(@Nonnull LivingEntity target, @Nonnull LivingEntity owner)
     {
-        return this.petData;
+        return false;
     }
 
     /**
-     * Gets the dimension of this pet's current level. If the pet is not currently in a level (i.e. it is not in the world), this
-     * will return null.
-     *
-     * @return the dimension of the pet's level, or null
+     * Registers the goals for this pet. This includes goals for avoiding water, looking at the nearest player, looking around randomly, and attacking targets that have attacked it. If the pet data is not null, it will also register additional custom goals specific to the pet type.
      */
-    @Override
-    public ResourceKey<Level> getDimension()
-    {
-        Level level = this.level();
-
-        if (level != null)
-        {
-            return level.dimension();
-        }
-        
-        return null;
-    }
-
-    @Override
-    public ItemStackHandler getInventory()
-    {
-        if (petData == null)
-        {
-            return null;
-        }
-
-        return petData.getInventory();
-    }
-
-    /**
-     * Registers the goals for this pet. This includes goals for returning to water if not already in it,
-     * looking at the nearest player, looking around randomly, and attacking targets that have attacked
-     * it. If the pet data is not null, it will also register additional custom goals specific to the
-     * pet type.
-     */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     protected void registerGoals()
     {
-        this.goalSelector.addGoal(
-            4,
-            new ReturnToWaterGoal(this, 
-                15, 
-                24, 
-                1.2D,
-                200 
-            )
-        );
+        this.goalSelector.addGoal(2, new WaterAvoidingRandomFlyingGoal(this, 1.0F));
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
 
@@ -203,13 +148,19 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
             return;
         }
         petData.assignPetGoals();
+
     }
 
+    /**
+     * Adds additional data to the given CompoundTag, such as the pet data.
+     * 
+     * @param compound the CompoundTag to add the data to
+     */
     @Override
     public void addAdditionalSaveData(@Nonnull CompoundTag compound)
     {
         super.addAdditionalSaveData(compound);
-
+        
         if (petData != null)
         {
             petData.toNBT(compound);
@@ -218,17 +169,20 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         {
             LOGGER.warn("Failed to serialize pet data: petData is null");
         }
+
     }
 
     /**
-     * Deserializes the NBT data for this pet from the given CompoundTag. Restores the colony ID and, if available, the position and
-     * dimension of the associated building. If the building is found in the world, sets the trainer building for this pet.
+     * Deserializes the NBT data for this pet from the given CompoundTag.
+     * Restores the colony ID and, if available, the position and dimension of the associated building.
+     * If the building is found in the world, sets the trainer building for this pet.
      *
      * @param compound the CompoundTag containing the serialized state of the BaseTradePostPet.
      */
     @Override
     public void readAdditionalSaveData(@Nonnull CompoundTag compound)
-    {
+    {   
+
         try
         {
             super.readAdditionalSaveData(compound);
@@ -238,17 +192,15 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
             // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
-        petData = new PetData<>(this, compound);
+        petData = new PetData<PetParrot>(this, compound);
 
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);
         this.targetSelector.removeAllGoals(g -> true);
-        
-        if (petData != null)
-        {
+        if (petData != null) {
             registerGoals(); // only register once we have all colony context
         }
-        else
+        else 
         {
             LOGGER.warn("Failed to deserialize pet data from {}: petData is null", compound);
         }
@@ -266,108 +218,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
                 this.discard();
             }
         }
-    }
-
-    @Override
-    public void tick()
-    {
-        super.tick();
-        
-        if (petData != null && !petData.areGoalsInitialized()) 
-        {
-            resetGoals();
-        }
-
-        if (petData != null)
-        {
-            petData.tick(this.level());
-            petData.aiWatchdogTick();
-            petData.logActiveGoals();
-        }
-        else
-        {
-            LOGGER.warn("Failed to tick pet {}: petData is null", this);
-        }
-    }
-
-    /**
-     * Removes the Pet from the game. This method unregisters the wolf from the PetRegistry and clears the reference to its associated
-     * BaseTradePostPet. This is typically called when the wolf is removed from the world for any reason, such as death or despawning.
-     *
-     * @param reason the reason for the removal of the pet
-     */
-    @Override
-    public void remove(@Nonnull RemovalReason reason)
-    {
-        if (petData != null)
-        {
-            petData.onRemoval(reason);
-        }
-
-        switch (reason) {
-            case KILLED, DISCARDED -> {
-                PetRegistryUtil.unregister(this);
-                
-                petData = null;
-
-                if (this.isLeashed())
-                {
-                    this.dropLeash(true, false);
-                }
-            }
-            case UNLOADED_TO_CHUNK, CHANGED_DIMENSION -> {
-                // benign; don’t clear persistent state
-            }
-            default -> {
-                // benign; don’t clear persistent state
-            }
-        }
-        
-        super.remove(reason);
-    }
-
-    /**
-     * Creates a path navigation for this pet. By default, this uses a minecolonies navigation.
-     * 
-     * @param level the level in which the navigation is being created
-     * @return a path navigation for this pet
-     */
-    @Override
-    protected PathNavigation createNavigation(@Nonnull Level level)
-    {
-        MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
-        pathNavigation.getPathingOptions().setEnterDoors(true);
-        pathNavigation.getPathingOptions().setCanOpenDoors(true);
-        pathNavigation.getPathingOptions().setEnterGates(true);
-        pathNavigation.getPathingOptions().withDropCost(1D);
-        pathNavigation.getPathingOptions().withJumpCost(1D);
-        pathNavigation.getPathingOptions().setPassDanger(false);
-        pathNavigation.getPathingOptions().setCanSwim(true);
-        pathNavigation.getPathingOptions().setWalkUnderWater(true);
-        pathNavigation.getPathingOptions().swimCost = 1D;
-        pathNavigation.getPathingOptions().swimCostEnter = 1D;
-        pathNavigation.setCanFloat(true);
-        return pathNavigation;
-    }
-
-    /**
-     * Determines if this pet can climb the block at its current position. By default, this returns true if the block is climable (i.e.
-     * a ladder or vine).
-     * 
-     * @return true if the wolf can climb the block at its current position, false otherwise
-     */
-    @Override
-    public boolean onClimbable()
-    {
-        // IDEA: Lock climbing behind research.
-        BlockPos pos = this.blockPosition();
-
-        if (pos == null)
-        {
-            return false;
-        }
-
-        return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
     }
 
     /**
@@ -426,6 +276,188 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         }
     }
 
+
+    @Override
+    public void tick()
+    {
+        super.tick();
+        
+        if (petData != null && !petData.areGoalsInitialized()) 
+        {
+            resetGoals();
+        }
+
+        if (petData != null)
+        {
+            petData.tick(this.level());
+            petData.aiWatchdogTick();
+            petData.logActiveGoals();
+        }
+        else
+        {
+            LOGGER.warn("Failed to tick pet {}: petData is null", this);
+        }
+    }
+
+    /**
+     * Removes the Pet from the game. This method unregisters the pet from the PetRegistry
+     * and clears the reference to its associated BaseTradePostPet. This is typically called
+     * when the pet is removed from the world for any reason, such as death or despawning.
+     *
+     * @param reason the reason for the removal of the pet
+     */
+    @Override
+    public void remove(@Nonnull RemovalReason reason)
+    {
+        if (petData != null)
+        {
+            petData.onRemoval(reason);
+        }
+
+        switch (reason) {
+            case KILLED, DISCARDED -> {
+                PetRegistryUtil.unregister(this);
+                this.setOwnerUUID(null);
+                
+                petData = null;
+
+                if (this.isLeashed())
+                {
+                    this.dropLeash(true, false);
+                }
+            }
+            case UNLOADED_TO_CHUNK, CHANGED_DIMENSION -> {
+                // benign; don’t clear persistent state
+            }
+            default -> {
+                // benign; don’t clear persistent state
+            }
+        }
+        
+        super.remove(reason);
+    }
+
+    /**
+     * Creates a path navigation for this pet. By default, this uses a minecolonies navigation.
+     * @param level the level in which the navigation is being created
+     * @return a path navigation for this pet
+     */
+    @Override   
+    protected PathNavigation createNavigation(@Nonnull Level level) 
+    {
+        PathNavigation pathNavigation = new FlyingPathNavigation(this, level);
+        pathNavigation.setCanFloat(true);
+
+        return pathNavigation;
+    }
+
+    /**
+     * Determines if this pet can climb the block at its current position.
+     * By default, this returns true if the block is climable (i.e. a ladder or vine).
+     * @return true if the pet can climb the block at its current position, false otherwise
+     */
+    @Override
+    public boolean onClimbable()
+    {
+        // IDEA: Lock climbing behind research.
+        BlockPos pos = this.blockPosition();
+
+        if (pos == null)
+        {
+            return false;
+        }
+        
+        return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
+    }
+    
+    /**
+     * Gets the PetData associated with this pet. This is a convenient way to access the data about the pet without having to cast
+     * it to the correct type.
+     * @return the PetData associated with this pet
+     */
+    @SuppressWarnings("unchecked")
+    public PetData<PetParrot> getPetData()
+    {
+        return this.petData;
+    }
+
+    /**
+     * Gets the dimension of this pet's current level. If the pet is not currently in a level (i.e. it is not in the world), this
+     * will return null.
+     *
+     * @return the dimension of the pet's level, or null
+     */
+    @Override
+    public ResourceKey<Level> getDimension()
+    {
+        Level level = this.level();
+
+        if (level != null)
+        {
+            return level.dimension();
+        }
+        
+        return null;
+    }
+
+    public BlockPos getTargetPosition()
+    {
+        return this.targetPosition;
+    }
+
+    public void setTargetPosition(BlockPos targetPosition)
+    {
+        this.targetPosition = targetPosition;
+    }
+
+    public void incrementStuckTicks()
+    {
+        this.stuckTicks++;
+    }
+
+    public int getStuckTicks()
+    {
+        return this.stuckTicks;
+    }
+
+    public void clearStuckTicks()
+    {
+        this.stuckTicks = 0;
+    }
+
+    @Override
+    public ItemStackHandler getInventory()
+    {
+        if (petData == null) {
+            return null;
+        }
+
+        return petData.getInventory();
+    }
+
+    @Override
+    public void setWorkLocation(BlockPos location)
+    {
+        if (petData == null) {
+            petData = new PetData<PetParrot>(this);
+            return;
+        }
+
+        petData.setWorkLocation(location);
+        
+        resetGoals();
+    }
+
+    @Override
+    public BlockPos getWorkLocation()
+    {
+        if (petData == null) {
+            return null;
+        }
+
+        return petData.getWorkLocation();
+    }
+
     /**
      * Handles interaction with this pet entity. If the interaction is initiated with the main hand and
      * the game is not on the client-side, it opens a chest menu displaying the pet's inventory.
@@ -456,13 +488,12 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
         return super.mobInteract(player, hand);
     }
 
-    @Override
-    public boolean isFreezing()
-    {
-        // Always return false to suppress freezing damage
-        return false;
-    }
-
+    /**
+     * Drops the pet's entire inventory on death. This is not a conventional override of
+     * {@link Animal#dropCustomDeathLoot(ServerLevel, DamageSource, boolean)}, as the superclass does not
+     * provide a way to drop the entire inventory. This is a workaround to drop the pet's inventory
+     * when it dies.
+     */
     /**
      * Drops the pet's entire inventory on death. This is not a conventional override of
      * {@link Animal#dropCustomDeathLoot(ServerLevel, DamageSource, boolean)}, as the superclass does not
@@ -500,7 +531,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet
             this.getPetData().setOriginalName(newName);
         }
     }
-
 
     /**
      * Moves the pet to the given entity, at a given speed. This is a wrapper around the

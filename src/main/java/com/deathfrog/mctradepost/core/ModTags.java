@@ -3,7 +3,6 @@ package com.deathfrog.mctradepost.core;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
@@ -17,6 +16,22 @@ public class ModTags
     public static final ResourceLocation TRACK_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "track");
     @SuppressWarnings("null")
     public @Nonnull static final TagKey<Block> TRACK_TAG = BlockTags.create(TRACK_TAG_KEY);
+
+    public static final ResourceLocation FRUIT_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "scavenge_fruit");
+    @SuppressWarnings("null")
+    public @Nonnull static final TagKey<Block> TAG_FRUIT = BlockTags.create(FRUIT_TAG_KEY);
+
+    public static final ResourceLocation APPLE_LEAVES_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "scavenge_apple_leaves");
+    @SuppressWarnings("null")
+    public @Nonnull static final TagKey<Block> TAG_APPLE_LEAVES = BlockTags.create(APPLE_LEAVES_TAG_KEY);
+
+    public static final ResourceLocation OTHER_LEAVES_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "scavenge_other_leaves");
+    @SuppressWarnings("null")
+    public @Nonnull static final TagKey<Block> TAG_OTHER_LEAVES = BlockTags.create(OTHER_LEAVES_TAG_KEY);
+    
+    public static final ResourceLocation WATER_SCAVENGE_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "amphibious_scavenge");
+    @SuppressWarnings("null")
+    public static final TagKey<Block> WATER_SCAVENGE_BLOCK_TAG = BlockTags.create(WATER_SCAVENGE_TAG_KEY);
 
     /* Item Tags */
     public static final ResourceLocation STEW_INGREDIENTS_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "stew_ingredients");
