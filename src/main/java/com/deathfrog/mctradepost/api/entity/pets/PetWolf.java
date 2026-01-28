@@ -336,7 +336,6 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     @Override
     public boolean onClimbable()
     {
-        // IDEA: Lock climbing behind research.
         BlockPos pos = this.blockPosition();
 
         if (pos == null)
@@ -345,6 +344,23 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
         
         return this.level().getBlockState(pos).is(NullnessBridge.assumeNonnull(BlockTags.CLIMBABLE));
+    }
+
+    /**
+     * Gets the luck of the pet. This is a value between 0 and 1 that determines how often the pet will find items while scavenging.
+     * A higher value means the pet will find items more often.
+     * If the pet data is null, this method returns 0.
+     * @return the luck of the pet
+     */
+    @Override
+    public float getLuck()
+    {
+        if (petData == null) 
+        {
+            return 0.0f;
+        }
+
+        return petData.getLuck();
     }
     
     /**

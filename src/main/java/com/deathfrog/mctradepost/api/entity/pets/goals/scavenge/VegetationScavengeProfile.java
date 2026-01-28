@@ -122,7 +122,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
         // Apple leaves: for walkers, find ground under/near the canopy;
         // for flyers, hover adjacent to the leaf block.
-        if (state.is(ModTags.TAG_APPLE_LEAVES))
+        if (state.is(ModTags.TAG_SCAVENGE_LEAVES))
         {
             if (flyer)
             {
@@ -147,7 +147,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             return passesGenericMaturityGate(state);
         }
 
-        if (state.is(ModTags.TAG_APPLE_LEAVES) || state.is(ModTags.TAG_OTHER_LEAVES))
+        if (state.is(ModTags.TAG_SCAVENGE_LEAVES) || state.is(ModTags.TAG_GROUNDCOVER))
         {
             return true;
         }
@@ -185,14 +185,14 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/fruit/" + key.getPath());
         }
 
-        if (state.is(ModTags.TAG_APPLE_LEAVES))
+        if (state.is(ModTags.TAG_SCAVENGE_LEAVES))
         {
-            return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/apple_leaves/" + key.getPath());
+            return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/leaves/" + key.getPath());
         }
 
-        if (state.is(ModTags.TAG_OTHER_LEAVES))
+        if (state.is(ModTags.TAG_GROUNDCOVER))
         {
-            return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/other_leaves/" + key.getPath());
+            return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/groundcover/" + key.getPath());
         }
 
         return null;
@@ -225,7 +225,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             return;
         }
 
-        if (state.is(ModTags.TAG_APPLE_LEAVES) || state.is(ModTags.TAG_OTHER_LEAVES))
+        if (state.is(ModTags.TAG_SCAVENGE_LEAVES) || state.is(ModTags.TAG_GROUNDCOVER))
         {
             level.playSound(null, pos, SoundEvents.GRASS_BREAK, SoundSource.NEUTRAL, 0.8f, 0.95f);
             level.sendParticles(ParticleTypes.COMPOSTER,
@@ -254,21 +254,21 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             int min = age.getPossibleValues().stream().min(Integer::compareTo).orElse(0);
             int max = age.getPossibleValues().stream().max(Integer::compareTo).orElse(min);
 
-            // Heuristic:
-            // - berries (0..3): set to 1
-            // - cocoa (0..2): set to 0
-            int newAge = (max >= 3) ? Math.min(1, max) : min;
-
-            BlockState newState = state.setValue(age, newAge);
-
-            if (newState == null)
+            // If it's a long-growth plant (e.g., melon/pumpkin stems are 0..7),
+            // don't downgrade it at all.  This keeps mature stems mature.
+            if (max >= 7)
             {
                 return;
             }
 
-            if (newState != state)
+            // Heuristic for small ranges:
+            // - berries (0..3): set to 1
+            // - cocoa (0..2): set to 0
+            int newAge = (max >= 3) ? Math.min(1, max) : min;
+
+            if (state.getValue(age) != newAge)
             {
-                level.setBlock(pos, newState, 3);
+                level.setBlock(pos, NullnessBridge.assumeNonnull(state.setValue(age, newAge)), 3);
             }
             return;
         }
@@ -277,17 +277,9 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         BooleanProperty berries = findBoolProp(state, "berries");
         if (berries != null && state.getValue(berries))
         {
-            BlockState newState = state.setValue(berries, false);
-
-            if (newState == null)
-            {
-                return;
-            }
-
-            level.setBlock(pos, newState, 3);
+            level.setBlock(pos, NullnessBridge.assumeNonnull(state.setValue(berries, false)), 3);
         }
     }
-
 
     // ------------------------------------------------------------
     // Helpers

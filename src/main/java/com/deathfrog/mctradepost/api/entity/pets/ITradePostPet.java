@@ -36,6 +36,8 @@ public interface ITradePostPet
 
     public IPetNavResult moveToEntity(@Nonnull Entity targetEntity, double speed);
 
+    public float getLuck();
+
     default String petInfo()
     {
         return String.format(

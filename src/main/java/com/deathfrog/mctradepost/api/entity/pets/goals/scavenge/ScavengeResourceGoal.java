@@ -430,10 +430,10 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
 
         Vec3 centerPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(pos));
 
-        // IDEA: Modify luck based on animal trainer skill level
+        // Modify luck based on animal trainer skill level
         LootParams lootParams = new LootParams.Builder(level).withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
             .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet)
-            .withLuck(0.0f) 
+            .withLuck(pet.getLuck()) 
             .create(NullnessBridge.assumeNonnull(LootContextParamSets.EMPTY));
 
         if (lootParams == null) return;

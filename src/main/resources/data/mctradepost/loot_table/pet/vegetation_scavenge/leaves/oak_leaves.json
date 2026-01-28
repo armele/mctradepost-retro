@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 10},
+        { "type": "item", "name": "minecraft:stick", "weight": 13, "quality": 0   },
+        { "type": "item", "name": "minecraft:oak_sapling", "weight": 20, "quality": 0  },
+        { "type": "item", "name": "minecraft:dark_oak_sapling", "weight": 5, "quality": 0  },
+        { "type": "item", "name": "minecraft:apple", "weight": 3, "quality": 0  },
+        { "type": "item", "name": "minecraft:feather", "weight": 2, "quality": 1  },
+        { "type": "item", "name": "minecraft:golden_apple", "weight": 1, "quality": 1}
+      ]
+    }
+  ]
+}

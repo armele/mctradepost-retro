@@ -174,7 +174,7 @@
     "block.mctradepost.feeder": "Feeder",
 
     "block.mctradepost.trough.shortname": "Herd",
-    "block.mctradepost.scavenge.shortname": "Scavenge",
+    "block.mctradepost.scavenge.shortname": "Shroom",
     "block.mctradepost.dredger.shortname": "Dredge",
     "block.mctradepost.feeder.shortname": "Forage",
 
@@ -184,6 +184,8 @@
     "item.mctradepost.petworkinglocation.expanded.blockscavenge": "Place in a dim area to have your pet scavenge for mushrooms.",
     "item.mctradepost.petworkinglocation.blockdredger": "Pet working location: Dredger",
     "item.mctradepost.petworkinglocation.expanded.blockdredger": "Place in or near shallow water (1 or 2 depth) to have your pet search for dredged items.",
+    "item.mctradepost.petworkinglocation.blockfeeder": "Pet working location: Feeder",
+    "item.mctradepost.petworkinglocation.expanded.blockfeeder": "Hang in the tree canopy or on the ground near vegetation to have your pet search the foliage.",
 
     "item.mctradepost.woven_kelp": "Woven Kelp Brick",
     "item.mctradepost.woven_kelp_stairs": "Woven Kelp Brick Stairs",

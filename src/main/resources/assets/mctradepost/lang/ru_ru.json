@@ -174,7 +174,7 @@
   "block.mctradepost.feeder": "Кормушка",
 
   "block.mctradepost.trough.shortname": "Поголовье",
-  "block.mctradepost.scavenge.shortname": "Сбор",
+  "block.mctradepost.scavenge.shortname": "Гриб",
   "block.mctradepost.dredger.shortname": "Дрейдж",
   "block.mctradepost.feeder.shortname": "Корм",
 
@@ -182,8 +182,8 @@
   "item.mctradepost.petworkinglocation.expanded.blocktrough": "Поместите внутри животноводческого строения, чтобы питомец помогал держать животных в загоне.",
   "item.mctradepost.petworkinglocation.blockscavenge": "Рабочее место питомца: Сбор",
   "item.mctradepost.petworkinglocation.expanded.blockscavenge": "Поставьте в затемнённом месте, чтобы питомец собирал грибы.",
-  "item.mctradepost.petworkinglocation.blockdredger": "Рабочее место питомца: Дреджер",
-  "item.mctradepost.petworkinglocation.expanded.blockdredger": "Разместите в неглубокой воде (1–2 блока), чтобы питомец искал предметы дреджинга.",
+  "item.mctradepost.petworkinglocation.blockdredger": "Рабочее место питомца: кормушка",
+  "item.mctradepost.petworkinglocation.expanded.blockdredger": "Разместите в кроне деревьев или на земле рядом с растительностью, чтобы питомец обыскивал листву.",
 
   "item.mctradepost.woven_kelp": "Плетёный кирпич из водорослей",
   "item.mctradepost.woven_kelp_stairs": "Ступени из плетёного кирпича водорослей",

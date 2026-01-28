@@ -10,11 +10,18 @@
       ]
     },
     {
-        "rolls": 1,
-        "entries": [
-        { "type": "empty", "weight": 19 },
-        { "type": "item", "name": "minecraft:slime_ball", "weight": 1 }
-        ]
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "item",
+          "name": "minecraft:slime_ball",
+          "conditions": [
+            {
+              "condition": "minecraft:random_chance", "chance": 0.025
+            }
+          ]
+        }
+      ]
     }
   ]
 }

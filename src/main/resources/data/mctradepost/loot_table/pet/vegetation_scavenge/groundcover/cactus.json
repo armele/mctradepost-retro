@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 5, "quality": 0 },
+        { "type": "item", "name": "minecraft:cactus", "weight": 12, "quality": 0  },
+        { "type": "item", "name": "minecraft:green_dye", "weight": 4, "quality": 0 },
+        { "type": "item", "name": "minecraft:slime_ball", "weight": 1, "quality": 1 }
+      ]
+    }
+  ]
+}

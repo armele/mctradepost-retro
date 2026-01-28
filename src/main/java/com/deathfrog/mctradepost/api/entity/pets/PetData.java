@@ -28,6 +28,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -47,6 +48,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -400,6 +402,33 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             this.animal.resetGoals();
         }
     }
+
+
+    /**
+     * Retrieves the luck modifier for the pet's scavenging ability.
+     * This modifier is calculated based on the primary skill level of the animal trainer assigned to the pet's work location.
+     * If the animal trainer is not assigned to a petshop, or the animal trainer's primary skill level is 0 or less, this method returns 0.0f.
+     * The luck modifier is calculated as (skill - 1) / 98.0f, clamped between 0.0f and 1.0f, and then squared.
+     * @return the luck modifier for the pet's scavenging ability
+     */
+    public float getLuck()
+    {
+        IBuilding trainerBuilding = this.getTrainerBuilding();
+
+        if (trainerBuilding instanceof BuildingPetshop petshop)
+        {
+            int skill = petshop.trainerPrimarySkill();
+            if (skill > 0)
+            {
+                float t = (skill - 1) / 98.0f;
+                t = Mth.clamp(t, 0.0f, 1.0f);
+                return t * t;
+            }
+        }
+
+        return 0.0f;
+    }
+
     
     /**
      * Assigns basic goals to the pet, and then assigns a work-location-specific goal,
@@ -454,10 +483,6 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
 
     }
-
-    // IDEA: Implement scaling by trainer building level.
-    // IDEA: Implement research effects.
-
 
     /**
      * Assigns a goal to the pet based on the work location, if the work location is valid.
@@ -533,14 +558,27 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 break;
 
             case SCAVENGE_VEGETATION:
-                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_vegetation goals for pet {}:", this.animal.getUUID()));
+                boolean hanging = false;
+                BlockPos localWorkPos = this.getWorkLocation();
+                if (localWorkPos != null)
+                {
+                    BlockState state = this.getAnimal().level().getBlockState(localWorkPos);
+                    if (state.getBlock() instanceof BlockFeeder && state.hasProperty(BlockFeeder.HANGING)) 
+                    {
+                        hanging = state.getValue(BlockFeeder.HANGING);
+                    }
+                }
+                
+                final boolean localHanging = hanging;
+                TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_vegetation goals for pet {} (hanging: {}):", this.animal.getUUID(), localHanging));
+
                 this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
                     this.getAnimal(), 
-                    new VegetationScavengeProfile<>(),
+                    localHanging ? new VegetationScavengeProfile<>() : new VegetationScavengeProfile<>(3, 2, 140),
                     12,
-                    0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
+                    localHanging ? 0.08f : 0.12f, // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
-                    200            // cooldown (10 seconds)
+                    200             // cooldown (10 seconds)
                 ));
                 break;
 

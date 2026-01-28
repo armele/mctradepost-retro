@@ -6,7 +6,8 @@
       "entries": [
         { "type": "empty", "weight": 3 },
         { "type": "item", "name": "minecraft:stick", "weight": 3 },
-        { "type": "item", "name": "minecraft:azalea_sapling", "weight": 2 }
+        { "type": "item", "name": "minecraft:azalea", "weight": 2 },
+        { "type": "item", "name": "minecraft:flowering_azalea", "weight": 2 }
       ]
     }
   ]

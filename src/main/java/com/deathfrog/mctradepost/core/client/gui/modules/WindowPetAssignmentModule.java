@@ -12,6 +12,7 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.EntityIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
@@ -146,6 +147,13 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                 {
                     return;
                 }
+
+                final ButtonImage summonPetButton = rowPane.findPaneOfTypeByID(TAG_BUTTON_SUMMONPET, ButtonImage.class);
+                PaneBuilders.tooltipBuilder().hoverPane(summonPetButton).build().setText(Component.translatable("com.minecolonies.coremod.gui.petstore.summon"));
+
+                Button freePetButton = rowPane.findPaneOfTypeByID(TAG_BUTTON_FREEPET, Button.class);
+                PaneBuilders.tooltipBuilder().hoverPane(freePetButton).build().setText(Component.translatable("com.minecolonies.coremod.gui.petstore.setfree"));
+
 
                 Entity selectedEntity = level.getEntity(pets.get(index).getEntityId());
                 final Text entityOor = rowPane.findPaneOfTypeByID(LABEL_OOR, Text.class);
