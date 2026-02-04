@@ -146,7 +146,7 @@ public class OutpostExportModule extends ItemListModule implements ITickingModul
         {
             for (BlockPos outpostSpot : outpost.getWorkBuildings())
             {
-                IBuilding outpostMemberBuilding = colony.getBuildingManager().getBuilding(outpostSpot);
+                IBuilding outpostMemberBuilding = colony.getServerBuildingManager().getBuilding(outpostSpot);
 
                 if (outpostMemberBuilding != null)
                 {

@@ -674,7 +674,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (colony == null) return null;
 
-        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
         {
             if (BlockPosUtil.isInArea(building.getCorners().getA(), building.getCorners().getB(), workLocation)) 
             {

@@ -327,7 +327,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         // LOGGER.info("Testing {} buildings at {} ", colony.getBuildingManager().getBuildings().size(), worldPosition.toShortString());
         IBuilding selected = null;
 
-        for (IBuilding candidate : colony.getBuildingManager().getBuildings().values())
+        for (IBuilding candidate : colony.getServerBuildingManager().getBuildings().values())
         {
             Tuple<BlockPos, BlockPos> corners = candidate.getCorners();
             if (corners == null) continue;

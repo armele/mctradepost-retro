@@ -556,7 +556,7 @@ public class BuildingMarketplace extends AbstractBuilding
         if (colony != null)
         {
             // Find the nearest BuildingMarketplace
-            closestMarketplace = colony.getBuildingManager()
+            closestMarketplace = colony.getServerBuildingManager()
                 .getBuildings()
                 .values()
                 .stream()
@@ -621,11 +621,11 @@ public class BuildingMarketplace extends AbstractBuilding
         // Once the marketplace is built, visitors start thinking about shopping...
         // Note: approach below for finding tavern mimics EventHandler.onEntityConverted
         final BlockPos tavernPos =
-            colony.getBuildingManager().getRandomBuilding(b -> !b.getModules(TavernBuildingModule.class).isEmpty());
+            colony.getServerBuildingManager().getRandomBuilding(b -> !b.getModules(TavernBuildingModule.class).isEmpty());
         if (tavernPos != null)
         {
             // MCTradePostMod.LOGGER.info("Tavern module found - collecting visitor IDs.");
-            final IBuilding tavern = colony.getBuildingManager().getBuilding(tavernPos);
+            final IBuilding tavern = colony.getServerBuildingManager().getBuilding(tavernPos);
             TavernBuildingModule tavernModule = tavern.getModule(TavernBuildingModule.class);
             visitorIDs.addAll(tavernModule.getExternalCitizens());
         }

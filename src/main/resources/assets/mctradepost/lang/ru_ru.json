@@ -164,14 +164,14 @@
   "item.mctradepost.ivy_brick": "Плющовый кирпич",
   "block.mctradepost.ivy_brick": "Плющовый кирпич",
 
-  "item.mctradepost.trough": "Кормушка",
-  "block.mctradepost.trough": "Кормушка",
+  "item.mctradepost.trough": "Кормушка животных",
+  "block.mctradepost.trough": "Кормушка животных",
   "item.mctradepost.scavenge": "База сбора грибов",
   "block.mctradepost.scavenge": "База сбора грибов",
   "item.mctradepost.dredger": "Дреджер",
   "block.mctradepost.dredger": "Дреджер",
-  "item.mctradepost.feeder": "Кормушка",
-  "block.mctradepost.feeder": "Кормушка",
+  "item.mctradepost.feeder": "Кормушка птиц",
+  "block.mctradepost.feeder": "Кормушка птиц",
 
   "block.mctradepost.trough.shortname": "Поголовье",
   "block.mctradepost.scavenge.shortname": "Гриб",

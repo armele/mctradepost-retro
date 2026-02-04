@@ -89,7 +89,7 @@ public class WishingWellHandler
         {
             for (IColony colony : colonyList)
             {
-                for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+                for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
                 {
                     if (building instanceof BuildingMarketplace)
                     {

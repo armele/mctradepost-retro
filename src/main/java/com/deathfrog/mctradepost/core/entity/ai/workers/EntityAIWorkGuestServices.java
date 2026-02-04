@@ -630,7 +630,7 @@ public class EntityAIWorkGuestServices extends AbstractEntityAIInteract<JobGuest
     {
         IBuilding bestMarketplace = null;
         
-        for (final IBuilding building : worker.getCitizenColonyHandler().getColony().getBuildingManager().getBuildings().values()) {
+        for (final IBuilding building : worker.getCitizenColonyHandler().getColony().getServerBuildingManager().getBuildings().values()) {
             if (building instanceof BuildingMarketplace) {
                 bestMarketplace = building;
                 break;

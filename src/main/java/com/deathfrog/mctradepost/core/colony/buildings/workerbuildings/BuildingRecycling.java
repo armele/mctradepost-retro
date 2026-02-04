@@ -1175,13 +1175,13 @@ public class BuildingRecycling extends AbstractBuilding
     {
         allItems.clear();
 
-        if (getColony() == null || getColony().getBuildingManager() == null)
+        if (getColony() == null || getColony().getServerBuildingManager() == null)
         {
             LOGGER.warn("Recycling Center: Colony or Building Manager is null while attempting to refresh the recyclable list.");
             return;
         }
 
-        IRegisteredStructureManager buildingManager = getColony().getBuildingManager();
+        IRegisteredStructureManager buildingManager = getColony().getServerBuildingManager();
         List<IWareHouse> warehouses = buildingManager.getWareHouses();
         final List<ItemStorage> pendingRecyclingQueue = getPendingRecyclingQueue();
 

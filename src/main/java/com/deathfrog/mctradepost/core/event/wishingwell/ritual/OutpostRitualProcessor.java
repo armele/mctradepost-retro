@@ -69,7 +69,7 @@ public class OutpostRitualProcessor
         }
 
         IBuilding outpostBuilding =
-            marketplace.getColony().getBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.outpost);
+            marketplace.getColony().getServerBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.outpost);
         if (outpostBuilding != null)
         {
             LOGGER.warn("Only one outpost may be claimed per colony.", state.getCompanionCount());
@@ -140,7 +140,7 @@ public class OutpostRitualProcessor
 
             List<BuildingStation> stations = new ArrayList<>();
 
-            Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
+            Collection<IBuilding> buildings = colony.getServerBuildingManager().getBuildings().values();
             for (IBuilding building : buildings)
             {
                 if (building instanceof BuildingStation station)

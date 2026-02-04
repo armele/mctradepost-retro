@@ -57,7 +57,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
         ILocation destination = requestToCheck.getRequest().getTarget();
         ILocation start = requestToCheck.getRequest().getStart();
 
-        IBuilding outpostCandidate = manager.getColony().getBuildingManager().getBuilding(destination.getInDimensionLocation());
+        IBuilding outpostCandidate = manager.getColony().getServerBuildingManager().getBuilding(destination.getInDimensionLocation());
 
         if (outpostCandidate instanceof BuildingOutpost outpost)
         {
@@ -104,7 +104,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
         if (!manager.getColony().getWorld().isClientSide)
         {
             final Colony colony = (Colony) manager.getColony();
-            final IBuilding station = colony.getBuildingManager().getBuilding(getLocation().getInDimensionLocation(), BuildingStation.class);
+            final IBuilding station = colony.getServerBuildingManager().getBuilding(getLocation().getInDimensionLocation(), BuildingStation.class);
             if (station == null)
             {
                 return;
@@ -122,7 +122,7 @@ public class TrainDeliveryResolver extends AbstractRequestResolver<Delivery>
         TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Request {} (state {}) - {} resolved by TrainDeliveryResolver.", request.getId(), request.getState(), request.getLongDisplayString()));
         final Colony colony = (Colony) manager.getColony();
 
-        final IBuilding station = colony.getBuildingManager().getBuilding(request.getRequest().getStart().getInDimensionLocation());
+        final IBuilding station = colony.getServerBuildingManager().getBuilding(request.getRequest().getStart().getInDimensionLocation());
         if (station == null)
         {
             return;

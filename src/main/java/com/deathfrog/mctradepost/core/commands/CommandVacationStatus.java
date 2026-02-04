@@ -46,8 +46,8 @@ public class CommandVacationStatus extends AbstractCommands
             return 0;
         }
 
-        BuildingResort resort = (BuildingResort) colony.getBuildingManager().getBuilding(
-            colony.getBuildingManager().getBestBuilding(pos, BuildingResort.class));
+        BuildingResort resort = (BuildingResort) colony.getServerBuildingManager().getBuilding(
+            colony.getServerBuildingManager().getBestBuilding(pos, BuildingResort.class));
 
         if (resort != null) {
             if (resort.getGuests().isEmpty()) {

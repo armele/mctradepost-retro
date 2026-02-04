@@ -600,7 +600,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         Set<ItemStorage> ingredients = stewModule.getIngredients();
         int ingredientCount = 0;
 
-        IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(stewPotLocation);
+        IWareHouse warehouse = building.getColony().getServerBuildingManager().getClosestWarehouseInColony(stewPotLocation);
 
         for (ItemStorage ingredient : ingredients)
         {
@@ -645,7 +645,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         Set<ItemStorage> ingredients = stewModule.getIngredients();
         int ingredientCount = 0;
 
-        IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(stewPotLocation);
+        IWareHouse warehouse = building.getColony().getServerBuildingManager().getClosestWarehouseInColony(stewPotLocation);
 
         for (ItemStorage ingredient : ingredients)
         {
@@ -1024,7 +1024,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         ItemStack stewStack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()));
 
-        for (Map.Entry<BlockPos, IBuilding> buildingEntry : building.getColony().getBuildingManager().getBuildings().entrySet())
+        for (Map.Entry<BlockPos, IBuilding> buildingEntry : building.getColony().getServerBuildingManager().getBuildings().entrySet())
         {
             if (!(buildingEntry.getValue() instanceof BuildingCook))
             {
@@ -1119,10 +1119,10 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         boolean diningHallFound = false;
         boolean someDiningHallHasStew = false;
 
-        for (Map.Entry<BlockPos, IBuilding> buildingEntry : building.getColony().getBuildingManager().getBuildings().entrySet())
+        for (Map.Entry<BlockPos, IBuilding> buildingEntry : building.getColony().getServerBuildingManager().getBuildings().entrySet())
         {
             BlockPos parentLoc = buildingEntry.getValue().getParent();
-            IBuilding parent = parentLoc != null && !BlockPos.ZERO.equals(parentLoc) ? building.getColony().getBuildingManager().getBuilding(parentLoc) : null;
+            IBuilding parent = parentLoc != null && !BlockPos.ZERO.equals(parentLoc) ? building.getColony().getServerBuildingManager().getBuilding(parentLoc) : null;
 
             // Don't take bowls from these buildings.
             if (buildingEntry.getValue() instanceof BuildingKitchen 
@@ -1180,7 +1180,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         // If there are no bowls to pick up from other buildings, try to get bowls from a warehouse.
         if (currentBowlPickupBuilding == null)
         {
-            IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(building.getPosition());
+            IWareHouse warehouse = building.getColony().getServerBuildingManager().getClosestWarehouseInColony(building.getPosition());
             int bowlsInWarehouse = InventoryUtils.getItemCountInProvider(warehouse, stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack));
 
             if (bowlsInWarehouse > 0)
@@ -1225,8 +1225,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         if (pos != null && !BlockPos.ZERO.equals(pos))
         {
-            BlockPos diningHallPos = building.getColony().getBuildingManager().getBestBuilding(pos, BuildingCook.class);
-            IBuilding diningHallBuilding = diningHallPos != null ? building.getColony().getBuildingManager().getBuilding(diningHallPos) : null;
+            BlockPos diningHallPos = building.getColony().getServerBuildingManager().getBestBuilding(pos, BuildingCook.class);
+            IBuilding diningHallBuilding = diningHallPos != null ? building.getColony().getServerBuildingManager().getBuilding(diningHallPos) : null;
             isStewOnMenu = isStewOnMenu(diningHallBuilding);
         }
 
@@ -1276,7 +1276,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         StewmelierIngredientModule stewModule = safeStewModule();
         BlockPos stewPotLocation = stewModule.getStewpotLocation();   
 
-        IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(stewPotLocation);
+        IWareHouse warehouse = building.getColony().getServerBuildingManager().getClosestWarehouseInColony(stewPotLocation);
 
         if (!walkToBuilding(warehouse))
         {

@@ -572,7 +572,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
             throw new IllegalStateException("TradePost coin item is null. This should never happen. Please report.");
         }
 
-        for (IBuilding somebuilding : building.getColony().getBuildingManager().getBuildings().values())
+        for (IBuilding somebuilding : building.getColony().getServerBuildingManager().getBuildings().values())
         {
             ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(somebuilding, false);
 

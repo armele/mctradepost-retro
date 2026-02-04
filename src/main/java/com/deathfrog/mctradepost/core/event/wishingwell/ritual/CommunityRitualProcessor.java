@@ -261,7 +261,7 @@ public class CommunityRitualProcessor
         }
 
         Map<BlockPos, HousingData> housingMap = new HashMap<>();
-        Map<BlockPos,IBuilding> buildingList = marketplace.getColony().getBuildingManager().getBuildings();
+        Map<BlockPos,IBuilding> buildingList = marketplace.getColony().getServerBuildingManager().getBuildings();
 
         final List<HomeAssignment> assignments = new ArrayList<>();
 

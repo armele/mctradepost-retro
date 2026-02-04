@@ -316,7 +316,7 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
         if (requestToCheck.getRequest() instanceof Delivery delivery)
         {
             BlockPos deliveryStartPos = delivery.getStart().getInDimensionLocation();
-            IBuilding deliveryStartBuilding = outpostBuilding.getColony().getBuildingManager().getBuilding(deliveryStartPos);
+            IBuilding deliveryStartBuilding = outpostBuilding.getColony().getServerBuildingManager().getBuilding(deliveryStartPos);
 
             if (deliveryStartBuilding instanceof BuildingStation)
             {

@@ -43,8 +43,8 @@ public class CommandFrameStatus extends AbstractCommands
             return 0;
         }
 
-        BuildingMarketplace marketplace = (BuildingMarketplace) colony.getBuildingManager()
-            .getBuilding(colony.getBuildingManager().getBestBuilding(pos, BuildingMarketplace.class));
+        BuildingMarketplace marketplace = (BuildingMarketplace) colony.getServerBuildingManager()
+            .getBuilding(colony.getServerBuildingManager().getBestBuilding(pos, BuildingMarketplace.class));
 
         if (marketplace != null)
         {

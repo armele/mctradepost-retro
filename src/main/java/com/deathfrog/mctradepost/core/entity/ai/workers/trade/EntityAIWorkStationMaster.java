@@ -586,7 +586,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     { 
         for (IColony colony : IColonyManager.getInstance().getAllColonies())
         {
-            for (IBuilding checkbuilding : colony.getBuildingManager().getBuildings().values())
+            for (IBuilding checkbuilding : colony.getServerBuildingManager().getBuildings().values())
             {
                 // Disregard if it's not a station, or if it is the current station.
                 if (!(checkbuilding instanceof ITradeCapable tradeCapableBuilding) || tradeCapableBuilding.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))

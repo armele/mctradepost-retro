@@ -179,7 +179,7 @@ public class PetRegistryUtil
     public static final ImmutableList<PetHandle> getPetsInColony(IColony colony)
     {
         List<PetHandle> pets = new ArrayList<>();
-        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
         {
             Queue<PetHandle> buildingPets = globalPetRegistry.get(building);
             if (buildingPets != null)

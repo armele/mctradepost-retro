@@ -44,8 +44,8 @@ public class CommandPetshopStatus extends AbstractCommands
             return 0;
         }
 
-        BuildingPetshop petshop = (BuildingPetshop) colony.getBuildingManager()
-            .getBuilding(colony.getBuildingManager().getBestBuilding(pos, BuildingPetshop.class));
+        BuildingPetshop petshop = (BuildingPetshop) colony.getServerBuildingManager()
+            .getBuilding(colony.getServerBuildingManager().getBestBuilding(pos, BuildingPetshop.class));
 
         if (petshop != null)
         {

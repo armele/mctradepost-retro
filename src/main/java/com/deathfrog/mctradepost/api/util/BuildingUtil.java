@@ -103,7 +103,7 @@ public class BuildingUtil
             return null;
         } 
 
-        IBuilding building = colony.getBuildingManager().getBuilding(buildingId);
+        IBuilding building = colony.getServerBuildingManager().getBuilding(buildingId);
         return building;
     }
     
@@ -203,12 +203,12 @@ public class BuildingUtil
     {
         final IColony colony = sendingBuilding.getColony();
 
-        if (!colony.hasWarehouse())
+        if (!colony.getServerBuildingManager().hasWarehouse())
         {
             return null;
         }
 
-        IBuilding warehouse = colony.getBuildingManager().getClosestWarehouseInColony(sendingBuilding.getPosition());
+        IBuilding warehouse = colony.getServerBuildingManager().getClosestWarehouseInColony(sendingBuilding.getPosition());
 
         // If the warehouse exists but hasn't been built yet, you might still get a null here.
         if (warehouse == null)
@@ -270,7 +270,7 @@ public class BuildingUtil
     public static Collection<IToken<?>> getAllBuildingResolversForColony(IColony colony)
     {
         Collection<IToken<?>> resolvers = new ArrayList<>();
-        Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
+        Collection<IBuilding> buildings = colony.getServerBuildingManager().getBuildings().values();
 
         for (IBuilding building : buildings)
         {
@@ -282,7 +282,7 @@ public class BuildingUtil
             }   
         }
 
-        final IBuilding townHall = colony.getBuildingManager().getTownHall();
+        final IBuilding townHall = colony.getServerBuildingManager().getTownHall();
         if (townHall != null) {
             for (IRequestResolver<?> resolver : townHall.getResolvers())
             {

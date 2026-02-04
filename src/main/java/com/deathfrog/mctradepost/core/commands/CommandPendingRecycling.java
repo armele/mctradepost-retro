@@ -43,8 +43,8 @@ public class CommandPendingRecycling extends AbstractCommands
             return 0;
         }
 
-        BuildingRecycling recycling = (BuildingRecycling) colony.getBuildingManager()
-            .getBuilding(colony.getBuildingManager().getBestBuilding(pos, BuildingRecycling.class));
+        BuildingRecycling recycling = (BuildingRecycling) colony.getServerBuildingManager()
+            .getBuilding(colony.getServerBuildingManager().getBestBuilding(pos, BuildingRecycling.class));
 
         if (recycling != null)
         {

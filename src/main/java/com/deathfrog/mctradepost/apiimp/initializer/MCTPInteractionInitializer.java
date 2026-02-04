@@ -40,11 +40,11 @@ public class MCTPInteractionInitializer
     {
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(GREAT_VACATION),
             citizen -> citizen.getColony() != null && citizen.getEntity().isPresent()
-            && ((BuildingResort) citizen.getColony().getBuildingManager().getBuilding(
-                    citizen.getColony().getBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
+            && ((BuildingResort) citizen.getColony().getServerBuildingManager().getBuilding(
+                    citizen.getColony().getServerBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
                 )).getGuestFile(citizen.getEntity().get().getCivilianID()) != null
-            && ((BuildingResort) citizen.getColony().getBuildingManager().getBuilding(
-                    citizen.getColony().getBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
+            && ((BuildingResort) citizen.getColony().getServerBuildingManager().getBuilding(
+                    citizen.getColony().getServerBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
                 )).getGuestFile(citizen.getEntity().get().getCivilianID()).getState() != VacationState.CHECKED_OUT
             && (citizen.getStatus() == EntityAIBurnoutTask.VACATION_STATUS)
         );
@@ -55,7 +55,7 @@ public class MCTPInteractionInitializer
             && citizen.getWorkBuilding() != null 
             && ((citizen.getWorkBuilding() instanceof BuildingOutpost workOutpost && workOutpost.isDisconnected())
                 || (citizen.getWorkBuilding().getParent() != null 
-                    && citizen.getWorkBuilding().getColony().getBuildingManager().getBuilding(citizen.getWorkBuilding().getParent()) instanceof BuildingOutpost workOutpostParent
+                    && citizen.getWorkBuilding().getColony().getServerBuildingManager().getBuilding(citizen.getWorkBuilding().getParent()) instanceof BuildingOutpost workOutpostParent
                     && workOutpostParent.isDisconnected())
             )
         );

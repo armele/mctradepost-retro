@@ -71,7 +71,7 @@ public class StationData
             return null;
         }
 
-        ITradeCapable station = (ITradeCapable) colony.getBuildingManager().getBuilding(buildingposition);
+        ITradeCapable station = (ITradeCapable) colony.getServerBuildingManager().getBuilding(buildingposition);
 
         return station;
     }

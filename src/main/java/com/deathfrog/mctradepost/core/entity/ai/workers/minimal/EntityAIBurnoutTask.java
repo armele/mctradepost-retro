@@ -190,15 +190,15 @@ public class EntityAIBurnoutTask
         else
         {
             // Otherwise, find the closest with space. Start with the closest.
-            BlockPos bestResortLocation = citizenData.getColony().getBuildingManager().getBestBuilding(citizen, BuildingResort.class);
-            resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
+            BlockPos bestResortLocation = citizenData.getColony().getServerBuildingManager().getBestBuilding(citizen, BuildingResort.class);
+            resort = (BuildingResort) citizenData.getColony().getServerBuildingManager().getBuilding(bestResortLocation);
 
             // Fall back to searching all resorts if the closest is full.
             if (resort == null || resort.isFull())
             {
                 resort = null;
 
-                for (IBuilding building : citizenData.getColony().getBuildingManager().getBuildings().values())
+                for (IBuilding building : citizenData.getColony().getServerBuildingManager().getBuildings().values())
                 {
                     if (!(building instanceof BuildingResort))
                     {
@@ -371,7 +371,7 @@ public class EntityAIBurnoutTask
 
             if (parentBuildingPosition != null && !BlockPos.ZERO.equals(parentBuildingPosition))
             {
-                parentBuilding = citizenData.getColony().getBuildingManager().getBuilding(parentBuildingPosition);
+                parentBuilding = citizenData.getColony().getServerBuildingManager().getBuilding(parentBuildingPosition);
             }
 
             // Workers at the Resort and Outpost cannot take vacations.
@@ -760,7 +760,7 @@ public class EntityAIBurnoutTask
      */
     protected int calcHealSpeed(BlockPos bestResortLocation)
     {
-        BuildingResort resort = (BuildingResort) citizenData.getColony().getBuildingManager().getBuilding(bestResortLocation);
+        BuildingResort resort = (BuildingResort) citizenData.getColony().getServerBuildingManager().getBuilding(bestResortLocation);
         int serviceLevel = resort.getGuestServicesSkillLevel();
         double researchModifier = resort.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.FIVE_STAR_SERVICE);
 
@@ -837,7 +837,7 @@ public class EntityAIBurnoutTask
 
         if (bestResortLocation != null)
         {
-            final IBuilding resort = citizen.getCitizenData().getColony().getBuildingManager().getBuilding(bestResortLocation);
+            final IBuilding resort = citizen.getCitizenData().getColony().getServerBuildingManager().getBuilding(bestResortLocation);
             if (resort instanceof BuildingResort)
             {
                 if (seatLocation == null)

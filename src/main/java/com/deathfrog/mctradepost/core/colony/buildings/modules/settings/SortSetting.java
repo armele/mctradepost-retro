@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules.settings;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.views.BOWindow;
+import com.minecolonies.api.colony.buildings.modules.ICommonSettingsModule;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingsModuleView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
@@ -32,10 +33,10 @@ public class SortSetting extends BoolSetting
     }
 
     @Override
-    public void render(ISettingKey<?> key, Pane pane, ISettingsModuleView settingsModuleView, IBuildingView building, BOWindow window)
+    public void render(ISettingKey<?> key, Pane pane, final ICommonSettingsModule settingsModuleView, IBuildingView building, BOWindow window)
     {
         ButtonImage triggerButton = (ButtonImage) pane.findPaneOfTypeByID("trigger", ButtonImage.class);
-        triggerButton.setEnabled(this.isActive(settingsModuleView));
+        triggerButton.setEnabled(isActive((ISettingsModuleView) settingsModuleView));
         triggerButton.setText(Component.translatable("com.minecolonies.coremod.setting.mctradepost:sort_label"));
         this.setHoverPane(key, triggerButton, settingsModuleView);
     }
@@ -54,7 +55,7 @@ public class SortSetting extends BoolSetting
     @Override
     public void setupHandler(final ISettingKey<?> key,
         final Pane pane,
-        final ISettingsModuleView settingsModuleView,
+        final ICommonSettingsModule settingsModuleView,
         final IBuildingView building,
         final BOWindow window)
     {

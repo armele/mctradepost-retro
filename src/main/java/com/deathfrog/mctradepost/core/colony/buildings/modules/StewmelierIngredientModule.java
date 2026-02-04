@@ -355,7 +355,7 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         IColony colony = IColonyManager.getInstance().getClosestColony(level, cauldronPos);
         if (colony == null) return null;
 
-        for (IBuilding building : colony.getBuildingManager().getBuildings().values())
+        for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
         {
             if (building instanceof BuildingKitchen)
             {

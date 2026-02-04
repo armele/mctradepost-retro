@@ -15,6 +15,8 @@ import com.minecolonies.api.colony.buildings.HiringMode;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.core.client.gui.AbstractWindowSkeleton;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingTownHall;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -176,7 +178,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
      */
     private void cancelClicked(@NotNull final Button button)
     {
-        if (button.getID().equals(BUTTON_CANCEL) && colony.getTownHall() != null)
+        if (button.getID().equals(BUTTON_CANCEL) && colony.getServerBuildingManager().getTownHall() != null)
         {
             buildingView.openGui(false);
         }
@@ -309,7 +311,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                 }
                 newLivingLabel.setTextWrap(true);
 
-                if (((colony.isManualHousing() && livingModule.getHiringMode() == HiringMode.DEFAULT) || (livingModule.getHiringMode() == HiringMode.MANUAL)))
+                if (((colony.getSettings().getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue() && livingModule.getHiringMode() == HiringMode.DEFAULT) || (livingModule.getHiringMode() == HiringMode.MANUAL)))
                 {
                     if (livingModule.getAssignedCitizens().size() < livingModule.getMax())
                     {
@@ -396,7 +398,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                     newLivingLabel.setText(Component.translatableEscape(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED));
                 }
 
-                if (((colony.isManualHousing() && livingModule.getHiringMode() == HiringMode.DEFAULT) || (livingModule.getHiringMode() == HiringMode.MANUAL)))
+                if (((colony.getSettings().getSetting(BuildingTownHall.AUTO_HOUSING_MODE).getValue() && livingModule.getHiringMode() == HiringMode.DEFAULT) || (livingModule.getHiringMode() == HiringMode.MANUAL)))
                 {
                     if (citizen.getColony().getTravellingManager().isTravelling(citizen.getId()))
                     {

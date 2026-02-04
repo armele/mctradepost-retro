@@ -244,7 +244,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
         for (BlockPos workLocation : building.getWorkBuildings())
         {
-            IBuilding outpostBuilding = building.getColony().getBuildingManager().getBuilding(workLocation);
+            IBuilding outpostBuilding = building.getColony().getServerBuildingManager().getBuilding(workLocation);
 
             if (outpostBuilding != null)
             {
@@ -674,7 +674,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             return null;
         }
 
-        return building.getColony().getBuildingManager().getBuilding(request.getRequester().getLocation().getInDimensionLocation());
+        return building.getColony().getServerBuildingManager().getBuilding(request.getRequester().getLocation().getInDimensionLocation());
     }
 
     /**
@@ -684,7 +684,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      */
     public boolean orderFoodForOutpost()
     {
-        BlockPos restaurantPos = building.getColony().getBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
+        BlockPos restaurantPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
         boolean didOrder = false;
 
         if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
@@ -693,7 +693,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             return false;
         }
 
-        IBuilding restaurant = building.getColony().getBuildingManager().getBuilding(restaurantPos);
+        IBuilding restaurant = building.getColony().getServerBuildingManager().getBuilding(restaurantPos);
 
         if (restaurant == null)
         {
@@ -712,7 +712,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
         for (BlockPos outpostWorkPos : building.getWorkBuildings())
         {
-            IBuilding outpostWorksite = building.getColony().getBuildingManager().getBuilding(outpostWorkPos);
+            IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
 
             for (ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
             {
@@ -826,7 +826,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         // Otherwise, try to magic one out of the outpost inventory - and then use it.
         for (BlockPos outpostWorkPos : building.getWorkBuildings())
         {
-            IBuilding outpostWorksite = building.getColony().getBuildingManager().getBuilding(outpostWorkPos);
+            IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
 
             if (outpostWorksite != null)
             {

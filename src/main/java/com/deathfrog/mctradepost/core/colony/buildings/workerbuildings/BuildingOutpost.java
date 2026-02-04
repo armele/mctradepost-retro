@@ -285,7 +285,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         BlockPos buildingId = BlockPosUtil.read(compound, TAG_CONNECTED_STATION);
         if (!BlockPos.ZERO.equals(buildingId))
         {
-            final IBuilding b = getColony().getBuildingManager().getBuilding(buildingId);
+            final IBuilding b = getColony().getServerBuildingManager().getBuilding(buildingId);
             if (b instanceof BuildingStation station)
             {
                 this.connectedStation = station;
@@ -531,7 +531,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Validating Outpost connected to station in colony {}.", this.getColony().getName()));
 
-        Collection<IBuilding> buildings = colony.getBuildingManager().getBuildings().values();
+        Collection<IBuilding> buildings = colony.getServerBuildingManager().getBuildings().values();
         BuildingStation candidateStation = null;
         boolean isCurrentlyDisconnected = this.isDisconnected();
         boolean connected = false;
@@ -815,7 +815,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
             if (parent != null && checkBuilding.getColony() != null)
             {
-                IBuilding parentBuilding = checkBuilding.getColony().getBuildingManager().getBuilding(parent);
+                IBuilding parentBuilding = checkBuilding.getColony().getServerBuildingManager().getBuilding(parent);
                 
                 if (parentBuilding instanceof BuildingOutpost)
                 {
@@ -838,7 +838,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         for (BlockPos child : this.getWorkBuildings())
         {
-            final IBuilding outpostBuilding = this.getColony().getBuildingManager().getBuilding(child);
+            final IBuilding outpostBuilding = this.getColony().getServerBuildingManager().getBuilding(child);
             if (outpostBuilding == null) continue;
 
             // Citizen-scoped open requests

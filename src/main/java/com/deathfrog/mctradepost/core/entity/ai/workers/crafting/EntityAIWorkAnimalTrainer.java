@@ -320,7 +320,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
      */
     private IAIState dump()
     {
-        final @Nullable IWareHouse warehouse = building.getColony().getBuildingManager().getClosestWarehouseInColony(worker.getOnPos());
+        final @Nullable IWareHouse warehouse = building.getColony().getServerBuildingManager().getClosestWarehouseInColony(worker.getOnPos());
         if (warehouse == null)
         {
             return START_WORKING;
@@ -616,7 +616,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return getState();
         }
 
-        BlockPos marketPos = building.getColony().getBuildingManager().getBestBuilding(building.getPosition(), BuildingMarketplace.class);
+        BlockPos marketPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingMarketplace.class);
 
         if (marketPos == null || BlockPos.ZERO.equals(marketPos))
         {
@@ -632,7 +632,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return DECIDE;
         }
 
-        BuildingMarketplace marketplace = (BuildingMarketplace) building.getColony().getBuildingManager().getBuilding(marketPos);
+        BuildingMarketplace marketplace = (BuildingMarketplace) building.getColony().getServerBuildingManager().getBuilding(marketPos);
 
         if (marketplace == null)
         {

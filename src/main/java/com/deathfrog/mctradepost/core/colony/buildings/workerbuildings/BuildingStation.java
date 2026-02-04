@@ -310,7 +310,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 continue;
             }
 
-            IBuilding building = stationColony.getBuildingManager().getBuilding(remoteStation.getBuildingPosition());
+            IBuilding building = stationColony.getServerBuildingManager().getBuilding(remoteStation.getBuildingPosition());
 
             if (building == null || !(building instanceof ITradeCapable))
             {
@@ -985,7 +985,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
 
             IBuilding destinationBuilding =
-                this.getColony().getBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
+                this.getColony().getServerBuildingManager().getBuilding(delivery.getTarget().getInDimensionLocation());
 
             if (destinationBuilding == null || !(destinationBuilding instanceof BuildingOutpost outpost))
             {
@@ -1089,7 +1089,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         if (request.getRequest() instanceof Delivery delivery)
         {
             BlockPos deliveryTargetPos = delivery.getTarget().getInDimensionLocation();
-            IBuilding deliveryTargetBuilding = getColony().getBuildingManager().getBuilding(deliveryTargetPos);
+            IBuilding deliveryTargetBuilding = getColony().getServerBuildingManager().getBuilding(deliveryTargetPos);
 
             if (deliveryTargetBuilding == null)
             {

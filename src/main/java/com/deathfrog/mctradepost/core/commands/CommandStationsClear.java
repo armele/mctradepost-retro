@@ -46,8 +46,8 @@ public class CommandStationsClear extends AbstractCommands
             return 0;
         }
 
-        BuildingStation station = (BuildingStation) colony.getBuildingManager().getBuilding(
-            colony.getBuildingManager().getBestBuilding(pos, BuildingStation.class));
+        BuildingStation station = (BuildingStation) colony.getServerBuildingManager().getBuilding(
+            colony.getServerBuildingManager().getBestBuilding(pos, BuildingStation.class));
 
         if (station != null) {
             station.clearConnectedStations();
