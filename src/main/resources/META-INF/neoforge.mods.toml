@@ -79,7 +79,7 @@ config="mctradepost.mixins.json"
 [[dependencies.${mod_id}]]
     modId="minecolonies"
     type="required"
-    versionRange="[1.1.1233,)"
+    versionRange="[1.1.1253,)"
     ordering="AFTER"
     side="BOTH"
 
