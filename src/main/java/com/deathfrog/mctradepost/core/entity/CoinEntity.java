@@ -36,6 +36,7 @@ public class CoinEntity extends ItemEntity
         super(type, level);
         this.setUnlimitedLifetime();
         
+        // For rituals the Trade Post Coin is used, always (even if trade is configured to use another coin).
         CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
 
         if (coinItem == null)

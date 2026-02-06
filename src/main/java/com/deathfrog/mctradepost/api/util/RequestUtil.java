@@ -1,79 +1,80 @@
 package com.deathfrog.mctradepost.api.util;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.minecolonies.api.colony.buildings.IBuilding;
+import javax.annotation.Nonnull;
+
+import org.slf4j.Logger;
+
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.resolver.player.IPlayerRequestResolver;
 import com.minecolonies.api.colony.requestsystem.resolver.retrying.IRetryingRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
-import com.minecolonies.api.util.Log;
+import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
+import com.mojang.logging.LogUtils;
+
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_AUTOMINT;
 
 public class RequestUtil 
 {
+    public static final Logger LOGGER = LogUtils.getLogger();
+    
     /**
-     * Retrieves all open requests from a given building.
+     * Counts the number of coins needed to fulfill open requests in the colony.
      * 
-     * @param building The building to retrieve the requests from.
-     * @param originatorOnly Whether to only retrieve requests that were originally requested from this building, or to
-     *          also retrieve requests that were propagated to this building.
-     * @return A list of all open requests in the given building.
+     * @return the number of coins needed
      */
-    public static ImmutableList<IRequest<?>> getOpenRequestsFromBuilding(final IBuilding building, boolean originatorOnly)
+    public static int matchingRequestsInColony(@Nonnull IColony colony, @Nonnull Item searchItem)
     {
-        final ArrayList<IRequest<?>> requests = Lists.newArrayList();
+        int coinsNeeded = 0;
 
-        if (building == null || building.getColony() == null || requests == null)
+        ItemStack searchStack = new ItemStack(searchItem, 1);
+
+        final IRequestManager requestManager = colony.getRequestManager();
+        final IPlayerRequestResolver resolver = requestManager.getPlayerResolver();
+        final IRetryingRequestResolver retryingRequestResolver = requestManager.getRetryingRequestResolver();
+
+        final Set<IToken<?>> requestTokens = new HashSet<>();
+        requestTokens.addAll(resolver.getAllAssignedRequests());
+
+        final int playerRequests = requestTokens.size();
+
+        requestTokens.addAll(retryingRequestResolver.getAllAssignedRequests());
+
+        final int retryingRequests = requestTokens.size() - playerRequests;
+
+        TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+            () -> LOGGER.info("Colony {} Shopkeeper: Colony has {} current player-resolved requests and {} retrying requests.", colony.getID(), playerRequests, retryingRequests));
+
+        for (IToken<?> token : requestTokens)
         {
-            return ImmutableList.of();
-        }
+            final IRequest<?> request = requestManager.getRequestForToken(token);
 
-        final IRequestManager requestManager = building.getColony().getRequestManager();
-
-        if (requestManager == null)
-        {
-            return ImmutableList.of();
-        }
-
-        try
-        {
-            final IPlayerRequestResolver resolver = requestManager.getPlayerResolver();
-            final IRetryingRequestResolver retryingRequestResolver = requestManager.getRetryingRequestResolver();
-
-            final Set<IToken<?>> requestTokens = new HashSet<>();
-            requestTokens.addAll(resolver.getAllAssignedRequests());
-            requestTokens.addAll(retryingRequestResolver.getAllAssignedRequests());
-
-            for (final IToken<?> token : requestTokens)
+            if (request instanceof ItemStackRequest itemRequest)
             {
-                IRequest<?> request = requestManager.getRequestForToken(token);
+                TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+                    () -> LOGGER.info("Colony {} Shopkeeper: inspecting request: {}", colony.getID(), request.getShortDisplayString()));
 
-                if (originatorOnly)
+                if (itemRequest.getRequest().matches(searchStack))
                 {
-                    while (request != null && request.hasParent())
-                    {
-                        request = requestManager.getRequestForToken(request.getParent());
-                    }
-                }
-
-                if (request != null && !requests.contains(request))
-                {
-                    requests.add(request);
+                    final int addToNeed = itemRequest.getRequest().getCount();
+                    TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+                        () -> LOGGER.info("Colony {} Shopkeeper: adding {} to needed coin coint.", colony.getID(), addToNeed));
+                    coinsNeeded = coinsNeeded + addToNeed;
                 }
             }
-        }
-        catch (Exception e)
-        {
-            Log.getLogger().warn("Exception trying to retreive requests:", e);
-            requestManager.reset();
-            return ImmutableList.of();
+            else
+            {
+                TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+                    () -> LOGGER.info("Colony {} Shopkeeper: ignoring request: {} of type {}", colony.getID(), request.getShortDisplayString(), request.getClass().getSimpleName()));
+            }
         }
 
-        return ImmutableList.copyOf(requests);
+        return coinsNeeded;
     }
 }

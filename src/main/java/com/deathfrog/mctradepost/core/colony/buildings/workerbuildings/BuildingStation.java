@@ -33,7 +33,6 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
-import com.deathfrog.mctradepost.item.CoinItem;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.minecolonies.api.colony.ICitizenData;
@@ -715,7 +714,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
 
         if (exportData.getCost() > 0)
         {
-            CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
+            Item coinItem = BuildingMarketplace.tradeCurrency();
             finalPayment = new ItemStack(NullnessBridge.assumeNonnull(coinItem), exportData.getCost());
         }
 

@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
@@ -14,10 +13,10 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationEx
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationImportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
-import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -34,6 +33,7 @@ import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
@@ -472,7 +472,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     protected boolean remoteHasFunds(final ITradeCapable remote, final ExportData e)
     {
-        final int availableRemoteFunds = BuildingUtil.availableCount(remote, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+        final int availableRemoteFunds = BuildingUtil.availableCount(remote, new ItemStorage(BuildingMarketplace.tradeCurrency()));
         final ICitizenData remoteWorker = remote.getAllAssignedCitizen().toArray(ICitizenData[]::new)[0];
         final boolean ok = (availableRemoteFunds >= e.getCost()) && (remoteWorker != null);
         if (ok) e.setInsufficientFunds(false);
@@ -534,7 +534,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             if (MCTPInventoryUtils.combinedInventoryRemoval(building, removeFromStorage, currentExport.getQuantity())) 
             {
                 // Remove the inbound payment from remote building/worker.
-                if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()), currentExport.getCost()))
+                if (!MCTPInventoryUtils.combinedInventoryRemoval(currentExport.getDestinationStationData().getStation(), new ItemStorage(BuildingMarketplace.tradeCurrency()), currentExport.getCost()))
                 {
                     TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Receiving station no longer has adequate funds.  Restoring items.", building.getColony().getID()));
                     MCTPInventoryUtils.insertOrDropByQuantity(building, refundIfNeeded);
@@ -741,18 +741,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return getState();
         }
 
-        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
-
-        if (coinItem == null)
-        {
-            throw new IllegalStateException("Trade Post coin item is null. This should never happen. Please file a bug report.");
-        }
+        Item coinItem = BuildingMarketplace.tradeCurrency();
 
         final ArrayList<ItemStack> itemList = new ArrayList<>();
         itemList.add(new ItemStack(coinItem, currentFundRequest));
 
         worker.getCitizenData()
-            .createRequestAsync(new StackList(itemList,
+            .createRequest(new StackList(itemList,
                 BuildingStation.FUNDING_ITEMS,
                 currentFundRequest.intValue(),
                 currentFundRequest.intValue(),

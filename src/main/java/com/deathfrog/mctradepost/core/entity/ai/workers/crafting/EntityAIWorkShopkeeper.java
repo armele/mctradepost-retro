@@ -20,14 +20,11 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
-import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.mod.Log;
-import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
-import com.minecolonies.api.colony.requestsystem.request.IRequest;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
@@ -40,7 +37,6 @@ import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.modules.SettingsModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
-import com.minecolonies.core.colony.requestsystem.requests.StandardRequests.ItemStackRequest;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.mojang.logging.LogUtils;
 import com.minecolonies.api.util.constant.Constants;
@@ -73,6 +69,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import java.util.ArrayList;
 import java.util.List;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_AUTOMINT;
 
 /**
  * Handles the Shopkeeper AI. The shopkeeper works in the Marketplace.
@@ -125,7 +122,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     @NonNls
     public static final String REQUESTS_TYPE_SELLABLE_UI = "com.deathfrog.mctradepost.gui.workerhuts.shopkeeper.sellables";
 
-    public static final int MINTING_COOLDOWN = 20;
+    public static final int MINTING_COOLDOWN = 30;
     protected int mintCooldownCounter = MINTING_COOLDOWN;
 
     protected BlockPos inventoryContainer = BlockPos.ZERO;
@@ -419,13 +416,17 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         final BuildingMarketplace building = this.building;
 
-        coinsToMint = coinsNeededInColony();
-
-        if (coinsToMint > 0 && mintCooldownCounter-- <= 0)
+        if (mintCooldownCounter-- <= 0)
         {
             mintCooldownCounter = MINTING_COOLDOWN;
-            TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} shopkeeper: Coins are needed: {}", building.getColony().getID(), coinsToMint));
-            return ShopkeeperState.MINT_COINS;
+            coinsToMint = coinsNeededInColony();
+
+            TraceUtils.dynamicTrace(TRACE_AUTOMINT, () -> LOGGER.info("Colony {} shopkeeper: Automint check - {} coins are needed.", building.getColony().getID(), coinsToMint));
+
+            if (coinsToMint > 0)
+            {
+                return ShopkeeperState.MINT_COINS;
+            }
         }
 
         if (BlockPos.ZERO.equals(inventoryContainer))
@@ -503,6 +504,42 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     }
 
     /**
+     * Returns the number of coins needed to fulfill all open requests in the colony.
+     * If the colony has enough coins on hand, it will create a pickup request for the shopkeeper.
+     * @return the number of coins needed
+     */
+    protected int coinsNeededInColony()
+    {
+        IColony colony = building.getColony();
+
+        if (colony == null)
+        {
+            return 0;
+        }
+
+        Item coin = BuildingMarketplace.tradeCurrency();
+        int coinRequests = RequestUtil.matchingRequestsInColony(colony, coin);
+
+        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount(this.building, new ItemStorage(coin));
+
+        if (coinRequests > 0 && coinsOnHand >= coinRequests)
+        {
+            TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+                () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand (pickup request created).", colony.getID(), coinRequests, coinsOnHand));
+            building.createPickupRequest(building.getPickUpPriority());
+            return 0;
+        }
+
+        final int coinsNeeded = coinRequests - coinsOnHand;
+        
+        TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+            () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand ({} coins needed).", colony.getID(), coinRequests, coinsOnHand, coinsNeeded));
+
+        return coinsNeeded;
+    }
+
+
+    /**
      * Mint coins for the shopkeeper if the econ settings allow it.
      *
      * @return the next state to transition to.
@@ -554,60 +591,6 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         }
 
         return DECIDE;
-    }
-
-    /**
-     * Counts the number of coins needed to fulfill open requests in the colony.
-     * 
-     * @return the number of coins needed
-     */
-    protected int coinsNeededInColony()
-    {
-        int coinsNeeded = 0;
-
-        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
-
-        if (coinItem == null)
-        {
-            throw new IllegalStateException("TradePost coin item is null. This should never happen. Please report.");
-        }
-
-        for (IBuilding somebuilding : building.getColony().getServerBuildingManager().getBuildings().values())
-        {
-            ImmutableList<IRequest<?>> openRequests = RequestUtil.getOpenRequestsFromBuilding(somebuilding, false);
-
-            // LOGGER.info("Building {} has open requests: {}", somebuilding.getBuildingDisplayName(), openRequests.size());
-
-            for (IRequest<?> request : openRequests)
-            {
-                if (request instanceof ItemStackRequest itemRequest)
-                {
-                    Stack stack = itemRequest.getRequest();
-
-                    if (stack != null && stack.getStack().is(coinItem))
-                    {
-                        coinsNeeded = coinsNeeded + stack.getStack().getCount();
-                    }
-                }
-                else
-                {
-                    // LOGGER.info("Ignoring Request: {}", request);
-                }
-            }
-        }
-
-        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount(this.building, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
-
-        if (coinsNeeded > 0 && coinsOnHand >= coinsNeeded)
-        {
-            building.createPickupRequest(building.getPickUpPriority());
-        }
-        
-        coinsNeeded = Math.max(coinsNeeded - coinsOnHand, 0);
-        
-        // Also override the sellables module method to keep in the building anything that is being converted to a souvenir.
-
-        return coinsNeeded;
     }
 
     /**

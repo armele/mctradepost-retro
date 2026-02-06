@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage.TradeType;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
@@ -266,7 +267,7 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
 
                 final ItemIcon costStackDisplay = rowPane.findPaneOfTypeByID("costStack", ItemIcon.class);
                 costStackDisplay.setVisible(true);
-                ItemStack stack = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.MCTP_COIN_ITEM.get()));
+                ItemStack stack = new ItemStack(NullnessBridge.assumeNonnull(BuildingMarketplace.tradeCurrency()));
                 stack.setCount(export.getCost());
                 costStackDisplay.setItem(stack);
 
@@ -393,7 +394,7 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
         final int row = exportDisplayList.getListElementIndexByPane(button);
         ExportGui selectedTrade = potentialExportMap.get(row);
         selectedTrade.setSelected(!selectedTrade.isSelected());
-        updatePotentialExports();
+
         TradeMessage exportTrade = new TradeMessage(buildingView, 
             selectedTrade.isSelected() ? TradeMessage.TradeAction.ADD : TradeMessage.TradeAction.REMOVE, 
             TradeMessage.TradeType.EXPORT, 
@@ -403,5 +404,7 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
             selectedTrade.getQuantity());
 
         exportTrade.sendToServer();
+
+        updatePotentialExports();
     }
 }

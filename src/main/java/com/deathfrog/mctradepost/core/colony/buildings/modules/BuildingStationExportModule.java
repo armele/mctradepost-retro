@@ -30,6 +30,7 @@ import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -163,6 +164,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         for (ExportData exportData : exportList)
         {
             final CompoundTag compoundNBT = new CompoundTag();
+
+            if (exportData.getDestinationStationData().getBuildingPosition() == null || BlockPos.ZERO.equals(exportData.getDestinationStationData().getBuildingPosition()))
+            {
+                continue;
+            }
+
             compoundNBT.put("exportStation", exportData.getDestinationStationData().toNBT());
             Tag storedItem = exportData.getTradeItem().getItemStack().saveOptional(NullnessBridge.assumeNonnull(provider));
 

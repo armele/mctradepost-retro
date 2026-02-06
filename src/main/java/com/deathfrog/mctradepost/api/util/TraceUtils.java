@@ -16,6 +16,7 @@ public class TraceUtils {
     public static final String TRACE_NONE =             "none";
     public static final String TRACE_BURNOUT =          "burnout";
     public static final String TRACE_SHOPKEEPER =       "shopkeeper";
+    public static final String TRACE_AUTOMINT =         "automint"; 
     public static final String TRACE_SHOPPER =          "shopper";
     public static final String TRACE_RECYCLING =        "recycling";
     public static final String TRACE_RECYCLING_RECIPE = "recyclingrecipe";
@@ -95,6 +96,7 @@ public class TraceUtils {
         keys.add(TRACE_NONE);
         keys.add(TRACE_BURNOUT);
         keys.add(TRACE_SHOPKEEPER);
+        keys.add(TRACE_AUTOMINT);
         keys.add(TRACE_SHOPPER);
         keys.add(TRACE_RECYCLING);
         keys.add(TRACE_RECYCLING_RECIPE);
