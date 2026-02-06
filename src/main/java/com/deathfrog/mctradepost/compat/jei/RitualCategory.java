@@ -54,6 +54,7 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper>
         this.guiHelper = guiHelper;
         this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
 
+        // For rituals the Trade Post Coin is used, always (even if trade is configured to use another coin).
         CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
 
         if (coinItem != null)

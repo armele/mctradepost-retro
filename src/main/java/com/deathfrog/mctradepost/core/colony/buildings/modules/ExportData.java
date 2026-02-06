@@ -10,12 +10,12 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
@@ -303,14 +303,13 @@ public class ExportData
     }
 
     /**
-     * Predicate for the different usages to check if inventory contains a cure.
+     * Predicate for the different usages to check if inventory contains a coin.
      *
-     * @param cure the expected cure item.
-     * @return the predicate for checking if the cure exists.
+     * @return the predicate for checking if the coin exists.
      */
     public static Predicate<ItemStack> hasCoin()
     {
-        return stack -> isExportItem(stack, new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get()));
+        return stack -> isExportItem(stack, new ItemStorage(BuildingMarketplace.tradeCurrency()));
     }
 
     /**

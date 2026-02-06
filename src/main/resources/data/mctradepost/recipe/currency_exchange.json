@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "C": { "item": "minecraft:copper_ingot" },
+      "B": { "item": "minecraft:book" },
+      "G": { "item": "minecraft:gold_nugget" }
+    },
+    "pattern": [
+      "   ",
+      "CBG",
+      "   "
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:currency_exchange"
+    }
+}
+  

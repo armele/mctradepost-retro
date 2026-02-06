@@ -4,9 +4,9 @@ import javax.annotation.Nonnull;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-public class ImmersionBlenderItem extends Item
+public class CurrencyExchangeItem extends Item
 {
-    public ImmersionBlenderItem(@Nonnull Properties properties)
+    public CurrencyExchangeItem(@Nonnull Properties properties)
     {
         super(properties);
     }
@@ -26,11 +26,9 @@ public class ImmersionBlenderItem extends Item
     /**
      * This is called when the player is done crafting with the item contained in the given stack. It is used to determine what item is
      * left in the crafting grid slot after the player is done crafting with the item.
-     * <p>In this case, we damage the item until it is broken, then return the remainder (which is either an empty stack if the item
+     * In this case, we damage the item until it is broken, then return the remainder (which is either an empty stack if the item
      * was broken, or the damaged stack if it wasn't). This is the behavior of the vanilla crafting grid, and is necessary for the
-     * immersion blender to work as intended.
-     * <p>Note that the player is null in this case, since this is being called from the crafting grid rather than from a player's
-     * inventory.
+     * item to work as intended.
      */
     @Override
     public ItemStack getCraftingRemainingItem(@Nonnull ItemStack stack) 

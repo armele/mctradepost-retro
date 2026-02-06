@@ -1,6 +1,7 @@
 {
   "values": [
     "minecraft:ice",
-    "mctradepost:immersion_blender"
+    "mctradepost:immersion_blender",
+    "mctradepost:currency_exchange"
   ]
 }

@@ -61,4 +61,8 @@ public class ModTags
     public static final ResourceLocation OUTPOST_CROPS_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "outpost_crops");
     @SuppressWarnings("null")
     public @Nonnull static final TagKey<Item> OUTPOST_CROPS_TAG = ItemTags.create(OUTPOST_CROPS_KEY);
+
+    public static final ResourceLocation BASE_CURRENCY_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "base_currency");
+    @SuppressWarnings("null")
+    public @Nonnull static final TagKey<Item> BASE_CURRENCY_TAG = ItemTags.create(BASE_CURRENCY_KEY);
 }

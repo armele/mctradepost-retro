@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingIte
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.ldtteam.blockui.Color;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
@@ -169,7 +170,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                 if (petTypeEntry.getCoinCost() > 0)
                 {
                     coinStackDisplay.setVisible(true);
-                    coinStackDisplay.setItem(new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.MCTP_COIN_ITEM.get()), petTypeEntry.getCoinCost()));
+                    coinStackDisplay.setItem(new ItemStack(NullnessBridge.assumeNonnull(BuildingMarketplace.tradeCurrency()), petTypeEntry.getCoinCost()));
                 }
             }
 

@@ -5,7 +5,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
-import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
@@ -16,6 +16,7 @@ import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.text.NumberFormat;
@@ -117,7 +118,7 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
         cashLabel.setText(Component.literal(formattedSales));  
 
         final ItemIcon coinIcon = findPaneOfTypeByID("coinicon", ItemIcon.class);   
-        CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();   
+        Item coinItem = BuildingMarketplace.tradeCurrency();  
         coinIcon.setItem(new ItemStack(NullnessBridge.assumeNonnull(coinItem), 1));
 
         int coinValue = MCTPConfig.tradeCoinValue.get();

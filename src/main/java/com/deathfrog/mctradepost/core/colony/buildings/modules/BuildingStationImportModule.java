@@ -1,10 +1,10 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData.TradeDefinition;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.minecolonies.api.colony.buildings.modules.*;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -209,7 +209,7 @@ public class BuildingStationImportModule extends AbstractBuildingModule implemen
     {
         if(!importMap.isEmpty())
         {
-            ItemStorage item = new ItemStorage(MCTradePostMod.MCTP_COIN_ITEM.get());
+            ItemStorage item = new ItemStorage(BuildingMarketplace.tradeCurrency());
 
             consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true), item.getItemStack().getMaxStackSize(), false);
         }

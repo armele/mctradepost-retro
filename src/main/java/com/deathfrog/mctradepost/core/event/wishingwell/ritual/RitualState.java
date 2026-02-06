@@ -51,7 +51,7 @@ public class RitualState
      */
     public boolean meetsRequirements(ItemStorage requirementStack)
     {
-
+        // For rituals the Trade Post Coin is used, always (even if trade is configured to use another coin).
         CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
         CoinItem goldCoin = MCTradePostMod.MCTP_COIN_GOLD.get();
         CoinItem diamondCoin = MCTradePostMod.MCTP_COIN_DIAMOND.get();
@@ -92,6 +92,8 @@ public class RitualState
         // Select the correct coin pool based on item type
         final Item reqItem = requirementStack.getItemStack().getItem();
         List<ItemEntity> pool = null;
+
+        // For rituals the Trade Post Coin is used, always (even if trade is configured to use another coin).
         if (reqItem == MCTradePostMod.MCTP_COIN_ITEM.get())
         {
             pool = this.baseCoins;
