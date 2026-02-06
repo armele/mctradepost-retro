@@ -31,6 +31,7 @@ public class MCTPConfig
     public static final ConfigValue<Integer> shoppingCooldown;
     public static final ConfigValue<Double>  registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
+    public static final ConfigValue<String>  tradeCurrency;
 
     // Resort settings
     public static final ConfigValue<Double>  vacationMaxChance;
@@ -82,6 +83,10 @@ public class MCTPConfig
         shoppingChance = BUILDER
             .comment("What chance, per building level, do visitors have of deciding to shop?")
             .define("shoppingChance", 5);
+
+        tradeCurrency = BUILDER
+            .comment("What currency is used to facilitate trades, and will be extracted from the marketplace? (Restart required if changed.)")
+            .define("tradeCurrency", "mctradepost:mctp_coin");
 
         BUILDER.pop();
 

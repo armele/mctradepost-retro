@@ -100,6 +100,7 @@ public class RitualDefinitionHelper
 
         if (itemLocation == null) 
         {
+            // For rituals the Trade Post Coin is used, always (even if trade is configured to use another coin).
             coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
         }
         else 

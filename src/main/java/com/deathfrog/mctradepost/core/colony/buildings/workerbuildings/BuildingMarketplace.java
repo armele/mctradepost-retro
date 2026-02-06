@@ -20,14 +20,17 @@ import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.visitor.VisitorCitizen;
 import com.mojang.logging.LogUtils;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -41,6 +44,7 @@ import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.FrameLikeAccess;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -82,12 +86,10 @@ public class BuildingMarketplace extends AbstractBuilding
     // This is deliberately global across all marketplaces.
     protected static List<IVisitorData> advertisingList = new ArrayList<>();
 
-    public BuildingMarketplace(@NotNull IColony colony, BlockPos pos)
-    {
-        super(colony, pos);
-    }
-
     public static final String REQUESTS_TYPE_SELLABLE = "com.mctradepost.coremod.request.sellable";
+
+    // Cached currency item - used to avoid searching the registry every time the configured trade currency is fetched.
+    public static Item cachedCurrencyItem = null;
 
     /**
      * Tag to store the display shelf list.
@@ -115,6 +117,68 @@ public class BuildingMarketplace extends AbstractBuilding
      */
     public static final ISettingKey<BoolSetting> AUTOMINT =
         new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "automint"));
+
+    public BuildingMarketplace(@NotNull IColony colony, BlockPos pos)
+    {
+        super(colony, pos);
+    }
+
+    /**
+     * Gets the item currently set as the trade currency for the mod.
+     * <p>
+     * If the configured trade currency is invalid for any reason, this method will return {@link MCTradePostMod#MCTP_COIN_ITEM}.
+     * <p>
+     * @return The item currently configured as the trade currency.
+     */
+    @Nonnull public static Item tradeCurrency()
+    {
+        if (cachedCurrencyItem != null)
+        {
+            return cachedCurrencyItem;
+        }
+
+        String tradeCurrency = MCTPConfig.tradeCurrency.get();
+        @Nonnull Item defaultCurrency = NullnessBridge.assumeNonnull(MCTradePostMod.MCTP_COIN_ITEM.get());
+
+        if (tradeCurrency == null)
+        {
+            LOGGER.warn("No trade currency configured.");
+            cachedCurrencyItem = defaultCurrency;
+            return defaultCurrency;
+        }
+
+        ResourceLocation coinLookup = ResourceLocation.tryParse(tradeCurrency);
+
+        if (coinLookup == null)
+        {
+            LOGGER.warn("Unrecognized trade currency: {} (could not parse resource location)", tradeCurrency);
+            cachedCurrencyItem = defaultCurrency;
+            return defaultCurrency;
+        }
+
+        Item configuredCoin = BuiltInRegistries.ITEM.getOptional(coinLookup).orElse(net.minecraft.world.item.Items.AIR);
+
+        if (configuredCoin == null)
+        {
+            LOGGER.warn("Unrecognized trade currency: {} (could not find item in registry)", tradeCurrency);
+            cachedCurrencyItem = defaultCurrency;
+            return defaultCurrency;
+        }
+
+        ItemStack configuredCoinStack = new ItemStack(configuredCoin);
+
+        if (configuredCoinStack.isEmpty() || !configuredCoinStack.is(ModTags.BASE_CURRENCY_TAG))
+        {
+            LOGGER.warn("Unrecognized trade currency: {} (stack could not be created, or does not have the {} tag)", tradeCurrency, ModTags.BASE_CURRENCY_KEY);
+            cachedCurrencyItem = defaultCurrency;
+            return defaultCurrency;
+        }
+
+        // Cache it so we don't have to search the registry every time
+        cachedCurrencyItem = configuredCoin;
+
+        return cachedCurrencyItem;
+    }
 
     /**
      * Return a list of display shelves assigned to this hut.
@@ -472,13 +536,7 @@ public class BuildingMarketplace extends AbstractBuilding
             BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
             if (valueToRemove < econ.getTotalBalance())
             {
-                CoinItem coinItem = MCTradePostMod.MCTP_COIN_ITEM.get();
-
-                if (coinItem == null)
-                {
-                    MCTradePostMod.LOGGER.error("TradePost coin item missing during minting. This should not happen! Please report.");
-                    return ItemStack.EMPTY;
-                }
+                Item coinItem = BuildingMarketplace.tradeCurrency();
 
                 coinStack = new ItemStack(coinItem, coinsToMint);
                 CoinItem.setMintColony(coinStack, colony.getName());

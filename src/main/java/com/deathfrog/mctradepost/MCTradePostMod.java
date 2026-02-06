@@ -72,6 +72,7 @@ import com.deathfrog.mctradepost.item.BlockSideSlabInterleavedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.item.CurrencyExchangeItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
@@ -297,6 +298,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
+
+    public static final DeferredItem<CurrencyExchangeItem> CURRENCY_EXCHANGE = ITEMS.register("currency_exchange",
+        () -> new CurrencyExchangeItem(new Item.Properties().durability(100)));
 
     public static final DeferredItem<SouvenirItem> SOUVENIR = ITEMS.register("souvenir",
         () -> new SouvenirItem(new Item.Properties().component(MCTPModDataComponents.SOUVENIR_COMPONENT.get(), new SouvenirRecord("empty", 0))));
@@ -1204,6 +1208,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
                     event.accept(MCTradePostMod.IMMERSION_BLENDER.get());
+                    event.accept(MCTradePostMod.CURRENCY_EXCHANGE.get());
                     event.accept(MCTradePostMod.VEGGIE_JUICE.get());
                     event.accept(MCTradePostMod.FRUIT_JUICE.get());
                     event.accept(MCTradePostMod.PROTIEN_SHAKE.get());

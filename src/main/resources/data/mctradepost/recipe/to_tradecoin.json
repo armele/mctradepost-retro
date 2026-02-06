@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "tag": "mctradepost:base_currency"
+    },
+    {
+      "item": "mctradepost:currency_exchange"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:mctp_coin"
+  }
+}
