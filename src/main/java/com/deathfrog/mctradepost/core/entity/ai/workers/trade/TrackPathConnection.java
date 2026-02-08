@@ -270,7 +270,7 @@ public class TrackPathConnection
         BlockState state = level.getBlockState(pos);
         Block block = state.getBlock();
 
-        if (block instanceof BaseRailBlock || state.is(NullnessBridge.assumeNonnull(ModTags.TRACK_TAG)))
+        if (block instanceof BaseRailBlock || state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)))
         {
             return true;
         }

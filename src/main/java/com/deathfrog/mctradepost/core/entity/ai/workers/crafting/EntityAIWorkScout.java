@@ -259,7 +259,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                     if (module.isItemInList(candidate))
                     {
                         // The first stack of anything plantable in the outpost will not be returned so it remains available to the farmer for planting.
-                        if (inSlot.is(ModTags.OUTPOST_CROPS_TAG) && !protectedCrops.contains(inSlot.getItem()))
+                        if (inSlot.is(ModTags.ITEMS.OUTPOST_CROPS_TAG) && !protectedCrops.contains(inSlot.getItem()))
                         {
                             protectedCrops.add(inSlot.getItem());
                             continue;

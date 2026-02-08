@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:pet_fox",
+    "mctradepost:pet_wolf",
+    "mctradepost:pet_parrot",
+    "mctradepost:pet_axolotl"
+  ]
+}

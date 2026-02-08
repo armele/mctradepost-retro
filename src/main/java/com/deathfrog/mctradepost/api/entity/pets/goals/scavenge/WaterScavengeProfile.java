@@ -25,7 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements IScavengeProfile<P>
 {
-    protected static final String LOOT_BASE = "pet/" + ModTags.WATER_SCAVENGE_TAG_KEY.getPath();
+    protected static final String LOOT_BASE = "pet/" + ModTags.BLOCKS.WATER_SCAVENGE_TAG_KEY.getPath();
 
     @Override
     public PetRoles requiredRole()
@@ -100,7 +100,7 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
             boolean hasScavengeMaterials = false;
             for (BlockState s : neighborhood) 
             {
-                if (s.is(ModTags.WATER_SCAVENGE_BLOCK_TAG)) 
+                if (s.is(ModTags.BLOCKS.WATER_SCAVENGE_BLOCK_TAG)) 
                 {
                     hasScavengeMaterials = true;
                     break;
@@ -160,7 +160,7 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
     @Override
     public boolean isHarvestable(ServerLevel level, BlockPos pos, BlockState state)
     {
-        return state.is(NullnessBridge.assumeNonnull(ModTags.WATER_SCAVENGE_BLOCK_TAG));
+        return state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.WATER_SCAVENGE_BLOCK_TAG));
     }
 
     @Override
