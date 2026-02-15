@@ -1,6 +1,6 @@
 package com.deathfrog.mctradepost.apiimp.initializer;
 
-import org.jetbrains.annotations.NotNull;
+import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
@@ -47,23 +47,22 @@ public class MCTPCraftingSetup
      */
     public static void injectCraftingRules() 
     { 
-        initCrafterRules(MCTPModJobs.BARTENDER_TAG);
-        initCrafterRules(MCTPModJobs.SHOPKEEPER_TAG);
-        initCrafterRules(MCTPModJobs.DAIRYWORKER_TAG);
+        initCrafterRules(MCTradePostMod.MODID, MCTPModJobs.BARTENDER_TAG);
+        initCrafterRules(MCTradePostMod.MODID, MCTPModJobs.SHOPKEEPER_TAG);
+        initCrafterRules(MCTradePostMod.MODID, MCTPModJobs.DAIRYWORKER_TAG);
     }
 
     /**
      * Initialize the four tags for a particular crafter
      * @param crafterName the string name of the crafter to initialize
      */
-    @SuppressWarnings("null")
-    private static void initCrafterRules(@NotNull final String crafterName)
+    public static void initCrafterRules(@Nonnull String modID, @Nonnull final String crafterName)
     {
-        final ResourceLocation products = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, crafterName.concat(PRODUCT));
-        final ResourceLocation ingredients = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, crafterName.concat(INGREDIENT));
-        final ResourceLocation productsExcluded = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, crafterName.concat(PRODUCT_EXCLUDED));
-        final ResourceLocation ingredientsExcluded = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, crafterName.concat(INGREDIENT_EXCLUDED));
-        final ResourceLocation doIngredients = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, crafterName.concat(DO_INGREDIENT));
+        final ResourceLocation products = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(PRODUCT));
+        final ResourceLocation ingredients = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(INGREDIENT));
+        final ResourceLocation productsExcluded = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(PRODUCT_EXCLUDED));
+        final ResourceLocation ingredientsExcluded = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(INGREDIENT_EXCLUDED));
+        final ResourceLocation doIngredients = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(DO_INGREDIENT));
 
         ModTags.crafterProduct.put(crafterName, ItemTags.create(products));
         ModTags.crafterProductExclusions.put(crafterName, ItemTags.create(productsExcluded));
