@@ -56,6 +56,7 @@ public class MCTPCraftingSetup
      * Initialize the four tags for a particular crafter
      * @param crafterName the string name of the crafter to initialize
      */
+    @SuppressWarnings("null")
     public static void initCrafterRules(@Nonnull String modID, @Nonnull final String crafterName)
     {
         final ResourceLocation products = ResourceLocation.fromNamespaceAndPath(modID, crafterName.concat(PRODUCT));
