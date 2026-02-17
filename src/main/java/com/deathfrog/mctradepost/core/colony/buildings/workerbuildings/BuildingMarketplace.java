@@ -167,9 +167,9 @@ public class BuildingMarketplace extends AbstractBuilding
 
         ItemStack configuredCoinStack = new ItemStack(configuredCoin);
 
-        if (configuredCoinStack.isEmpty() || !configuredCoinStack.is(ModTags.BASE_CURRENCY_TAG))
+        if (configuredCoinStack.isEmpty() || !configuredCoinStack.is(ModTags.ITEMS.BASE_CURRENCY_TAG))
         {
-            LOGGER.warn("Unrecognized trade currency: {} (stack could not be created, or does not have the {} tag)", tradeCurrency, ModTags.BASE_CURRENCY_KEY);
+            LOGGER.warn("Unrecognized trade currency: {} (stack could not be created, or does not have the {} tag)", tradeCurrency, ModTags.ITEMS.BASE_CURRENCY_KEY);
             cachedCurrencyItem = defaultCurrency;
             return defaultCurrency;
         }

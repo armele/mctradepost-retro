@@ -212,7 +212,7 @@ public final class ModBuildingsInitializer
      * If the module is already present, it will not be injected again.
      * If the buildingEntry is not bound, this method does nothing.
      */
-    protected static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder) 
+    public static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder) 
     {
         injectModuleToBuilding(producer, buildingEntryHolder, -1);
     }
@@ -223,7 +223,7 @@ public final class ModBuildingsInitializer
      * @param producer the module to inject
      * @param buildingEntry the building to inject into
      */
-    protected static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder, int position) 
+    public static void injectModuleToBuilding(ModuleProducer<?, ?> producer, DeferredHolder<BuildingEntry,BuildingEntry> buildingEntryHolder, int position) 
     {
         if (buildingEntryHolder == null || !buildingEntryHolder.isBound()) return;
         BuildingEntry buildingEntry = buildingEntryHolder.get();

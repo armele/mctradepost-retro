@@ -40,10 +40,10 @@ public final class TaggedItemPicker
 
     // The tier tags we want to detect conflicts across.
     private static final List<TagKey<Item>> TIER_TAGS = List.of(
-        ModTags.RARE_FINDS_TIER1_TAG,
-        ModTags.RARE_FINDS_TIER2_TAG,
-        ModTags.RARE_FINDS_TIER3_TAG,
-        ModTags.RARE_FINDS_TIER4_TAG
+        ModTags.ITEMS.RARE_FINDS_TIER1_TAG,
+        ModTags.ITEMS.RARE_FINDS_TIER2_TAG,
+        ModTags.ITEMS.RARE_FINDS_TIER3_TAG,
+        ModTags.ITEMS.RARE_FINDS_TIER4_TAG
     );
 
     private TaggedItemPicker() {}
@@ -73,10 +73,10 @@ public final class TaggedItemPicker
 
         int size = 8;
 
-        if (tag.equals(ModTags.RARE_FINDS_TIER1_TAG)) size = 32;
-        else if (tag.equals(ModTags.RARE_FINDS_TIER2_TAG)) size = 16;
-        else if (tag.equals(ModTags.RARE_FINDS_TIER3_TAG)) size = 8;
-        else if (tag.equals(ModTags.RARE_FINDS_TIER4_TAG)) size = 2;
+        if (tag.equals(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)) size = 32;
+        else if (tag.equals(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)) size = 16;
+        else if (tag.equals(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)) size = 8;
+        else if (tag.equals(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)) size = 2;
 
         return new ItemStack(picked, rand.nextInt(size) + 1);
     }

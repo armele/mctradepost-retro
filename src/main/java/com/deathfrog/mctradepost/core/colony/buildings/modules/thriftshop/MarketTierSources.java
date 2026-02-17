@@ -147,7 +147,7 @@ public final class MarketTierSources
         // 20% from datapack tag, else loottable logic
         if (rand.nextFloat() < 0.20f)
         {
-            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.RARE_FINDS_TIER1_TAG);
+            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.ITEMS.RARE_FINDS_TIER1_TAG);
             if (!tagged.isEmpty()) return tagged;
             // fall through if tag is empty / no valid results
         }
@@ -195,7 +195,7 @@ public final class MarketTierSources
         // 20% from datapack tag, else loottable logic
         if (rand.nextFloat() < 0.20f)
         {
-            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.RARE_FINDS_TIER2_TAG);
+            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.ITEMS.RARE_FINDS_TIER2_TAG);
             if (!tagged.isEmpty()) return tagged;
             // fall through if tag is empty / no valid results
         }
@@ -236,7 +236,7 @@ public final class MarketTierSources
         // 20% from datapack tag, else loottable logic
         if (rand.nextFloat() < 0.20f)
         {
-            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.RARE_FINDS_TIER3_TAG);
+            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.ITEMS.RARE_FINDS_TIER3_TAG);
             if (!tagged.isEmpty()) return tagged;
             // fall through if tag is empty / no valid results
         }
@@ -277,7 +277,7 @@ public final class MarketTierSources
         // 20% from datapack tag, else loottable logic
         if (rand.nextFloat() < 0.20f)
         {
-            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.RARE_FINDS_TIER4_TAG);
+            ItemStack tagged = TaggedItemPicker.rollFromTag(level, rand, ModTags.ITEMS.RARE_FINDS_TIER4_TAG);
             if (!tagged.isEmpty()) return tagged;
             // fall through if tag is empty / no valid results
         }
@@ -355,12 +355,12 @@ public final class MarketTierSources
     private static boolean isSellable(ItemStack stack, MarketTier rollingTier)
     {
         if (stack.isEmpty()) return false;
-        if (stack.is(ModTags.RARE_FINDS_BLACKLIST_TAG)) return false;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
 
-        boolean in1 = stack.is(ModTags.RARE_FINDS_TIER1_TAG);
-        boolean in2 = stack.is(ModTags.RARE_FINDS_TIER2_TAG);
-        boolean in3 = stack.is(ModTags.RARE_FINDS_TIER3_TAG);
-        boolean in4 = stack.is(ModTags.RARE_FINDS_TIER4_TAG);
+        boolean in1 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG);
+        boolean in2 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG);
+        boolean in3 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG);
+        boolean in4 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG);
 
         // Ownership: highest tier tag wins.
         int ownedTier = tierIndex(in1, in2, in3, in4);

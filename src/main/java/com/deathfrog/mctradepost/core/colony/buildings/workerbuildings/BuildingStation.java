@@ -430,7 +430,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         newCitizen.setBedPos(this.getPosition());
         newCitizen.setHomeBuilding(this);
         newCitizen.getCitizenSkillHandler().init(recruitLevel);
-        newCitizen.setRecruitCosts(cost.boots());
+        newCitizen.setRecruitCosts(cost.recruitItem());
 
         BlockPos spawnPos = BlockPosUtil.findSpawnPosAround(this.getColony().getWorld(), this.getPosition());
         if (spawnPos == null)
@@ -457,26 +457,25 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     private ItemStack getHats(final int recruitLevel)
     {
-        ItemStack hat = ItemStack.EMPTY;
-        if (recruitLevel > 1)
+        ItemStack hat = null;
+
+        switch (recruitLevel)
         {
-            // Leather
-            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.LEATHER_HELMET));
-        }
-        if (recruitLevel > 2)
-        {
-            // Gold
-            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.GOLDEN_HELMET));
-        }
-        if (recruitLevel > 3)
-        {
-            // Iron
-            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.IRON_HELMET));
-        }
-        if (recruitLevel > 4)
-        {
-            // Diamond
-            hat = new ItemStack(NullnessBridge.assumeNonnull(Items.DIAMOND_HELMET));
+            case 1:
+                hat = new ItemStack(NullnessBridge.assumeNonnull(Items.LEATHER_HELMET));
+                break;
+            case 2:
+                hat = new ItemStack(NullnessBridge.assumeNonnull(Items.IRON_HELMET));
+                break;
+            case 3:
+                hat = new ItemStack(NullnessBridge.assumeNonnull(Items.GOLDEN_HELMET));
+                break;
+            case 4:
+                hat = new ItemStack(NullnessBridge.assumeNonnull(Items.DIAMOND_HELMET));
+                break;
+            default:
+                hat = ItemStack.EMPTY;
+                break;
         }
         return hat;
     }

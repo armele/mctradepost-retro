@@ -4,23 +4,27 @@
       "trigger": "minecraft:tick"
     }
   },
+
   "display": {
     "background": "mctradepost:textures/block/plaster.png",
+
     "description": {
       "translate": "advancement.mctradepost.root.description"
     },
+
     "icon": {
       "count": 1,
       "id": "mctradepost:mctp_coin"
     },
+
     "title": {
       "translate": "advancement.mctradepost.root.title"
-    }
+    },
+
+    "announce_to_chat": false,
+    "show_toast": false
   },
-  "requirements": [
-    [
-      "always"
-    ]
-  ],
-  "sends_telemetry_event": true
+
+  "requirements": [["always"]],
+  "sends_telemetry_event": false
 }

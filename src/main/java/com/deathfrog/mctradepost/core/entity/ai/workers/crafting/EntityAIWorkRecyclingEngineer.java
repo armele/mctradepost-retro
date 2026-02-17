@@ -575,8 +575,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             processor.processingTimer += speedBoost;
             if (processor.isFinished())
             {
-                recycling.generateOutput(processor.output);
-                recycling.removeRecyclingProcess(processor);
+                recycling.terminateProcessor(processor);
                 jobfinished = true;
             }
             building.triggerEffect(pos, SoundEvents.GRAVEL_STEP, ParticleTypes.ELECTRIC_SPARK, 80);

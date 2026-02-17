@@ -108,7 +108,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
         // Fruit-bearing blocks: for walkers, approach from ground adjacent;
         // for flyers, pick a nearby hover point (air) adjacent to the target.
-        if (state.is(ModTags.TAG_FRUIT))
+        if (state.is(ModTags.BLOCKS.TAG_FRUIT))
         {
             if (flyer)
             {
@@ -122,7 +122,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
         // Apple leaves: for walkers, find ground under/near the canopy;
         // for flyers, hover adjacent to the leaf block.
-        if (state.is(ModTags.TAG_SCAVENGE_LEAVES))
+        if (state.is(ModTags.BLOCKS.TAG_SCAVENGE_LEAVES))
         {
             if (flyer)
             {
@@ -141,13 +141,13 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
     public boolean isHarvestable(final ServerLevel level, final BlockPos pos, final BlockState state)
     {
         // Tag-driven selection
-        if (state.is(ModTags.TAG_FRUIT))
+        if (state.is(ModTags.BLOCKS.TAG_FRUIT))
         {
             // "Smart" maturity: only gate when a known property exists.
             return passesGenericMaturityGate(state);
         }
 
-        if (state.is(ModTags.TAG_SCAVENGE_LEAVES) || state.is(ModTags.TAG_GROUNDCOVER))
+        if (state.is(ModTags.BLOCKS.TAG_SCAVENGE_LEAVES) || state.is(ModTags.BLOCKS.TAG_GROUNDCOVER))
         {
             return true;
         }
@@ -180,17 +180,17 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
         final ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
 
-        if (state.is(ModTags.TAG_FRUIT))
+        if (state.is(ModTags.BLOCKS.TAG_FRUIT))
         {
             return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/fruit/" + key.getPath());
         }
 
-        if (state.is(ModTags.TAG_SCAVENGE_LEAVES))
+        if (state.is(ModTags.BLOCKS.TAG_SCAVENGE_LEAVES))
         {
             return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/leaves/" + key.getPath());
         }
 
-        if (state.is(ModTags.TAG_GROUNDCOVER))
+        if (state.is(ModTags.BLOCKS.TAG_GROUNDCOVER))
         {
             return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet/" + LOOT_BASE + "/groundcover/" + key.getPath());
         }
@@ -214,7 +214,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
         final BlockState state = level.getBlockState(pos);
 
-        if (state.is(ModTags.TAG_FRUIT))
+        if (state.is(ModTags.BLOCKS.TAG_FRUIT))
         {
             onHarvestApplied(level, pos, state);
 
@@ -225,7 +225,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             return;
         }
 
-        if (state.is(ModTags.TAG_SCAVENGE_LEAVES) || state.is(ModTags.TAG_GROUNDCOVER))
+        if (state.is(ModTags.BLOCKS.TAG_SCAVENGE_LEAVES) || state.is(ModTags.BLOCKS.TAG_GROUNDCOVER))
         {
             level.playSound(null, pos, SoundEvents.GRASS_BREAK, SoundSource.NEUTRAL, 0.8f, 0.95f);
             level.sendParticles(ParticleTypes.COMPOSTER,
@@ -245,7 +245,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
      */
     protected void onHarvestApplied(ServerLevel level, @Nonnull BlockPos pos, @Nonnull BlockState state)
     {
-        if (!state.is(ModTags.TAG_FRUIT)) return;
+        if (!state.is(ModTags.BLOCKS.TAG_FRUIT)) return;
 
         // AGE property: drop to a reasonable post-harvest stage
         IntegerProperty age = findIntProp(state, "age");

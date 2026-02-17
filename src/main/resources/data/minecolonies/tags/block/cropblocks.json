@@ -1,0 +1,20 @@
+{
+    "replace": false,
+    "values": [
+        "minecolonies:durum",
+        "minecolonies:bell_pepper",
+        "minecolonies:cabbage",
+        "minecolonies:chickpea",
+        "minecolonies:eggplant",
+        "minecolonies:soybean",
+        "minecolonies:tomato",
+        "minecolonies:butternut_squash",
+        "minecolonies:corn",
+        "minecolonies:nether_pepper",
+        "minecolonies:peas",
+        "minecolonies:onion",
+        "minecolonies:garlic",
+        "minecolonies:rice",
+        "minecolonies:mint"
+  ]
+}
