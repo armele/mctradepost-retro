@@ -8,14 +8,12 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowMarketplaceItemListModule;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -59,17 +57,6 @@ public class MarketplaceItemListModuleView extends ItemListModuleViewExt
             
             itemOptionSet.add(item);
         }
-    }
-
-    /**
-     * Returns the value of a given item, or 0 if the item is not in the list.
-     * 
-     * @param item The item to get the value for.
-     * @return The value of the given item.
-     */
-    public int getValueForItem(Item item)
-    {
-        return ItemValueRegistry.getValue(item);
     }
 
     @OnlyIn(Dist.CLIENT)

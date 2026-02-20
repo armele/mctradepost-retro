@@ -2,23 +2,14 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import com.ldtteam.domumornamentum.recipe.ModRecipeTypes;
-import java.lang.reflect.Type;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,74 +18,11 @@ import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 
-public class ItemValueRegistry
+public class RecipeAnalysisHelper
 {
     private static final Map<Item, Integer> itemValues = new HashMap<Item, Integer>();
 
-    // IDEA: Make configurable - and tag based.  This all sucks :)
-    // Temporary hack to bring down server start speeds.
-    private static final Set<String> allowedMods = new HashSet<>(Arrays.asList("minecraft", "minecolonies", "mctradepost"));
-    private static final Set<String> blacklistFilter = new HashSet<>(Arrays.asList("seed", "plank"));
-
-    private static boolean configured = false;
     private static boolean startTracking = false;
-
-    /**
-     * Configures the ItemValueRegistry by loading initial values from a JSON file and estimating values for all registered items using
-     * available recipes. If the registry has already been configured, the method logs a message and returns. The method logs an error
-     * if attempted before a server is started. Each item's value is determined by appraising the recipes from the recipe manager.
-     * Allowing it to process all recipes on a large server (like ATM10) makes it take so long that server start-up fails.
-     */
-
-    public static void generateValues()
-    {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (configured)
-        {
-            MCTradePostMod.LOGGER.info("ItemValueRegistry has already been configured.");
-            return;
-        }
-        if (server == null)
-        {
-            MCTradePostMod.LOGGER.error("Attempting to configure the ItemValueRegistry before a server has been started.");
-            return;
-        }
-        else
-        {
-            MCTradePostMod.LOGGER.info("Beginning to configure the ItemValueRegistry.");
-        }
-
-        loadInitialValuesFromJson();
-
-        Level level = server.overworld();
-        RecipeManager recipeManager = level.getRecipeManager();
-
-        for (Item item : BuiltInRegistries.ITEM)
-        {
-            if (item == null) continue;
-
-            ResourceLocation key = BuiltInRegistries.ITEM.getKey(item);
-
-            if (!allowedMods.contains(key.getNamespace()))
-            {
-                continue;
-            }
-
-            if (itemValues.containsKey(item))
-            {
-                // MCTradePostMod.LOGGER.info("Skipping '{}'", item.toString());
-                continue;
-            }
-            MCTradePostMod.LOGGER.info("Processing '{}'", item.toString());
-
-            int value = appraiseRecipeListForItem(item, recipeManager, new HashSet<>(), level, 0);
-            itemValues.put(item, value);
-
-            startTracking = false;
-        }
-
-        MCTradePostMod.LOGGER.info("Finished configuring theItemValueRegistry.");
-    }
 
     /**
      * Retrieves a list of recipes that can produce the specified item using the given recipe manager and level.
@@ -352,23 +280,6 @@ public class ItemValueRegistry
         return Math.max(value, 0);
     }
 
-    public static int getValue(ItemStack item)
-    {
-        return getValue(item.getItem());
-    }
-
-    public static void clearCache()
-    {
-        itemValues.clear();
-        configured = false;
-    }
-
-    public static Map<Item, Integer> getItemValues()
-    {
-        return itemValues;
-    }
-    
-
     /**
      * Logs all known item values to the mod logger.
      */
@@ -381,63 +292,5 @@ public class ItemValueRegistry
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String json = gson.toJson(output);
         MCTradePostMod.LOGGER.info("Item Values JSON Dump:\n{}", json);
-    }
-
-    /**
-     * Loads the default item values from the item_values.json file in the resources directory. These values are used to seed the item
-     * value registry. File is created based on ATM10 recipe lists.
-     */
-    public static void loadInitialValuesFromJson()
-    {
-        try
-        {
-            InputStream stream = ItemValueRegistry.class.getResourceAsStream("/data/mctradepost/item_values.json");
-            if (stream == null)
-            {
-                MCTradePostMod.LOGGER.warn("Default item_values.json not found in resources.");
-                return;
-            }
-            BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
-            Gson gson = new Gson();
-            Type type = new TypeToken<Map<String, Integer>>()
-            {}.getType();
-            Map<String, Integer> jsonValues = gson.fromJson(reader, type);
-
-            for (Map.Entry<String, Integer> entry : jsonValues.entrySet())
-            {
-                ResourceLocation rl = ResourceLocation.tryParse(NullnessBridge.assumeNonnull(entry.getKey()));
-
-                if (rl != null)
-                {
-                    String itemName = rl.getPath();
-                    if (itemName != null && blacklistFilter.stream().anyMatch(itemName::contains)) {
-                        continue;
-                    }
-                    
-                    // If the configured item exists, check the value, and add it regardless of what mod it is from.
-                    if (BuiltInRegistries.ITEM.containsKey(rl))
-                    {
-                        itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(rl), entry.getValue());
-                    }
-                    else
-                    {
-                        // MCTradePostMod.LOGGER.warn("Invalid item or unknown key: {}", entry.getKey());
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            MCTradePostMod.LOGGER.error("Error loading item_values.json", e);
-        }
-
-        MCTradePostMod.LOGGER.info("Item marketplace values loaded.");
-        // logValues();
-    }
-
-    /* In theory this should only be called on the client side after deserializing... */
-    public static void deserializedSellableItem(@Nonnull String s, int value)
-    {
-        itemValues.putIfAbsent(BuiltInRegistries.ITEM.get(ResourceLocation.parse(s)), value);
     }
 }

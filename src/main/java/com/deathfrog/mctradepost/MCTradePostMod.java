@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.ItemValueManager;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPCraftingSetup;
@@ -48,7 +49,6 @@ import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
@@ -79,8 +79,8 @@ import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
-import com.deathfrog.mctradepost.network.ItemValuePacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
+import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -161,6 +161,7 @@ import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsE
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
@@ -859,6 +860,8 @@ public class MCTradePostMod
             DeconstructionRecipe.Serializer::new
         );
 
+    public static final DeferredHolder<RecipeSerializer<?>, UniqueTagShapelessRecipe.Serializer> UNIQUE_TAG_SHAPELESS_SERIALIZER =
+        RECIPE_SERIALIZERS.register(UniqueTagShapelessRecipe.UNIQUE_TAG_SHAPELESS_RECIPE_KEY, UniqueTagShapelessRecipe.Serializer::new);
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
@@ -947,8 +950,6 @@ public class MCTradePostMod
         StandardFactoryController.getInstance().registerNewFactory(new TrainDeliveryResolverFactory());
         StandardFactoryController.getInstance().registerNewFactory(new MCTPSettingsFactory.SortSettingFactory());
 
-        ItemValueRegistry.loadInitialValuesFromJson();  
-
         PlacementHandlers.add(new OutpostPlacementHandler());
     }
 
@@ -985,17 +986,7 @@ public class MCTradePostMod
         @SubscribeEvent
         public static void onNetworkRegistry(final RegisterPayloadHandlersEvent event) {
             // Sets the current network version
-            final PayloadRegistrar registrar = event.registrar("1");
-
-            // Register the payload handler for the ItemValuePacket - used to update the client with the list (and value) of sellable items.
-            registrar.playBidirectional(
-                ItemValuePacket.TYPE,
-                ItemValuePacket.STREAM_CODEC,
-                new DirectionalPayloadHandler<>(
-                    ItemValuePacket::handleDataInClientOnMain,
-                    ItemValuePacket::handleDataInServerOnMain
-                )
-            );        
+            final PayloadRegistrar registrar = event.registrar("1");      
 
             // Register the payload handler for the ConfigurationPacket - used to update the client with configurations they need to be aware of.
             registrar.playBidirectional(
@@ -1030,7 +1021,6 @@ public class MCTradePostMod
             public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
                 if (event.getEntity() instanceof ServerPlayer player) {
                     MCTradePostMod.LOGGER.debug("Synchronizing information to new player: {} ", player);
-                    ItemValuePacket.sendPacketsToPlayer(player);
                     ConfigurationPacket.sendPacketsToPlayer(player);
                     RitualPacket.sendPacketsToPlayer(player);
                 }
@@ -1074,6 +1064,11 @@ public class MCTradePostMod
 
     }
 
+    @SubscribeEvent
+    public void onAddReloadListener(AddReloadListenerEvent e) 
+    {
+        e.addListener(new ItemValueManager());
+    }
 
     @EventBusSubscriber(modid = MODID)
     public class ModServerEventHandler

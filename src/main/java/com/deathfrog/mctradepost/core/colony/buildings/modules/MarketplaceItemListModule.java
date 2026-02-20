@@ -21,6 +21,7 @@ import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.util.ItemValueManager;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.google.common.collect.UnmodifiableIterator;
 import com.minecolonies.api.util.ItemStackUtils;
@@ -203,5 +204,30 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
                false);
          }
       }
+   }
+
+   /**
+    * Returns the value of the item, or 0 if it is not sellable, or -1 if it is unknown.
+    * If the value is unknown, it will be calculated based on the item's rarity.
+    * This value is then cached for future lookups.
+    *
+    * @param marketItem the item to get the value for
+    * @return the value of the item, or -1 if it is not sellable, or 0 if it is unknown
+    */
+   public static int marketplaceValue(Item marketItem)
+   {
+      int value = ItemValueManager.get(marketItem);
+
+      if (value < 0) value = 0;
+
+      return value;
+
+   }
+
+   public static int marketplaceValue(ItemStack marketItem)
+   {
+      if (marketItem == null || marketItem.isEmpty()) return 0;
+
+      return ItemValueManager.get(marketItem.getItem());
    }
 }

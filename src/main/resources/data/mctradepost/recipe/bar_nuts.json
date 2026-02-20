@@ -1,25 +1,12 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": [
-    {
-      "item": "minecraft:bowl"
-    },
-    {
-      "item": "minecraft:beetroot_seeds"
-    },
-    {
-      "item": "minecraft:wheat_seeds"
-    },
-    {
-      "item": "minecraft:melon_seeds"
-    },
-    {
-      "item": "minecraft:pumpkin_seeds"
-    }
-  ],
+  "type": "mctradepost:unique_tag_shapeless",
+  "base": {
+    "item": "minecraft:bowl"
+  },
+  "tag": "mctradepost:bar_nut_seeds",
+  "count": 4,
   "result": {
-    "count": 8,
-    "id": "mctradepost:bar_nuts"
+    "id": "mctradepost:bar_nuts",
+    "count": 8
   }
 }
