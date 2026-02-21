@@ -3,7 +3,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
@@ -65,9 +65,8 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                 resourceLabel.setText(resource.getHoverName());
                 resourceLabel.setColors(WHITE);
 
-                MarketplaceItemListModuleView marketItemModuleView = (MarketplaceItemListModuleView) WindowMarketplaceItemListModule.this.moduleView;
                 final Text resourceValue = rowPane.findPaneOfTypeByID(RESOURCE_VALUE, Text.class);
-                resourceValue.setText(Component.literal(marketItemModuleView.getValueForItem(resource.getItem()) + ""));
+                resourceValue.setText(Component.literal(MarketplaceItemListModule.marketplaceValue(resource) + ""));
                 resourceValue.setColors(WHITE);
 
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);

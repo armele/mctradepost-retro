@@ -13,7 +13,6 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -199,11 +198,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     private int computeItemValue(ItemStack stack)
     {
-        int value = ItemValueRegistry.getValue(stack);
+        int value = MarketplaceItemListModule.marketplaceValue(stack);
 
         if (value == 0)
         {
-            LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
+            // LOGGER.warn("Item {} has no value", stack.getItem().getDescriptionId());
         }
 
         return value;

@@ -5,12 +5,15 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
+import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
+
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.recipe.IRecipeManager;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -117,5 +120,12 @@ public class JEIMCTPPlugin implements IModPlugin
         }
 
         reg.addRecipeCatalyst(new ItemStack(mixedStone), RITUAL_TYPE);
+    }
+
+    @Override
+    public void registerVanillaCategoryExtensions(@Nonnull IVanillaCategoryExtensionRegistration registration)
+    {
+        registration.getCraftingCategory()
+            .addExtension(UniqueTagShapelessRecipe.class, NullnessBridge.assumeNonnull(UniqueTagShapelessCraftingExtension.INSTANCE));
     }
 }

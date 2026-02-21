@@ -24,7 +24,7 @@ import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.ItemValueRegistry;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.RecipeAnalysisHelper;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkRecyclingEngineer;
 import com.deathfrog.mctradepost.item.SouvenirItem;
@@ -826,7 +826,7 @@ public class BuildingRecycling extends AbstractBuilding
         
         RecipeManager recipeManager = level.getRecipeManager();
         List<RecipeHolder<?>> recipes =
-            ItemValueRegistry.getRecipeListForItem(recipeManager, inputStack.getItem(), level);
+            RecipeAnalysisHelper.getRecipeListForItem(recipeManager, inputStack.getItem(), level);
 
         if (recipes == null || recipes.isEmpty())
         {
