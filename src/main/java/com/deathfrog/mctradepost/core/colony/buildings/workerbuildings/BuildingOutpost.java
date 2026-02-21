@@ -245,7 +245,6 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
      * @param provider The holder lookup provider for item and block references.
      * @return the serialized NBT tag.
      */
-    @SuppressWarnings("null")
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider)
     {
@@ -277,7 +276,6 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
      * @param compound The CompoundTag containing the serialized state of the
      *                 outpost.
      */
-    @SuppressWarnings("null")
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag compound) 
     {

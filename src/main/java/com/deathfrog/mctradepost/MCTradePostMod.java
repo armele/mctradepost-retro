@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost;
 
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
+
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
@@ -182,7 +184,6 @@ import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
 
 @Mod(MCTradePostMod.MODID)
-@SuppressWarnings("null")
 public class MCTradePostMod
 {
     // Define mod id in a common place for everything to reference
@@ -193,15 +194,24 @@ public class MCTradePostMod
 
     // Create a Gson instance
     public static final Gson GSON = new GsonBuilder()
-        .registerTypeAdapter(ResourceLocation.class, new TypeAdapter<ResourceLocation>() {
+        .registerTypeAdapter(ResourceLocation.class, new TypeAdapter<ResourceLocation>() 
+        {
             @Override
             public void write(JsonWriter out, ResourceLocation value) throws IOException {
                 out.value(value.toString());
             }
 
             @Override
-            public ResourceLocation read(JsonReader in) throws IOException {
-                return ResourceLocation.parse(in.nextString());
+            public ResourceLocation read(JsonReader in) throws IOException 
+            {
+                String nextString = in.nextString();
+
+                if (nextString == null) 
+                {
+                    return null;
+                }
+
+                return ResourceLocation.parse(nextString);
             }
         })
         .setPrettyPrinting()
@@ -214,10 +224,13 @@ public class MCTradePostMod
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
 
     // Create a Deferred Register to hold Entities which will all be registered under the "mctradepost" namespace
+    @SuppressWarnings("null")
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
     
+    @SuppressWarnings("null")
     public static final DeferredRegister<RecipeType<?>> RECIPES = DeferredRegister.create(BuiltInRegistries.RECIPE_TYPE, MCTradePostMod.MODID);
 
+    @SuppressWarnings("null")
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(BuiltInRegistries.RECIPE_SERIALIZER, MCTradePostMod.MODID);
 
     public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
@@ -228,36 +241,47 @@ public class MCTradePostMod
     public static final DeferredItem<AdvancedClipboardItem> ADVANCED_CLIPBOARD = ITEMS.register("advanced_clipboard",
         () -> new AdvancedClipboardItem(new Item.Properties().stacksTo(1)));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> ICECREAM = ITEMS.register("icecream",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(2).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> DAIQUIRI = ITEMS.register("daiquiri",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.GLASS_BOTTLE).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> VEGGIE_JUICE = ITEMS.register("veggie_juice",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> FRUIT_JUICE = ITEMS.register("fruit_juice",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> PROTIEN_SHAKE = ITEMS.register("protien_shake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
     
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> BAR_NUTS = ITEMS.register("bar_nuts",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.BOWL).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> COLD_BREW = ITEMS.register("cold_brew",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).usingConvertsTo(Items.GLASS_BOTTLE).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> MYSTIC_TEA = ITEMS.register("mystic_tea",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> VANILLA_MILKSHAKE = ITEMS.register("vanilla_milkshake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> ENERGY_SHAKE = ITEMS.register("energy_shake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
 
@@ -297,21 +321,27 @@ public class MCTradePostMod
     public static final DeferredItem<Item> WISH_SHELTER = ITEMS.register("wish_shelter",
         () -> new Item(new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
         () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<CurrencyExchangeItem> CURRENCY_EXCHANGE = ITEMS.register("currency_exchange",
         () -> new CurrencyExchangeItem(new Item.Properties().durability(100)));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<SouvenirItem> SOUVENIR = ITEMS.register("souvenir",
         () -> new SouvenirItem(new Item.Properties().component(MCTPModDataComponents.SOUVENIR_COMPONENT.get(), new SouvenirRecord("empty", 0))));
     
+    @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_GOLD = ITEMS.register("mctp_coin_gold", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_DIAMOND = ITEMS.register("mctp_coin_diamond", 
         () -> new CoinItem(new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
 
@@ -321,6 +351,7 @@ public class MCTradePostMod
     /*
     * ENTITIES 
     */
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<CoinEntity>> COIN_ENTITY_TYPE = ENTITIES.register("coin_entity",
         () -> EntityType.Builder.<CoinEntity>of(CoinEntity::new, MobCategory.MISC)
             .sized(0.20f, 0.20f)    // Size of the entity (like an ItemEntity)
@@ -328,6 +359,7 @@ public class MCTradePostMod
             .updateInterval(10)     // Sync rate
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "coin_entity").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<GhostCartEntity>> GHOST_CART = ENTITIES.register("ghost_cart",
         () -> EntityType.Builder.<GhostCartEntity>of(
             GhostCartEntity::new, MobCategory.MISC)
@@ -336,21 +368,25 @@ public class MCTradePostMod
             .updateInterval(1)            // send pos every tick
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "ghost_cart").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
         () -> EntityType.Builder.of(PetWolf::new, MobCategory.CREATURE)
             .sized(EntityType.WOLF.getDimensions().width(), EntityType.WOLF.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_wolf").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetFox>> PET_FOX = ENTITIES.register("pet_fox",
         () -> EntityType.Builder.of(PetFox::new, MobCategory.CREATURE)
             .sized(EntityType.FOX.getDimensions().width(), EntityType.FOX.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_fox").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetAxolotl>> PET_AXOLOTL = ENTITIES.register("pet_axolotl",
         () -> EntityType.Builder.of(PetAxolotl::new, MobCategory.CREATURE)
             .sized(EntityType.AXOLOTL.getDimensions().width(), EntityType.AXOLOTL.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_axolotl").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetParrot>> PET_PARROT = ENTITIES.register("pet_parrot",
         () -> EntityType.Builder.of(PetParrot::new, MobCategory.CREATURE)
             .sized(EntityType.PARROT.getDimensions().width(), EntityType.PARROT.getDimensions().height())
@@ -366,33 +402,41 @@ public class MCTradePostMod
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutPetShop = BLOCKS.register(BlockHutPetShop.HUT_NAME, () -> new BlockHutPetShop());
     public static final DeferredBlock<MCTPBaseBlockHut> blockHutOutpost = BLOCKS.register(BlockHutOutpost.HUT_NAME, () -> new BlockHutOutpost());
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockMixedStone> MIXED_STONE = BLOCKS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockMixedStone(Properties.of()
             .mapColor(NullnessBridge.assumeNonnull(MapColor.STONE))
             .strength(2.0f, 6.0f)
             .sound(NullnessBridge.assumeNonnull(SoundType.STONE))));
             
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
         BLOCKS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID,
             () -> new StairBlock(MIXED_STONE.get().defaultBlockState(),  // base block state supplier
                 MIXED_STONE.get().properties()                           // reuse base block's properties
             ));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> MIXED_STONE_WALL = BLOCKS.register(BlockMixedStone.MIXED_STONE_WALL_ID, () -> new WallBlock(Block.Properties.of()
             .mapColor(MapColor.STONE)
             .strength(2.0f, 6.0f)
             .sound(SoundType.STONE)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> MIXED_STONE_SLAB = BLOCKS.register(BlockMixedStone.MIXED_STONE_SLAB_ID, () -> new SlabBlock(Block.Properties.of()
             .mapColor(MapColor.STONE)
             .strength(2.0f, 6.0f)
             .sound(SoundType.STONE)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> MIXED_STONE_BRICK = BLOCKS.register(ModBlocksInitializer.MIXED_STONE_BRICK_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MIXED_STONE_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.MIXED_STONE_BRICK_STAIRS_NAME,
         () -> new StairBlock(MIXED_STONE_BRICK.get().defaultBlockState(), MIXED_STONE_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> MIXED_STONE_BRICK_WALL =
         BLOCKS.register(ModBlocksInitializer.MIXED_STONE_BRICK_WALL_NAME, () -> new WallBlock(MIXED_STONE_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> MIXED_STONE_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.MIXED_STONE_BRICK_SLAB_NAME, () -> new SlabBlock(MIXED_STONE_BRICK.get().properties()));
 
@@ -404,216 +448,296 @@ public class MCTradePostMod
     public static final DeferredBlock<BlockGlazed> GLAZED = BLOCKS.register(BlockGlazed.GLAZED_ID, () -> new BlockGlazed());
     public static final DeferredBlock<BlockCheckerboard> CHECKERBOARD = BLOCKS.register(BlockCheckerboard.CHECKERBOARD_ID, () -> new BlockCheckerboard());
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> THATCH = BLOCKS.register(ModBlocksInitializer.THATCH_NAME, () -> new Block(Blocks.HAY_BLOCK.properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> THATCH_STAIRS =
         BLOCKS.register(ModBlocksInitializer.THATCH_STAIRS_NAME,
             () -> new StairBlock(THATCH.get().defaultBlockState(),  // base block state supplier
                 THATCH.get().properties()                           // reuse base block's properties
             ));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> THATCH_WALL = BLOCKS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new WallBlock(THATCH.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> THATCH_SLAB = BLOCKS.register(ModBlocksInitializer.THATCH_SLAB_NAME, () -> new SlabBlock(THATCH.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> PLASTER = BLOCKS.register(ModBlocksInitializer.PLASTER_NAME, () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)
             .mapColor(MapColor.TERRACOTTA_WHITE)
             .sound(SoundType.BAMBOO_WOOD)));
 
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> PLASTER_STAIRS =
         BLOCKS.register(ModBlocksInitializer.PLASTER_STAIRS_NAME,
             () -> new StairBlock(PLASTER.get().defaultBlockState(),
                 PLASTER.get().properties()
             ));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> PLASTER_WALL = BLOCKS.register(ModBlocksInitializer.PLASTER_WALL_NAME, () -> new WallBlock(PLASTER.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> PLASTER_SLAB = BLOCKS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new SlabBlock(PLASTER.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> QUARTZ_PLASTER = BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> QUARTZ_PLASTER_STAIRS = BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_STAIRS_NAME,
         () -> new StairBlock(QUARTZ_PLASTER.get().defaultBlockState(), QUARTZ_PLASTER.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> QUARTZ_PLASTER_WALL =
         BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_WALL_NAME, () -> new WallBlock(QUARTZ_PLASTER.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> QUARTZ_PLASTER_SLAB =
         BLOCKS.register(ModBlocksInitializer.QUARTZ_PLASTER_SLAB_NAME, () -> new SlabBlock(QUARTZ_PLASTER.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ROUGH_STONE = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ROUGH_STONE_STAIRS = BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_STAIRS_NAME,
         () -> new StairBlock(ROUGH_STONE.get().defaultBlockState(), ROUGH_STONE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ROUGH_STONE_WALL =
         BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_WALL_NAME, () -> new WallBlock(ROUGH_STONE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ROUGH_STONE_SLAB =
         BLOCKS.register(ModBlocksInitializer.ROUGH_STONE_SLAB_NAME, () -> new SlabBlock(ROUGH_STONE.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ROUGH_BRICK = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.STONE)
             .strength(1.5f, 2.0f)
             .sound(SoundType.STONE)));
 
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ROUGH_BRICK_STAIRS =
         BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_STAIRS_NAME,
             () -> new StairBlock(ROUGH_BRICK.get().defaultBlockState(),  // base block state supplier
                 ROUGH_BRICK.get().properties()                           // reuse base block's properties
             ));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ROUGH_BRICK_WALL = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_WALL_NAME, () -> new WallBlock(ROUGH_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ROUGH_BRICK_SLAB = BLOCKS.register(ModBlocksInitializer.ROUGH_BRICK_SLAB_NAME, () -> new SlabBlock(ROUGH_BRICK.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> DIAGONAL_BRICK = BLOCKS.register(ModBlocksInitializer.DIAGONAL_BRICK_NAME, () -> new Block(Block.Properties.of()
             .mapColor(MapColor.STONE)
             .strength(1.5f, 2.0f)
             .sound(SoundType.STONE)));
 
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> DIAGONAL_BRICK_STAIRS =
         BLOCKS.register(ModBlocksInitializer.DIAGONAL_BRICK_STAIRS_NAME,
             () -> new StairBlock(DIAGONAL_BRICK.get().defaultBlockState(),  // base block state supplier
                 DIAGONAL_BRICK.get().properties()                           // reuse base block's properties
             ));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> DIAGONAL_BRICK_WALL = BLOCKS.register(ModBlocksInitializer.DIAGONAL_BRICK_WALL_NAME, () -> new WallBlock(DIAGONAL_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> DIAGONAL_BRICK_SLAB = BLOCKS.register(ModBlocksInitializer.DIAGONAL_BRICK_SLAB_NAME, () -> new SlabBlock(DIAGONAL_BRICK.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
     
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_STAIRS_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_STAIRS_ID, () -> new BlockItem(MIXED_STONE_STAIRS.get(), new Item.Properties()));
         
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_WALL_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_WALL_ID, () -> new BlockItem(MIXED_STONE_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_SLAB_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_SLAB_ID, () -> new BlockItem(MIXED_STONE_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.MIXED_STONE_BRICK_NAME, () -> new BlockItem(MIXED_STONE_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.MIXED_STONE_BRICK_STAIRS_NAME, () -> new BlockItem(MIXED_STONE_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.MIXED_STONE_BRICK_WALL_NAME, () -> new BlockItem(MIXED_STONE_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MIXED_STONE_BRICK_SLAB_NAME, () -> new BlockItem(MIXED_STONE_BRICK_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockDistressedItem> DISTRESSED_ITEM =
         ITEMS.register(BlockDistressed.DISTRESSED_ID, () -> new BlockDistressedItem(DISTRESSED.get(), new BlockDistressedItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockStackedSlabItem> STACKED_SLAB_ITEM =
         ITEMS.register(BlockStackedSlab.STACKED_SLAB_ID, () -> new BlockStackedSlabItem(STACKED_SLAB.get(), new BlockStackedSlabItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockSideSlabItem> SIDE_SLAB_ITEM =
         ITEMS.register(BlockSideSlab.SIDE_SLAB_ID, () -> new BlockSideSlabItem(SIDE_SLAB.get(), new BlockSideSlabItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockSideSlabInterleavedItem> SIDE_SLAB_INTERLEAVED_ITEM =
         ITEMS.register(BlockSideSlabInterleaved.SIDE_SLAB_INTERLEAVED_ID, () -> new BlockSideSlabInterleavedItem(SIDE_SLAB_INTERLEAVED.get(), new BlockSideSlabInterleavedItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockGlazedItem> GLAZED_ITEM =
         ITEMS.register(BlockGlazed.GLAZED_ID, () -> new BlockGlazedItem(GLAZED.get(), new BlockItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<BlockCheckerboardItem> CHECKERBOARD_ITEM =
         ITEMS.register(BlockCheckerboard.CHECKERBOARD_ID, () -> new BlockCheckerboardItem(CHECKERBOARD.get(), new BlockItem.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ENDETHYST = BLOCKS.register(ModBlocksInitializer.ENDETHYST_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(2.5f, 3.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ENDETHYST_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDETHYST_STAIRS_NAME,
         () -> new StairBlock(ENDETHYST.get().defaultBlockState(), ENDETHYST.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ENDETHYST_WALL =
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_WALL_NAME, () -> new WallBlock(ENDETHYST.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ENDETHYST_SLAB =
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_SLAB_NAME, () -> new SlabBlock(ENDETHYST.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ENDETHYST_BRICK = BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ENDETHYST_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_STAIRS_NAME,
         () -> new StairBlock(ENDETHYST_BRICK.get().defaultBlockState(), ENDETHYST_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ENDETHYST_BRICK_WALL =
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_WALL_NAME, () -> new WallBlock(ENDETHYST_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ENDETHYST_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.ENDETHYST_BRICK_SLAB_NAME, () -> new SlabBlock(ENDETHYST_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ENDMARINE = BLOCKS.register(ModBlocksInitializer.ENDMARINE_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ENDMARINE_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDMARINE_STAIRS_NAME,
         () -> new StairBlock(ENDMARINE.get().defaultBlockState(), ENDMARINE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ENDMARINE_WALL =
         BLOCKS.register(ModBlocksInitializer.ENDMARINE_WALL_NAME, () -> new WallBlock(ENDMARINE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ENDMARINE_SLAB =
         BLOCKS.register(ModBlocksInitializer.ENDMARINE_SLAB_NAME, () -> new SlabBlock(ENDMARINE.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> ENDMARINE_BRICK = BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> ENDMARINE_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_STAIRS_NAME,
         () -> new StairBlock(ENDMARINE_BRICK.get().defaultBlockState(), ENDMARINE_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> ENDMARINE_BRICK_WALL =
         BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_WALL_NAME, () -> new WallBlock(ENDMARINE_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> ENDMARINE_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.ENDMARINE_BRICK_SLAB_NAME, () -> new SlabBlock(ENDMARINE_BRICK.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> MARINE_LAPIS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MARINE_LAPIS_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_STAIRS_NAME,
         () -> new StairBlock(MARINE_LAPIS.get().defaultBlockState(), MARINE_LAPIS.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> MARINE_LAPIS_WALL =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_WALL_NAME, () -> new WallBlock(MARINE_LAPIS.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> MARINE_LAPIS_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> MARINE_LAPIS_BRICK = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MARINE_LAPIS_BRICK_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_STAIRS_NAME,
         () -> new StairBlock(MARINE_LAPIS_BRICK.get().defaultBlockState(), MARINE_LAPIS_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> MARINE_LAPIS_BRICK_WALL =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_WALL_NAME, () -> new WallBlock(MARINE_LAPIS_BRICK.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> MARINE_LAPIS_BRICK_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new SlabBlock(MARINE_LAPIS_BRICK.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> BLOCK_IVY_BRICK =
         BLOCKS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new Block(Blocks.VINE.properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> WEATHERED_ROUGH_STONE = BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> WEATHERED_ROUGH_STONE_STAIRS = BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_STAIRS_NAME,
         () -> new StairBlock(WEATHERED_ROUGH_STONE.get().defaultBlockState(), WEATHERED_ROUGH_STONE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> WEATHERED_ROUGH_STONE_WALL =
         BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_WALL_NAME, () -> new WallBlock(WEATHERED_ROUGH_STONE.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> WEATHERED_ROUGH_STONE_SLAB =
         BLOCKS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new SlabBlock(WEATHERED_ROUGH_STONE.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> MARINE_BASALT = BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MARINE_BASALT_STAIRS = BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_STAIRS_NAME,
         () -> new StairBlock(MARINE_BASALT.get().defaultBlockState(), MARINE_BASALT.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> MARINE_BASALT_WALL =
         BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_WALL_NAME, () -> new WallBlock(MARINE_BASALT.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> MARINE_BASALT_SLAB =
         BLOCKS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new SlabBlock(MARINE_BASALT.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockTrough> TROUGH =
         BLOCKS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockTrough(THATCH.get().properties().lightLevel(state -> 4)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockScavenge> SCAVENGE =
         BLOCKS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockScavenge(THATCH.get().properties().lightLevel(state -> 4)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockDredger> DREDGER =
         BLOCKS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockDredger(THATCH.get().properties().lightLevel(state -> 4)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockFeeder> FEEDER =
         BLOCKS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockFeeder(THATCH.get().properties().lightLevel(state -> 4)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
+    @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> WOVEN_KELP_STAIRS = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME,
         () -> new StairBlock(WOVEN_KELP.get().defaultBlockState(), WOVEN_KELP.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<WallBlock> WOVEN_KELP_WALL =
         BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_WALL_NAME, () -> new WallBlock(WOVEN_KELP.get().properties()));
+    @SuppressWarnings("null")
     public static final DeferredBlock<SlabBlock> WOVEN_KELP_SLAB =
         BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new SlabBlock(WOVEN_KELP.get().properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockOutpostMarker> BLOCK_OUTPOST_MARKER =
         BLOCKS.register(ModBlocksInitializer.BLOCK_OUTPOST_MARKER_NAME, () -> new BlockOutpostMarker(Blocks.BLACK_BANNER.properties()));
  
@@ -629,210 +753,278 @@ public class MCTradePostMod
     /*
     * ITEMS (Block)
     */
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> THATCH_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_NAME, () -> new BlockItem(THATCH.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> THATCH_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_STAIRS_NAME, () -> new BlockItem(THATCH_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> THATCH_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_WALL_NAME, () -> new BlockItem(THATCH_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> THATCH_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.THATCH_SLAB_NAME, () -> new BlockItem(THATCH_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> PLASTER_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_NAME, () -> new BlockItem(PLASTER.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> PLASTER_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_STAIRS_NAME, () -> new BlockItem(PLASTER_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> PLASTER_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_WALL_NAME, () -> new BlockItem(PLASTER_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> PLASTER_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.PLASTER_SLAB_NAME, () -> new BlockItem(PLASTER_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> QUARTZ_PLASTER_ITEM =
         ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_NAME, () -> new BlockItem(QUARTZ_PLASTER.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> QUARTZ_PLASTER_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_STAIRS_NAME, () -> new BlockItem(QUARTZ_PLASTER_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> QUARTZ_PLASTER_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_WALL_NAME, () -> new BlockItem(QUARTZ_PLASTER_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> QUARTZ_PLASTER_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.QUARTZ_PLASTER_SLAB_NAME, () -> new BlockItem(QUARTZ_PLASTER_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_STONE_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_NAME, () -> new BlockItem(ROUGH_STONE.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_STONE_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_STAIRS_NAME, () -> new BlockItem(ROUGH_STONE_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_STONE_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_WALL_NAME, () -> new BlockItem(ROUGH_STONE_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_STONE_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_STONE_SLAB_NAME, () -> new BlockItem(ROUGH_STONE_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_NAME, () -> new BlockItem(ROUGH_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_STAIRS_NAME, () -> new BlockItem(ROUGH_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_WALL_NAME, () -> new BlockItem(ROUGH_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ROUGH_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ROUGH_BRICK_SLAB_NAME, () -> new BlockItem(ROUGH_BRICK_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> DIAGONAL_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.DIAGONAL_BRICK_NAME, () -> new BlockItem(DIAGONAL_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> DIAGONAL_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.DIAGONAL_BRICK_STAIRS_NAME, () -> new BlockItem(DIAGONAL_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> DIAGONAL_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.DIAGONAL_BRICK_WALL_NAME, () -> new BlockItem(DIAGONAL_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> DIAGONAL_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.DIAGONAL_BRICK_SLAB_NAME, () -> new BlockItem(DIAGONAL_BRICK_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_NAME, () -> new BlockItem(ENDETHYST.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_STAIRS_NAME, () -> new BlockItem(ENDETHYST_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_WALL_NAME, () -> new BlockItem(ENDETHYST_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_SLAB_NAME, () -> new BlockItem(ENDETHYST_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_BRICK_NAME, () -> new BlockItem(ENDETHYST_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_BRICK_STAIRS_NAME, () -> new BlockItem(ENDETHYST_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_BRICK_WALL_NAME, () -> new BlockItem(ENDETHYST_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDETHYST_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDETHYST_BRICK_SLAB_NAME, () -> new BlockItem(ENDETHYST_BRICK_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_NAME, () -> new BlockItem(ENDMARINE.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_STAIRS_NAME, () -> new BlockItem(ENDMARINE_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_WALL_NAME, () -> new BlockItem(ENDMARINE_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_SLAB_NAME, () -> new BlockItem(ENDMARINE_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_NAME, () -> new BlockItem(ENDMARINE_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_STAIRS_NAME, () -> new BlockItem(ENDMARINE_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_WALL_NAME, () -> new BlockItem(ENDMARINE_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> ENDMARINE_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.ENDMARINE_BRICK_SLAB_NAME, () -> new BlockItem(ENDMARINE_BRICK_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_NAME, () -> new BlockItem(MARINE_LAPIS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_STAIRS_NAME, () -> new BlockItem(MARINE_LAPIS_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_WALL_NAME, () -> new BlockItem(MARINE_LAPIS_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_STAIRS_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_WALL_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_LAPIS_BRICK_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_LAPIS_BRICK_SLAB_NAME, () -> new BlockItem(MARINE_LAPIS_BRICK_SLAB.get(), new Item.Properties()));
 		
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> IVY_BRICK_ITEM =
         ITEMS.register(ModBlocksInitializer.IVY_BRICK_NAME, () -> new BlockItem(BLOCK_IVY_BRICK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_ITEM =
         ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_STAIRS_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_WALL_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WEATHERED_ROUGH_STONE_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.WEATHERED_ROUGH_STONE_SLAB_NAME, () -> new BlockItem(WEATHERED_ROUGH_STONE_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_BASALT_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_BASALT_NAME, () -> new BlockItem(MARINE_BASALT.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_BASALT_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_BASALT_STAIRS_NAME, () -> new BlockItem(MARINE_BASALT_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_BASALT_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_BASALT_WALL_NAME, () -> new BlockItem(MARINE_BASALT_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> MARINE_BASALT_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.MARINE_BASALT_SLAB_NAME, () -> new BlockItem(MARINE_BASALT_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> TROUGH_ITEM =
         ITEMS.register(ModBlocksInitializer.TROUGH_NAME, () -> new BlockItem(TROUGH.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> SCAVENGE_ITEM =
         ITEMS.register(ModBlocksInitializer.SCAVENGE_NAME, () -> new BlockItem(SCAVENGE.get(), new Item.Properties()));    
     
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> DREDGER_ITEM =
         ITEMS.register(ModBlocksInitializer.DREDGER_NAME, () -> new BlockItem(DREDGER.get(), new Item.Properties()));   
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> FEEDER_ITEM =
         ITEMS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockItem(FEEDER.get(), new Item.Properties()));   
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WOVEN_KELP_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_NAME, () -> new BlockItem(WOVEN_KELP.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WOVEN_KELP_STAIRS_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_STAIRS_NAME, () -> new BlockItem(WOVEN_KELP_STAIRS.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WOVEN_KELP_WALL_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_WALL_NAME, () -> new BlockItem(WOVEN_KELP_WALL.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> WOVEN_KELP_SLAB_ITEM =
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new BlockItem(WOVEN_KELP_SLAB.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
         ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
 
     /*
     * Creative Mode Tabs
     */
+    @SuppressWarnings("null")
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
     // Creates a creative tab with the id "examplemod:example_tab" for the example item, that is placed after the combat tab
+    @SuppressWarnings("null")
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TRADEPOST_TAB = CREATIVE_MODE_TABS.register(CREATIVE_TRADEPOST_TABNAME, () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup:mctradepost")) //The language key for the title of your CreativeModeTab
             .withTabsBefore(CreativeModeTabs.COMBAT)
@@ -846,6 +1038,7 @@ public class MCTradePostMod
     /*
      * RECIPES
      */
+    @SuppressWarnings("null")
     public static final DeferredHolder<RecipeType<?>, RecipeType<DeconstructionRecipe>> DECON_RECIPE_TYPE =
         MCTradePostMod.RECIPES.register(
             DeconstructionRecipe.DECON_RECIPE_KEY,
@@ -865,7 +1058,7 @@ public class MCTradePostMod
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
-    public MCTradePostMod(IEventBus modEventBus, ModContainer modContainer)
+    public MCTradePostMod(@Nonnull IEventBus modEventBus, ModContainer modContainer)
     {
 
         // Register the Deferred Register to the mod event bus so blocks get registered
@@ -983,6 +1176,7 @@ public class MCTradePostMod
          *
          * @param event The event that provides the registrar for registering payload handlers.
          */
+        @SuppressWarnings("null")
         @SubscribeEvent
         public static void onNetworkRegistry(final RegisterPayloadHandlersEvent event) {
             // Sets the current network version
@@ -1081,6 +1275,7 @@ public class MCTradePostMod
          *
          * @param event The event that triggers the creation of entity attributes.
          */
+        @SuppressWarnings("null")
         @SubscribeEvent
         public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) 
         {
@@ -1178,6 +1373,7 @@ public class MCTradePostMod
     {
 
         // Add items to their creative tabs.
+        @SuppressWarnings("null")
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         private static void addCreative(BuildCreativeModeTabContentsEvent event)
@@ -1314,6 +1510,7 @@ public class MCTradePostMod
             ModelRegistryHandler.registerModels(event);
         }
 
+        @SuppressWarnings("null")
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -1348,6 +1545,7 @@ public class MCTradePostMod
             Font font = Minecraft.getInstance().font;
             ItemInHandRenderer itemInHandRenderer = Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer();
 
+            @SuppressWarnings("null")
             Context context = new EntityRendererProvider.Context(
                 dispatcher,
                 itemRenderer,
@@ -1366,6 +1564,7 @@ public class MCTradePostMod
          * This method is invoked when the RegisterEvent is fired for the ITEM_DECORATIONS registry key.
          * @param event The register event containing the registry to register the item decorations with.
          */
+        @SuppressWarnings("null")
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onRegisterItemDecorations(final RegisterItemDecorationsEvent event)
@@ -1405,6 +1604,7 @@ public class MCTradePostMod
          * The custom geometry loader is responsible for loading the souvenir item model.
          * @param event The register geometry loaders event.
          */
+        @SuppressWarnings("null")
         @SubscribeEvent
         public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
             event.register(SouvenirLoader.LOADER_ID, SouvenirLoader.INSTANCE);
@@ -1417,6 +1617,7 @@ public class MCTradePostMod
             event.registerReloadListener(new RitualManager());
         }
 
+        @SuppressWarnings("null")
         @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {

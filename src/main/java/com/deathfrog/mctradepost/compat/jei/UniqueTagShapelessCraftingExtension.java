@@ -19,6 +19,7 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -43,17 +44,36 @@ public final class UniqueTagShapelessCraftingExtension
         // JEI wants List<List<ItemStack>> for the crafting grid helper.
         final NonNullList<Ingredient> ingredients = recipe.getIngredients();
         final List<List<ItemStack>> inputs = new ArrayList<>(ingredients.size());
+        final int uniqueCount = Math.max(0, recipe.getCount());
+        int repeatedTagSlot = 0;
 
-        for (Ingredient ing : ingredients)
+        for (int ingredientIndex = 0; ingredientIndex < ingredients.size(); ingredientIndex++)
         {
+            final Ingredient ing = ingredients.get(ingredientIndex);
             // Ingredient#getItems() gives the concrete display stacks for JEI cycling
             final ItemStack[] stacks = ing.getItems();
 
             // If something is empty (shouldn't be), give it an empty list rather than crash.
             if (stacks == null || stacks.length == 0)
+            {
                 inputs.add(List.of(ItemStack.EMPTY));
+            }
             else
-                inputs.add(Arrays.stream(stacks).map(ItemStack::copy).toList());
+            {
+                final List<ItemStack> displayStacks = Arrays.stream(stacks).map(ItemStack::copy).toList();
+                final boolean isRepeatedTagIngredient = ingredientIndex > 0 && repeatedTagSlot < uniqueCount;
+
+                if (isRepeatedTagIngredient)
+                {
+                    // Rotate repeated tag slots so JEI's synchronized cycling shows distinct entries per slot.
+                    inputs.add(rotate(displayStacks, repeatedTagSlot));
+                    repeatedTagSlot++;
+                }
+                else
+                {
+                    inputs.add(displayStacks);
+                }
+            }
         }
 
         // Populate a 3x3 grid (shapeless) with those inputs
@@ -89,5 +109,17 @@ public final class UniqueTagShapelessCraftingExtension
                 tooltip.add(tip)
             );
         }
+    }
+
+    private static List<ItemStack> rotate(final List<ItemStack> stacks, final int offset)
+    {
+        if (stacks.isEmpty() || offset == 0)
+        {
+            return stacks;
+        }
+
+        final ArrayList<ItemStack> rotated = new ArrayList<>(stacks);
+        Collections.rotate(rotated, -(offset % stacks.size()));
+        return rotated;
     }
 }
