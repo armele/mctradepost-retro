@@ -3,7 +3,7 @@
     "subtitle": "My precious!",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/consignmentshop",
-    "researchLevel": 5,
+    "researchLevel": 4,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,

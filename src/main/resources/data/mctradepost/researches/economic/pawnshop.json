@@ -3,7 +3,7 @@
     "subtitle": "Some of this is interesting.",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/thriftshop",
-    "researchLevel": 3,
+    "researchLevel": 2,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,

@@ -19,7 +19,7 @@
     ],
     "costs": [
         {
-            "count": 64,
+            "count": 32,
             "item": "minecraft:rail"        
         },
         {
