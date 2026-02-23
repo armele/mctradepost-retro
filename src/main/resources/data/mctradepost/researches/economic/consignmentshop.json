@@ -3,7 +3,7 @@
     "subtitle": "You don't see that too often...",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/pawnshop",
-    "researchLevel": 4,
+    "researchLevel": 3,
     "sortOrder" : 0,
     "exclusiveChildResearch": false,
     "no-reset" : false,

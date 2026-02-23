@@ -13,12 +13,12 @@
         {
             "type": "minecolonies:building",
             "building": "mctradepost:marketplace",
-            "level": 3
+            "level": 1
         }
     ],
     "costs": [
         {
-            "count": 64,
+            "count": 16,
             "item": "minecraft:rail"        
         },
         {
