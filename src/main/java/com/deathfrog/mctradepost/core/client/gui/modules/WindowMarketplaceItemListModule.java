@@ -3,7 +3,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
@@ -48,7 +48,20 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
             @Override
             public int getElementCount()
             {
-                return currentDisplayedList.size();
+                int size = currentDisplayedList.size();
+
+                if (size <= 0)
+                {
+                    resourceList.disable();
+                    resourceList.hide();
+                }
+                else                
+                {
+                    resourceList.enable();
+                    resourceList.show();
+                }
+
+                return size;
             }
 
             /**
@@ -66,7 +79,14 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                 resourceLabel.setColors(WHITE);
 
                 final Text resourceValue = rowPane.findPaneOfTypeByID(RESOURCE_VALUE, Text.class);
-                resourceValue.setText(Component.literal(MarketplaceItemListModule.marketplaceValue(resource) + ""));
+                int value = 0;
+                if (moduleView instanceof MarketplaceItemListModuleView marketplaceView)
+                {
+                    value = marketplaceView.getMarketplaceValue(resource);
+                }
+
+                resourceValue.setText(Component.literal(Integer.toString(value) + ""));
+
                 resourceValue.setColors(WHITE);
 
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);

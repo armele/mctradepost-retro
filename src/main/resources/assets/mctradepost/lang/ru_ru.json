@@ -305,6 +305,7 @@
   "com.mctradepost.coremod.gui.econ.coins.minted" : "Монет чеканено",
   "com.mctradepost.coremod.request.sellable" : "Запрос: продаваемые предметы",
   "com.mctradepost.coremod.request.recyclable" : "Запрос: предметы для переработки",
+  "com.mctradepost.coremod.gui.workerhuts.clearlist" : "четкий список",
   "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Минимум на складе",
   "com.minecolonies.coremod.setting.mctradepost:automint" : "Авточеканка ‡",
   "com.minecolonies.coremod.setting.mctradepost:iterative_processing" : "Итеративная переработка",

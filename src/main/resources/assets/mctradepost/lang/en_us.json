@@ -307,6 +307,7 @@
     "com.mctradepost.coremod.gui.econ.coins.minted" : "Coins Minted",
     "com.mctradepost.coremod.request.sellable" : "Request: Sellable Items",
     "com.mctradepost.coremod.request.recyclable" : "Request: Recyclable Items",
+    "com.mctradepost.coremod.gui.workerhuts.clearlist" : "Clear List",
     "com.minecolonies.coremod.setting.mctradepost:warehousemin" : "Warehouse Minimum",
     "com.minecolonies.coremod.setting.mctradepost:automint" : "Auto Mint ‡",
     "com.minecolonies.coremod.setting.mctradepost:iterative_processing" : "Iterative Recycling",

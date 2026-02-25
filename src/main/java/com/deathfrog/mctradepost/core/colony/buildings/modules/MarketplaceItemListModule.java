@@ -130,9 +130,11 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
 
       while (optionsIterator.hasNext())
       {
-         ItemStorage item = (ItemStorage) optionsIterator.next();
+         final ItemStorage item = optionsIterator.next();
+         final ItemStack stack = item.getItemStack();
 
-         Utils.serializeCodecMess(buf, item.getItemStack());
+         Utils.serializeCodecMess(buf, stack);
+         buf.writeInt(marketplaceValue(stack)); // server-authoritative value
       }
    }
 
@@ -153,19 +155,14 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
    }
 
    /**
-    * Resets this module to its default state. This clears the list of items to be kept when the inventory is cleared.
+    * Resets this module to its default state (no items).
     */
    @Override
    public void resetToDefaults()
    {
-      // LOGGER.info("Resetting to defaults.", new Exception());
-
       clearItems();
-
-      for (ItemStorage item : itemOptionSet)
-      {
-         addItem(item);
-      }
+      itemOptionSet.clear();
+      markDirty();
    }
 
    /**
@@ -206,24 +203,14 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
       }
    }
 
+
    /**
-    * Returns the value of the item, or 0 if it is not sellable, or -1 if it is unknown.
-    * If the value is unknown, it will be calculated based on the item's rarity.
-    * This value is then cached for future lookups.
-    *
-    * @param marketItem the item to get the value for
-    * @return the value of the item, or -1 if it is not sellable, or 0 if it is unknown
+    * Calculates the value of a market item based on its type.
+    * Returns 0 if the item stack is null or empty.
+    * Otherwise, returns the value of the item type as specified by the ItemValueManager.
+    * @param marketItem The item stack to calculate the value of.
+    * @return The value of the item stack.
     */
-   public static int marketplaceValue(Item marketItem)
-   {
-      int value = ItemValueManager.get(marketItem);
-
-      if (value < 0) value = 0;
-
-      return value;
-
-   }
-
    public static int marketplaceValue(ItemStack marketItem)
    {
       if (marketItem == null || marketItem.isEmpty()) return 0;
