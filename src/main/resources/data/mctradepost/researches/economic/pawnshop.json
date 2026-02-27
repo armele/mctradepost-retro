@@ -19,8 +19,8 @@
     ],
     "costs": [
         {
-            "count": 3,
-            "item": "mctradepost:mctp_coin_gold"
+            "count": 4,
+            "item": "mctradepost:mctp_coin"
         },
         {
             "count": 1,
@@ -37,5 +37,5 @@
             "level": 2
         }
     ],
-    "icon": "mctradepost:mctp_coin_gold"
+    "icon": "mctradepost:mctp_coin"
 }

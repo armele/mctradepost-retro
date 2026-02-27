@@ -1,0 +1,12 @@
+{
+  "multipart": [
+    {
+      "when": { "hanging": "false" },
+      "apply": { "model": "mctradepost:block/lamp" }
+    },
+    {
+      "when": { "hanging": "true" },
+      "apply": { "model": "mctradepost:block/lamp_hanging" }
+    }
+  ]
+}

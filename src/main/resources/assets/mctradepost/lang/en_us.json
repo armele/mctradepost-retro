@@ -209,6 +209,10 @@
     "mctradepost.timber.frame.type.side_slab_interleaved": "Side Stacked Slab Interleaved",
     "block.mctradepost.checkerboard": "Checkerboard Frame",
     "mctradepost.timber.frame.type.checkerboard": "Checkerboard Frame",
+   
+    "item.mctradepost.lamp": "Lamp",
+    "item.mctradepost.copper_nugget": "Copper Nugget",
+    "block.mctradepost.lamp": "Lamp",
 
     "block.mctradepost.blockhutmarketplace": "Marketplace",
     "block.minecolonies.blockhutmarketplace": "Marketplace",

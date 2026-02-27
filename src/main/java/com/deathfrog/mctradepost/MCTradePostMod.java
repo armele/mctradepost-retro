@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
@@ -32,6 +33,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
+import com.deathfrog.mctradepost.core.blocks.BlockLamp;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
@@ -192,6 +194,8 @@ public class MCTradePostMod
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    private static final java.util.concurrent.atomic.AtomicBoolean FACTORIES_REGISTERED = new AtomicBoolean(false);
+
     // Create a Gson instance
     public static final Gson GSON = new GsonBuilder()
         .registerTypeAdapter(ResourceLocation.class, new TypeAdapter<ResourceLocation>() 
@@ -284,6 +288,9 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
+
+    public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.register("copper_nugget",
+        () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
@@ -750,6 +757,19 @@ public class MCTradePostMod
             )
         );
 
+    @SuppressWarnings("null")
+    public static final DeferredBlock<BlockLamp> BLOCK_LAMP =
+        BLOCKS.register(ModBlocksInitializer.LAMP,
+            () -> new BlockLamp(
+                BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.5F, 4.0F)
+                    .sound(SoundType.LANTERN)
+                    .lightLevel(state -> 15)
+                    .noOcclusion()
+            )
+        );
+
     /*
     * ITEMS (Block)
     */
@@ -1017,6 +1037,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
         ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> BLOCK_LAMP_ITEM =
+        ITEMS.register(ModBlocksInitializer.LAMP, () -> new BlockItem(BLOCK_LAMP.get(), new Item.Properties()));
     /*
     * Creative Mode Tabs
     */
@@ -1136,14 +1159,21 @@ public class MCTradePostMod
      */
     private void onCommonSetup(final FMLCommonSetupEvent event)
     {
-        // Some common setup code
-        LOGGER.info("MCTradePost common setup ");  
+        event.enqueueWork(() -> {
+            if (!FACTORIES_REGISTERED.compareAndSet(false, true))
+            {
+                LOGGER.warn("Skipping duplicate request factory registration (already registered).");
+                return;
+            }
 
-        StandardFactoryController.getInstance().registerNewFactory(new OutpostRequestResolverFactory());
-        StandardFactoryController.getInstance().registerNewFactory(new TrainDeliveryResolverFactory());
-        StandardFactoryController.getInstance().registerNewFactory(new MCTPSettingsFactory.SortSettingFactory());
+            LOGGER.info("Registering MCTradePost request factories...");
 
-        PlacementHandlers.add(new OutpostPlacementHandler());
+            StandardFactoryController.getInstance().registerNewFactory(new OutpostRequestResolverFactory());
+            StandardFactoryController.getInstance().registerNewFactory(new TrainDeliveryResolverFactory());
+            StandardFactoryController.getInstance().registerNewFactory(new MCTPSettingsFactory.SortSettingFactory());
+
+            PlacementHandlers.add(new OutpostPlacementHandler());
+        });
     }
 
     /**
@@ -1496,6 +1526,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_SHELTER.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                     event.accept(MCTradePostMod.STEWPOT_FILLED.get());
+                    event.accept(MCTradePostMod.BLOCK_LAMP.get());
+                    event.accept(MCTradePostMod.COPPER_NUGGET.get());
                 }
             });
 

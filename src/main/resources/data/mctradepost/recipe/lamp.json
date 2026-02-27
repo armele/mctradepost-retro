@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "C": { "tag": "mctradepost:copper_nuggets" },
+      "G": { "item": "minecraft:glass_pane" },
+      "T": { "item": "minecraft:torch" }
+    },
+    "pattern": [
+      " C ",
+      "GTG",
+      "CCC"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:lamp"
+    }
+}
+  
