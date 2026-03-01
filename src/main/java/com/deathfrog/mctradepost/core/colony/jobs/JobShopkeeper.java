@@ -15,6 +15,7 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     public static final int COUNTER_TRIGGER = 4;
     protected int inventoryManagementCounter = 0;
     protected int saleItemCounter = 0;
+    protected int missingFrameCounter = 0;
 
     /**
      * Initialize citizen data.
@@ -90,6 +91,7 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
         return saleItemCounter > COUNTER_TRIGGER;
     }
 
+
     /**
      * Tick the menu interaction counter to determine the time when the interaction gets triggered.
      */
@@ -109,6 +111,38 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     public void resetSaleItemCounter()
     {
         saleItemCounter = 0;
+    }
+
+    /**
+     * Check if the interaction is valid/should be triggered.
+     *
+     * @return true if the interaction is valid/should be triggered.
+     */
+    public boolean checkForMissingFrameInteraction()
+    {
+        return missingFrameCounter > COUNTER_TRIGGER;
+    }
+
+
+    /**
+     * Tick the menu interaction counter to determine the time when the interaction gets triggered.
+     */
+    public int tickMissingFrameItem()
+    {
+        if (missingFrameCounter < 100) // to prevent unnecessary high counter when ignored by player
+        {
+            missingFrameCounter++;
+        }
+
+        return missingFrameCounter;
+    }
+
+    /**
+     * Reset the sale item interaction counter.
+     */
+    public void resetMissingFrameCounter()
+    {
+        missingFrameCounter = 0;
     }
 
 }

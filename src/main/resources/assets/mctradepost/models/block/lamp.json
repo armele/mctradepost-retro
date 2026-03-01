@@ -8,7 +8,7 @@
 		"0": "block/copper_block",
 		"1": "block/lantern",
 		"2": "block/white_stained_glass",
-		"particle": "copper_block"
+		"particle": "block/copper_block"
 	},
 	"elements": [
 		{

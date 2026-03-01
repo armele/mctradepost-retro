@@ -14,6 +14,7 @@ import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.EntityIcon;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -93,6 +94,11 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
         final AbstractTextBuilder.TooltipBuilder howtoTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(howto);
         howtoTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.worklocations.hover"));
         howtoTipBuilder.build();
+
+        final Image help = findPaneOfTypeByID(LABEL_HOWTO, Image.class);
+        final AbstractTextBuilder.TooltipBuilder helpTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(help);
+        helpTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.worklocations.hover"));
+        helpTipBuilder.build();
 
         updatePetAssignmentList();
     }

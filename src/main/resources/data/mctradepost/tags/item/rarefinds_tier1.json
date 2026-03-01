@@ -45,6 +45,7 @@
     "minecraft:loom",
     "minecraft:paper",
     "minecraft:campfire",
-    "minecraft:coal_ore"
+    "minecraft:coal_ore",
+    "minecraft:ice"
   ]
 }

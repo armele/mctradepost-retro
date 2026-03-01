@@ -58,9 +58,9 @@ public final class FrameLikeAccess
             }
         }
 
-        // 2) Fallback: find an ItemFrame entity near the block pos (covers stale UUIDs / respawns)
+        // 2) Fallback: find an ItemFrame entity at the block pos (covers stale UUIDs / respawns)
         {
-            AABB box = new AABB(pos).inflate(0.25);
+            AABB box = new AABB(pos);
             List<ItemFrame> frames = level.getEntitiesOfClass(ItemFrame.class, NullnessBridge.assumeNonnull(box));
             if (!frames.isEmpty())
             {

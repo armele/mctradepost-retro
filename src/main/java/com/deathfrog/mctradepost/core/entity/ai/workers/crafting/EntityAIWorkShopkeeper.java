@@ -604,7 +604,12 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         if (building.getDisplayShelves().isEmpty())
         {
-            Log.getLogger().error("Building {} has no display shelves in colony {}", building.getBuildingDisplayName(), building.getColony().getID());
+            job.tickMissingFrameItem();
+
+            if (job.checkForMissingFrameInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.MISSING_FRAME), ChatPriority.BLOCKING));
+            }
             return null;
         }
 

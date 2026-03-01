@@ -6,6 +6,7 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
@@ -17,6 +18,7 @@ import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.SettingKey;
+import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
 import com.minecolonies.core.entity.visitor.VisitorCitizen;
 import com.mojang.logging.LogUtils;
@@ -27,6 +29,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Player;
@@ -44,12 +47,14 @@ import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.FrameLikeAccess;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.ThriftShopOffersModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
+import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.deathfrog.mctradepost.item.CoinItem;
@@ -356,6 +361,8 @@ public class BuildingMarketplace extends AbstractBuilding
             return;
         }
 
+        ICitizenData shopkeeper = this.shopkeeper();
+
         // 2) Try to resolve frame-like (vanilla UUID/entity OR FastItemFrames block)
         final FrameLikeAccess.FrameHandle handle =
             FrameLikeAccess.resolve(level, pos, existing.getFrameId());
@@ -365,11 +372,23 @@ public class BuildingMarketplace extends AbstractBuilding
             // Expected shelf pos, but neither entity nor frame-like block exists.
             // Keep shelf entry but mark missing.
             displayShelfContents.put(pos, new DisplayCase(pos, null));
-            if (this.isBuilt())
+            if (this.isBuilt() && shopkeeper != null)
             {
-                MCTradePostMod.LOGGER.warn("Missing a display frame at {}", pos);
+                JobShopkeeper shopkeeperJob = (JobShopkeeper) shopkeeper.getJob();
+                shopkeeperJob.tickMissingFrameItem();
+
+                if (shopkeeperJob.checkForMissingFrameInteraction())
+                {
+                    shopkeeper.triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.MISSING_FRAME), ChatPriority.BLOCKING));
+                }
             }
             return;
+        }
+
+        if (shopkeeper != null)
+        {
+            JobShopkeeper shopkeeperJob = (JobShopkeeper) shopkeeper.getJob();
+            shopkeeperJob.resetMissingFrameCounter();
         }
 
         // 3) It exists. If it's a vanilla ItemFrame and we can discover its UUID, refresh it.

@@ -37,6 +37,10 @@ public class ModTags
         public static final ResourceLocation WATER_SCAVENGE_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "amphibious_scavenge");
         @SuppressWarnings("null")
         public static final TagKey<Block> WATER_SCAVENGE_BLOCK_TAG = BlockTags.create(WATER_SCAVENGE_TAG_KEY);
+
+        public static final ResourceLocation LAMP_BASE_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "lamp_bases");
+        @SuppressWarnings("null")
+        public static final TagKey<Block> LAMP_BASES = BlockTags.create(LAMP_BASE_TAG_KEY);
     }
 
     /* Item Tags */

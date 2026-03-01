@@ -1,12 +1,28 @@
 {
   "multipart": [
     {
-      "when": { "hanging": "false" },
+      "when": { "attachment": "ceiling" },
+      "apply": { "model": "mctradepost:block/lamp_hanging" }
+    },
+    {
+      "when": { "attachment": "floor" },
       "apply": { "model": "mctradepost:block/lamp" }
     },
     {
-      "when": { "hanging": "true" },
-      "apply": { "model": "mctradepost:block/lamp_hanging" }
+      "when": { "attachment": "wall", "facing": "north" },
+      "apply": { "model": "mctradepost:block/lamp_handle", "y": 0 }
+    },
+    {
+      "when": { "attachment": "wall", "facing": "east" },
+      "apply": { "model": "mctradepost:block/lamp_handle", "y": 90 }
+    },
+    {
+      "when": { "attachment": "wall", "facing": "south" },
+      "apply": { "model": "mctradepost:block/lamp_handle", "y": 180 }
+    },
+    {
+      "when": { "attachment": "wall", "facing": "west" },
+      "apply": { "model": "mctradepost:block/lamp_handle", "y": 270 }
     }
   ]
 }

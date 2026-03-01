@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "mctradepost:copper_nugget"
+    "mctradepost:copper_nugget",
+    {"id": "create:copper_nugget", "required": false}
   ]
 }
