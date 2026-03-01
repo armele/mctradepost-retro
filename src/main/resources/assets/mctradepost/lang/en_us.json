@@ -491,7 +491,7 @@
     "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Animals",
     "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer. (‡) costs will be deducted from your marketplace balance.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
-    "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Trough: Herding\nMushroom Base: Scavenging\nDredger: Dredging",
+    "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Place a pet working location block to designate the pet job:\nTrough: Herding\nMushroom Base: Truffle Hunting\nDredger: Water-based scavenging\nFeeder: Foliage-based scavenging\n\nThen assign a pet to the working block.",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
     "com.minecolonies.coremod.gui.petstore.summon" : "Summon pet back to trainer",
     "com.minecolonies.coremod.gui.petstore.setfree" : "Retire pet to a farm in the countryside",

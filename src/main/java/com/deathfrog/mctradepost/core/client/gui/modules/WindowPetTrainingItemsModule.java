@@ -11,6 +11,7 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.EntityIcon;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -40,6 +41,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
      */
     private static final String RESOURCE_STRING = "gui/layouthuts/layoutpettrainingitems.xml";
 
+    private static final String IMAGE_HELP = "help";
     private static final String LABEL_PETLIST = "petlist";
     private static final String LABEL_TYPE = "pettype";
     private static final String LABEL_TRAINING_ITEM = "trainingitem";
@@ -82,7 +84,12 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
         final AbstractTextBuilder.TooltipBuilder howtoTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(howto);
         howtoTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.trainingtips.hover"));
         howtoTipBuilder.build();
-        
+    
+        final Image help = findPaneOfTypeByID(IMAGE_HELP, Image.class);
+        final AbstractTextBuilder.TooltipBuilder helpTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(help);
+        helpTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.trainingtips.hover"));
+        helpTipBuilder.build();
+
         updatePetTrainingList();
     }
 
