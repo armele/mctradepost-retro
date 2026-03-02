@@ -232,6 +232,10 @@ public class RitualDefinitionHelper
                 {
                     benefit = "cures all sick citizens.";
                 }
+                else if (companionItem.equals(MCTradePostMod.WISH_SHELTER.get())) 
+                {
+                    benefit = "optimizes citizen housing.";
+                }
                 else
                 {
                     benefit = "UNKNOWN (" + companionItem().toString() + ")) report to mod author.";
