@@ -6,7 +6,7 @@
       "item": "minecraft:paper"
     },
     {
-      "item": "minecraft:white_wool"
+      "tag": "minecraft:wool"
     }
   ],
   "result": {

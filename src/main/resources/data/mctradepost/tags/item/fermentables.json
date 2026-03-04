@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:fermented_spider_eye",
+    "minecraft:poisonous_potato"
+  ],
+  "remove": [
+  ]
+}

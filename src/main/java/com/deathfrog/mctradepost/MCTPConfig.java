@@ -66,7 +66,7 @@ public class MCTPConfig
 
         tradeCoinValue = BUILDER
             .comment("What is the value of a Trade Coin (‡)?")
-            .define("tradeCoinValue", 100);
+            .define("tradeCoinValue", 1000);
 
         mintingLevel = BUILDER
             .comment("At what building level can the Marketplace mint coins?")
