@@ -30,7 +30,7 @@ public final class MctpEconomyCommands
     {
         dispatcher.register(
             Commands.literal("mctp")
-                .requires(src -> src.hasPermission(2))
+                .requires(src -> src.hasPermission(2) && src.getServer() != null)
                 .then(
                     Commands.literal("generateItemValues")
                         .executes(ctx -> run(ctx.getSource(), false))

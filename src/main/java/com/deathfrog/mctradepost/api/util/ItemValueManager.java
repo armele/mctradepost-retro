@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -85,10 +86,24 @@ public final class ItemValueManager extends SimplePreparableReloadListener<Map<R
         VALUES = prepared;
     }
 
+
+    /**
+     * Returns the value of an item.
+     * If the item is not found, returns 0.
+     * The value is scaled by the economicScaling config option.
+     * @param item
+     * @return
+     */
     public static int get(Item item)
     {
         if (item == null) return 0;
 
-        return VALUES.getOrDefault(BuiltInRegistries.ITEM.getKey(item), 0);
+        int baseValue = VALUES.getOrDefault(BuiltInRegistries.ITEM.getKey(item), 0);
+
+        double scaling = MCTPConfig.economicScaling.get();
+        
+        if (scaling == 0.0) return baseValue;
+
+        return (int) (baseValue * (1 + scaling));
     }
 }

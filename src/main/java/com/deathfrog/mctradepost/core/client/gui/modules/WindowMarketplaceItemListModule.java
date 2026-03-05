@@ -4,7 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
@@ -85,7 +87,17 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                     value = marketplaceView.getMarketplaceValue(resource);
                 }
 
-                resourceValue.setText(Component.literal(Integer.toString(value) + ""));
+                String valueString = Integer.toString(value);
+                if (value > 1000)
+                {
+                    double k = value / 1000.0;
+                    valueString = (k == Math.floor(k)) 
+                            ? String.format("%.0fK", k) 
+                            : String.format("%.1fK", k);
+                }
+
+                resourceValue.setText(Component.literal(valueString + ""));
+                PaneBuilders.tooltipBuilder().hoverPane(resourceValue).build().setText(Component.literal(NullnessBridge.assumeNonnull(Integer.toString(value))));
 
                 resourceValue.setColors(WHITE);
 

@@ -205,8 +205,16 @@ public final class DerivedItemValueGenerator
         final Map<String, Integer> unknownCountsSorted = new LinkedHashMap<>();
         unknownIngredientCounts.entrySet().stream()
             .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
-            .limit(200) // keep it bounded; tweak as desired
-            .forEach(e -> unknownCountsSorted.put(ITEM.getKey(e.getKey()).toString(), e.getValue()));
+            .limit(200) // keep it bounded
+            .forEach(e -> 
+            {
+                Item eKey = e.getKey();
+                
+                if (eKey == null) return;
+
+                unknownCountsSorted.put(ITEM.getKey(eKey).toString(), e.getValue());
+            }
+        );
 
         return new Report(Collections.unmodifiableMap(values), iterations, recipesConsidered, recipesApplied, derivedCount, unknown,  Collections.unmodifiableMap(unknownCountsSorted));
     }
@@ -220,6 +228,7 @@ public final class DerivedItemValueGenerator
      * @param knownValues the known values of ingredients
      * @param unknownCounts the counts of unknown ingredients
      */
+    @SuppressWarnings("null")
     private static void collectUnknownIngredients(final Recipe<?> recipe,
                                                 final Map<Item, Integer> knownValues,
                                                 final Map<Item, Integer> unknownCounts)
