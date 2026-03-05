@@ -162,7 +162,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
             // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
-        petData = new PetData<PetWolf>(this, compound);
+        petData = new PetData<>(this, compound);
 
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);
@@ -432,7 +432,7 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public void setWorkLocation(BlockPos location)
     {
         if (petData == null) {
-            petData = new PetData<PetWolf>(this);
+            petData = new PetData<>(this);
             return;
         }
 

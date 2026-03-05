@@ -411,6 +411,7 @@
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "Trade availability has changed in connected stations!",
 
+    "com.mctradepost.core.gui.modules.guestlist": "Guest List",
     "item.mctradepost.wish_health": "Wish of Health",
     "item.mctradepost.wish_plenty": "Wish of Plenty",
     "item.mctradepost.wish_gathering_cow": "Wish of Herding",
@@ -502,6 +503,10 @@
     "com.minecolonies.coremod.gui.petstore.freed" : "Your pet has retired to a farm in the countryside!",
     "com.minecolonies.coremod.gui.petstore.summoned" : "Your pet has been summoned back to the trainer!",
     "com.minecolonies.coremod.gui.petstore.noperms" : "You don't have permission in this pet shop.",
+
+    "com.minecolonies.coremod.gui.guestlist" : "Guest List",
+    "com.minecolonies.coremod.gui.guestlist.hover" : "The current resort guest book, and what they desire.",
+    "com.minecolonies.coremod.gui.guestlist.empty" : "The current resort guest book is empty.",
 
     "entity.mctradepost.pet_wolf": "Pet Wolf",
     "entity.mctradepost.pet_fox": "Pet Fox",

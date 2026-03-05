@@ -63,7 +63,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
     public PetFox(EntityType<? extends Fox> entityType, Level level)
     {
         super(entityType, level);
-        petData = new PetData<PetFox>(this);
+        petData = new PetData<>(this);
         registerGoals();
     }
 
@@ -114,6 +114,11 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
         return petData.getAnimalType();
     }
 
+    /**
+     * Registers the goals for this pet. This includes goals for avoiding water, looking at the nearest player, 
+     * looking around randomly, and attacking targets that have attacked it. 
+     * If the pet data is not null, it will also register additional custom goals specific to the pet type.
+     */
     @Override
     protected void registerGoals()
     {
@@ -137,6 +142,16 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
 
     }
 
+    /**
+     * Serializes the state of this BaseTradePostPet into the given CompoundTag.
+     * This method is called by the base entity class when it is saved to disk.
+     * It is responsible for writing any additional data that the pet needs to
+     * reconstruct its state when it is loaded back into the world.
+     * 
+     * @param compound the CompoundTag to write the BaseTradePostPet's data into.
+     *                 Includes the colony ID and, if available, the position and
+     *                 dimension of the associated building.
+     */
     @Override
     public void addAdditionalSaveData(@Nonnull CompoundTag compound)
     {
@@ -169,7 +184,7 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet
             // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
-        petData = new PetData<PetFox>(this, compound);
+        petData = new PetData<>(this, compound);
 
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);

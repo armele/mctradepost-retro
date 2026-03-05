@@ -192,7 +192,7 @@ public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet
             // LOGGER.warn("Failed to deserialize parent entity data from tag: {}", compound, e);
         }
 
-        petData = new PetData<PetParrot>(this, compound);
+        petData = new PetData<>(this, compound);
 
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);
@@ -455,7 +455,7 @@ public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet
     public void setWorkLocation(BlockPos location)
     {
         if (petData == null) {
-            petData = new PetData<PetParrot>(this);
+            petData = new PetData<>(this);
             return;
         }
 

@@ -399,6 +399,7 @@
 
   "com.mctradepost.core.gui.modules.stationconnections": "Соединения станций",
   "mctradepost.station.trades_updated": "Доступность товаров в подключённых станциях изменилась!",
+  "com.mctradepost.core.gui.modules.guestlist": "Список гостей",
 
   "item.mctradepost.wish_health": "Желание Здоровья",
   "item.mctradepost.wish_plenty": "Желание Изобилия",
@@ -491,6 +492,10 @@
   "com.minecolonies.coremod.gui.petstore.freed" : "Ваш питомец отправился на ферму за городом!",
   "com.minecolonies.coremod.gui.petstore.summoned" : "Ваш питомец был призван обратно к дрессировщику!",
   "com.minecolonies.coremod.gui.petstore.noperms" : "У вас нет прав в этом зоомагазине.",
+
+  "com.minecolonies.coremod.gui.guestlist" : "Список гостей",
+  "com.minecolonies.coremod.gui.guestlist.hover" : "Текущая книга отзывов гостей курорта и их пожелания.",
+  "com.minecolonies.coremod.gui.guestlist.empty" : "Текущая книга отзывов гостей курорта пуста.",
 
   "entity.mctradepost.pet_wolf": "Питомец-волк",
   "entity.mctradepost.pet_fox": "Питомец-лис",

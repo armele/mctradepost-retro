@@ -13,6 +13,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetAssignmentM
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.PetTrainingItemsModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclableListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ResortGuestListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StewmelierIngredientModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
@@ -186,7 +187,8 @@ public class MCTPBuildingModules
     public static final BuildingEntry.ModuleProducer<BuildingResort.CraftingModule,CraftingModuleView> BARTENDER_CRAFT         =
       new BuildingEntry.ModuleProducer<>("bartender_craft", () -> new BuildingResort.CraftingModule(MCTPModJobs.bartender.get()), () -> CraftingModuleView::new);
 
-
+    public static final BuildingEntry.ModuleProducer<ResortGuestListModule, ResortGuestListModuleView> GUEST_LIST         =
+      new BuildingEntry.ModuleProducer<>("guestlist", () -> new ResortGuestListModule(), () -> ResortGuestListModuleView::new);
 
     /**
      * Storage
