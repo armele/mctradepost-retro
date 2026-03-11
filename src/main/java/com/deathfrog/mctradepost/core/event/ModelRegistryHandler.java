@@ -2,10 +2,6 @@ package com.deathfrog.mctradepost.core.event;
 
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.core.client.model.FemaleGuestServicesModel;
-import com.deathfrog.mctradepost.core.client.model.FemaleShopkeeperModel;
-import com.deathfrog.mctradepost.core.client.model.MaleGuestServicesModel;
-import com.deathfrog.mctradepost.core.client.model.MaleShopkeeperModel;
 import com.minecolonies.core.client.model.FemaleCrafterModel;
 import com.minecolonies.core.client.model.MaleCrafterModel;
 
@@ -39,15 +35,47 @@ public class ModelRegistryHandler
     public static final ModelLayerLocation FEMALE_RECYCLINGENGINEER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_recyclingengineer"), "female_recyclingengineer");
 
     @SuppressWarnings("null")
+    public static final ModelLayerLocation MALE_BARTENDER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_bartender"), "male_bartender");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation FEMALE_BARTENDER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_bartender"), "female_bartender");
+
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation MALE_ANIMALTRAINER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_animaltrainer"), "male_animaltrainer");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation FEMALE_ANIMALTRAINER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_animaltrainer"), "female_animaltrainer");
+
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation MALE_DAIRYWORKER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_dairyworker"), "male_dairyworker");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation FEMALE_DAIRYWORKER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_dairyworker"), "female_dairyworker");
+
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation MALE_STEWMELIER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_stewmelier"), "male_stewmelier");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation FEMALE_STEWMELIER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_stewmelier"), "female_stewmelier");
+
+    @SuppressWarnings("null")
     public static void registerModels(EntityRenderersEvent.RegisterLayerDefinitions event) 
     {
-        event.registerLayerDefinition(MALE_SHOPKEEPER, MaleShopkeeperModel::createMesh);
-        event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleShopkeeperModel::createMesh);
+        event.registerLayerDefinition(MALE_SHOPKEEPER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleCrafterModel::createMesh);
 
-        event.registerLayerDefinition(MALE_GUESTSERVICES, MaleGuestServicesModel::createMesh);
-        event.registerLayerDefinition(FEMALE_GUESTSERVICES, FemaleGuestServicesModel::createMesh);
+        event.registerLayerDefinition(MALE_GUESTSERVICES, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_GUESTSERVICES, FemaleCrafterModel::createMesh);
 
         event.registerLayerDefinition(MALE_RECYCLINGENGINEER, MaleCrafterModel::createMesh);
         event.registerLayerDefinition(FEMALE_RECYCLINGENGINEER, FemaleCrafterModel::createMesh);
+
+        event.registerLayerDefinition(MALE_BARTENDER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_BARTENDER, FemaleCrafterModel::createMesh);
+
+        event.registerLayerDefinition(MALE_ANIMALTRAINER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_ANIMALTRAINER, FemaleCrafterModel::createMesh);
+
+        event.registerLayerDefinition(MALE_STEWMELIER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_STEWMELIER, FemaleCrafterModel::createMesh);
+
+        event.registerLayerDefinition(MALE_DAIRYWORKER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_DAIRYWORKER, FemaleCrafterModel::createMesh);
     }
 }

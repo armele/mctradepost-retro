@@ -453,6 +453,9 @@
     "com.mctradepost.core.gui.modules.outpost.residents": "Outpost Residents",
     "com.mctradepost.core.gui.modules.outpost.exports": "Return to Colony",
 
+    "com.mctradepost.wishplenty.tooltip" : "Use in a wishing well to satisfy the entire colony's hunger.",
+    "com.mctradepost.wishhealth.tooltip" : "Use in a wishing well to cure the entire colony's ailments.",
+    "com.mctradepost.wishshelter.tooltip" : "Use in a wishing well to optimize your colony's residence locations.",
     "com.mctradepost.wishgather.marker.set.tooltip" : "Use a wishing well to gather your animals at %s",
     "com.mctradepost.wishgather.marker.unset.tooltip" : "Right click on a block to set a gathering location for your animals.",
     "com.mctradepost.wishgather.clicked" : "Gathering point established at %s",

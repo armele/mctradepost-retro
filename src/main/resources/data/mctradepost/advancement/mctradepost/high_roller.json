@@ -20,7 +20,7 @@
     "experience": 100
   },
   "criteria": {
-    "crafted_mixed_stone": {
+    "got_gold_coin": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [

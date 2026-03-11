@@ -20,7 +20,7 @@
     "experience": 100
   },
   "criteria": {
-    "crafted_mixed_stone": {
+    "make_wish": {
       "trigger": "mctradepost:make_wish"
     }
   }
