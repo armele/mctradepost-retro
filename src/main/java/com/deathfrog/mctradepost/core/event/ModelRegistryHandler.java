@@ -2,7 +2,9 @@ package com.deathfrog.mctradepost.core.event;
 
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.minecolonies.core.client.model.FemaleAlchemistModel;
 import com.minecolonies.core.client.model.FemaleCrafterModel;
+import com.minecolonies.core.client.model.MaleAlchemistModel;
 import com.minecolonies.core.client.model.MaleCrafterModel;
 
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -57,8 +59,8 @@ public class ModelRegistryHandler
     @SuppressWarnings("null")
     public static void registerModels(EntityRenderersEvent.RegisterLayerDefinitions event) 
     {
-        event.registerLayerDefinition(MALE_SHOPKEEPER, MaleCrafterModel::createMesh);
-        event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleCrafterModel::createMesh);
+        event.registerLayerDefinition(MALE_SHOPKEEPER, MaleAlchemistModel::createMesh);
+        event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleAlchemistModel::createMesh);
 
         event.registerLayerDefinition(MALE_GUESTSERVICES, MaleCrafterModel::createMesh);
         event.registerLayerDefinition(FEMALE_GUESTSERVICES, FemaleCrafterModel::createMesh);

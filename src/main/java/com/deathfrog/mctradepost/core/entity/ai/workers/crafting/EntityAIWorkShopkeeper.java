@@ -384,6 +384,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * 
      * @return The next AI state to transition to.
      */
+    @Override
     protected @NotNull IAIState waitForRequests() 
     {
         IAIState state = super.waitForRequests();
@@ -1018,5 +1019,11 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     public Class<BuildingMarketplace> getExpectedBuildingClass()
     {
         return BuildingMarketplace.class;
+    }
+
+    @Override
+    protected void updateRenderMetaData()
+    {
+        worker.setRenderMetadata(getState() == ShopkeeperState.ANALYZE_INVENTORY ? RENDER_META_WORKING : "");
     }
 }

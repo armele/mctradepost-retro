@@ -40,9 +40,9 @@ public class ModModelTypeInitializer
             
         reg.register(ModModelTypes.SHOPKEEPER);
 
-        ModModelTypes.GUESTSERVICES = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_MODEL_ID, 1, 
-            new MaleGuestServicesModel(context.bakeLayer(ModelRegistryHandler.MALE_GUESTSERVICES)), 
-            new FemaleGuestServicesModel(context.bakeLayer(ModelRegistryHandler.FEMALE_GUESTSERVICES)));
+        ModModelTypes.GUESTSERVICES = new MCTPSimpleModelType(ModModelTypes.GUESTSERVICES_MODEL_ID, 1, 
+            new MaleCrafterModel(context.bakeLayer(ModelRegistryHandler.MALE_GUESTSERVICES)), 
+            new FemaleCrafterModel(context.bakeLayer(ModelRegistryHandler.FEMALE_GUESTSERVICES)));
             
         reg.register(ModModelTypes.GUESTSERVICES);
 
