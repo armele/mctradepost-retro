@@ -438,7 +438,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             spawnPos = this.getPosition();
         }
 
-        this.getColony().getVisitorManager().spawnOrCreateCivilian(newCitizen, this.getColony().getWorld(), spawnPos, true);
+        List<BlockPos> spawnPositions = new ArrayList<>(1);
+        spawnPositions.add(spawnPos);
+
+        this.getColony().getVisitorManager().spawnOrCreateCivilian(newCitizen, this.getColony().getWorld(), spawnPositions, true);
         if (newCitizen.getEntity().isPresent())
         {
             newCitizen.getEntity().get().setItemSlot(EquipmentSlot.HEAD, getHats(recruitLevel));
