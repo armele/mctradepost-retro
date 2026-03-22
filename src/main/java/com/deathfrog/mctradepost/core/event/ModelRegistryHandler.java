@@ -37,6 +37,11 @@ public class ModelRegistryHandler
     public static final ModelLayerLocation FEMALE_RECYCLINGENGINEER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_recyclingengineer"), "female_recyclingengineer");
 
     @SuppressWarnings("null")
+    public static final ModelLayerLocation MALE_STATIONMASTER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_stationmaster"), "male_stationmaster");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation FEMALE_STATIONMASTER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_stationmaster"), "female_stationmaster");
+
+    @SuppressWarnings("null")
     public static final ModelLayerLocation MALE_BARTENDER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_bartender"), "male_bartender");
     @SuppressWarnings("null")
     public static final ModelLayerLocation FEMALE_BARTENDER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_bartender"), "female_bartender");
@@ -67,6 +72,9 @@ public class ModelRegistryHandler
 
         event.registerLayerDefinition(MALE_RECYCLINGENGINEER, MaleCrafterModel::createMesh);
         event.registerLayerDefinition(FEMALE_RECYCLINGENGINEER, FemaleCrafterModel::createMesh);
+
+        event.registerLayerDefinition(MALE_STATIONMASTER, MaleCrafterModel::createMesh);
+        event.registerLayerDefinition(FEMALE_STATIONMASTER, FemaleCrafterModel::createMesh);
 
         event.registerLayerDefinition(MALE_BARTENDER, MaleCrafterModel::createMesh);
         event.registerLayerDefinition(FEMALE_BARTENDER, FemaleCrafterModel::createMesh);

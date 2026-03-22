@@ -10,7 +10,9 @@ import com.deathfrog.mctradepost.core.client.gui.modules.WindowGuestListModule;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.Skill;
+import com.minecolonies.api.util.Utils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -30,12 +32,33 @@ public class ResortGuestListModuleView extends AbstractBuildingModuleView
         for (int i = 0; i < count; i++)
         {
             int civilianId = buf.readInt();
-            Vacationer.VacationState state = Vacationer.VacationState.values()[buf.readInt()];
+            int ordinal = buf.readInt();
+            Vacationer.VacationState[] values = Vacationer.VacationState.values();
+            Vacationer.VacationState state =
+                ordinal >= 0 && ordinal < values.length
+                    ? values[ordinal]
+                    : Vacationer.VacationState.PENDING;
 
             Skill skill = null;
             if (buf.readBoolean())
             {
-                skill = Skill.valueOf(buf.readUtf());
+                String skillName = buf.readUtf();
+                try
+                {
+                    skill = Skill.valueOf(skillName);
+                }
+                catch (IllegalArgumentException ex)
+                {
+                    skill = null;
+                }
+            }
+
+            int remedyCount = buf.readInt();
+            List<ItemStorage> remedyList = new ArrayList<>(remedyCount);
+
+            for (int j = 0; j < remedyCount; j++)
+            {
+                remedyList.add(new ItemStorage(Utils.deserializeCodecMess(buf)));
             }
 
             int targetLevel = buf.readInt();
@@ -44,6 +67,7 @@ public class ResortGuestListModuleView extends AbstractBuildingModuleView
             Vacationer vacationer = new Vacationer(civilianId);
             vacationer.setState(state);
             vacationer.setBurntSkill(skill);
+            vacationer.setStoredRemedyItems(remedyList);
             vacationer.setTargetLevel(targetLevel);
             vacationer.setCurrentlyAtResort(currentlyAtResort);
 

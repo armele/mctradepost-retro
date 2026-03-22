@@ -11,8 +11,6 @@ import com.minecolonies.core.client.model.MaleCrafterModel;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import com.deathfrog.mctradepost.core.client.model.FemaleGuestServicesModel;
-import com.deathfrog.mctradepost.core.client.model.MaleGuestServicesModel;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 
 public class ModModelTypeInitializer
@@ -51,6 +49,12 @@ public class ModModelTypeInitializer
             new FemaleCrafterModel(context.bakeLayer(ModelRegistryHandler.FEMALE_RECYCLINGENGINEER)));
 
         reg.register(ModModelTypes.RECYCLINGENGINEER);
+
+        ModModelTypes.STATIONMASTER = new MCTPSimpleModelType(ModModelTypes.STATIONMASTER_MODEL_ID, 1, 
+            new MaleCrafterModel(context.bakeLayer(ModelRegistryHandler.MALE_STATIONMASTER)), 
+            new FemaleCrafterModel(context.bakeLayer(ModelRegistryHandler.FEMALE_STATIONMASTER)));
+
+        reg.register(ModModelTypes.STATIONMASTER);
 
         ModModelTypes.BARTENDER = new MCTPSimpleModelType(ModModelTypes.BARTENDER_MODEL_ID, 1, 
             new MaleCrafterModel(context.bakeLayer(ModelRegistryHandler.MALE_BARTENDER)), 

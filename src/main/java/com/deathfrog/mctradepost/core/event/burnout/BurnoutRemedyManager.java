@@ -97,6 +97,15 @@ public class BurnoutRemedyManager extends SimpleJsonResourceReloadListener
     public static List<ItemStorage> getRemedy(@Nonnull Skill skill)
     {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, skill.toString().toLowerCase() + "");
-        return burnoutMap.get(id).toItemStorage();
+        
+        BurnoutRemedy remedy = burnoutMap.get(id);
+        
+        if (remedy == null)
+        {
+            MCTradePostMod.LOGGER.warn("Cannot find a remedy list for skill: {}", skill.toString().toLowerCase());
+            return null;
+        }
+
+        return remedy.toItemStorage();
     }
 }

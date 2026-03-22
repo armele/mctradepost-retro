@@ -14,7 +14,7 @@ public final class ModModelTypes
     public static final ResourceLocation RECYCLINGENGINEER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "recyclingengineer");
     public static final ResourceLocation DAIRYWORKER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "dairyworker");
     public static final ResourceLocation STEWMELIER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "stewmelier");
-
+    public static final ResourceLocation STATIONMASTER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "stationmaster");   
 
     public static IModelType SHOPKEEPER;
     public static IModelType GUESTSERVICES;
@@ -23,6 +23,7 @@ public final class ModModelTypes
     public static IModelType RECYCLINGENGINEER;
     public static IModelType DAIRYWORKER;
     public static IModelType STEWMELIER;
+    public static IModelType STATIONMASTER;
 
     private ModModelTypes()
     {

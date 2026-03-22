@@ -29,6 +29,7 @@ public class Vacationer
     protected int targetLevel = -1;
     protected BuildingResort resort =  null;
     boolean currentlyAtResort = false;
+    List<ItemStorage> storedRemedyItems = null;
 
     /*
      * Don't confuse these with AI states... they're just internal markers used to track the progress of the vacation and are not used to generate AI actions directly.
@@ -117,6 +118,11 @@ public class Vacationer
      */
     public List<ItemStorage> getRemedyItems() 
     {
+        if (storedRemedyItems != null)
+        {
+            return storedRemedyItems;
+        }
+
         Skill localSkill = this.burntSkill;
 
         if (localSkill == null)
@@ -126,7 +132,18 @@ public class Vacationer
 
         List<ItemStorage> remedyItems = BurnoutRemedyManager.getRemedy(localSkill);
 
+        if (remedyItems == null)
+        {
+            return new ArrayList<ItemStorage>();
+        }
+
         return remedyItems;
+    }
+
+
+    public void setStoredRemedyItems(List<ItemStorage> storedRemedyItems)
+    {
+        this.storedRemedyItems = storedRemedyItems;
     }
 
     /**
@@ -246,7 +263,8 @@ public class Vacationer
      * Resets the state of this vacationer.  This is used to
      * clear out the state when the AI is reset.
      */
-    public void reset() {
+    public void reset() 
+    {
         this.state = VacationState.CHECKED_OUT;
         this.burntSkill = null;
         this.targetLevel = 0;

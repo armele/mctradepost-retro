@@ -5,8 +5,8 @@ import com.minecolonies.core.entity.citizen.EntityCitizen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 
+import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.deathfrog.mctradepost.core.entity.ai.workers.crafting.EntityAIWorkDairyworker;
-import com.minecolonies.api.client.render.modeltype.ModModelTypes;
 import com.minecolonies.api.colony.ICitizenData;
 
 import net.minecraft.sounds.SoundEvents;
@@ -71,7 +71,7 @@ public class JobDairyworker extends AbstractJobCrafter<EntityAIWorkDairyworker, 
     @Override
     public ResourceLocation getModel()
     {
-        return ModModelTypes.BAKER_ID;
+        return ModModelTypes.DAIRYWORKER_MODEL_ID;
     }
 
     /**

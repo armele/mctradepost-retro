@@ -67,13 +67,13 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
     {
         super.onOpened();
 
-        updatePetTrainingList();
+        updateGuestList();
     }
 
     /**
      * Updates the resource list in the GUI with the info we need.
      */
-    private void updatePetTrainingList()
+    private void updateGuestList()
     {
         guestList.enable();
         guestList.show();
