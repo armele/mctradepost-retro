@@ -3,24 +3,32 @@ package com.deathfrog.mctradepost.core.colony.requestsystem.resolvers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
+
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.Lists;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.OutpostShipmentTracking;
 import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.location.ILocation;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
+import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -28,6 +36,7 @@ import com.minecolonies.api.util.Tuple;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
 import com.minecolonies.core.colony.requestsystem.resolvers.core.AbstractBuildingDependentRequestResolver;
+import com.minecolonies.core.util.DomumOrnamentumUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -197,30 +206,36 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
             requestingBuilding.getBuildingDisplayName(), outpostBuilding.getBuildingDisplayName(), connectedStation.getBuildingDisplayName()));
 
         OutpostShipmentTracking tracking = ((BuildingOutpost) outpostBuilding).trackingForRequest(requestToCheck);
-        List<IToken<?>> prerequisiteRequests = new ArrayList<>();
+        List<IToken<?>> prerequisiteRequests = getActiveChildRequests(manager, requestToCheck);
+
+        if (tracking.getState() == OutpostOrderState.SHIPMENT_INITIATED
+            || tracking.getState() == OutpostOrderState.RECEIVED
+            || tracking.getState() == OutpostOrderState.READY_FOR_DELIVERY
+            || tracking.getState() == OutpostOrderState.DELIVERED)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Request {} already advanced to {}. Reusing {} active prerequisite requests.",
+                    requestToCheck.getId(),
+                    tracking.getState(),
+                    prerequisiteRequests.size()));
+            return prerequisiteRequests;
+        }
 
 
         if (requestToCheck.getRequest() instanceof IDeliverable deliverable)
         {
             IRequestManager requestManager = outpostBuilding.getColony().getRequestManager();
             final int totalRequested = deliverable.getCount();
+            final Predicate<ItemStack> stationItemMatcher = createInventoryMatcher(requestToCheck, deliverable);
 
-            /*
-            int totalInOutpost = 0;
-            final List<Tuple<ItemStack, BlockPos>> outpostInv = BuildingUtil.getMatchingItemStacksInBuilding(outpostBuilding, itemStack -> deliverable.matches(itemStack));
-
-            for (final Tuple<ItemStack, BlockPos> stack : outpostInv)
+            if (stationItemMatcher == null)
             {
-                if (!stack.getA().isEmpty())
-                {
-                    totalInOutpost += stack.getA().getCount();
-                }
+                return null;
             }
-            */
 
             int totalInStation = 0;
             int totalScheduled = 0;
-            final List<Tuple<ItemStack, BlockPos>> stationInv = BuildingUtil.getMatchingItemStacksInBuilding(connectedStation, itemStack -> ((IDeliverable) requestToCheck.getRequest()).matches(itemStack));
+            final List<Tuple<ItemStack, BlockPos>> stationInv = BuildingUtil.getMatchingItemStacksInBuilding(connectedStation, stationItemMatcher);
 
             for (final Tuple<ItemStack, BlockPos> stack : stationInv)
             {
@@ -232,19 +247,37 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
                     {
                         totalScheduled = totalScheduled + stack.getA().getCount();
                         Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), stack.getA().copy(), 0);
-                        IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
-                        prerequisiteRequests.add(deliveryRequestToken);
-                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created satisfied delivery request {} (state {}) - {}.", deliveryRequestToken, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
+                        IToken<?> deliveryRequestToken = findMatchingDeliveryChild(manager, requestToCheck, delivery);
+                        if (deliveryRequestToken == null)
+                        {
+                            deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
+                        }
+                        addPrerequisiteToken(requestManager, prerequisiteRequests, deliveryRequestToken);
+                        final IToken<?> deliveryRequestTokenForLog = deliveryRequestToken;
+                        final IRequest<?> deliveryRequest = getReusableRequest(requestManager, deliveryRequestToken);
+                        if (deliveryRequest != null)
+                        {
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created satisfied delivery request {} (state {}) - {}.", deliveryRequestTokenForLog, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
+                        }
                     }
                     else
                     {
                         ItemStack partialShipment = stack.getA().copyWithCount(totalRequested - totalScheduled);
                         Delivery delivery = new Delivery(connectedStation.getLocation(), outpostBuilding.getLocation(), partialShipment, 0);
-                        IToken<?> deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
-                        prerequisiteRequests.add(deliveryRequestToken);
-                        IRequest<?> deliveryRequest = requestManager.getRequestForToken(deliveryRequestToken);
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created partial delivery request {} (state {}) - {}.", deliveryRequestToken, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
+                        IToken<?> deliveryRequestToken = findMatchingDeliveryChild(manager, requestToCheck, delivery);
+                        
+                        if (deliveryRequestToken == null)
+                        {
+                            deliveryRequestToken = outpostBuilding.createRequest(delivery, true);
+                        }
+
+                        addPrerequisiteToken(requestManager, prerequisiteRequests, deliveryRequestToken);
+                        final IToken<?> deliveryRequestTokenForLog = deliveryRequestToken;
+                        final IRequest<?> deliveryRequest = getReusableRequest(requestManager, deliveryRequestToken);
+                        if (deliveryRequest != null)
+                        {
+                            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created partial delivery request {} (state {}) - {}.", deliveryRequestTokenForLog, deliveryRequest.getState(), deliveryRequest.getLongDisplayString()));
+                        }
                         break;
                     }
                 }
@@ -263,11 +296,31 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
 
             if (totalRemainingRequired > 0)
             {
-                IDeliverable deliverableCopy = ((IDeliverable) requestToCheck.getRequest()).copyWithCount(totalRemainingRequired);
+                IRequestable stationEchoRequest = createStationEchoRequest(requestToCheck, totalRemainingRequired);
+
                 tracking.setState(OutpostOrderState.NEEDS_ITEM_FOR_SHIPPING);
-                IToken<?> finalShipmentToken = connectedStation.createRequest(deliverableCopy, true);
-                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created final shipment request for {} (state {}) as {} for: {}", requestToCheck.getId(), requestToCheck.getState(), finalShipmentToken, deliverableCopy.toString()));
-                prerequisiteRequests.add(finalShipmentToken);
+
+                BlockPos stationPos = connectedStation.getPosition();
+                BlockPos outpostPos = outpostBuilding.getPosition();
+                IToken<?> finalShipmentToken = null;
+
+                if (stationPos != null && outpostPos != null) 
+                {
+                    finalShipmentToken = findMatchingChildRequest(manager,
+                                        requestToCheck,
+                                        stationPos,
+                                        outpostPos,
+                                        NullnessBridge.assumeNonnull(stationEchoRequest));
+                }
+
+                if (finalShipmentToken == null)
+                {
+                    finalShipmentToken = connectedStation.createRequest(stationEchoRequest, true);
+                }
+
+                final IToken<?> finalShipmentTokenForLog = finalShipmentToken;
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Created final shipment request for {} (state {}) as {} for: {}", requestToCheck.getId(), requestToCheck.getState(), finalShipmentTokenForLog, stationEchoRequest.toString()));
+                addPrerequisiteToken(requestManager, prerequisiteRequests, finalShipmentToken);
             }
             else
             {
@@ -390,5 +443,329 @@ public class OutpostRequestResolver extends AbstractBuildingDependentRequestReso
     {
         TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS, () -> LOGGER.info("Requested outpost request {} (state {}) resolved: {}", request.getId(), request.getState(), request.getLongDisplayString()));
         manager.updateRequestState(request.getId(), RequestState.RESOLVED);
+    }
+
+    /**
+     * Returns a list of active child tokens for the given request.
+     * Child tokens which are no longer registered in the request manager or request handler
+     * are ignored and removed from the parent request.
+     * Child tokens which have been cancelled, failed, completed, or resolved are also ignored.
+     * All other child tokens are returned in the list.
+     * @param manager the request manager to validate against.
+     * @param request the request to check for active child tokens.
+     * @return a list of active child tokens for the given request.
+     */    
+    protected List<IToken<?>> getActiveChildRequests(@NotNull IRequestManager manager, @NotNull IRequest<?> request)
+    {
+        final List<IToken<?>> activeChildren = new ArrayList<>();
+
+        for (IToken<?> childToken : request.getChildren())
+        {
+            if (childToken == null)
+            {
+                continue;
+            }
+
+            final IRequest<?> childRequest = getReusableRequest(manager, childToken);
+            if (childRequest == null)
+            {
+                request.removeChild(childToken);
+                TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                    () -> LOGGER.info("Skipping stale child token {} attached to request {}.", childToken, request.getId()));
+                continue;
+            }
+
+            if (childRequest.getState() != RequestState.CANCELLED
+                && childRequest.getState() != RequestState.FAILED
+                && childRequest.getState() != RequestState.COMPLETED
+                && childRequest.getState() != RequestState.RESOLVED)
+            {
+                activeChildren.add(childToken);
+            }
+        }
+
+        return activeChildren;
+    }
+
+    /**
+     * Returns a request only if MineColonies still considers it reusable through both the request manager and request handler layers.
+     * Tokens that are manager-visible but no longer registered in the handler should be treated as stale and ignored.
+     *
+     * @param manager the request manager to validate against.
+     * @param token the token to validate.
+     * @return the reusable request, or null if the token is stale or terminal.
+     */
+    protected @Nullable IRequest<?> getReusableRequest(@NotNull IRequestManager manager, @Nullable IToken<?> token)
+    {
+        if (token == null)
+        {
+            return null;
+        }
+
+        final IRequest<?> request = manager.getRequestForToken(token);
+        if (request == null)
+        {
+            return null;
+        }
+
+        if (request.getState() == RequestState.CANCELLED
+            || request.getState() == RequestState.FAILED
+            || request.getState() == RequestState.COMPLETED
+            || request.getState() == RequestState.RESOLVED)
+        {
+            return null;
+        }
+
+        try
+        {
+            manager.getResolverForRequest(token);
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Request token {} is visible to the manager but no longer registered with the handler.", token, e));
+            return null;
+        }
+
+        return request;
+    }
+
+    /**
+     * Finds a child request that matches the given delivery requestable information.
+     * @param manager the request manager to search
+     * @param parentRequest the parent request to search children of
+     * @param expectedDelivery the delivery requestable to search for
+     * @return the token of the matching request, or null if none is found
+     */
+    protected IToken<?> findMatchingDeliveryChild(@Nonnull IRequestManager manager, @Nonnull IRequest<?> parentRequest, @Nonnull Delivery expectedDelivery)
+    {
+        BlockPos start = expectedDelivery.getStart().getInDimensionLocation();
+        BlockPos target = expectedDelivery.getTarget().getInDimensionLocation();
+        ItemStack stack = expectedDelivery.getStack();
+
+        if (start == null || target == null || stack == null)
+        {
+            return null;
+        }
+
+        return findMatchingChildRequest(manager,
+            parentRequest,
+            start,
+            target,
+            expectedDelivery,
+            stack,
+            expectedDelivery.getStack().getCount());
+    }
+
+    /**
+     * Finds a child request that matches the given requestable information.
+     * @param manager the request manager to search
+     * @param parentRequest the parent request to search children of
+     * @param expectedStart the start location of the expected requestable
+     * @param expectedTarget the target location of the expected requestable
+     * @param expectedRequest the requestable to search for
+     * @return the token of the matching request, or null if none is found
+     */
+    protected IToken<?> findMatchingChildRequest(@Nonnull IRequestManager manager,
+        @Nonnull IRequest<?> parentRequest,
+        @Nonnull BlockPos expectedStart,
+        @Nonnull BlockPos expectedTarget,
+        @Nonnull IRequestable expectedRequest)
+    {
+        final ItemStack expectedStack = extractRepresentativeStack(null, expectedRequest);
+
+        if (expectedStack == null)
+        {
+            return null;
+        }
+
+        final int expectedCount = expectedRequest instanceof IDeliverable expectedDeliverable ? expectedDeliverable.getCount() : expectedStack.getCount();
+        return findMatchingChildRequest(manager, parentRequest, expectedStart, expectedTarget, expectedRequest, expectedStack, expectedCount);
+    }
+
+    /**
+     * Finds a child request that matches the given requestable information.
+     * @param manager the request manager to search
+     * @param parentRequest the parent request to search children of
+     * @param expectedStart the start location of the expected requestable
+     * @param expectedTarget the target location of the expected requestable
+     * @param expectedRequest the requestable to search for
+     * @param expectedStack the representative stack to search for
+     * @param expectedCount the count of the expected stack
+     * @return the token of the matching request, or null if none is found
+     */
+    protected IToken<?> findMatchingChildRequest(@Nonnull IRequestManager manager,
+        @Nonnull IRequest<?> parentRequest,
+        @Nonnull BlockPos expectedStart,
+        @Nonnull BlockPos expectedTarget,
+        @Nonnull IRequestable expectedRequest,
+        @Nonnull ItemStack expectedStack,
+        int expectedCount)
+    {
+        for (IToken<?> childToken : getActiveChildRequests(manager, parentRequest))
+        {
+            final IRequest<?> childRequest = getReusableRequest(manager, childToken);
+            if (childRequest == null)
+            {
+                continue;
+            }
+
+            final BlockPos requesterPos = childRequest.getRequester() == null || childRequest.getRequester().getLocation() == null
+                ? null
+                : childRequest.getRequester().getLocation().getInDimensionLocation();
+            if (requesterPos == null || !requesterPos.equals(expectedStart))
+            {
+                continue;
+            }
+
+            if (childRequest.getRequest() instanceof Delivery existingDelivery)
+            {
+                ItemStack stack = existingDelivery.getStack();
+
+                if (stack == null) continue;
+
+                if (existingDelivery.getStart().getInDimensionLocation().equals(expectedStart)
+                    && existingDelivery.getTarget().getInDimensionLocation().equals(expectedTarget)
+                    && ItemStack.isSameItemSameComponents(stack, expectedStack)
+                    && existingDelivery.getStack().getCount() == expectedCount)
+                {
+                    return childToken;
+                }
+                continue;
+            }
+
+            if (childRequest.getRequest() instanceof IDeliverable existingDeliverable
+                && existingDeliverable.getCount() == expectedCount)
+            {
+                final ItemStack existingStack = extractRepresentativeStack(childRequest, childRequest.getRequest());
+                if (expectedStack.isEmpty())
+                {
+                    if (childRequest.getRequest().getClass().equals(expectedRequest.getClass()))
+                    {
+                        return childToken;
+                    }
+                }
+                else if (!existingStack.isEmpty() && ItemStack.isSameItemSameComponents(existingStack, expectedStack))
+                {
+                    return childToken;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates a new StationEchoRequest based on the given request to check, expecting the given count of items.
+     * If the request to check is for a stack of items, a new Stack requestable is created with the same items and count.
+     * If the request to check is not for a stack of items, the original request is returned with the count updated.
+     * @param requestToCheck the request to check
+     * @param expectedCount the expected count of items
+     * @return the new StationEchoRequest
+     */
+    protected IRequestable createStationEchoRequest(@NotNull IRequest<? extends IDeliverable> requestToCheck, int expectedCount)
+    {
+        final IDeliverable deliverableCopy = requestToCheck.getRequest().copyWithCount(expectedCount);
+        final ItemStack requestedStack = extractRepresentativeStack(requestToCheck, requestToCheck.getRequest());
+
+        if (!requestedStack.isEmpty() && DomumOrnamentumUtils.getBlock(requestedStack) != null)
+        {
+            return new Stack(new ItemStorage(requestedStack.copyWithCount(expectedCount), expectedCount));
+        }
+
+        return deliverableCopy;
+    }
+
+    /**
+     * Creates a predicate that matches items in an inventory against the given request and deliverable.
+     * If the request is for a stack of items, a predicate is created that matches the exact items and count.
+     * If the request is not for a stack of items, the deliverable's matches predicate is used instead.
+     * @param requestToCheck the request to check
+     * @param deliverable the deliverable to create the predicate for
+     * @return the created predicate
+     */
+    protected Predicate<ItemStack> createInventoryMatcher(@NotNull IRequest<? extends IDeliverable> requestToCheck, @NotNull IDeliverable deliverable)
+    {
+        final ItemStack requestedStack = extractRepresentativeStack(requestToCheck, requestToCheck.getRequest());
+
+        if (!requestedStack.isEmpty() && DomumOrnamentumUtils.getBlock(requestedStack) != null)
+        {
+            return stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, requestedStack);
+        }
+
+        return deliverable::matches;
+    }
+
+    /**
+     * Retrieves the representative ItemStack for the given request and requestable.
+     * If the request is not null, it first tries to extract the requested stack from the request.
+     * If the requested stack is empty or the request is null, it then tries to extract the stack from the requestable.
+     * If the requestable is a Delivery, the stack is extracted directly from the delivery.
+     * If the requestable is a Stack, the stack is extracted directly from the stack.
+     * Otherwise, an empty ItemStack is returned.
+     * @param request the request to extract the stack from, or null
+     * @param requestable the requestable to extract the stack from
+     * @return the representative ItemStack for the given request and requestable, or an empty ItemStack if none is found
+     */
+    protected ItemStack extractRepresentativeStack(@Nullable IRequest<?> request, @NotNull IRequestable requestable)
+    {
+        if (request != null)
+        {
+            final ItemStack requestedStack = DomumOrnamentumUtils.getRequestedStack(request);
+            if (!requestedStack.isEmpty())
+            {
+                return requestedStack;
+            }
+        }
+
+        return extractRepresentativeStack(requestable);
+    }
+
+    /**
+     * Retrieves the representative ItemStack for the given requestable.
+     * If the requestable is a Delivery, the stack is extracted directly from the delivery.
+     * If the requestable is a Stack, the stack is extracted directly from the stack.
+     * Otherwise, an empty ItemStack is returned.
+     * @param requestable the requestable to extract the stack from
+     * @return the representative ItemStack for the given requestable, or an empty ItemStack if none is found
+     */
+    protected ItemStack extractRepresentativeStack(@NotNull IRequestable requestable)
+    {
+        if (requestable instanceof Delivery delivery)
+        {
+            return delivery.getStack();
+        }
+
+        if (requestable instanceof Stack stack)
+        {
+            return stack.getStack();
+        }
+
+        return ItemStack.EMPTY;
+    }
+
+    /**
+     * Adds the given prerequisite token to the list of prerequisite requests if it is not already present and is still reusable.
+     * If the token is null or is already present in the list, this function does nothing.
+     * If the token is no longer reusable by the time the parent request is resolved, a message is traced but the token is not added to the list.
+     * @param manager the request manager containing the token
+     * @param prerequisiteRequests the list of prerequisite requests to add the token to
+     * @param token the token to add to the list, or null to do nothing
+     */
+    protected void addPrerequisiteToken(@NotNull IRequestManager manager, @NotNull List<IToken<?>> prerequisiteRequests, @Nullable IToken<?> token)
+    {
+        if (token == null || prerequisiteRequests.contains(token))
+        {
+            return;
+        }
+
+        if (getReusableRequest(manager, token) == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
+                () -> LOGGER.info("Skipping prerequisite token {} because it is no longer reusable by the time the parent request is resolved.", token));
+            return;
+        }
+
+        prerequisiteRequests.add(token);
     }
 }

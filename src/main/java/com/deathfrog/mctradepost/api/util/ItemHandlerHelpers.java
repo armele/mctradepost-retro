@@ -223,7 +223,7 @@ public final class ItemHandlerHelpers
                 return domumMatcher(wanted);
             }
 
-            return st -> !st.isEmpty() && ItemStack.isSameItem(st, wanted);
+            return st -> !st.isEmpty() && ItemStack.isSameItemSameComponents(st, wanted);
         }
 
         // 3) StackList matcher

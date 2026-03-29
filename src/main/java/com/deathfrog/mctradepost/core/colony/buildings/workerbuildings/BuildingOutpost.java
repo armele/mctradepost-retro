@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
@@ -399,6 +400,37 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
                 continue;
             }
 
+            final IRequestManager requestManager = getColony().getRequestManager();
+            if (requestManager == null)
+            {
+                LOGGER.warn("RequestTracking[{}]: token {} is no longer registered; dropping stale tracking entry.", i, token);
+                continue;
+            }
+
+            final IRequest<?> trackedRequest = requestManager.getRequestForToken(token);
+            if (trackedRequest == null)
+            {
+                LOGGER.warn("RequestTracking[{}]: token {} is no longer registered; dropping stale tracking entry.", i, token);
+                continue;
+            }
+
+            final RequestState trackedState = trackedRequest.getState();
+            if (trackedState != RequestState.CANCELLED
+                && trackedState != RequestState.FAILED
+                && trackedState != RequestState.COMPLETED
+                && trackedState != RequestState.RESOLVED)
+            {
+                try
+                {
+                    requestManager.getResolverForRequest(token);
+                }
+                catch (IllegalArgumentException e)
+                {
+                    LOGGER.warn("RequestTracking[{}]: token {} exists in the manager but is no longer registered with the handler; dropping stale tracking entry.", i, token);
+                    continue;
+                }
+            }
+
             // --- State ---
             OutpostOrderState state = OutpostOrderState.NEEDED; // default/fallback
 
@@ -480,11 +512,11 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             }
         }
 
-        List<IRequest<?>> requestsToRemove = new ArrayList<>();
+        List<IToken<?>> requestsToRemove = new ArrayList<>();
 
         for (IToken<?> requestId : requestTracking.keySet())
         {
-            IRequest<?> request = this.getColony().getRequestManager().getRequestForToken(requestId);
+            IRequest<?> request = getTrackedRequest(requestId);
             OutpostShipmentTracking tracking = requestTracking.get(requestId);
 
             if (tracking == null 
@@ -493,18 +525,16 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
                 || tracking.getState() == OutpostOrderState.CANCELLED 
                 || request.getState() == RequestState.CANCELLED 
                 || request.getState() == RequestState.FAILED
-                || request.getState() == RequestState.COMPLETED)
+                || request.getState() == RequestState.COMPLETED
+                || request.getState() == RequestState.RESOLVED)
             {
-                requestsToRemove.add(request);
+                requestsToRemove.add(requestId);
             }
         }
 
-        for (IRequest<?> request : requestsToRemove)
+        for (IToken<?> requestId : requestsToRemove)
         {
-            if (request != null)
-            {
-                requestTracking.remove(request.getId());
-            }
+            requestTracking.remove(requestId);
         }
 
         // if the outpost is pending construction and has no level, force chunk loading
@@ -711,6 +741,11 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
      */
     public OutpostShipmentTracking trackingForRequest(IRequest<?> request)
     {        
+        if (request == null)
+        {
+            return null;
+        }
+
         OutpostShipmentTracking tracking = requestTracking.get(request.getId());
 
         if (tracking == null)
@@ -720,6 +755,64 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         }
     
         return tracking;
+    }
+
+    public @Nullable OutpostShipmentTracking getActiveTrackingForRequest(@Nullable IRequest<?> request)
+    {
+        if (request == null)
+        {
+            return null;
+        }
+
+        final IRequest<?> trackedRequest = getTrackedRequest(request.getId());
+        if (trackedRequest == null)
+        {
+            requestTracking.remove(request.getId());
+            return null;
+        }
+
+        return trackingForRequest(trackedRequest);
+    }
+
+    protected @Nullable IRequest<?> getTrackedRequest(@Nullable IToken<?> token)
+    {
+        if (token == null)
+        {
+            return null;
+        }
+
+        final IRequestManager requestManager = getColony().getRequestManager();
+        if (requestManager == null)
+        {
+            return null;
+        }
+
+        final IRequest<?> request = requestManager.getRequestForToken(token);
+        if (request == null)
+        {
+            return null;
+        }
+
+        if (request.getState() == RequestState.CANCELLED
+            || request.getState() == RequestState.FAILED
+            || request.getState() == RequestState.COMPLETED
+            || request.getState() == RequestState.RESOLVED)
+        {
+            return null;
+        }
+
+        try
+        {
+            requestManager.getResolverForRequest(token);
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("Tracked outpost request {} is visible to the manager but no longer registered with the handler.", token, e));
+            return null;
+        }
+
+        return request;
     }
 
 

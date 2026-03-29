@@ -981,6 +981,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 // requestManager.assignRequest(request.getId());
                 TraceUtils.dynamicTrace(TRACE_OUTPOST_REQUESTS,
                     () -> LOGGER.info("Request {} is not registered with the request manager: ", request.getShortDisplayString(), e));
+                reqsToRemove.add(requestToken);
                 continue;
             }
 

@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "minecolonies:bell_pepper"
+    },
+    {
+      "tag": "mctradepost:seasoning"
+    },
+    {
+      "tag": "mctradepost:vegetable"
+    },
+    {
+      "item": "minecolonies:butter"
+    },
+    {
+      "tag": "mctradepost:meat"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "mctradepost:stir_fry"
+  }
+}

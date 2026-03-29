@@ -2,9 +2,12 @@ package com.deathfrog.mctradepost.core.commands;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator;
+import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator.Options;
+import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator.Report;
 import com.deathfrog.mctradepost.core.economy.GeneratedValuePackWriter;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader;
 import com.mojang.brigadier.CommandDispatcher;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -12,8 +15,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID)
 public final class MctpEconomyCommands
@@ -55,16 +60,16 @@ public final class MctpEconomyCommands
             final Map<?, Integer> seeds = ItemValueSeedLoader.loadSeeds(server);
 
             // 2) Derive values via fixpoint recipe propagation.
-            final var options = new DerivedItemValueGenerator.Options()
+            final Options options = new DerivedItemValueGenerator.Options()
                 .setApplyCookingPremium(false) // recommended default
                 .setMaxIterations(50);
 
-            final var report = DerivedItemValueGenerator.generate(server, seeds, options);
+            final Report report = DerivedItemValueGenerator.generate(server, seeds, options);
 
             // 3) Write datapack JSON (unless dryRun).
             if (!dryRun)
             {
-                final var outPath = GeneratedValuePackWriter.writeDatapack(server, report.values(), true);
+                final Path outPath = GeneratedValuePackWriter.writeDatapack(server, report.values(), false);
                 source.sendSuccess(() -> Component.literal("Generated item values datapack written to: " + outPath), true);
                 source.sendSuccess(() -> Component.literal("Run /reload to apply, or re-enter the world."), false);
             }
@@ -89,7 +94,7 @@ public final class MctpEconomyCommands
             if (!topUnknown.isEmpty())
             {
                 source.sendSuccess(() -> Component.literal("Top unknown ingredients (seed these for best ROI):"), false);
-                for (final var e : topUnknown)
+                for (final Entry<String, Integer> e : topUnknown)
                 {
                     source.sendSuccess(() -> Component.literal(" - " + e.getKey() + " : " + e.getValue()), false);
                 }

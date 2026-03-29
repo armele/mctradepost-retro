@@ -264,6 +264,10 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> PROTIEN_SHAKE = ITEMS.register("protien_shake",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ItemFood> SMETANA = ITEMS.register("smetana",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(1).saturationModifier(0.6F).build()), 1));
     
     @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> BAR_NUTS = ITEMS.register("bar_nuts",
@@ -288,6 +292,14 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> PERPETUAL_STEW = ITEMS.register("perpetual_stew",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ItemFood> CHICKPEA_STROGANOFF = ITEMS.register("chickpea_stroganoff",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(7).saturationModifier(2.0F).build()), 2));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ItemFood> STIR_FRY = ITEMS.register("stir_fry",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(7).saturationModifier(2.0F).build()), 2));
 
     public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.register("copper_nugget",
         () -> new Item(new Item.Properties()));
@@ -1433,10 +1445,13 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.VEGGIE_JUICE.get());
                     event.accept(MCTradePostMod.FRUIT_JUICE.get());
                     event.accept(MCTradePostMod.PROTIEN_SHAKE.get());
+                    event.accept(MCTradePostMod.SMETANA.get());
                     event.accept(MCTradePostMod.ENERGY_SHAKE.get());
                     event.accept(MCTradePostMod.VANILLA_MILKSHAKE.get());
                     event.accept(MCTradePostMod.BAR_NUTS.get());
                     event.accept(MCTradePostMod.PERPETUAL_STEW.get());
+                    event.accept(MCTradePostMod.CHICKPEA_STROGANOFF.get());
+                    event.accept(MCTradePostMod.STIR_FRY.get());
                     event.accept(MCTradePostMod.COLD_BREW.get());
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());

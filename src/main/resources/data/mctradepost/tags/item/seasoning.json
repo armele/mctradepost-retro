@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "minecolonies:onion",
+    "minecolonies:garlic",
+    "minecolonies:mint",
+    "minecolonies:soysauce",
+    "mctradepost:stew_seasoning"
+  ]
+}
