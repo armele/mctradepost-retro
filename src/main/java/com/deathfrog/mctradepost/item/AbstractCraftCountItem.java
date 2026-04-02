@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.item;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
+
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -10,7 +12,7 @@ public abstract class AbstractCraftCountItem extends Item
 
     public AbstractCraftCountItem(Properties properties)
     {
-        super(properties);
+        super(NullnessBridge.assumeNonnull(properties));
     }
     
     /**
