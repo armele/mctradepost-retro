@@ -1,8 +1,11 @@
 package com.deathfrog.mctradepost.core.colony.jobs;
 
+import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.deathfrog.mctradepost.core.entity.ai.workers.EntityAIWorkStewmelier;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.core.colony.jobs.AbstractJob;
+
+import net.minecraft.resources.ResourceLocation;
 
 public class JobStewmelier extends AbstractJob<EntityAIWorkStewmelier, JobStewmelier>
 {
@@ -115,5 +118,11 @@ public class JobStewmelier extends AbstractJob<EntityAIWorkStewmelier, JobStewme
     public boolean checkForMenuInteraction()
     {
         return menuCounter > COUNTER_TRIGGER;
+    }
+
+    @Override
+    public ResourceLocation getModel()
+    {
+        return ModModelTypes.STEWMELIER_MODEL_ID;
     }
 }

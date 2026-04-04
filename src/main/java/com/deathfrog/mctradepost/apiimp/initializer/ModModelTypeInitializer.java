@@ -22,7 +22,7 @@ public class ModModelTypeInitializer
     /**
      * Initializes the model types for the mod. This method is only called on the client side.
      * 
-     * NOTE: Entities are currently using default models. This is a placeholder for future custom model implementations.
+     * NOTE: To switch entities from default models to custom models, change the .getModel() call on the corresponding job.
      * 
      * @param context The context for the entity renderer provider.
      */
