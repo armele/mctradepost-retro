@@ -6,6 +6,11 @@
     {"id": "#c:fruits", "required": false},
     {"id": "#c:vegetables", "required": false},
     "#minecraft:saplings",
+    "#minecraft:pig_food",
+    "#minecraft:sheep_food",
+    "#minecraft:rabbit_food",
+    "#minecraft:cow_food",
+    "#minecraft:chicken_food",
     "#mctradepost:vegetable",
     "minecraft:bread",
     "minecraft:torch",
@@ -47,5 +52,10 @@
     "minecraft:campfire",
     "minecraft:coal_ore",
     "minecraft:ice"
+  ],
+  "remove": [
+    "minecraft:flowering_azalea",
+    "minecraft:mangrove_propagule",
+    "minecraft:golden_carrot"
   ]
 }

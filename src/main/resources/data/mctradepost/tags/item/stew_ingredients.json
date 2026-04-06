@@ -4,9 +4,18 @@
     "#mctradepost:meat",
     "#mctradepost:vegetable",
     "#c:mushrooms",
+    "#c:foods/raw_fish",
     "minecolonies:durum",
     "minecolonies:rice",
-    "minecraft:egg",
-    "minecraft:wheat"
+    "#c:eggs",
+    "#c:crops/wheat",
+    "#c:foods/cooked_meat",
+    "#c:foods/cooked_fish"
+  ],
+  "remove": [
+    "minecraft:poisonous_potato",
+    "minecraft:pufferfish",
+    "minecraft:rotten_flesh",
+    "minecraft:spider_eye"
   ]
 }

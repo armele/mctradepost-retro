@@ -80,7 +80,7 @@ public class MCTPInteractionInitializer
           && citizen.getWorkBuilding().getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).ingredientCount() == 0);
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_BOWLS),
-          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForStewpotInteraction());
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForBowlInteraction());
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NOT_ON_MENU),
           citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForMenuInteraction());

@@ -4,7 +4,6 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
-import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
@@ -13,7 +12,6 @@ import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRat
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
-import com.minecolonies.core.colony.buildings.modules.TavernBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import com.minecolonies.core.colony.buildings.modules.settings.BoolSetting;
 import com.minecolonies.core.colony.buildings.modules.settings.IntSetting;
@@ -691,21 +689,7 @@ public class BuildingMarketplace extends AbstractBuilding
 
         if (advertisingCooldown > 0) return;
 
-        List<Integer> visitorIDs = new ArrayList<Integer>();
-
-        // MCTradePostMod.LOGGER.info("Looking for a tavern to advertise at.");
-
-        // Once the marketplace is built, visitors start thinking about shopping...
-        // Note: approach below for finding tavern mimics EventHandler.onEntityConverted
-        final BlockPos tavernPos =
-            colony.getServerBuildingManager().getRandomBuilding(b -> !b.getModules(TavernBuildingModule.class).isEmpty());
-        if (tavernPos != null)
-        {
-            // MCTradePostMod.LOGGER.info("Tavern module found - collecting visitor IDs.");
-            final IBuilding tavern = colony.getServerBuildingManager().getBuilding(tavernPos);
-            TavernBuildingModule tavernModule = tavern.getModule(TavernBuildingModule.class);
-            visitorIDs.addAll(tavernModule.getExternalCitizens());
-        }
+        Set<Integer> visitorIDs = colony.getVisitorManager().getCivilianDataMap().keySet();
 
         for (Integer visitorID : visitorIDs)
         {

@@ -44,6 +44,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -159,17 +160,19 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return DECIDE;
         }
 
-        if (stewModule.ingredientCount() == 0)
-        {
-            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_INGREDIENTS), ChatPriority.BLOCKING));
-            return WANDER;
-        }
-
         // The cauldron or campfire was destroyed or changed and it is no longer valid.
         if (!isCauldronCandidate(world, stewpotPos))
         {
             stewModule.setStewpotLocation(BlockPos.ZERO);
             return StewmelierState.FIND_POT;
+        }
+
+        updateMissingMenuInteraction();
+
+        if (stewModule.ingredientCount() == 0)
+        {
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_INGREDIENTS), ChatPriority.BLOCKING));
+            return WANDER;
         }
 
         // The seasoning request puts in an order for seasoning if there isn't any on hand.
@@ -757,7 +760,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             if (used)
             {
                 int skill = getPrimarySkillLevel();
-                stewModule.addStew(BASE_STEW_AMOUNT_PER_INGREDIENT * (1.0f * ((float) skill / PERFECT_STEW_SKILL)));
+                stewModule.addStew(getStewAmountForIngredient(ingredientStack, skill));
                 
                 StatsUtil.trackStatByName(building, INGREDIENTS_USED_STAT, ingredientStack.getHoverName(), ingredientsUsed);
 
@@ -775,6 +778,25 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
         return DECIDE;
+    }
+
+    /**
+     * Derives stew yield from food nutrition while preserving the old base as a minimum.
+     */
+    protected float getStewAmountForIngredient(final ItemStack ingredientStack, final int skill)
+    {
+        if (worker == null)
+        {
+            return 0.0f;
+        }
+
+        FoodProperties foodProperties = ingredientStack.getFoodProperties(worker);
+        float nutritionAmount = foodProperties == null
+            ? BASE_STEW_AMOUNT_PER_INGREDIENT
+            : BASE_STEW_AMOUNT_PER_INGREDIENT * foodProperties.nutrition();
+        float skillAdjustedAmount = nutritionAmount * ((float) skill / PERFECT_STEW_SKILL);
+
+        return Math.max(BASE_STEW_AMOUNT_PER_INGREDIENT, skillAdjustedAmount);
     }
 
     /**
@@ -895,20 +917,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 building.getColony().getID(), currentHungryCitizen.getName(), serveTryCounter));
 
             boolean isStewOnMenu = checkClosestMenu(citizenEntity.blockPosition());
-
-            if (!isStewOnMenu)
-            {
-                job.tickNoMenu();
-
-                if (job.checkForMenuInteraction())
-                {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NOT_ON_MENU), ChatPriority.BLOCKING));
-                }
-            }
-            else
-            {
-                job.resetMenuCounter();
-            }
+            updateMissingMenuInteraction(isStewOnMenu);
 
             serveTryCounter = 0;
             incrementActionsDoneAndDecSaturation();
@@ -1116,9 +1125,6 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             currentBowlPickupBuilding = null;
         }
 
-        boolean diningHallFound = false;
-        boolean someDiningHallHasStew = false;
-
         for (Map.Entry<BlockPos, IBuilding> buildingEntry : building.getColony().getServerBuildingManager().getBuildings().entrySet())
         {
             BlockPos parentLoc = buildingEntry.getValue().getParent();
@@ -1133,15 +1139,6 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
                 continue;
             }
 
-            if (buildingEntry.getValue() instanceof BuildingCook)
-            {
-                diningHallFound = true;
-                if (!someDiningHallHasStew)
-                {
-                    someDiningHallHasStew = isStewOnMenu(buildingEntry.getValue());
-                }
-            }
-
             // LOGGER.info("Checking building at position {} of type {} for bowls.", buildingEntry.getKey(), buildingEntry.getValue().getClass().getSimpleName());
 
             if (InventoryUtils.hasItemInProvider(buildingEntry.getValue(), stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack)))
@@ -1153,20 +1150,6 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
                 return StewmelierState.COLLECT_BOWLS;
             }
-        }
-
-        if (!diningHallFound || !someDiningHallHasStew)
-        {
-            job.tickNoMenu();
-
-            if (job.checkForMenuInteraction())
-            {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NOT_ON_MENU), ChatPriority.BLOCKING));
-            }
-        }
-        else
-        {
-            job.resetMenuCounter();
         }
 
         int bowlsInInventory = bowlsInInventory();
@@ -1213,11 +1196,10 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
 
     /**
-     * Checks if the stew is on the menu of restaurant closest to the given position.
-     * If it is on the menu, it will not trigger any interactions. If it is not on the menu, it will attempt to trigger a menu interaction.
-     * If the menu interaction check succeeds, it will trigger a NOT_ON_MENU interaction.
-     * @param building the building to check the menu for, or null if it should check the building at the given position
-     * @param pos the position of the building to check the menu for, or null if it should check the given building
+     * Checks if stew is on the menu of the restaurant closest to the given position.
+     *
+     * @param pos the position to search from.
+     * @return true if the closest dining hall has stew on the menu, false otherwise.
      */
     protected boolean checkClosestMenu(BlockPos pos)
     {
@@ -1233,11 +1215,56 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         return isStewOnMenu;
     }
 
+    /**
+     * Updates the not-on-menu interaction from the colony-wide dining hall menu state.
+     */
+    protected void updateMissingMenuInteraction()
+    {
+        updateMissingMenuInteraction(isStewOnAnyDiningHallMenu());
+    }
 
     /**
-     * Checks if the stew is on the menu of the given building (assumed to be a restaurant building).
-     * If it is on the menu, it will not trigger any interactions. If it is not on the menu, it will attempt to trigger a menu interaction.
-     * If the menu interaction check succeeds, it will trigger a NOT_ON_MENU interaction.
+     * Updates the not-on-menu interaction counter and triggers the warning when the problem persists.
+     *
+     * @param isStewOnMenu whether the relevant dining hall menu already contains stew.
+     */
+    protected void updateMissingMenuInteraction(final boolean isStewOnMenu)
+    {
+        if (isStewOnMenu)
+        {
+            job.resetMenuCounter();
+            return;
+        }
+
+        job.tickNoMenu();
+
+        if (job.checkForMenuInteraction())
+        {
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NOT_ON_MENU), ChatPriority.BLOCKING));
+        }
+    }
+
+    /**
+     * Checks whether any dining hall in the colony currently has perpetual stew on its menu.
+     *
+     * @return true if at least one dining hall has perpetual stew on the menu, false otherwise.
+     */
+    protected boolean isStewOnAnyDiningHallMenu()
+    {
+        for (IBuilding colonyBuilding : building.getColony().getServerBuildingManager().getBuildings().values())
+        {
+            if (isStewOnMenu(colonyBuilding))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if stew is on the menu of the given building.
+     *
      * @param cookBuilding the restaurant building to check the menu of.
      * @return true if the stew is on the menu, false otherwise.
      */
