@@ -28,6 +28,7 @@ public final class MarketDailyRoller
 
     // 24000 ticks = 1 Minecraft day
     public static final long TICKS_PER_DAY = 24000L;
+    private static final double PRICE_SPREAD = 0.30;
 
     /**
      * Roll the daily market offers for a given colony. The market offers are deterministic and will not change until the next
@@ -161,12 +162,8 @@ public final class MarketDailyRoller
 
     /**
      * Calculates the price of a market offer in the given tier.
-     * The price is a random value between the base value and the base value multiplied by the given multiplier, plus or minus a random fraction of the base value.
-     * The multipliers are as follows:
-     * Tier 1: base value + (base value / d4(rand))
-     * Tier 2: (base value * d4(rand)) + (base value / d4(rand))
-     * Tier 3: (base value * d4(rand) * CoinItem.GOLD_MULTIIN) + (base value * CoinItem.GOLD_MULTIIN / d4(rand))
-     * Tier 4: (base value * d4(rand) * CoinItem.DIAMOND_MULTIIN) + (base value * CoinItem.DIAMOND_MULTIIN / d4(rand))
+     * Prices are centered around a tier-specific multiplier of the configured trade coin value, with random noise clustered near
+     * the target price.
      *
      * @param tier the market tier
      * @param rand the RandomSource to use for generating the random price
@@ -174,23 +171,27 @@ public final class MarketDailyRoller
      */
     public static int priceForTier(MarketTier tier, RandomSource rand)
     {
-        int baseValue = MCTPConfig.tradeCoinValue.get();
         return switch (tier)
         {
-            case TIER1_COMMON -> baseValue + (baseValue / d4(rand));
-            case TIER2_UNCOMMON -> (baseValue * d4(rand)) + (baseValue / d4(rand));
-            case TIER3_RARE -> (baseValue * d4(rand) * CoinItem.GOLD_MULTIPLIER) + (baseValue * CoinItem.GOLD_MULTIPLIER / d4(rand));
-            case TIER4_EPIC -> (baseValue * d4(rand) * CoinItem.DIAMOND_MULTIPLIER) + (baseValue * CoinItem.DIAMOND_MULTIPLIER / d4(rand));
+            case TIER1_COMMON -> priceForMultiplier(0.80, rand);
+            case TIER2_UNCOMMON -> priceForMultiplier(1.20, rand);
+            case TIER3_RARE -> priceForMultiplier(CoinItem.GOLD_MULTIPLIER, rand);
+            case TIER4_EPIC -> priceForMultiplier(CoinItem.DIAMOND_MULTIPLIER, rand);
         };
     }
 
     /**
-     * Returns a random number between 1 and 4 (inclusive) from the given RandomSource.
-     * @param rand the RandomSource to use for generating the random number
-     * @return a random number between 1 and 4 (inclusive)
+     * Prices a tier by multiplying the configured coin value by the target multiplier, then applying triangular noise.
+     * @param targetMultiplier the target multiplier of the configured trade coin value
+     * @param rand the RandomSource to use for generating the random price
+     * @return the randomized price
      */
-    private static int d4(RandomSource rand)
+    private static int priceForMultiplier(double targetMultiplier, RandomSource rand)
     {
-        return 1 + rand.nextInt(4);
+        int baseValue = MCTPConfig.tradeCoinValue.get();
+        double centeredNoise = rand.nextFloat() + rand.nextFloat() - 1.0;
+        double multiplier = targetMultiplier * (1.0 + PRICE_SPREAD * centeredNoise);
+
+        return Math.max(1, (int) Math.round(baseValue * multiplier));
     }
 }

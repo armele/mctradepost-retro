@@ -83,8 +83,9 @@ public class PetRegistryUtil
      */
     public static boolean isRegistered(ITradePostPet pet)
     {
+        if (pet == null) return false;
         IBuilding b = pet.getTrainerBuilding();
-        if (pet == null || b == null) return false;
+        if (b == null) return false;
         return safePetsForBuilding(b).stream().anyMatch(h -> h.uuid().equals(pet.getUUID()));
     }
 
@@ -152,7 +153,11 @@ public class PetRegistryUtil
     public static boolean register(@Nonnull ITradePostPet pet)
     {
         IBuilding b = pet.getTrainerBuilding();
-        if (b == null) throw new IllegalArgumentException("Pet must have a trainer building.");
+        if (b == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Deferring pet registration for {}: no trainer building is currently resolvable.", pet.getUUID()));
+            return false;
+        }
 
         Queue<PetHandle> q = safePetsForBuilding(b);
 
@@ -164,8 +169,10 @@ public class PetRegistryUtil
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Register pet {} in {}", handle, b));
             q.add(handle);
+            PetAnimalManagerUtil.ensureManaged(pet);
             return true;
         }
+        PetAnimalManagerUtil.ensureManaged(pet);
         return false;
     }
 

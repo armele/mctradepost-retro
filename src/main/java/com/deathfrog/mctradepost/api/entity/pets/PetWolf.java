@@ -10,15 +10,24 @@ import com.deathfrog.mctradepost.api.entity.pets.navigation.MinecoloniesNavResul
 import com.deathfrog.mctradepost.api.entity.pets.navigation.VanillaNavResult;
 import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
+import com.minecolonies.api.colony.IAnimalData;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.managers.interfaces.IAnimalDataView;
+import com.minecolonies.api.colony.managers.interfaces.IManagedAnimal;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
+import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -43,12 +52,19 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 
-public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
+public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet, IManagedAnimal<PetWolf>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
+    @SuppressWarnings("null")
+    public static final @Nonnull EntityDataAccessor<Integer> DATA_COLONY_ID = SynchedEntityData.defineId(PetWolf.class, EntityDataSerializers.INT);
+    @SuppressWarnings("null")
+    public static final @Nonnull EntityDataAccessor<Integer> DATA_MANAGED_ANIMAL_ID = SynchedEntityData.defineId(PetWolf.class, EntityDataSerializers.INT);
+
     public int logCooldown = 0;
 
     protected PetData<PetWolf> petData = null;
+    protected IAnimalData animalData = null;
+    protected IAnimalDataView animalDataView = null;
 
     protected BlockPos targetPosition = BlockPos.ZERO;
     protected int stuckTicks = 0;
@@ -58,6 +74,14 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         super(entityType, level);
         petData = new PetData<>(this);
         registerGoals();
+    }
+
+    @Override
+    protected void defineSynchedData(@Nonnull SynchedEntityData.Builder builder)
+    {
+        super.defineSynchedData(builder);
+        builder.define(DATA_COLONY_ID, 0);
+        builder.define(DATA_MANAGED_ANIMAL_ID, 0);
     }
 
     @Override
@@ -140,6 +164,11 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
             LOGGER.warn("Failed to serialize pet data: petData is null");
         }
 
+        compound.putInt(NbtTagConstants.TAG_COLONY_ID, getColonyId());
+        if (getManagedAnimalId() != 0)
+        {
+            compound.putInt(NbtTagConstants.TAG_MANAGED_ANIMALID, getManagedAnimalId());
+        }
     }
 
     /**
@@ -164,6 +193,15 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
         petData = new PetData<>(this, compound);
 
+        if (compound.contains(NbtTagConstants.TAG_COLONY_ID))
+        {
+            setColonyId(compound.getInt(NbtTagConstants.TAG_COLONY_ID));
+        }
+        if (compound.contains(NbtTagConstants.TAG_MANAGED_ANIMALID))
+        {
+            setManagedAnimalId(compound.getInt(NbtTagConstants.TAG_MANAGED_ANIMALID));
+        }
+
         // Reset and safely re-register goals
         this.goalSelector.removeAllGoals(g -> true);
         this.targetSelector.removeAllGoals(g -> true);
@@ -179,14 +217,11 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         if (!registered && this.isAlive() && this.getTrainerBuilding() != null)
         {
             PetRegistryUtil.register(this);
+            PetAnimalManagerUtil.ensureManaged(this);
         }
-        else
+        else if (!this.isAlive())
         {
-            if (!this.isAlive() || this.getTrainerBuilding() == null)
-            {
-                PetRegistryUtil.unregister(this);
-                this.discard();
-            }
+            PetRegistryUtil.unregister(this);
         }
     }
 
@@ -251,6 +286,11 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
     public void tick()
     {
         super.tick();
+
+        if (petData != null && PetAnimalManagerUtil.recoverRegistration(this))
+        {
+            resetGoals();
+        }
         
         if (petData != null && !petData.areGoalsInitialized()) 
         {
@@ -286,6 +326,11 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
 
         switch (reason) {
             case KILLED, DISCARDED -> {
+                if (getTrainerBuilding() instanceof BuildingPetshop petshop)
+                {
+                    petshop.forgetPetData(this.getUUID());
+                }
+                PetAnimalManagerUtil.clearHomeBuilding(this);
                 PetRegistryUtil.unregister(this);
                 this.setOwnerUUID(null);
                 
@@ -391,6 +436,66 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet
         }
         
         return null;
+    }
+
+    @Override
+    public EntityDataAccessor<Integer> getColonyIdAccessor()
+    {
+        return DATA_COLONY_ID;
+    }
+
+    @Override
+    public EntityDataAccessor<Integer> getAnimalIdAccessor()
+    {
+        return DATA_MANAGED_ANIMAL_ID;
+    }
+
+    @Override
+    public int getManagedAnimalId()
+    {
+        return entityData.get(DATA_MANAGED_ANIMAL_ID);
+    }
+
+    @Override
+    public void setManagedAnimalId(final int managedAnimalId)
+    {
+        entityData.set(DATA_MANAGED_ANIMAL_ID, managedAnimalId);
+    }
+
+    @Override
+    public int getColonyId()
+    {
+        return entityData.get(DATA_COLONY_ID);
+    }
+
+    @Override
+    public void setColonyId(final int colonyId)
+    {
+        entityData.set(DATA_COLONY_ID, colonyId);
+    }
+
+    @Override
+    public IAnimalData getAnimalData()
+    {
+        return animalData;
+    }
+
+    @Override
+    public IAnimalDataView getAnimalDataView()
+    {
+        return animalDataView;
+    }
+
+    @Override
+    public void setAnimalData(IAnimalData data)
+    {
+        this.animalData = data;
+    }
+
+    @Override
+    public PetWolf getEntity()
+    {
+        return this;
     }
 
     public BlockPos getTargetPosition()

@@ -147,8 +147,9 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                 entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
 
                 Set<BlockPos> workLocations = petModule.gatherWorkLocations(colony);
+                boolean validWorkLocation = BlockPos.ZERO.equals(workLocation) || workLocations.contains(workLocation);
 
-                if (entity != null && entity instanceof ITradePostPet pet && workLocations.contains(workLocation)) 
+                if (entity != null && entity instanceof ITradePostPet pet && validWorkLocation)
                 {
                     if (!pet.getTrainerBuilding().equals(trainerBuilding))
                     {
@@ -159,8 +160,13 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
 
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Setting work location: {}", workLocation));
                     pet.setWorkLocation(workLocation);
+                    petshop.rememberPetData(pet);
                     petshop.markPetsDirty();
                 } 
+                else if (entity == null && validWorkLocation && petshop.updatePersistedPetWorkLocation(localUuid, workLocation))
+                {
+                    TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Persisted unloaded pet {} work location: {}", localUuid, workLocation));
+                }
                 break;
 
             case FREE:

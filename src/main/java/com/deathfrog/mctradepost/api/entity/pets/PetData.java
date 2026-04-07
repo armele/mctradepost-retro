@@ -106,7 +106,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     // can buffer the tag until the Level is available (first tick).
     protected CompoundTag pendingInv = null;
 
-    // After how many nudges without moving do we give the Sheep a pathfinding command to unstick themselves?
+    // After how many nudges without moving do we give the pet a pathfinding command to unstick themselves?
     public static final int STUCK_STEPS = 10;   
     public static final String TAG_ANIMAL_TYPE = "animalType";
     
@@ -189,20 +189,24 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void toNBT(CompoundTag compound)
     {
-        if (this.getTrainerBuilding() != null)
+        BlockPosUtil.write(compound,"trainerBuilding", trainerBuildingID);
+        BlockPosUtil.write(compound,"workLocation", workLocation);
+        String dimName = dimension != null && dimension.location() != null ? dimension.location().toString() : "";
+
+        if (dimName == null) return;
+
+        compound.putString("dimension", dimName);
+        
+        if (petType != null)
         {
-            BlockPosUtil.write(compound,"trainerBuilding", trainerBuildingID);
-            BlockPosUtil.write(compound,"workLocation", workLocation);
-            String dimName = dimension.location().toString();
-            compound.putString("dimension", dimName != null ? dimName : "");
             compound.putString(TAG_ANIMAL_TYPE, this.getAnimalType());
-            // compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
         }
+        // compound.put("Inventory", inventory.serializeNBT(animal.level().registryAccess()));
 
         compound.putInt("entityId", this.getEntityId());
 
-        final UUID localUuid = animal.getUUID();
-        if (animal != null && localUuid != null)
+        final UUID localUuid = animal != null ? animal.getUUID() : entityUuid;
+        if (localUuid != null)
         {
             compound.putUUID("uuid", localUuid);
         }
@@ -236,14 +240,22 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (trainerBuildingID == null || BlockPos.ZERO.equals(trainerBuildingID)) {
             MCTradePostMod.LOGGER.warn("Failed to deserialize pet data trainer positions from tag: {} - no position found.", compound);
-            return;
+            trainerBuildingID = BlockPos.ZERO;
         }
 
         workLocation = BlockPosUtil.read(compound, "workLocation");
+        if (workLocation == null)
+        {
+            workLocation = BlockPos.ZERO;
+        }
         petType = PetTypes.fromPetString(compound.getString("animalType"));
+        if (petType == null && animal != null)
+        {
+            petType = PetTypes.fromPetClass(animal.getClass());
+        }
         entityId = compound.getInt("entityId");
         UUID uuid = compound.hasUUID("uuid") ? compound.getUUID("uuid") : null;
-        this.entityUuid = uuid; // add a field if you want
+        this.entityUuid = uuid != null ? uuid : (animal != null ? animal.getUUID() : null);
 
 
         // Dimension (guard against blank)
@@ -1201,17 +1213,26 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void onRemoval(@Nonnull RemovalReason reason)
     {
-        if (reason == RemovalReason.KILLED)
-        {
-            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_DIED, this.getAnimalType(), 1);
-        }
-        else if (reason == RemovalReason.DISCARDED)
-        {
-            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RETIRED, this.getAnimalType(), 1);
-        }
-        else
-        {
-            StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RANAWAY, this.getAnimalType(), 1);
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Pet {} of type {} discarded: {}. Trainer building {}", this.animal.getUUID(), getAnimalType(), reason, getTrainerBuilding()));
+
+        switch(reason) {
+            case KILLED ->
+            {
+                StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_DIED, this.getAnimalType(), 1);
+            }
+            case UNLOADED_TO_CHUNK, UNLOADED_WITH_PLAYER ->
+            {
+                // Do not track
+            }
+            case DISCARDED ->
+            {
+                StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RETIRED, this.getAnimalType(), 1);
+            }
+            case CHANGED_DIMENSION ->
+            {
+                StatsUtil.trackStatByName(getTrainerBuilding(), STATS_PETS_RANAWAY, this.getAnimalType(), 1);
+            }
+
         }
     }
     

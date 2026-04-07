@@ -1,8 +1,10 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.minimal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -10,13 +12,18 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.minecolonies.api.colony.IVisitorData;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.entity.ai.statemachine.states.IState;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.ITickRateStateMachine;
 import com.minecolonies.api.entity.ai.statemachine.tickratestatemachine.TickingTransition;
+import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.WorldUtil;
 import com.minecolonies.core.entity.ai.visitor.EntityAIVisitor.VisitorState;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.mojang.logging.LogUtils;
+
+import net.minecraft.core.BlockPos;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
 
 /* EntityAIShoppingTask inserted into the Visitor AI by the marketplace. */
@@ -30,7 +37,7 @@ public class EntityAIShoppingTask
     }
 
     IVisitorData visitor = null;
-    BuildingMarketplace marketplace = null;
+    BuildingMarketplace activeMarketplace = null;
 
     private DisplayCase currentDisplay = null;
     private int lingerTimer = 0;
@@ -40,10 +47,9 @@ public class EntityAIShoppingTask
     // Initialize them to a random point in the low end of the cooldown, to promote better distribution of when shopping happens
     private int shoppingTimer = ThreadLocalRandom.current().nextInt(SHOPPING_COOLDOWN / 4);
 
-    public EntityAIShoppingTask(IVisitorData visitor, @Nonnull BuildingMarketplace marketplace)
+    public EntityAIShoppingTask(IVisitorData visitor)
     {
         this.visitor = visitor;
-        this.marketplace = marketplace;
     }
 
     /**
@@ -61,6 +67,39 @@ public class EntityAIShoppingTask
         stateMachine.addTransition(new TickingTransition<>(ShoppingState.DONE_SHOPPING, () -> true, this::doneShopping, 150));
     }
 
+
+    /**
+     * Finds the closest marketplace to the visitor that is open for business and has items for sale.
+     * 
+     * @return the closest marketplace, or null if none are found.
+     */
+    protected @Nullable BuildingMarketplace findBestMarketplace()
+    {
+        Map<BlockPos,IBuilding> allBuildings = visitor.getColony().getServerBuildingManager().getBuildings();
+        BuildingMarketplace candidateMarketplace = null;
+        int distance = Integer.MAX_VALUE;
+
+        for (IBuilding building : allBuildings.values())
+        {
+            if (building instanceof BuildingMarketplace marketplace)
+            {
+                if (marketplace.isOpenForBusiness() && !marketplace.getDisplayShelvesWithItemsForSale().isEmpty())
+                {
+                    int newDistance =  BlockPosUtil.distManhattan(visitor.getLastPosition(), marketplace.getPosition());
+
+                    if (newDistance < distance)
+                    {
+                        candidateMarketplace = marketplace;
+                        distance = newDistance;
+                    }
+                }
+            }
+        }
+
+        return candidateMarketplace;
+    }
+
+
     /**
      * Checks if a visitor wants to go shopping at the marketplace. This method is called by the AI when it wants to decide what to do.
      * It will return true if the visitor should go shopping, false otherwise. The decision is based on the time of day (no shopping at
@@ -71,21 +110,23 @@ public class EntityAIShoppingTask
     public boolean wantsToShop()
     {
         // No shopping at night.
-        if (!WorldUtil.isDayTime(marketplace.getColony().getWorld()))
+        if (!WorldUtil.isDayTime(visitor.getColony().getWorld()))
         {
             TraceUtils.dynamicTrace(TRACE_SHOPPER,
                 () -> LOGGER.info("Visitor {} won't shop at night!", visitor.getEntity().get().getName()));
             return false;
         }
 
-        // No shopping if the marketplace isn't open.
-        if (!marketplace.isOpenForBusiness())
+        BuildingMarketplace marketplace = findBestMarketplace();
+
+        if (marketplace == null)
         {
             TraceUtils.dynamicTrace(TRACE_SHOPPER,
-                () -> LOGGER.info("Visitor {} can't shop - the store is closed.", visitor.getEntity().get().getName()));
+                () -> LOGGER.info("Visitor {} can't shop - no store, or the store is closed.", visitor.getEntity().get().getName()));
             return false;
         }
 
+        activeMarketplace = marketplace;
         shoppingTimer = shoppingTimer - marketplace.getBuildingLevel();
 
         if (shoppingTimer > 0)
@@ -118,6 +159,13 @@ public class EntityAIShoppingTask
      */
     public IState goingShopping()
     {
+        BuildingMarketplace marketplace = activeMarketplace;
+
+        if (marketplace == null || !marketplace.isOpenForBusiness())
+        {
+            return doneShopping();
+        }
+
         if (EntityNavigationUtils.walkToPos(visitor.getEntity().get(), marketplace.getLocation().getInDimensionLocation(), 3, true))
         {
             return ShoppingState.PICK_DISPLAY;
@@ -208,6 +256,13 @@ public class EntityAIShoppingTask
      */
     public IState pickDisplay()
     {
+        BuildingMarketplace marketplace = activeMarketplace;
+
+        if (marketplace == null || !marketplace.isOpenForBusiness())
+        {
+            return doneShopping();
+        }
+
         if (currentDisplay == null && marketplace.getDisplayShelvesWithItemsForSale().size() > 0)
         {
             final List<DisplayCase> displayPositions = marketplace.getDisplayShelvesWithItemsForSale();
@@ -242,6 +297,8 @@ public class EntityAIShoppingTask
     public IState doneShopping()
     {
         shoppingTimer = SHOPPING_COOLDOWN;
+        activeMarketplace = null;
+        currentDisplay = null;
         return VisitorState.WANDERING;
     }
 }

@@ -703,7 +703,7 @@ public class BuildingMarketplace extends AbstractBuilding
                 VisitorCitizen vitizen = (VisitorCitizen) visitor.getEntity().get();
 
                 ITickRateStateMachine<IState> stateMachine = vitizen.getEntityStateController();
-                EntityAIShoppingTask shoppingTask = new EntityAIShoppingTask(visitor, this);
+                EntityAIShoppingTask shoppingTask = new EntityAIShoppingTask(visitor);
                 shoppingTask.init(stateMachine);
 
                 advertisingList.add(visitor);
