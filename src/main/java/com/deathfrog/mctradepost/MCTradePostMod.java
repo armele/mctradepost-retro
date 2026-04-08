@@ -84,6 +84,7 @@ import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
+import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
 import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -1094,6 +1095,9 @@ public class MCTradePostMod
 
     public static final DeferredHolder<RecipeSerializer<?>, UniqueTagShapelessRecipe.Serializer> UNIQUE_TAG_SHAPELESS_SERIALIZER =
         RECIPE_SERIALIZERS.register(UniqueTagShapelessRecipe.UNIQUE_TAG_SHAPELESS_RECIPE_KEY, UniqueTagShapelessRecipe.Serializer::new);
+
+    public static final DeferredHolder<RecipeSerializer<?>, PotionShapelessRecipe.Serializer> POTION_SHAPELESS_SERIALIZER =
+        RECIPE_SERIALIZERS.register(PotionShapelessRecipe.POTION_SHAPELESS_RECIPE_KEY, PotionShapelessRecipe.Serializer::new);
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.

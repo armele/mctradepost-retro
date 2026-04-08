@@ -1,0 +1,14 @@
+{
+  "type": "mctradepost:potion_shapeless",
+  "inputs": [
+    {
+      "item": "minecraft:potion",
+      "potion": "minecraft:water",
+      "count": 4
+    }
+  ],
+  "result": {
+    "id": "minecolonies:large_water_bottle",
+    "count": 1
+  }
+}

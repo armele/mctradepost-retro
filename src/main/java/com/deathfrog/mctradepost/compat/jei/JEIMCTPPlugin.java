@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
+import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
 import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
 
 import mezz.jei.api.IModPlugin;
@@ -127,5 +128,7 @@ public class JEIMCTPPlugin implements IModPlugin
     {
         registration.getCraftingCategory()
             .addExtension(UniqueTagShapelessRecipe.class, NullnessBridge.assumeNonnull(UniqueTagShapelessCraftingExtension.INSTANCE));
+        registration.getCraftingCategory()
+            .addExtension(PotionShapelessRecipe.class, NullnessBridge.assumeNonnull(PotionShapelessCraftingExtension.INSTANCE));
     }
 }
