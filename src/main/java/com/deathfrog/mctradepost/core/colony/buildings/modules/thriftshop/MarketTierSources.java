@@ -213,7 +213,7 @@ public final class MarketTierSources
         else if (randFloat < 0.80f)
         {
             // Wandering trader pool. We generate a trade offer, then return the selling stack.
-            return WanderingTraderSource.rollTradeOutput(level, rand, MarketTier.TIER3_RARE);
+            return WanderingTraderSource.rollTradeOutput(level, rand, MarketTier.TIER2_UNCOMMON);
         }
         else
         {
@@ -272,7 +272,7 @@ public final class MarketTierSources
      * @param rand the random source to use when retrieving the item
      * @return a single item stack from tier 4 of the thrift shop, or an empty item stack if the roll fails
      */
-    private static ItemStack rollTier4(ServerLevel level, BuildingMarketplace marketplace, RandomSource rand)
+    private static ItemStack rollTier4(@Nonnull ServerLevel level, BuildingMarketplace marketplace, RandomSource rand)
     {
         // 20% from datapack tag, else loottable logic
         if (rand.nextFloat() < 0.20f)
@@ -282,8 +282,9 @@ public final class MarketTierSources
             // fall through if tag is empty / no valid results
         }
 
-        // 85% rare chests, 15% rare fishing (treasure) with higher acceptance
-        if (rand.nextFloat() < 0.85f)
+        float randFloat = rand.nextFloat();
+
+        if (randFloat < 0.60f)
         {
             ResourceLocation tableId = pick(rand, EPIC_TABLES);
 
@@ -291,9 +292,14 @@ public final class MarketTierSources
 
             return LootRoller.rollChestStyle(level, rand, tableId);
         }
-        else
+        else if (randFloat < 0.80f)
         {
             return LootRoller.rollFishingStyle(level, rand, FISHING_TREASURE, calcLuck(marketplace) + .5f);
+        }
+        else
+        {
+            // Wandering trader pool. We generate a trade offer, then return the selling stack.
+            return WanderingTraderSource.rollTradeOutput(level, rand, MarketTier.TIER4_EPIC);
         }
     }
 

@@ -12,6 +12,9 @@
     "minecraft:music_disc_pigstep",
     "minecraft:diamond_sword",
     "minecraft:diamond_axe",
+    "minecraft:diamond_pickaxe",
+    "minecraft:diamond_leggings",
+    "minecraft:diamond_chestplate",
     {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier4", "required": false}
   ]
 }

@@ -15,6 +15,8 @@
     "minecolonies:ancienttome",
     "minecraft:diamond_shovel",
     "minecraft:diamond_hoe",
+    "minecraft:diamond_boots",
+    "minecraft:diamond_helmet",
     {"id": "#mysticalagriculture:mysticalagriculture_seeds_elemental", "required": false},
     {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier1", "required": false},
     {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier2", "required": false},
