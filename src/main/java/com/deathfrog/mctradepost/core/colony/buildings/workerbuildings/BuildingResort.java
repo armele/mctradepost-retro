@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import javax.annotation.Nullable;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_BURNOUT;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,6 +14,7 @@ import java.util.Iterator;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.google.common.collect.ImmutableList;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
@@ -290,10 +294,10 @@ public class BuildingResort extends AbstractBuilding
      * the new level are known.
      */
     @Override
-    public void onUpgradeComplete(final int newlevel)
+    public void onUpgradeComplete(@Nullable Blueprint blueprint, int newLevel)
     {
         initTags = false;
-        super.onUpgradeComplete(newlevel);
+        super.onUpgradeComplete(blueprint, newLevel);
     }
 
     /**

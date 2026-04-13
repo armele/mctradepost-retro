@@ -40,6 +40,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnectio
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -611,9 +612,9 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
      * @param buildingLevel the new level of the building.
      */
     @Override
-    public void onUpgradeComplete(int buildingLevel) 
+    public void onUpgradeComplete(@Nullable Blueprint blueprint, int newLevel) 
     {
-        super.onUpgradeComplete(buildingLevel);
+        super.onUpgradeComplete(blueprint, newLevel);
         
         establishConnectedStation();
 
