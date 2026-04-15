@@ -1130,10 +1130,17 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             BlockPos parentLoc = buildingEntry.getValue().getParent();
             IBuilding parent = parentLoc != null && !BlockPos.ZERO.equals(parentLoc) ? building.getColony().getServerBuildingManager().getBuilding(parentLoc) : null;
 
+            IBuilding checkBuilding = buildingEntry.getValue();
+
+            if (checkBuilding == null || !checkBuilding.isBuilt())
+            {
+                continue;
+            }
+
             // Don't take bowls from these buildings.
-            if (buildingEntry.getValue() instanceof BuildingKitchen 
-                || buildingEntry.getValue() instanceof IWareHouse
-                || buildingEntry.getValue() instanceof BuildingOutpost
+            if (checkBuilding instanceof BuildingKitchen 
+                || checkBuilding instanceof IWareHouse
+                || checkBuilding instanceof BuildingOutpost
                 || (parentLoc != null && parent instanceof BuildingOutpost)
             ) {
                 continue;
