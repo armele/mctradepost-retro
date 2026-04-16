@@ -63,6 +63,7 @@ import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequ
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolverFactory;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
+import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
@@ -1129,6 +1130,7 @@ public class MCTradePostMod
         NeoForge.EVENT_BUS.register(this);
         // NeoForge.EVENT_BUS.register(RitualReloadListener.class);
         NeoForge.EVENT_BUS.register(BurnoutRemedyManager.class);
+        NeoForge.EVENT_BUS.register(RecyclingBlacklistManager.class);
 
         // Add a listener for the common setup event.
         modEventBus.addListener(this::onCommonSetup);

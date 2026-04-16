@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "deny": [
+    {
+      "type": "tag",
+      "id": "c:foods"
+    },
+    {
+      "type": "predicate",
+      "id": "is_food"
+    }
+  ]
+}

@@ -158,9 +158,9 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
     /**
      * Maps a given block state to a loot table location.
      * The mapping is as follows:
-     * - Fruit blocks map to pet/vegetation_scavenge/fruit/<block_path>
-     * - Apple leaves map to pet/vegetation_scavenge/apple_leaves
-     * - Other leaves map to pet/vegetation_scavenge/other_leaves
+     * - Fruit blocks maps to pet/vegetation_scavenge/fruit/<block_path>
+     * - Leaf blocks maps to pet/vegetation_scavenge/leaves/<block_path>
+     * - Ground cover maps to pet/vegetation_scavenge/groundcover/<block_path>
      * If the block is not harvestable, or if the block does not have a tag, returns null.
      * @param level the level containing the block
      * @param pos the position of the block
