@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.OutpostLivingBuildingModule;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -42,11 +43,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 
-import static com.minecolonies.core.colony.buildings.modules.BuildingModules.LIVING;
+import com.minecolonies.core.colony.buildings.modules.LivingBuildingModule;
 
 public class CommunityRitualProcessor 
 {
-    final static int MIN_IMPROVEMENT = 15;
+    final static int MIN_IMPROVEMENT = 10;
     final static int CANDIDATE_HOUSES = 20;
     public static final Logger LOGGER = LogUtils.getLogger();
 
@@ -186,19 +187,22 @@ public class CommunityRitualProcessor
 
         for (IBuilding building : buildingList.values())
         {
-            if (building.hasModule(LIVING) 
+            if (building.hasModule(LivingBuildingModule.class) 
                 && !(building instanceof BuildingGuardTower)
                 && !(building instanceof BuildingOutpost)
                 && !(building instanceof BuildingBarracksTower)
                 && !(building instanceof BuildingGateHouse)
             ) {
-                IAssignsCitizen livingModule = building.getModule(LIVING);
+                IAssignsCitizen livingModule = building.getModule(LivingBuildingModule.class);
                 HousingData houseData = new HousingData(livingModule);
                 housingMap.put(building.getPosition(), houseData);
             }
         }
 
         List<ICitizenData> citizens = marketplace.getColony().getCitizenManager().getCitizens();
+        final Set<ICitizenData> initiallyHomelessCitizens = new HashSet<>();
+        int initialDistanceTotal = 0;
+        int initialDistanceAssignments = 0;
 
         for (ICitizenData citizen : citizens)
         {
@@ -207,12 +211,23 @@ public class CommunityRitualProcessor
                 continue;
             }
 
+            if (citizen.getHomeBuilding() == null)
+            {
+                initiallyHomelessCitizens.add(citizen);
+            }
+
             HomeAssignment assignment = new HomeAssignment(citizen);
             assignments.add(assignment);
+            if (citizen.getHomeBuilding() != null)
+            {
+                initialDistanceTotal += assignment.getDistanceToWork();
+                initialDistanceAssignments++;
+            }
         }
 
         int totalAssigned = 0;
         int totalSavings = 0;
+        int totalSavingsAssignments = 0;
 
         try
         {
@@ -223,20 +238,73 @@ public class CommunityRitualProcessor
                 .thenComparingInt(HomeAssignment::getDistanceToWork).reversed());
 
             final Set<ICitizenData> unassignedCitizens = new HashSet<>();
+            final Set<ICitizenData> excludedCitizens = new HashSet<>();
+
+            // Handle outpost assignment first and unrelated to later job-weighted assignments.
+            for (HomeAssignment a : assignments)
+            {
+                ICitizenData citizen = a.getCitizen();
+                IBuilding workBuilding = citizen.getWorkBuilding();
+                IBuilding workBuildingParent = workBuilding != null && workBuilding.hasParent() ? marketplace.getColony().getServerBuildingManager().getBuilding(workBuilding.getParent()) : null;
+                IBuilding outpost = null;
+
+                if (workBuilding instanceof BuildingOutpost)
+                {
+                    outpost = workBuilding;
+                }
+                else if (workBuildingParent instanceof BuildingOutpost)
+                {
+                    outpost = workBuildingParent;
+                }
+
+                if (outpost == null)
+                {
+                    continue;
+                }
+
+                OutpostLivingBuildingModule outpostLivingModule = outpost.getModule(OutpostLivingBuildingModule.class);
+
+                if (outpostLivingModule == null)
+                {
+                    continue;
+                }
+
+                if (outpost.equals(citizen.getHomeBuilding()))
+                {
+                    excludedCitizens.add(citizen);
+                    continue;
+                }
+
+                if (outpostLivingModule.assignCitizen(citizen))
+                {
+                    totalAssigned++;
+                    excludedCitizens.add(citizen);
+                }
+            }
 
             // Record anyone currently unassigned at the time of the ritual.
             for (HomeAssignment a : assignments) 
             {
-                if (a.getCitizen().getHomePosition() == null) 
+                if (excludedCitizens.contains(a.getCitizen()))
+                {
+                    continue;
+                }
+
+                if (a.getCitizen().getHomeBuilding() == null) 
                 {
                     unassignedCitizens.add(a.getCitizen());
                 }
             }
 
             final List<BlockPos> allHouses = new ArrayList<>(housingMap.keySet());
-            
+             
             for (HomeAssignment a : assignments)
             {
+                if (excludedCitizens.contains(a.getCitizen()))
+                {
+                    continue;
+                }
+
                 if (a.getWorkPos() == null)
                 {
                     // Treat the unemployed as flexible to assign to any free bed after all prioritized workers are assigned
@@ -258,7 +326,7 @@ public class CommunityRitualProcessor
                     int newDist = BlockPosUtil.distManhattan(a.getWorkPos(), possibleNewHousePos);
                     int savings = currentDist - newDist;
 
-                    boolean isHomeless = (a.getCurrentHomePos() == null);
+                    boolean isHomeless = (a.getCurrentHome() == null);
                     int requiredSavings = isHomeless ? 0 : MIN_IMPROVEMENT;
 
                     // Only consider this house if it is a meaningful improvement over the current house
@@ -284,8 +352,12 @@ public class CommunityRitualProcessor
                             // Our candidate citizen was successfully assigned to new house
                             if (unassignedCitizens.contains(a.getCitizen()))
                             {
-                                totalSavings += savings;
                                 totalAssigned++;
+                                if (!isHomeless)
+                                {
+                                    totalSavings += savings;
+                                    totalSavingsAssignments++;
+                                }
                                 // If they were in our unassigned list, remove them (they found a home)
                                 unassignedCitizens.remove(a.getCitizen());
                             }
@@ -305,7 +377,7 @@ public class CommunityRitualProcessor
             for (ICitizenData unassigned : unassignedCitizens)
             {
                 // They got a home somewhere else already - skip.
-                if (unassigned.getHomePosition() != null) continue;
+                if (unassigned.getHomeBuilding() != null) continue;
 
                 for (BlockPos possibleNewHousePos : allHouses)
                 {
@@ -326,13 +398,53 @@ public class CommunityRitualProcessor
             return RitualResult.FAILED;
         }
 
+        int homelessAssigned = 0;
+        int remainingHomeless = 0;
+        int finalDistanceTotal = 0;
+        int finalDistanceAssignments = 0;
+
+        for (ICitizenData citizen : citizens)
+        {
+            if (!citizen.getEntity().isPresent())
+            {
+                continue;
+            }
+
+            if (citizen.getHomeBuilding() == null)
+            {
+                remainingHomeless++;
+            }
+            else if (initiallyHomelessCitizens.contains(citizen))
+            {
+                homelessAssigned++;
+            }
+
+            if (citizen.getHomeBuilding() != null)
+            {
+                HomeAssignment assignment = new HomeAssignment(citizen);
+                finalDistanceTotal += assignment.getDistanceToWork();
+                finalDistanceAssignments++;
+            }
+        }
+
+        int relocatedCitizens = totalAssigned - homelessAssigned;
+        int averageInitialDistance = initialDistanceAssignments > 0 ? Math.round((float) initialDistanceTotal / (float) initialDistanceAssignments) : 0;
+        int averageFinalDistance = finalDistanceAssignments > 0 ? Math.round((float) finalDistanceTotal / (float) finalDistanceAssignments) : 0;
+        int averageSavings = totalSavingsAssignments > 0 ? Math.round((float) totalSavings / (float) totalSavingsAssignments) : 0;
+
         if (totalAssigned > 0)
         {
-            MessageUtils.format(totalAssigned + " citizens have been assigned to homes, with an average of " + Math.round((float) totalSavings / (float) totalAssigned) + " commute distance savings.").sendTo(marketplace.getColony()).forAllPlayers();
+            MessageUtils.format("The average commute distance has been improved from " + averageInitialDistance + " to " + averageFinalDistance + ". "
+                + totalAssigned + " citizens have been assigned to homes. " + homelessAssigned + (homelessAssigned == 1 ? " was " : " were ") + "previously homeless, and "
+                + relocatedCitizens + (relocatedCitizens == 1 ? " was " : " were ") + "relocated with an average commute distance savings of " + averageSavings + ". "
+                + remainingHomeless + (remainingHomeless == 1 ? " citizen remains " : " citizens remain ") + "homeless.").sendTo(marketplace.getColony()).forAllPlayers();
         }
         else
         {
-            MessageUtils.format("No citizens were assigned to closer homes.").sendTo(marketplace.getColony()).forAllPlayers();
+            MessageUtils.format("The average commute distance remained at " + averageInitialDistance + ". " + totalAssigned
+                + " citizens have been assigned to homes. " + homelessAssigned + (homelessAssigned == 1 ? " was " : " were ") + "previously homeless, and "
+                + relocatedCitizens + (relocatedCitizens == 1 ? " was " : " were ") + "relocated with an average commute distance savings of " + averageSavings + ". "
+                + remainingHomeless + (remainingHomeless == 1 ? " citizen remains " : " citizens remain ") + "homeless.").sendTo(marketplace.getColony()).forAllPlayers();
         }
 
         WishingWellHandler.showRitualEffect(currentLevel, pos);

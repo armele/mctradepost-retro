@@ -535,7 +535,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param itemToRecycle the item to check for recyclability
      * @return true if a full stack of this item can be recycled, false otherwise
      */
-    public boolean isRecyclable(ItemStack itemToRecycle)
+    public boolean isRecyclable(@Nonnull ItemStack itemToRecycle)
     {
         if (RecyclingBlacklistManager.isBlacklisted(itemToRecycle, getColony() != null ? getColony().getWorld() : null))
         {
@@ -1006,11 +1006,18 @@ public class BuildingRecycling extends AbstractBuilding
         final RecyclingPlan plan = resolveRecyclingPlan(inputStack, level, workerSkill);
         if (plan == null)
         {
-            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("No candidate outpout materials found for item {}.", inputStack));
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("No candidate output materials found for item {}.", inputStack));
             return null;
         }
 
         final List<ItemStack> actualOutput = materializeRecyclingPlan(inputStack, workerSkill, level, plan);
+
+        if (actualOutput == null || actualOutput.isEmpty())
+        {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("No output materials found in the materialized recycling plan for item {}.", inputStack));
+            return null;
+        }
+
         addDisenchantmentOutputs(inputStack, level, actualOutput);
         return actualOutput;
     }
@@ -1104,6 +1111,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param plan the resolved recycling plan
      * @return the concrete output stacks produced by the plan
      */
+    @SuppressWarnings("null")
     protected List<ItemStack> materializeRecyclingPlan(@Nonnull final ItemStack inputStack,
         final int workerSkill,
         @Nonnull final Level level,
@@ -1347,9 +1355,16 @@ public class BuildingRecycling extends AbstractBuilding
                 whItems = MCTPInventoryUtils.contentsForBuilding(warehouse);
                 for (final Entry<ItemStorage> entry : whItems.object2IntEntrySet())
                 {
+                    ItemStack keyStack = entry.getKey().getItemStack();
+
+                    if (keyStack == null || keyStack.isEmpty())
+                    {
+                        continue;
+                    }
+
                     if (!pendingRecyclingQueue.contains(entry.getKey()) &&
-                        !RecyclingBlacklistManager.isBlacklisted(entry.getKey().getItemStack(), getColony().getWorld()) &&
-                        isRecyclable(entry.getKey().getItemStack()))
+                        !RecyclingBlacklistManager.isBlacklisted(keyStack, getColony().getWorld()) &&
+                        isRecyclable(keyStack))
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }
@@ -1368,7 +1383,7 @@ public class BuildingRecycling extends AbstractBuilding
      * @param stackToCheck the item stack to check and modify.
      * @return the modified item stack.
      */
-    public ItemStack recordRecyclability(ItemStack stackToCheck)
+    public ItemStack recordRecyclability(@Nonnull ItemStack stackToCheck)
     {
         final RecyclableRecord recyclableRecord;
         if (isRecyclable(stackToCheck))

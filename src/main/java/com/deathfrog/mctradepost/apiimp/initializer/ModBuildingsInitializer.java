@@ -88,6 +88,7 @@ public final class ModBuildingsInitializer
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.GUEST_LIST);
             resortBuilder.addBuildingModuleProducer(BuildingModules.MIN_STOCK);
             resortBuilder.addBuildingModuleProducer(MCTPBuildingModules.BARTENDER_CRAFT);
+            resortBuilder.addBuildingModuleProducer(BuildingModules.CRAFT_TASK_VIEW);
             resortBuilder.addBuildingModuleProducer(BuildingModules.STATS_MODULE); 
             ModBuildings.resort = resortBuilder.createBuildingEntry();
 

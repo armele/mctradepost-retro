@@ -60,12 +60,19 @@ public final class SilentGearRecyclingProvider implements IOptionalRecyclingProv
             return null;
         }
 
-        final SingleRecipeInput singleInput = new SingleRecipeInput(input.copyWithCount(1));
+        ItemStack inputCopy = input.copyWithCount(1);
+
+        if (inputCopy == null || inputCopy.isEmpty())
+        {
+            return null;
+        }
+
+        final SingleRecipeInput singleInput = new SingleRecipeInput(inputCopy);
 
         for (final RecipeHolder<?> holder : recipeManager.getRecipes())
         {
             final Recipe<?> recipe = holder.value();
-            if (!isSilentGearRecipe(recipe))
+            if (!isSilentGearSalvageRecipe(holder, recipe))
             {
                 continue;
             }
@@ -97,15 +104,21 @@ public final class SilentGearRecyclingProvider implements IOptionalRecyclingProv
     }
 
     /**
-     * Determines whether the supplied recipe belongs to the Silent Gear namespace.
-     * This acts as a lightweight guard before reflection is attempted.
+     * Determines whether the supplied recipe is one of Silent Gear's salvaging
+     * recipes. Silent Gear also registers normal crafting recipes under its own
+     * namespace, and those use a different recipe input type in 1.21.1. Restricting
+     * this provider to the dedicated salvage package and recipe id prefix avoids
+     * probing unrelated recipes with the wrong reflective signature.
      *
+     * @param holder the recipe holder being inspected
      * @param recipe the recipe to inspect
-     * @return {@code true} if the recipe class belongs to Silent Gear's package
+     * @return {@code true} if this is a Silent Gear salvaging recipe
      */
-    private static boolean isSilentGearRecipe(final Recipe<?> recipe)
+    private static boolean isSilentGearSalvageRecipe(final RecipeHolder<?> holder, final Recipe<?> recipe)
     {
-        return recipe.getClass().getName().startsWith("net.silentchaos512.gear.");
+        final String className = recipe.getClass().getName();
+        return className.startsWith("net.silentchaos512.gear.crafting.recipe.salvage.")
+            || holder.id().getNamespace().equals(MOD_ID) && holder.id().getPath().startsWith("salvaging/");
     }
 
     /**

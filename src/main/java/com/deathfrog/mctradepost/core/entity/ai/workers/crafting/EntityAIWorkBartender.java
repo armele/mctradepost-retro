@@ -104,7 +104,7 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
 
             if (amount > 0)
             {
-                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Bartender: stocking the building with {}.", remedy));
+                TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Colony {} Bartender: stocking the building with {}.", building.getColony().getID(), remedy));
 
                 if (!walkToBuilding())
                 {
@@ -119,7 +119,7 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
 
                 if (!stocked)
                 {
-                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Bartender: failed to stock the building with {}.", remedy));
+                    TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Colony {} Bartender: failed to stock the building with {}.", building.getColony().getID(), remedy));
                 }
 
                 incrementActionsDoneAndDecSaturation();
@@ -143,6 +143,16 @@ public class EntityAIWorkBartender extends AbstractEntityAICrafting<JobBartender
 
     protected IAIState decide()
     {
+
+        IAIState superState = super.decide();
+
+        // If there are crafting tasks to prioritize, prioritize them.
+        if (hasWorkToDo()) 
+        {
+            TraceUtils.dynamicTrace(TRACE_GUESTSERVICES, () -> LOGGER.info("Colony {} - Bartender decide() has a crafting action to prioritize with state {}.", building.getColony().getID(), superState));
+            return superState;
+        }
+
         needsInInventory.clear();
 
         building.getGuests().forEach(guest -> {

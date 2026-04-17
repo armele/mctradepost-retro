@@ -8,6 +8,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.google.gson.reflect.TypeToken;
 import com.mojang.logging.LogUtils;
 
@@ -70,6 +71,8 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
         final List<ResourceLocation> orderedKeys = jsonMap.keySet().stream().sorted().toList();
         for (final ResourceLocation key : orderedKeys)
         {
+            if (key == null) continue;
+
             try
             {
                 final RuleFile ruleFile = MCTradePostMod.GSON.fromJson(jsonMap.get(key), new TypeToken<RuleFile>()
@@ -87,9 +90,9 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
                     ALLOW_RULES.clear();
                 }
 
-                compileRules(ruleFile.rules(), DENY_RULES, key);
-                compileRules(ruleFile.deny(), DENY_RULES, key);
-                compileRules(ruleFile.allow(), ALLOW_RULES, key);
+                compileRules(ruleFile.rules(), NullnessBridge.assumeNonnull(DENY_RULES), key);
+                compileRules(ruleFile.deny(), NullnessBridge.assumeNonnull(DENY_RULES), key);
+                compileRules(ruleFile.allow(), NullnessBridge.assumeNonnull(ALLOW_RULES), key);
             }
             catch (final Exception ex)
             {
@@ -249,7 +252,9 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
                 case "tag" -> compileTagRule(normalizedId);
                 case "namespace", "mod", "modid" -> new CompiledRule("namespace", normalizedId,
                     (stack, level) -> {
-                        final ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                        Item item = stack.getItem();
+                        if (item == null) return false;
+                        final ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);
                         return itemId != null && normalizedId.equals(itemId.getNamespace());
                     });
                 case "predicate" -> compilePredicateRule(normalizedId);
@@ -285,10 +290,6 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
             }
 
             final Item item = BuiltInRegistries.ITEM.get(itemId);
-            if (item == null)
-            {
-                return null;
-            }
 
             return new CompiledRule("item", id, (stack, level) -> stack.is(item));
         }
@@ -308,7 +309,13 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
                 return null;
             }
 
-            final TagKey<Item> tagKey = TagKey.create(Registries.ITEM, tagId);
+            final TagKey<Item> tagKey = TagKey.create(NullnessBridge.assumeNonnull(Registries.ITEM), tagId);
+
+            if (tagKey == null)
+            {
+                return null;
+            }
+
             return new CompiledRule("tag", id, (stack, level) -> stack.is(tagKey));
         }
 
@@ -318,6 +325,7 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
          * @param id the predicate identifier
          * @return the compiled rule, or {@code null} if the predicate is unknown
          */
+        @SuppressWarnings("null")
         @Nullable
         private static CompiledRule compilePredicateRule(@Nonnull final String id)
         {

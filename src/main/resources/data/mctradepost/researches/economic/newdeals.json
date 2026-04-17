@@ -14,12 +14,12 @@
         {
             "type": "minecolonies:building",
             "building": "mctradepost:station",
-            "level": 4
+            "level": 2
         },
         {
             "type": "minecolonies:building",
             "building": "mctradepost:marketplace",
-            "level": 4
+            "level": 2
         }
     ],
     "costs": [

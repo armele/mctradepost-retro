@@ -93,15 +93,28 @@ public class HomeAssignment
         return citizen.getWorkBuilding().getPosition();
     }
 
-    public BlockPos getCurrentHomePos()
-    {
-        return citizen.getHomePosition();
+
+    /**
+     * Retrieves the BlockPos of the citizen's current home. If the citizen does not have a home building, null is returned.
+     * 
+     * @return The BlockPos of the citizen's current home, or null if the citizen does not have a home building.
+     */
+    public BlockPos getCurrentHome()
+    {   
+        IBuilding homeBuilding = citizen.getHomeBuilding();
+
+        if (homeBuilding == null)
+        {
+            return null;
+        }
+
+        return homeBuilding.getPosition();
     }
 
     public int getDistanceToWork()
     {
         BlockPos workPos = getWorkPos();
-        BlockPos currentHomePos = getCurrentHomePos();
+        BlockPos currentHomePos = getCurrentHome();
 
         if (workPos == null || currentHomePos == null)
         {
