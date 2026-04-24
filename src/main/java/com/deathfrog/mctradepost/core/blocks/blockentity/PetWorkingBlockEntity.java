@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -21,6 +22,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
@@ -205,6 +207,51 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         Component name = Component.literal(translated.getString() + " @ " + this.getBlockPos().toShortString());
 
         return name;
+    }
+
+    @Override
+    public Component getDisplayName()
+    {
+        return Component.literal("")
+            .append(getDefaultName())
+            .append(" (")
+            .append(getAssignedPetName())
+            .append(")");
+    }
+
+    private Component getAssignedPetName()
+    {
+        Level level = getLevel();
+        if (level == null || level.isClientSide)
+        {
+            return Component.literal("No Pet Assigned");
+        }
+
+        IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        if (colony == null)
+        {
+            return Component.literal("No Pet Assigned");
+        }
+
+        for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
+        {
+            for (ITradePostPet pet : PetRegistryUtil.getPetsInBuilding(building))
+            {
+                if (pet == null || !worldPosition.equals(pet.getWorkLocation()))
+                {
+                    continue;
+                }
+
+                if (pet.getPetData() != null && pet.getPetData().getOriginalName() != null)
+                {
+                    return pet.getPetData().getOriginalName();
+                }
+
+                return ((Entity) pet).getName();
+            }
+        }
+
+        return Component.literal("No Pet Assigned");
     }
 
     /**

@@ -83,7 +83,8 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
             MCTradePostMod.TROUGH.get(),
             MCTradePostMod.SCAVENGE.get(),
             MCTradePostMod.DREDGER.get(),
-            MCTradePostMod.FEEDER.get()
+            MCTradePostMod.FEEDER.get(),
+            MCTradePostMod.HAULER.get()
         };
     }
         

@@ -441,7 +441,6 @@ public class BuildingPetshop extends AbstractBuilding
     // Mule
     // Ocelot
     // Panda
-    // Parrot (flying)
     // Polar Bear
     // Turtle
 

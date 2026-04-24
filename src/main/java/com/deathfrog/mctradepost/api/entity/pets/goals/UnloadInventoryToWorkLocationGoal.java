@@ -26,6 +26,7 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -97,6 +98,7 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
 
         BlockPos wp = pet.getWorkLocation();
         if (wp == null) return false;
+        if (PetRoles.HAULING.equals(pet.getPetData().roleFromWorkLocation(level))) return false;
 
         return needsUnload();
     }

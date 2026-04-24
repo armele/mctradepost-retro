@@ -48,8 +48,45 @@ import com.minecolonies.core.colony.buildings.modules.LivingBuildingModule;
 public class CommunityRitualProcessor 
 {
     final static int MIN_IMPROVEMENT = 10;
-    final static int CANDIDATE_HOUSES = 20;
+    final static int CANDIDATE_HOUSES = 50;
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    /**
+     * Tracks assignment and savings totals while the shelter ritual is processing.
+     */
+    protected static class ShelterTotals
+    {
+        private int totalAssigned = 0;
+        private int totalSavings = 0;
+        private int totalSavingsAssignments = 0;
+
+        public void recordHomelessAssignment()
+        {
+            totalAssigned++;
+        }
+
+        public void recordRelocation(int savings)
+        {
+            totalAssigned++;
+            totalSavings += savings;
+            totalSavingsAssignments++;
+        }
+
+        public int getTotalAssigned()
+        {
+            return totalAssigned;
+        }
+
+        public int getTotalSavings()
+        {
+            return totalSavings;
+        }
+
+        public int getTotalSavingsAssignments()
+        {
+            return totalSavingsAssignments;
+        }
+    }
 
     /**
      * Processes a community ritual at the specified BlockPos within the ServerLevel. This ritual gives a random effect to each citizen
@@ -158,21 +195,6 @@ public class CommunityRitualProcessor
         RitualDefinitionHelper ritual,
         RitualState state)
     {
-        class HousingData
-        {
-            private final IAssignsCitizen livingModule;
-
-            public HousingData(IAssignsCitizen livingModule)
-            {
-                this.livingModule = livingModule;
-            }
-
-            public IAssignsCitizen getLivingModule()
-            {
-                return livingModule;
-            }
-        }
-
         ServerLevel currentLevel = (ServerLevel) marketplace.getColony().getWorld();
 
         if (currentLevel == null)
@@ -180,27 +202,14 @@ public class CommunityRitualProcessor
             return RitualResult.FAILED;
         }
 
-        Map<BlockPos, HousingData> housingMap = new HashMap<>();
-        Map<BlockPos,IBuilding> buildingList = marketplace.getColony().getServerBuildingManager().getBuildings();
+        Map<BlockPos, IAssignsCitizen> housingMap = collectEligibleHousing(marketplace);
 
         final List<HomeAssignment> assignments = new ArrayList<>();
 
-        for (IBuilding building : buildingList.values())
-        {
-            if (building.hasModule(LivingBuildingModule.class) 
-                && !(building instanceof BuildingGuardTower)
-                && !(building instanceof BuildingOutpost)
-                && !(building instanceof BuildingBarracksTower)
-                && !(building instanceof BuildingGateHouse)
-            ) {
-                IAssignsCitizen livingModule = building.getModule(LivingBuildingModule.class);
-                HousingData houseData = new HousingData(livingModule);
-                housingMap.put(building.getPosition(), houseData);
-            }
-        }
-
         List<ICitizenData> citizens = marketplace.getColony().getCitizenManager().getCitizens();
         final Set<ICitizenData> initiallyHomelessCitizens = new HashSet<>();
+        final Map<ICitizenData, BlockPos> initialHomePositions = new HashMap<>();
+        final Map<ICitizenData, Integer> initialDistances = new HashMap<>();
         int initialDistanceTotal = 0;
         int initialDistanceAssignments = 0;
 
@@ -220,177 +229,28 @@ public class CommunityRitualProcessor
             assignments.add(assignment);
             if (citizen.getHomeBuilding() != null)
             {
+                initialHomePositions.put(citizen, assignment.getCurrentHome());
+                initialDistances.put(citizen, assignment.getDistanceToWork());
                 initialDistanceTotal += assignment.getDistanceToWork();
                 initialDistanceAssignments++;
             }
         }
 
-        int totalAssigned = 0;
-        int totalSavings = 0;
-        int totalSavingsAssignments = 0;
+        final ShelterTotals totals = new ShelterTotals();
 
         try
         {
-            // Prioritize assignments by job priority (higher first)
-            assignments.sort(Comparator
-                .comparingInt(HomeAssignment::getJobPriority).reversed()
-                // tie-breaker: fix worst commute first
-                .thenComparingInt(HomeAssignment::getDistanceToWork).reversed());
+            sortAssignmentsByPriority(assignments);
 
             final Set<ICitizenData> unassignedCitizens = new HashSet<>();
             final Set<ICitizenData> excludedCitizens = new HashSet<>();
-
-            // Handle outpost assignment first and unrelated to later job-weighted assignments.
-            for (HomeAssignment a : assignments)
-            {
-                ICitizenData citizen = a.getCitizen();
-                IBuilding workBuilding = citizen.getWorkBuilding();
-                IBuilding workBuildingParent = workBuilding != null && workBuilding.hasParent() ? marketplace.getColony().getServerBuildingManager().getBuilding(workBuilding.getParent()) : null;
-                IBuilding outpost = null;
-
-                if (workBuilding instanceof BuildingOutpost)
-                {
-                    outpost = workBuilding;
-                }
-                else if (workBuildingParent instanceof BuildingOutpost)
-                {
-                    outpost = workBuildingParent;
-                }
-
-                if (outpost == null)
-                {
-                    continue;
-                }
-
-                OutpostLivingBuildingModule outpostLivingModule = outpost.getModule(OutpostLivingBuildingModule.class);
-
-                if (outpostLivingModule == null)
-                {
-                    continue;
-                }
-
-                if (outpost.equals(citizen.getHomeBuilding()))
-                {
-                    excludedCitizens.add(citizen);
-                    continue;
-                }
-
-                if (outpostLivingModule.assignCitizen(citizen))
-                {
-                    totalAssigned++;
-                    excludedCitizens.add(citizen);
-                }
-            }
-
-            // Record anyone currently unassigned at the time of the ritual.
-            for (HomeAssignment a : assignments) 
-            {
-                if (excludedCitizens.contains(a.getCitizen()))
-                {
-                    continue;
-                }
-
-                if (a.getCitizen().getHomeBuilding() == null) 
-                {
-                    unassignedCitizens.add(a.getCitizen());
-                }
-            }
-
             final List<BlockPos> allHouses = new ArrayList<>(housingMap.keySet());
-             
-            for (HomeAssignment a : assignments)
-            {
-                if (excludedCitizens.contains(a.getCitizen()))
-                {
-                    continue;
-                }
 
-                if (a.getWorkPos() == null)
-                {
-                    // Treat the unemployed as flexible to assign to any free bed after all prioritized workers are assigned
-                    unassignedCitizens.add(a.getCitizen());
-                    continue;
-                }
-
-                // Build shortlist once per worker
-                List<BlockPos> candidates = allHouses.stream()
-                    .sorted(Comparator.comparingInt(h -> BlockPosUtil.distManhattan(a.getWorkPos(), h)))
-                    .limit(CANDIDATE_HOUSES)
-                    .toList();
-
-                int currentDist = a.getDistanceToWork();
-
-                for (BlockPos possibleNewHousePos : candidates)
-                {
-                    HousingData houseData = housingMap.get(possibleNewHousePos);
-                    int newDist = BlockPosUtil.distManhattan(a.getWorkPos(), possibleNewHousePos);
-                    int savings = currentDist - newDist;
-
-                    boolean isHomeless = (a.getCurrentHome() == null);
-                    int requiredSavings = isHomeless ? 0 : MIN_IMPROVEMENT;
-
-                    // Only consider this house if it is a meaningful improvement over the current house
-                    if (savings >= requiredSavings)
-                    {
-                        ICitizenData evicted = insertToHouseIfCloser(houseData.getLivingModule(), a.getCitizen(), newDist);
-
-                        // Someone got evicted, add them to unassigned list
-                        if (evicted != null) 
-                        {
-                            if (evicted.equals(a.getCitizen())) 
-                            {
-                                // candidate could not be housed in this full house
-                                unassignedCitizens.add(a.getCitizen());
-                            } else {
-                                // a real eviction happened
-                                unassignedCitizens.add(evicted);
-                            }
-                        }
-
-                        if (evicted == null || !evicted.equals(a.getCitizen()))
-                        {
-                            // Our candidate citizen was successfully assigned to new house
-                            if (unassignedCitizens.contains(a.getCitizen()))
-                            {
-                                totalAssigned++;
-                                if (!isHomeless)
-                                {
-                                    totalSavings += savings;
-                                    totalSavingsAssignments++;
-                                }
-                                // If they were in our unassigned list, remove them (they found a home)
-                                unassignedCitizens.remove(a.getCitizen());
-                            }
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        // No further houses will be better, skip to next worker
-                        break;
-                    }
-                }
-
-            }
-
-            // Try to assign any unassigned citizens to any available housing
-            for (ICitizenData unassigned : unassignedCitizens)
-            {
-                // They got a home somewhere else already - skip.
-                if (unassigned.getHomeBuilding() != null) continue;
-
-                for (BlockPos possibleNewHousePos : allHouses)
-                {
-                    HousingData houseData = housingMap.get(possibleNewHousePos);
-                    IAssignsCitizen livingModule = houseData.getLivingModule();
-                    if (!livingModule.isFull())
-                    {
-                        totalAssigned++;
-                        livingModule.assignCitizen(unassigned);
-                        break;
-                    }
-                }
-            }
+            assignOutpostResidents(marketplace, assignments, excludedCitizens, totals);
+            collectCurrentlyUnassigned(assignments, excludedCitizens, unassignedCitizens);
+            assignByJobPriority(assignments, excludedCitizens, unassignedCitizens, allHouses, housingMap, totals);
+            resolveUnassignedCitizens(unassignedCitizens, allHouses, housingMap, totals);
+            cleanupRemainingCommutes(assignments, excludedCitizens, allHouses, housingMap, totals);
         }
         catch (Exception e)
         {
@@ -400,6 +260,8 @@ public class CommunityRitualProcessor
 
         int homelessAssigned = 0;
         int remainingHomeless = 0;
+        int relocatedCitizens = 0;
+        int relocatedSavingsTotal = 0;
         int finalDistanceTotal = 0;
         int finalDistanceAssignments = 0;
 
@@ -424,13 +286,25 @@ public class CommunityRitualProcessor
                 HomeAssignment assignment = new HomeAssignment(citizen);
                 finalDistanceTotal += assignment.getDistanceToWork();
                 finalDistanceAssignments++;
+
+                if (!initiallyHomelessCitizens.contains(citizen))
+                {
+                    BlockPos initialHomePos = initialHomePositions.get(citizen);
+                    BlockPos finalHomePos = assignment.getCurrentHome();
+
+                    if (initialHomePos != null && finalHomePos != null && !initialHomePos.equals(finalHomePos))
+                    {
+                        relocatedCitizens++;
+                        relocatedSavingsTotal += initialDistances.get(citizen) - assignment.getDistanceToWork();
+                    }
+                }
             }
         }
 
-        int relocatedCitizens = totalAssigned - homelessAssigned;
+        int totalAssigned = homelessAssigned + relocatedCitizens;
         int averageInitialDistance = initialDistanceAssignments > 0 ? Math.round((float) initialDistanceTotal / (float) initialDistanceAssignments) : 0;
         int averageFinalDistance = finalDistanceAssignments > 0 ? Math.round((float) finalDistanceTotal / (float) finalDistanceAssignments) : 0;
-        int averageSavings = totalSavingsAssignments > 0 ? Math.round((float) totalSavings / (float) totalSavingsAssignments) : 0;
+        int averageSavings = relocatedCitizens > 0 ? Math.round((float) relocatedSavingsTotal / (float) relocatedCitizens) : 0;
 
         if (totalAssigned > 0)
         {
@@ -449,6 +323,268 @@ public class CommunityRitualProcessor
 
         WishingWellHandler.showRitualEffect(currentLevel, pos);
         return RitualResult.COMPLETED;
+    }
+
+    /**
+     * Collects the houses that are eligible for normal colony housing assignment.
+     */
+    protected static Map<BlockPos, IAssignsCitizen> collectEligibleHousing(@Nonnull BuildingMarketplace marketplace)
+    {
+        Map<BlockPos, IAssignsCitizen> housingMap = new HashMap<>();
+        Map<BlockPos, IBuilding> buildingList = marketplace.getColony().getServerBuildingManager().getBuildings();
+
+        for (IBuilding building : buildingList.values())
+        {
+            if (building.hasModule(LivingBuildingModule.class)
+                && !(building instanceof BuildingGuardTower)
+                && !(building instanceof BuildingOutpost)
+                && !(building instanceof BuildingBarracksTower)
+                && !(building instanceof BuildingGateHouse))
+            {
+                housingMap.put(building.getPosition(), building.getModule(LivingBuildingModule.class));
+            }
+        }
+
+        return housingMap;
+    }
+
+    /**
+     * Sorts citizens so higher-priority jobs are handled first, and among those, the worst commute is handled first.
+     */
+    protected static void sortAssignmentsByPriority(@Nonnull List<HomeAssignment> assignments)
+    {
+        assignments.sort(Comparator
+            .comparingInt(HomeAssignment::getJobPriority).reversed()
+            .thenComparing(Comparator.comparingInt(HomeAssignment::getDistanceToWork).reversed()));
+    }
+
+    /**
+     * Moves outpost workers into their outpost housing before general colony housing is considered.
+     */
+    protected static void assignOutpostResidents(@Nonnull BuildingMarketplace marketplace,
+        @Nonnull List<HomeAssignment> assignments,
+        @Nonnull Set<ICitizenData> excludedCitizens,
+        @Nonnull ShelterTotals totals)
+    {
+        for (HomeAssignment assignment : assignments)
+        {
+            ICitizenData citizen = assignment.getCitizen();
+            IBuilding workBuilding = citizen.getWorkBuilding();
+            IBuilding workBuildingParent = workBuilding != null && workBuilding.hasParent()
+                ? marketplace.getColony().getServerBuildingManager().getBuilding(workBuilding.getParent())
+                : null;
+            IBuilding outpost = null;
+
+            if (workBuilding instanceof BuildingOutpost)
+            {
+                outpost = workBuilding;
+            }
+            else if (workBuildingParent instanceof BuildingOutpost)
+            {
+                outpost = workBuildingParent;
+            }
+
+            if (outpost == null)
+            {
+                continue;
+            }
+
+            OutpostLivingBuildingModule outpostLivingModule = outpost.getModule(OutpostLivingBuildingModule.class);
+            if (outpostLivingModule == null)
+            {
+                continue;
+            }
+
+            BlockPos previousHome = assignment.getCurrentHome();
+            if (outpost.equals(citizen.getHomeBuilding()))
+            {
+                excludedCitizens.add(citizen);
+                continue;
+            }
+
+            if (outpostLivingModule.assignCitizen(citizen))
+            {
+                if (previousHome == null)
+                {
+                    totals.recordHomelessAssignment();
+                }
+                else
+                {
+                    int oldDistance = assignment.getDistanceToWork();
+                    int newDistance = BlockPosUtil.distManhattan(outpost.getPosition(), assignment.getWorkPos());
+                    totals.recordRelocation(Math.max(0, oldDistance - newDistance));
+                }
+                excludedCitizens.add(citizen);
+            }
+        }
+    }
+
+    /**
+     * Records citizens who should later be handled by the free-bed resolution passes.
+     */
+    protected static void collectCurrentlyUnassigned(@Nonnull List<HomeAssignment> assignments,
+        @Nonnull Set<ICitizenData> excludedCitizens,
+        @Nonnull Set<ICitizenData> unassignedCitizens)
+    {
+        for (HomeAssignment assignment : assignments)
+        {
+            if (excludedCitizens.contains(assignment.getCitizen()))
+            {
+                continue;
+            }
+
+            if (assignment.getCitizen().getHomeBuilding() == null)
+            {
+                unassignedCitizens.add(assignment.getCitizen());
+            }
+        }
+    }
+
+    /**
+     * Runs the main housing optimization pass using job priority, limited candidate houses, and eviction when helpful.
+     */
+    protected static void assignByJobPriority(@Nonnull List<HomeAssignment> assignments,
+        @Nonnull Set<ICitizenData> excludedCitizens,
+        @Nonnull Set<ICitizenData> unassignedCitizens,
+        @Nonnull List<BlockPos> allHouses,
+        @Nonnull Map<BlockPos, IAssignsCitizen> housingMap,
+        @Nonnull ShelterTotals totals)
+    {
+        for (HomeAssignment assignment : assignments)
+        {
+            if (excludedCitizens.contains(assignment.getCitizen()))
+            {
+                continue;
+            }
+
+            HomeAssignment currentAssignment = new HomeAssignment(assignment.getCitizen());
+
+            if (currentAssignment.getWorkPos() == null)
+            {
+                // The unemployed are handled after workers so the priority pass focuses on commute optimization.
+                unassignedCitizens.add(currentAssignment.getCitizen());
+                continue;
+            }
+
+            List<BlockPos> candidates = allHouses.stream()
+                .sorted(Comparator.comparingInt(h -> BlockPosUtil.distManhattan(currentAssignment.getWorkPos(), h)))
+                .limit(CANDIDATE_HOUSES)
+                .toList();
+
+            int currentDist = currentAssignment.getDistanceToWork();
+            boolean isHomeless = (currentAssignment.getCurrentHome() == null);
+            int requiredSavings = isHomeless ? 0 : MIN_IMPROVEMENT;
+
+            for (BlockPos possibleNewHousePos : candidates)
+            {
+                IAssignsCitizen livingModule = housingMap.get(possibleNewHousePos);
+                int newDist = BlockPosUtil.distManhattan(currentAssignment.getWorkPos(), possibleNewHousePos);
+                int savings = currentDist - newDist;
+
+                if (savings < requiredSavings)
+                {
+                    // Houses are sorted nearest-first, so later candidates cannot improve the savings.
+                    break;
+                }
+
+                ICitizenData evicted = insertToHouseIfCloser(livingModule, assignment.getCitizen(), newDist);
+
+                if (evicted != null)
+                {
+                    if (evicted.equals(assignment.getCitizen()))
+                    {
+                        unassignedCitizens.add(assignment.getCitizen());
+                    }
+                    else
+                    {
+                        unassignedCitizens.add(evicted);
+                    }
+                }
+
+                if (evicted == null || !evicted.equals(assignment.getCitizen()))
+                {
+                    if (isHomeless)
+                    {
+                        totals.recordHomelessAssignment();
+                        unassignedCitizens.remove(assignment.getCitizen());
+                    }
+                    else
+                    {
+                        totals.recordRelocation(savings);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Gives any still-unhoused citizen the first currently open bed that can accept them.
+     */
+    protected static void resolveUnassignedCitizens(@Nonnull Set<ICitizenData> unassignedCitizens,
+        @Nonnull List<BlockPos> allHouses,
+        @Nonnull Map<BlockPos, IAssignsCitizen> housingMap,
+        @Nonnull ShelterTotals totals)
+    {
+        for (ICitizenData unassigned : unassignedCitizens)
+        {
+            if (unassigned.getHomeBuilding() != null)
+            {
+                continue;
+            }
+
+            for (BlockPos possibleNewHousePos : allHouses)
+            {
+                IAssignsCitizen livingModule = housingMap.get(possibleNewHousePos);
+                if (!livingModule.isFull())
+                {
+                    livingModule.assignCitizen(unassigned);
+                    totals.recordHomelessAssignment();
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Uses any remaining open beds to take significant commute wins for already-housed workers, without evictions.
+     */
+    protected static void cleanupRemainingCommutes(@Nonnull List<HomeAssignment> assignments,
+        @Nonnull Set<ICitizenData> excludedCitizens,
+        @Nonnull List<BlockPos> allHouses,
+        @Nonnull Map<BlockPos, IAssignsCitizen> housingMap,
+        @Nonnull ShelterTotals totals)
+    {
+        List<HomeAssignment> cleanupCandidates = assignments.stream()
+            .map(assignment -> new HomeAssignment(assignment.getCitizen()))
+            .filter(assignment -> !excludedCitizens.contains(assignment.getCitizen()))
+            .filter(assignment -> assignment.getWorkPos() != null)
+            .filter(assignment -> assignment.getCurrentHome() != null)
+            .sorted(Comparator.comparingInt(HomeAssignment::getDistanceToWork).reversed())
+            .toList();
+
+        for (HomeAssignment assignment : cleanupCandidates)
+        {
+            int currentDist = assignment.getDistanceToWork();
+
+            for (BlockPos possibleNewHousePos : allHouses)
+            {
+                IAssignsCitizen livingModule = housingMap.get(possibleNewHousePos);
+                if (livingModule.isFull())
+                {
+                    continue;
+                }
+
+                int newDist = BlockPosUtil.distManhattan(assignment.getWorkPos(), possibleNewHousePos);
+                int savings = currentDist - newDist;
+
+                if (savings >= MIN_IMPROVEMENT && livingModule.assignCitizen(assignment.getCitizen()))
+                {
+                    totals.recordRelocation(savings);
+                    break;
+                }
+            }
+        }
     }
 
 

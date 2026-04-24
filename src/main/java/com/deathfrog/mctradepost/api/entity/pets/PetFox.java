@@ -44,7 +44,6 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Fox;
@@ -149,13 +148,6 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet, IManagedA
         this.goalSelector.addGoal(16, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
-
-        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
-
-        if (hurtByTargetGoal != null)
-        {
-            this.targetSelector.addGoal(23, hurtByTargetGoal);
-        }
 
         if (this.petData == null)
         {
@@ -263,6 +255,17 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet, IManagedA
         }
 
         return super.hurt(damageSource, damage);
+    }
+
+    @Override
+    public void die(@Nonnull DamageSource damageSource)
+    {
+        if (petData != null && petData.tryRescueFromDeath(damageSource))
+        {
+            return;
+        }
+
+        super.die(damageSource);
     }
 
 

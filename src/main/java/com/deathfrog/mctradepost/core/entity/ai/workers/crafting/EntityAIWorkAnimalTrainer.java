@@ -22,6 +22,8 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetHelper;
+import com.deathfrog.mctradepost.api.entity.pets.PetData;
+import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
@@ -298,7 +300,10 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
             if (pet.getWorkLocation() != null && !BlockPos.ZERO.equals(pet.getWorkLocation()))
             {
-                currentWorkStations.add(pet.getWorkLocation());
+                if (!isHaulerWorkLocation(pet.getWorkLocation()))
+                {
+                    currentWorkStations.add(pet.getWorkLocation());
+                }
             }
         }
 
@@ -547,6 +552,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         return workStations.entrySet()
             .stream()
+            .filter(e -> !isHaulerWorkLocation(e.getKey()))
             .filter(e -> e.getValue() <= threshold)     // only those untouched for >= 5 min
             .min(Map.Entry.comparingByValue())          // oldest timestamp among them
             .map(Map.Entry::getKey)
@@ -563,6 +569,11 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         Level level = worker.level();
 
         if (level == null)
+        {
+            return;
+        }
+
+        if (isHaulerWorkLocation(workLocation))
         {
             return;
         }
@@ -600,6 +611,12 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         StatsUtil.trackStat(building, WORKSTATIONS_EMPTIED, 1);
         worker.getCitizenExperienceHandler().addExperience(1.0);
     
+    }
+
+    private boolean isHaulerWorkLocation(@Nonnull BlockPos workLocation)
+    {
+        Level level = worker.level();
+        return level != null && PetRoles.HAULING.equals(PetData.roleFromPosition(level, workLocation));
     }
 
 

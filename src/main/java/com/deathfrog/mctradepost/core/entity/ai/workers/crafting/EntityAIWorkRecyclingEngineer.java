@@ -129,17 +129,17 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         // If something in our queue has made it to the building, get it out and recycle it.
         if (InventoryUtils.hasItemInProvider(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true))))
         {
-            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack)));
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true)));
 
-            if (slot > 0)
+            if (slot >= 0)
             {
-                ItemStorage listItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot));
+                ItemStorage listItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot), true, true);
                 InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
 
                 TraceUtils.dynamicTrace(TRACE_RECYCLING,
                                 () -> LOGGER.info("Pending item {} has arrived at the building.", listItem));
 
-                slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> pendingRecyclingQueue.contains(listItem));
+                slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true)));
                 if (slot >= 0)
                 {
                     ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(slot);
@@ -490,7 +490,11 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         worker.getCitizenData().setVisibleStatus(RECYCLING);
 
         BuildingRecycling recycling = (BuildingRecycling) building;
-        BlockPos pos = recycling.identifyInputPositions().getFirst();
+        BlockPos pos = currentInputChest;
+        if (pos == null)
+        {
+            pos = recycling.identifyInputPositions().getFirst();
+        }
 
         if (pos == null)
         {
@@ -556,6 +560,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             complain(BuildingRecycling.RECYCLER_NO_INPUT_BOX);
         }
 
+        currentInputChest = null;
         return DECIDE;
     }
 

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": { "item": "minecraft:chest" },
+    "G": { "item": "minecraft:glass" },
+    "P": { "item": "mctradepost:plaster" },
+    "S": { "item": "minecraft:stick" },
+    "B": { "item": "mctradepost:rough_brick" }
+  },
+  "pattern": [
+    "SPS",
+    "GCG",
+    "SBS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:hauler"
+  }
+}

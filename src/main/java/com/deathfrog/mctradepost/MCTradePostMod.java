@@ -17,6 +17,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.ItemValueManager;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -33,6 +34,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
+import com.deathfrog.mctradepost.core.blocks.BlockHauler;
 import com.deathfrog.mctradepost.core.blocks.BlockLamp;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
@@ -122,6 +124,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Fox;
 import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.Wolf;
@@ -158,6 +161,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
@@ -176,6 +180,7 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -750,6 +755,10 @@ public class MCTradePostMod
         BLOCKS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockFeeder(THATCH.get().properties().lightLevel(state -> 4)));
 
     @SuppressWarnings("null")
+    public static final DeferredBlock<BlockHauler> HAULER =
+        BLOCKS.register(ModBlocksInitializer.HAULER_NAME, () -> new BlockHauler(THATCH.get().properties().noOcclusion().lightLevel(state -> 4)));
+
+    @SuppressWarnings("null")
     public static final DeferredBlock<Block> WOVEN_KELP = BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_NAME,
         () -> new Block(Block.Properties.of().mapColor(MapColor.STONE).strength(1.5f, 2.0f).sound(SoundType.STONE)));
     @SuppressWarnings("null")
@@ -1034,6 +1043,10 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<Item> FEEDER_ITEM =
         ITEMS.register(ModBlocksInitializer.FEEDER_NAME, () -> new BlockItem(FEEDER.get(), new Item.Properties()));   
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> HAULER_ITEM =
+        ITEMS.register(ModBlocksInitializer.HAULER_NAME, () -> new BlockItem(HAULER.get(), new Item.Properties()));
 
     @SuppressWarnings("null")
     public static final DeferredItem<Item> WOVEN_KELP_ITEM =
@@ -1334,7 +1347,7 @@ public class MCTradePostMod
             event.put(MCTradePostMod.PET_WOLF.get(), Wolf.createAttributes().build());
             event.put(MCTradePostMod.PET_FOX.get(), Fox.createAttributes().build());
             event.put(MCTradePostMod.PET_AXOLOTL.get(), Axolotl.createAttributes().build());
-            event.put(MCTradePostMod.PET_PARROT.get(), Parrot.createAttributes().build());
+            event.put(MCTradePostMod.PET_PARROT.get(), Parrot.createAttributes().add(Attributes.ATTACK_DAMAGE, 1.0D).build());
         }
 
         /**
@@ -1354,7 +1367,10 @@ public class MCTradePostMod
         @SubscribeEvent(priority = EventPriority.HIGH)
         public static void registerCaps(final RegisterCapabilitiesEvent event)
         {
-            // Placeholder for registering capabilities.
+            event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                MCTradePostTileEntities.PET_WORK_LOCATION.get(),
+                (petWorkingBlockEntity, side) -> new InvWrapper(petWorkingBlockEntity));
         }
     }
 
@@ -1539,6 +1555,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.SCAVENGE.get());
                     event.accept(MCTradePostMod.FEEDER.get());
                     event.accept(MCTradePostMod.DREDGER.get());
+                    event.accept(MCTradePostMod.HAULER.get());
                     event.accept(MCTradePostMod.WOVEN_KELP.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());

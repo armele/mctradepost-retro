@@ -12,8 +12,11 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.goals.EatFromInventoryHealGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.HaulInventoryToWarehouseGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HerdGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.OpenGateOrDoorGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.PetDefensiveAttackGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.PetHurtByTargetGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ForageGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
@@ -21,11 +24,15 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.ScavengeResourceGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.VegetationScavengeProfile;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengeProfile;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
+import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockDredger;
 import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
+import com.deathfrog.mctradepost.core.blocks.BlockHauler;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
@@ -40,6 +47,7 @@ import com.minecolonies.core.colony.buildings.modules.AnimalHerdingModule;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -47,6 +55,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
@@ -95,6 +105,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public static final String STATS_PETS_DIED = "pets_died";
     public static final String STATS_PETS_RETIRED = "pets_retired";
     public static final String STATS_PETS_RANAWAY = "pets_ranaway";
+    public static final String STATS_PETS_SAVED = "pets_saved";
 
     public int logCooldown = 0;
     private int stallTicks = 0;
@@ -127,6 +138,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
     protected boolean goalsInitialized = false;
     protected boolean goalResetInProgress = false;
+    protected boolean rescueFromDeathInProgress = false;
 
     public PetData(P animal)
     {
@@ -475,6 +487,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         animal.goalSelector.addGoal(1, new FloatGoal(animal));
         animal.goalSelector.addGoal(2, new OpenGateOrDoorGoal(animal, true, 20));
         animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.4f));
+        animal.goalSelector.addGoal(4, new PetDefensiveAttackGoal<>(animal, 1.15D));
+        animal.targetSelector.addGoal(4, new PetHurtByTargetGoal<>(animal, animal instanceof PetParrot));
         animal.getNavigation().getNodeEvaluator().setCanOpenDoors(true);
 
         BlockPos workPos = getWorkLocation();
@@ -592,6 +606,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                     this.getTrainerBuilding(),
                     200             // cooldown (10 seconds)
                 ));
+                break;
+
+            case HAULING:
+                TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Assigning hauling goals for pet {}:", this.animal.getUUID()));
+                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HaulInventoryToWarehouseGoal<>(this.getAnimal()));
                 break;
 
             case NONE:
@@ -786,6 +805,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (block instanceof BlockFeeder)
         {
             return PetRoles.SCAVENGE_VEGETATION;
+        }
+
+        if (block instanceof BlockHauler)
+        {
+            return PetRoles.HAULING;
         }
 
         return PetRoles.NONE;
@@ -1547,6 +1571,94 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 }
             }
         }
+    }
+
+    /**
+     * Called from the pet entity's death hook before vanilla death cleanup runs.
+     * Returning true means the death was handled and vanilla should not continue.
+     *
+     * @param source the damage source that would have killed the pet
+     * @return true if the pet was rescued from death
+     */
+    public boolean tryRescueFromDeath(@Nonnull DamageSource source)
+    {
+        P localAnimal = animal;
+
+        if (rescueFromDeathInProgress || localAnimal == null || localAnimal.level() == null || localAnimal.level().isClientSide)
+        {
+            return false;
+        }
+
+        if (!(getTrainerBuilding() instanceof BuildingPetshop petshop))
+        {
+            return false;
+        }
+
+        if (!hasVetResearch(petshop))
+        {
+            return false;
+        }
+
+        if (!(petshop.getColony().getWorld() instanceof ServerLevel trainerLevel) || trainerLevel != localAnimal.level())
+        {
+            return false;
+        }
+
+        rescueFromDeathInProgress = true;
+        try
+        {
+            BlockPos targetPos = PetHelper.findNearbyValidSpawn(trainerLevel, petshop.getPosition(), 3);
+
+            localAnimal.getNavigation().stop();
+            localAnimal.setTarget(null);
+            localAnimal.stopRiding();
+            localAnimal.setHealth(Math.max(1.0F, localAnimal.getMaxHealth() * 0.25F));
+            localAnimal.setAirSupply(localAnimal.getMaxAirSupply());
+            localAnimal.clearFire();
+            localAnimal.fallDistance = 0.0F;
+            localAnimal.invulnerableTime = 40;
+            localAnimal.teleportTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D);
+            playRescueEffects(trainerLevel, localAnimal);
+
+            PetRegistryUtil.register(localAnimal);
+            PetAnimalManagerUtil.ensureManaged(localAnimal);
+            petshop.rememberPetData(localAnimal);
+            petshop.markPetsDirty();
+            StatsUtil.trackStat(petshop, STATS_PETS_SAVED, 1);
+
+            localAnimal.resetGoals();
+
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Pet {} of type {} was saved from death by {}.",
+                localAnimal.getUUID(), getAnimalType(), source));
+
+            return true;
+        }
+        finally
+        {
+            rescueFromDeathInProgress = false;
+        }
+    }
+
+    @SuppressWarnings("null")
+    private void playRescueEffects(@Nonnull ServerLevel level, @Nonnull P rescuedAnimal)
+    {
+        level.broadcastEntityEvent(rescuedAnimal, (byte) 35);
+        level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+            rescuedAnimal.getX(), rescuedAnimal.getY() + rescuedAnimal.getBbHeight() * 0.6D, rescuedAnimal.getZ(),
+            16, 0.35D, 0.35D, 0.35D, 0.05D);
+        level.sendParticles(ParticleTypes.HEART,
+            rescuedAnimal.getX(), rescuedAnimal.getY() + rescuedAnimal.getBbHeight() + 0.2D, rescuedAnimal.getZ(),
+            5, 0.4D, 0.2D, 0.4D, 0.02D);
+        level.playSound(null, rescuedAnimal.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.NEUTRAL, 0.7F, 1.35F);
+    }
+
+
+    private boolean hasVetResearch(@Nonnull BuildingPetshop petshop)
+    {
+        return petshop.getColony()
+            .getResearchManager()
+            .getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.VET) > 0;
     }
 
     /**

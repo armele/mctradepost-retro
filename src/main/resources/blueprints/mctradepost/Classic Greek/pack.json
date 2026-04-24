@@ -1,0 +1,15 @@
+{
+"version": 1,
+"pack-format": 1,
+"desc": "Economic structures supporting the Trade Post add-on for MineColonies in a classic greek style.",
+"authors":
+    [
+    "Veenight"
+    ],
+"mods":
+    [
+    "structurize"
+    ],
+"name": "Classic Greek",
+"icon": "classicgreek.png"
+}

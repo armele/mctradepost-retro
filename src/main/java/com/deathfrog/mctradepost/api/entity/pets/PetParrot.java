@@ -41,7 +41,6 @@ import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
@@ -159,13 +158,6 @@ public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet, IMa
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
 
-        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
-
-        if (hurtByTargetGoal != null)
-        {
-            this.targetSelector.addGoal(23, hurtByTargetGoal);
-        }
-
         if (this.petData == null)
         {
             // LOGGER.warn("Skipping pet goal registration: petData is null");
@@ -274,6 +266,17 @@ public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet, IMa
         }
 
         return super.hurt(damageSource, damage);
+    }
+
+    @Override
+    public void die(@Nonnull DamageSource damageSource)
+    {
+        if (petData != null && petData.tryRescueFromDeath(damageSource))
+        {
+            return;
+        }
+
+        super.die(damageSource);
     }
 
     /**

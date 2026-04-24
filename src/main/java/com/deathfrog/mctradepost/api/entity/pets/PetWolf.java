@@ -41,7 +41,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
@@ -128,13 +127,6 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet, IManage
         this.goalSelector.addGoal(16, new WaterAvoidingRandomStrollGoal(this, 1.0));
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
-
-        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
-
-        if (hurtByTargetGoal != null)
-        {
-            this.targetSelector.addGoal(23, hurtByTargetGoal);
-        }
 
         if (this.petData == null)
         {
@@ -244,6 +236,17 @@ public class PetWolf extends Wolf implements ITradePostPet, IHerdingPet, IManage
         }
 
         return super.hurt(damageSource, damage);
+    }
+
+    @Override
+    public void die(@Nonnull DamageSource damageSource)
+    {
+        if (petData != null && petData.tryRescueFromDeath(damageSource))
+        {
+            return;
+        }
+
+        super.die(damageSource);
     }
 
     /**

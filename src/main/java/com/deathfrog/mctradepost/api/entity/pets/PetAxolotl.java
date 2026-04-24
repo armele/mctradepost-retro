@@ -39,7 +39,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
-import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
@@ -213,13 +212,6 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet, I
         );
         this.goalSelector.addGoal(18, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(19, new RandomLookAroundGoal(this));
-
-        HurtByTargetGoal hurtByTargetGoal = new HurtByTargetGoal(this).setAlertOthers();
-
-        if (hurtByTargetGoal != null)
-        {
-            this.targetSelector.addGoal(23, hurtByTargetGoal);
-        }
 
         if (this.petData == null)
         {
@@ -511,6 +503,17 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet, I
         }
 
         return super.hurt(damageSource, damage);
+    }
+
+    @Override
+    public void die(@Nonnull DamageSource damageSource)
+    {
+        if (petData != null && petData.tryRescueFromDeath(damageSource))
+        {
+            return;
+        }
+
+        super.die(damageSource);
     }
 
     /**

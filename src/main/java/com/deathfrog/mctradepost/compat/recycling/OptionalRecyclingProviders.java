@@ -15,11 +15,6 @@ public final class OptionalRecyclingProviders
 {
     private static final CopyOnWriteArrayList<IOptionalRecyclingProvider> PROVIDERS = new CopyOnWriteArrayList<>();
 
-    static
-    {
-        register(new SilentGearRecyclingProvider());
-    }
-
     private OptionalRecyclingProviders()
     {
     }
