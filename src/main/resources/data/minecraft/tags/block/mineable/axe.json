@@ -1,7 +1,16 @@
 {
   "replace": false,
   "values": [
-    "mctradepost:woven_kelp",
-    "mctradepost:ivy_brick"
+    "mctradepost:distressed",
+    "mctradepost:stacked_slab",
+    "mctradepost:side_slab",
+    "mctradepost:side_slab_interleaved",
+    "mctradepost:glazed",
+    "mctradepost:checkerboard",
+    "mctradepost:trough",
+    "mctradepost:scavenge",
+    "mctradepost:dredger",
+    "mctradepost:feeder",
+    "mctradepost:hauler"
   ]
 }

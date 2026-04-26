@@ -1364,6 +1364,7 @@ public class MCTradePostMod
             }
         }
 
+        @SuppressWarnings("null")
         @SubscribeEvent(priority = EventPriority.HIGH)
         public static void registerCaps(final RegisterCapabilitiesEvent event)
         {

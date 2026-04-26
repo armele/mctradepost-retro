@@ -9,6 +9,7 @@ import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
+import com.deathfrog.mctradepost.core.blocks.BlockTrough;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -209,6 +210,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         return name;
     }
 
+    @SuppressWarnings("null")
     @Override
     public Component getDisplayName()
     {
@@ -349,6 +351,11 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         if (this.derivedName != null)
         {
             return true;
+        }
+
+        if (!(this.getBlockState().getBlock() instanceof BlockTrough))
+        {
+            return false;
         }
 
         Level level = getLevel();

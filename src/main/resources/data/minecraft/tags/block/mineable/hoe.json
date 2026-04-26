@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:thatch",
+    "mctradepost:thatch_stairs",
+    "mctradepost:thatch_wall",
+    "mctradepost:thatch_slab",
+    "mctradepost:woven_kelp",
+    "mctradepost:woven_kelp_stairs",
+    "mctradepost:woven_kelp_wall",
+    "mctradepost:woven_kelp_slab",
+    "mctradepost:ivy_brick"
+  ]
+}

@@ -32,7 +32,6 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
 import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
@@ -298,11 +297,13 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
             }
 
-            if (pet.getWorkLocation() != null && !BlockPos.ZERO.equals(pet.getWorkLocation()))
+            BlockPos pwBlockPos = pet.getWorkLocation();
+
+            if (pwBlockPos != null && !BlockPos.ZERO.equals(pwBlockPos))
             {
-                if (!isHaulerWorkLocation(pet.getWorkLocation()))
+                if (!isHaulerWorkLocation(pwBlockPos))
                 {
-                    currentWorkStations.add(pet.getWorkLocation());
+                    currentWorkStations.add(pwBlockPos);
                 }
             }
         }
@@ -540,6 +541,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
      *
      * @return the oldest BlockPos in the workStations map, or null if the map is empty.
      */
+    @SuppressWarnings("null")
     @Nullable
     private BlockPos getOldestUnload()
     {
@@ -633,25 +635,8 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return getState();
         }
 
-        BlockPos marketPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingMarketplace.class);
-
-        if (marketPos == null || BlockPos.ZERO.equals(marketPos))
-        {
-            int complaints = job.tickNoMarketplace();
-
-            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has no access to a marketplace ({} tries).", building.getColony().getID(), complaints));
-
-            if (job.checkNoMarketplaceInteraction())
-            {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
-            }
-
-            return DECIDE;
-        }
-
-        BuildingMarketplace marketplace = (BuildingMarketplace) building.getColony().getServerBuildingManager().getBuilding(marketPos);
-
-        if (marketplace == null)
+        BuildingEconModule econ = BuildingMarketplace.getBestEconModuleFor(building);
+        if (econ == null)
         {
             int complaints = job.tickNoMarketplace();
 
@@ -667,7 +652,6 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         job.resetNoMarketplaceCounter();
 
-        BuildingEconModule econ = marketplace.getModule(MCTPBuildingModules.ECON_MODULE);
         int coinValue = MCTPConfig.tradeCoinValue.get();
 
         List<PetTypes> activePetTypes = new ArrayList<PetTypes>();
@@ -718,8 +702,18 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
             }
 
-            // Deduct the coin cost.
-            econ.deposit(-costNeeded);
+            if (!econ.tryWithdraw(costNeeded))
+            {
+                int complaints = job.tickNSF();
+
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has insufficient funds ({} tries).", building.getColony().getID(), complaints));
+
+                if (job.checkNSF())
+                {
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+                }
+                continue;
+            }
 
             MCTPInventoryUtils.combinedInventoryRemoval(building, new ItemStorage(trainingStack), trainingStack.getCount());
             
@@ -747,8 +741,16 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
                 else
                 {
-                    BlockPos spawnPos = PetHelper.findNearbyValidSpawn(building.getColony().getWorld(), building.getPosition(), 3);
-                    pet.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                    Optional<BlockPos> spawnPos = PetHelper.findNearbyValidSpawn(pet, building.getPosition(), 3);
+                    if (spawnPos.isEmpty())
+                    {
+                        MCTradePostMod.LOGGER.warn("Unable to find a safe spawn position near pet shop {} for animal {}.",
+                            building.getPosition(), pet);
+                        return DECIDE;
+                    }
+
+                    BlockPos safeSpawnPos = spawnPos.get();
+                    pet.setPos(safeSpawnPos.getX() + 0.5, safeSpawnPos.getY(), safeSpawnPos.getZ() + 0.5);
                     building.getColony().getWorld().addFreshEntity(pet);
                     
                     StatsUtil.trackStat(building, OTHER_ACQUIRED, 1);

@@ -1018,7 +1018,18 @@ public class BuildingRecycling extends AbstractBuilding
             return null;
         }
 
-        addDisenchantmentOutputs(inputStack, level, actualOutput);
+        if (workerSkill < 0)
+        {
+            if (!canAttemptDisenchantment(inputStack))
+            {
+                return null;
+            }
+        }
+        else if (!tryAddDisenchantmentOutputs(inputStack, level, actualOutput))
+        {
+            return null;
+        }
+
         return actualOutput;
     }
 
@@ -1212,20 +1223,42 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
+     * Checks whether an enchanted item has any path to safe disenchantment.
+     *
+     * @param inputStack the item stack being considered for recycling
+     * @return true if the item is unenchanted or can attempt enchantment extraction
+     */
+    protected boolean canAttemptDisenchantment(@Nonnull final ItemStack inputStack)
+    {
+        if (!inputStack.isEnchanted())
+        {
+            return true;
+        }
+
+        double disenchantmentStrength = this.getColony()
+            .getResearchManager()
+            .getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.RESEARCH_DISENCHANTING);
+
+        return disenchantmentStrength > 0.0 && !MCTPInventoryUtils.extractEnchantmentsToBooks(inputStack.copy()).isEmpty();
+    }
+
+    /**
      * Adds enchantment book recovery outputs when the input stack is enchanted
      * and the colony has unlocked the relevant research effect.
      *
      * @param inputStack the item stack being recycled
      * @param level the active level used for random rolls
      * @param actualOutput the mutable output list to append recovered enchantments to
+     * @return true if recycling may proceed, false if the enchanted item should be preserved whole
      */
-    protected void addDisenchantmentOutputs(@Nonnull final ItemStack inputStack,
+    protected boolean tryAddDisenchantmentOutputs(@Nonnull final ItemStack inputStack,
         @Nonnull final Level level,
         @Nonnull final List<ItemStack> actualOutput)
     {
         if (!inputStack.isEnchanted())
         {
-            return;
+            return true;
         }
 
         double disenchantmentStrength = this.getColony()
@@ -1246,6 +1279,7 @@ public class BuildingRecycling extends AbstractBuilding
             if (!enchantments.isEmpty())
             {
                 actualOutput.addAll(enchantments);
+                return true;
             }
         }
         else
@@ -1256,6 +1290,8 @@ public class BuildingRecycling extends AbstractBuilding
                     disenchantmentStrength,
                     roll));
         }
+
+        return false;
     }
 
     /**

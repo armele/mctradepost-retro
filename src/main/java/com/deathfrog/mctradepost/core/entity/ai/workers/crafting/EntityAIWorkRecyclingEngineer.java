@@ -9,9 +9,13 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
 import com.deathfrog.mctradepost.core.colony.jobs.JobRecyclingEngineer;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
@@ -30,6 +34,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RECYCLING;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -71,6 +76,13 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
     protected BlockPos currentOutputChest = null;
     protected BlockPos currentInputChest = null;
     protected BlockPos maintenanceLocation = null;
+
+    /**
+     * How many times the AI should attempt to find an allegedly delivered item before giving up on it.
+     */
+    protected int deliverAcceptanceCounter = 0;
+    protected static final int SOFT_DELIVERY_ACCEPTANCE_COUNTER = 10;
+    protected static final int HARD_DELIVERY_ACCEPTANCE_COUNTER = 20;
 
     /**
      * Initialize the recycling engineer and add all his tasks.
@@ -542,8 +554,15 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     else
                     {
                         // TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId()));
-                        MessageUtils.format("Your recycling engineer could not recycle the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
-                        
+                        if (removedStack.isEnchanted())
+                        {
+                            MessageUtils.format("Your recycling engineer could not safely strip the enchantments from the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                        }
+                        else
+                        {
+                            MessageUtils.format("Your recycling engineer could not recycle the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                        }
+                         
                         if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle))
                         {
                             InventoryUtils
@@ -707,5 +726,75 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
     public Class<BuildingRecycling> getExpectedBuildingClass()
     {
         return BuildingRecycling.class;
+    }
+
+    /**
+     * Waits for the AI to receive new requests from the building. If the AI needs an item, but there are no open requests, the AI will
+     * transition to the DECIDE state to decide what to do next. If the AI does not need an item, the AI will transition back to the
+     * IDLE state.
+     * 
+     * @return The next AI state to transition to.
+     */
+    @Override
+    protected @NotNull IAIState waitForRequests() 
+    {
+        IAIState state = super.waitForRequests();
+
+        TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Colony {} - Recycling Engineer waitForRequests() has open sync request? {} Has completed reqeusts to pick up? {} state: {}. deliverAcceptanceCounter: {}", 
+            building.getColony().getID(), building.hasOpenSyncRequest(worker.getCitizenData()), building.hasCitizenCompletedRequestsToPickup(worker.getCitizenData()), state, deliverAcceptanceCounter));
+
+        if (state != AIWorkerState.NEEDS_ITEM) 
+        {
+            deliverAcceptanceCounter = 0;
+            return state;
+        }
+
+        if (deliverAcceptanceCounter++ < SOFT_DELIVERY_ACCEPTANCE_COUNTER || building.hasOpenSyncRequest(worker.getCitizenData())) 
+        {
+            return state;
+        }
+
+        boolean clearedSomething = cleanStuckRequests(deliverAcceptanceCounter);
+
+        if (clearedSomething)
+        {
+            deliverAcceptanceCounter = 0;
+        }
+
+        // If we didn't clear anything, staying in NEEDS_ITEM is more honest than DECIDE.
+        return clearedSomething ? AIWorkerState.DECIDE : AIWorkerState.NEEDS_ITEM;
+    }
+
+    /**
+     * Cleans stuck requests from the building's request queue that are not deliverable anymore (for example, if a request is async, but the
+     * citizen is not available to pick it up anymore).
+     * 
+     * @return true if any requests were cleared, false otherwise.
+     */
+    protected boolean cleanStuckRequests(int tryCounter)
+    {
+        ICitizenData citizen = worker.getCitizenData();
+        Collection<IRequest<?>> completed = building.getCompletedRequestsOfCitizenOrBuilding(citizen);
+
+        boolean cleared = false;
+
+        // Copy IDs to avoid concurrent modification surprises.
+        List<IRequest<?>> snapshot = new ArrayList<>(completed);
+
+        for (IRequest<?> request : snapshot)
+        {
+            IToken<?> id = request.getId();
+            if (!request.canBeDelivered() || citizen.isRequestAsync(id) || tryCounter > HARD_DELIVERY_ACCEPTANCE_COUNTER)
+            {
+
+                TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Colony {} - Recycling Engineer cleanStuckRequests() clearing stuck request: {}", 
+                    building.getColony().getID(), request.getLongDisplayString()));
+
+                building.markRequestAsAccepted(citizen, id);
+                cleared = true;
+            }
+        }
+
+        return cleared;
     }
 }

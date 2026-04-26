@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -216,8 +217,17 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     }
 
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Summoning pet: {}", pet));
-                    BlockPos targetPos = PetHelper.findNearbyValidSpawn(trainerBuilding.getColony().getWorld(), trainerBuilding.getPosition(), 3);
-                    entity.teleportTo(targetPos.getX(), targetPos.getY(), targetPos.getZ());
+                    Optional<BlockPos> targetPos = PetHelper.findNearbyValidSpawn(entity, trainerBuilding.getPosition(), 3);
+                    if (targetPos.isEmpty())
+                    {
+                        MCTradePostMod.LOGGER.warn("Unable to find a safe summon position near pet shop {} for pet {}.",
+                            trainerBuilding.getPosition(), entity);
+                        MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.summonfailed")).sendTo(player);
+                        return;
+                    }
+
+                    BlockPos safeTargetPos = targetPos.get();
+                    entity.teleportTo(safeTargetPos.getX() + 0.5D, safeTargetPos.getY(), safeTargetPos.getZ() + 0.5D);
                     MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.summoned")).sendTo(player);
                     petshop.markPetsDirty();
                 } 

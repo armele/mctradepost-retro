@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.entity.pets;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -10,6 +11,7 @@ import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.goals.EatFromInventoryHealGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.HaulInventoryToWarehouseGoal;
@@ -35,7 +37,10 @@ import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
 import com.deathfrog.mctradepost.core.blocks.BlockHauler;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
@@ -523,13 +528,14 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public void assignGoalFromWorkLocation()
     {
+        P localAnimal = this.getAnimal();
 
-        if (this.getAnimal() == null)
+        if (localAnimal == null)
         {
             return;
         }
 
-        PetRoles role = this.roleFromWorkLocation(this.getAnimal().level());
+        PetRoles role = this.roleFromWorkLocation(localAnimal.level());
 
         if (role == null)
         {
@@ -540,32 +546,32 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         {
             case HERDING:
                 TraceUtils.dynamicTrace(TRACE_PETHERDGOALS, () -> LOGGER.info("Assigning herding goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HerdGoal<P>(this.getAnimal()));
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new HerdGoal<P>(localAnimal));
                 break;
 
             case SCAVENGE_LAND:
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ForageGoal<>(
-                    this.getAnimal(),
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ForageGoal<>(
+                    localAnimal,
                     16,                      // search radius
                     8.0,                     // light level (optional to ignore)
                     0.3f,                    // 30% success rate
                     pos -> {
-                        BlockState stateBelow = this.getAnimal().level().getBlockState(NullnessBridge.assumeNonnull(pos.below()));
-                        return this.getAnimal().level().getMaxLocalRawBrightness(pos) < 8 &&
+                        BlockState stateBelow = localAnimal.level().getBlockState(NullnessBridge.assumeNonnull(pos.below()));
+                        return localAnimal.level().getMaxLocalRawBrightness(pos) < 8 &&
                             (stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.DIRT)) || stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.MUSHROOM_GROW_BLOCK))) &&
-                            this.getAnimal().level().isEmptyBlock(pos);
+                            localAnimal.level().isEmptyBlock(pos);
                     },
                     pos -> {
                         // Pick a mushroom
-                        Block mushroomBlock = this.getAnimal().getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
+                        Block mushroomBlock = localAnimal.getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
                         Item mushroomItem = mushroomBlock.asItem();
                         
                         // Track the stat with item name
                         StatsUtil.trackStatByName(this.getTrainerBuilding(), ForageGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
 
                         // Place the mushroom
-                        this.getAnimal().level().setBlock(NullnessBridge.assumeNonnull(pos), NullnessBridge.assumeNonnull(mushroomBlock.defaultBlockState()), 3);
+                        localAnimal.level().setBlock(NullnessBridge.assumeNonnull(pos), NullnessBridge.assumeNonnull(mushroomBlock.defaultBlockState()), 3);
                     },
                     1000
                 ));
@@ -573,8 +579,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             case SCAVENGE_WATER:
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_water goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
-                    this.getAnimal(), 
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
+                    localAnimal, 
                     new WaterScavengeProfile<>(),
                     8,
                     0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
@@ -588,7 +594,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 BlockPos localWorkPos = this.getWorkLocation();
                 if (localWorkPos != null)
                 {
-                    BlockState state = this.getAnimal().level().getBlockState(localWorkPos);
+                    BlockState state = localAnimal.level().getBlockState(localWorkPos);
                     if (state.getBlock() instanceof BlockFeeder && state.hasProperty(BlockFeeder.HANGING)) 
                     {
                         hanging = state.getValue(BlockFeeder.HANGING);
@@ -598,8 +604,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 final boolean localHanging = hanging;
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_vegetation goals for pet {} (hanging: {}):", this.animal.getUUID(), localHanging));
 
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
-                    this.getAnimal(), 
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
+                    localAnimal, 
                     localHanging ? new VegetationScavengeProfile<>() : new VegetationScavengeProfile<>(3, 2, 140),
                     12,
                     localHanging ? 0.08f : 0.12f, // Chance per try; there are 10 tries per cooldown cycle.
@@ -610,7 +616,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             case HAULING:
                 TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Assigning hauling goals for pet {}:", this.animal.getUUID()));
-                this.getAnimal().goalSelector.addGoal(JOB_GOAL_PRIORITY, new HaulInventoryToWarehouseGoal<>(this.getAnimal()));
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new HaulInventoryToWarehouseGoal<>(localAnimal));
                 break;
 
             case NONE:
@@ -1607,7 +1613,29 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         rescueFromDeathInProgress = true;
         try
         {
-            BlockPos targetPos = PetHelper.findNearbyValidSpawn(trainerLevel, petshop.getPosition(), 3);
+            Optional<BlockPos> targetPos = PetHelper.findNearbyValidSpawn(localAnimal, petshop.getPosition(), 3);
+            if (targetPos.isEmpty())
+            {
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.warn("Unable to find a safe rescue position near pet shop {} for pet {}.",
+                    petshop.getPosition(), localAnimal));
+                return false;
+            }
+
+            int rescueCost = MCTPConfig.tradeCoinValue.get() * CoinItem.GOLD_MULTIPLIER;
+            BuildingEconModule econ = BuildingMarketplace.getBestEconModuleFor(petshop);
+            if (econ == null)
+            {
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unable to rescue pet {} because colony {} has no marketplace economy module.",
+                    localAnimal.getUUID(), petshop.getColony().getID()));
+                return false;
+            }
+
+            if (!econ.tryWithdraw(rescueCost))
+            {
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unable to rescue pet {} because colony {} has insufficient funds. Cost: {}, balance: {}.",
+                    localAnimal.getUUID(), petshop.getColony().getID(), rescueCost, econ.getTotalBalance()));
+                return false;
+            }
 
             localAnimal.getNavigation().stop();
             localAnimal.setTarget(null);
@@ -1617,7 +1645,8 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             localAnimal.clearFire();
             localAnimal.fallDistance = 0.0F;
             localAnimal.invulnerableTime = 40;
-            localAnimal.teleportTo(targetPos.getX() + 0.5D, targetPos.getY(), targetPos.getZ() + 0.5D);
+            BlockPos safeTargetPos = targetPos.get();
+            localAnimal.teleportTo(safeTargetPos.getX() + 0.5D, safeTargetPos.getY(), safeTargetPos.getZ() + 0.5D);
             playRescueEffects(trainerLevel, localAnimal);
 
             PetRegistryUtil.register(localAnimal);

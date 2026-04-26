@@ -4,6 +4,7 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IVisitorData;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.entity.ai.statemachine.states.CitizenAIState;
@@ -67,6 +68,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPKEEPER;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_SHOPPER;
@@ -641,6 +643,44 @@ public class BuildingMarketplace extends AbstractBuilding
                 .orElse(null);
         }
         return closestMarketplace;
+    }
+
+    /**
+     * Finds the best marketplace for a source building using MineColonies' building manager lookup.
+     *
+     * @param sourceBuilding the building that needs marketplace access
+     * @return the best marketplace, or null if none is available
+     */
+    @Nullable
+    public static BuildingMarketplace getBestMarketplaceFor(@Nullable IBuilding sourceBuilding)
+    {
+        if (sourceBuilding == null || sourceBuilding.getColony() == null)
+        {
+            return null;
+        }
+
+        BlockPos marketPos = sourceBuilding.getColony().getServerBuildingManager().getBestBuilding(sourceBuilding.getPosition(), BuildingMarketplace.class);
+
+        if (marketPos == null || BlockPos.ZERO.equals(marketPos))
+        {
+            return null;
+        }
+
+        IBuilding building = sourceBuilding.getColony().getServerBuildingManager().getBuilding(marketPos);
+        return building instanceof BuildingMarketplace marketplace ? marketplace : null;
+    }
+
+    /**
+     * Finds the economy module attached to the best marketplace for a source building.
+     *
+     * @param sourceBuilding the building that needs marketplace economy access
+     * @return the economy module, or null if no marketplace/economy module is available
+     */
+    @Nullable
+    public static BuildingEconModule getBestEconModuleFor(@Nullable IBuilding sourceBuilding)
+    {
+        BuildingMarketplace marketplace = getBestMarketplaceFor(sourceBuilding);
+        return marketplace == null ? null : marketplace.getModule(MCTPBuildingModules.ECON_MODULE);
     }
 
     /**

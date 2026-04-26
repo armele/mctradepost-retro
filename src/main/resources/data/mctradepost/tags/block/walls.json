@@ -2,9 +2,12 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone_wall",
+    "mctradepost:mixed_stone_brick_wall",
     "mctradepost:plaster_wall",
+    "mctradepost:quartz_plaster_wall",
     "mctradepost:rough_stone_wall",
     "mctradepost:rough_brick_wall",
+    "mctradepost:diagonal_brick_wall",
     "mctradepost:thatch_wall",
     "mctradepost:endethyst_wall",
     "mctradepost:endethyst_brick_wall",
@@ -12,6 +15,8 @@
     "mctradepost:endmarine_brick_wall",
     "mctradepost:marine_lapis_wall",
     "mctradepost:marine_lapis_brick_wall",
-    "mctradepost:weathered_rough_stone_wall"
+    "mctradepost:weathered_rough_stone_wall",
+    "mctradepost:marine_basalt_wall",
+    "mctradepost:woven_kelp_wall"
   ]
 }

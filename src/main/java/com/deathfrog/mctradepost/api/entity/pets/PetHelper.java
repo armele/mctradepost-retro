@@ -1,10 +1,19 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 public class PetHelper<P extends Animal & ITradePostPet>
 {
@@ -35,43 +44,116 @@ public class PetHelper<P extends Animal & ITradePostPet>
         if (localPet == null) return;
 
         localPet.setTrainerBuilding(building);
-        BlockPos spawnPos = findNearbyValidSpawn(building.getColony().getWorld(), building.getPosition(), 3);
-        localPet.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+        Optional<BlockPos> spawnPos = findNearbyValidSpawn(localPet, building.getPosition(), 3);
+        if (spawnPos.isEmpty())
+        {
+            MCTradePostMod.LOGGER.warn("Unable to find a safe spawn position near pet shop {} for pet {}.", building.getPosition(), localPet);
+            return;
+        }
+
+        BlockPos targetPos = spawnPos.get();
+        localPet.setPos(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5);
         building.getColony().getWorld().addFreshEntity(localPet);
         PetRegistryUtil.register(localPet);
         building.markPetsDirty();
     }
 
     /**
-     * Finds a nearby valid spawn position for an entity. The search is done in a cube centered at the given origin with the given
-     * radius. The vertical range is small, as the search is only done in a 5-block high range centered at the origin's Y coordinate.
+     * Finds a nearby safe spawn position for an entity. The search prefers nearby positions
+     * and validates the actual entity bounding box against block collisions.
      *
-     * @param level  the level to search in.
+     * @param entity the entity to place.
      * @param origin the origin of the search.
      * @param radius the radius of the search.
-     * @return a valid spawn position or the origin if no valid spot is found.
+     * @return a valid spawn position, or empty if no safe spot is found.
      */
-    public static BlockPos findNearbyValidSpawn(Level level, BlockPos origin, int radius)
+    public static Optional<BlockPos> findNearbyValidSpawn(Entity entity, BlockPos origin, int radius)
     {
-        for (int dx = -radius; dx <= radius; dx++)
+        if (entity == null || entity.level() == null || origin == null)
         {
-            for (int dy = -2; dy <= 2; dy++)
-            { // small vertical range
-                for (int dz = -radius; dz <= radius; dz++)
+            return Optional.empty();
+        }
+
+        Level level = entity.level();
+        List<BlockPos> candidates = new ArrayList<>();
+        int searchRadius = Math.max(5, radius);
+
+        for (int dx = -searchRadius; dx <= searchRadius; dx++)
+        {
+            for (int dy = -3; dy <= 3; dy++)
+            {
+                for (int dz = -searchRadius; dz <= searchRadius; dz++)
                 {
-                    BlockPos checkPos = origin.offset(dx, dy, dz);
-                    BlockPos checkBelow = checkPos.below();
-
-                    if (checkPos == null || checkBelow == null) continue;
-
-                    if (level.getBlockState(checkPos).isAir() &&
-                        level.getBlockState(checkBelow).isSolidRender(level, checkBelow))
-                    {
-                        return checkPos;
-                    }
+                    candidates.add(origin.offset(dx, dy, dz));
                 }
             }
         }
-        return origin; // fallback if no valid spot found
+
+        candidates.sort(Comparator.comparingDouble(pos -> pos.distSqr(origin)));
+
+        for (BlockPos candidate : candidates)
+        {
+            if (isSafeSpawnPosition(level, entity, candidate))
+            {
+                return Optional.of(candidate);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Is this a safe spot for the designated entity to spawn?
+     * 
+     * @param level
+     * @param entity
+     * @param pos
+     * @return
+     */
+    @SuppressWarnings("null")
+    private static boolean isSafeSpawnPosition(Level level, Entity entity, BlockPos pos)
+    {
+        if (level == null || entity == null || pos == null || !level.isInWorldBounds(pos) || !level.isLoaded(pos))
+        {
+            return false;
+        }
+
+        BlockPos floorPos = pos.below();
+
+        if (floorPos == null)
+        {
+            return false;
+        }
+
+        if (!level.isInWorldBounds(floorPos) || !level.isLoaded(floorPos) || !level.loadedAndEntityCanStandOn(floorPos, entity))
+        {
+            return false;
+        }
+
+        double x = pos.getX() + 0.5D;
+        double y = pos.getY();
+        double z = pos.getZ() + 0.5D;
+        AABB targetBox = entity.getDimensions(entity.getPose()).makeBoundingBox(x, y, z).deflate(1.0E-7D);
+
+        if (!level.noCollision(entity, targetBox) || level.containsAnyLiquid(targetBox))
+        {
+            return false;
+        }
+
+        for (BlockPos occupiedPos : BlockPos.betweenClosed(
+            (int) Math.floor(targetBox.minX),
+            (int) Math.floor(targetBox.minY),
+            (int) Math.floor(targetBox.minZ),
+            (int) Math.floor(targetBox.maxX),
+            (int) Math.floor(targetBox.maxY),
+            (int) Math.floor(targetBox.maxZ)))
+        {
+            if (!level.isInWorldBounds(occupiedPos) || !level.isLoaded(occupiedPos))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

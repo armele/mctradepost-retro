@@ -85,6 +85,28 @@ public class BuildingEconModule extends AbstractBuildingModule implements IPersi
         markDirty();
     }
 
+    /**
+     * Attempts to withdraw a given value from the colony economy.
+     *
+     * @param amount the value to withdraw
+     * @return true if the balance was sufficient and the withdrawal was applied
+     */
+    public boolean tryWithdraw(final int amount)
+    {
+        if (amount <= 0)
+        {
+            return true;
+        }
+
+        if (getTotalBalance() < amount)
+        {
+            return false;
+        }
+
+        deposit(-amount);
+        return true;
+    }
+
 
     /**
      * Returns the total balance for the building.

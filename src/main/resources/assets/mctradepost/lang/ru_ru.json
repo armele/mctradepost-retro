@@ -478,6 +478,7 @@
   "com.minecolonies.coremod.gui.petstore.setfree": "Отправить питомца на ферму за городом",
   "com.minecolonies.coremod.gui.petstore.freed": "Ваш питомец отправился на ферму за городом!",
   "com.minecolonies.coremod.gui.petstore.summoned": "Ваш питомец был призван обратно к дрессировщику!",
+  "com.minecolonies.coremod.gui.petstore.summonfailed": "No safe place was found near the trainer for your pet.",
   "com.minecolonies.coremod.gui.petstore.noperms": "У вас нет прав в этом зоомагазине.",
   "com.minecolonies.coremod.gui.guestlist": "Список гостей",
   "com.minecolonies.coremod.gui.guestlist.hover": "Текущая книга отзывов гостей курорта и их пожелания.",

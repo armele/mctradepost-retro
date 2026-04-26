@@ -238,6 +238,13 @@ public class HaulInventoryToWarehouseGoal<P extends Animal & ITradePostPet> exte
         return false;
     }
 
+    /**
+     * Allows the pet to pick up inventory from the hauler work block.
+     * 
+     * @param level
+     * @return
+     */
+    @SuppressWarnings("null")
     private boolean pickUpFromHauler(@Nonnull Level level)
     {
         if (!(level instanceof ServerLevel serverLevel)) return false;
@@ -321,6 +328,13 @@ public class HaulInventoryToWarehouseGoal<P extends Animal & ITradePostPet> exte
         return trainerBuilding;
     }
 
+    /**
+     * Delivers everything but one stack of food to the target inventory.
+     * 
+     * @param targetInventory
+     * @return
+     */
+    @SuppressWarnings("null")
     private boolean deliverNonFood(@Nonnull IItemHandler targetInventory)
     {
         IItemHandler petInventory = pet.getInventory();
@@ -343,6 +357,13 @@ public class HaulInventoryToWarehouseGoal<P extends Animal & ITradePostPet> exte
         return changed;
     }
 
+    /**
+     * If there is more than one stack of pet food, deliver that extra amount to the target inventory.
+     * 
+     * @param targetInventory
+     * @return
+     */
+    @SuppressWarnings("null")
     private boolean deliverExcessPetFood(@Nonnull IItemHandler targetInventory)
     {
         Item petFood = PetTypes.foodForPet(pet.getClass());
