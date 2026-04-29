@@ -10,6 +10,7 @@ import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
+import com.ldtteam.blockui.controls.TextField;
 import com.ldtteam.blockui.views.DropDownList;
 import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
@@ -48,19 +49,34 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
     public static final String CURRENT_BALANCE = "current_balance";
     public static final String PARTIAL_ECON_MODIFIER_NAME = "com.mctradepost.coremod.gui.econ.";
     public static final String WITHDRAW_TOOLTIP = "com.mctradepost.coremod.gui.econ.withdraw.tooltip";
+    public static final String WITHDRAW_TOOLTIP_NSF = "com.mctradepost.coremod.gui.econ.withdraw.tooltip.nsf";
     public static final String TAG_BUTTON_WITHDRAW_COIN = "withdrawCoin";
+    public static final String TAG_WITHDRAW_AMOUNT = "withdrawAmount";
     /**
      * Util tags.
      */
     private static final String ECONWINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layouteconmodule.xml";
 
+    private final EconModuleView econModuleView;
+    private int currentBalance = 0;
+
     public WindowEconModule(EconModuleView econModuleView, IStatisticsManager statsManager) {
         super(econModuleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ECONWINDOW_RESOURCE_SUFFIX));
+        this.econModuleView = econModuleView;
         this.statsManager = statsManager;
 
         Button withdraw = findPaneOfTypeByID(TAG_BUTTON_WITHDRAW_COIN, Button.class);
+        TextField withdrawAmount = findPaneOfTypeByID(TAG_WITHDRAW_AMOUNT, TextField.class);
+        withdrawAmount.setText(Integer.toString(econModuleView.getLastWithdrawAmount()));
+        withdrawAmount.setHandler(input -> {
+            final int amount = getWithdrawAmount();
+            this.econModuleView.setLastWithdrawAmount(amount);
+            updateWithdrawButton();
+        });
+
         registerButton(TAG_BUTTON_WITHDRAW_COIN, this::withdrawCoin);
-        PaneBuilders.tooltipBuilder().hoverPane(withdraw).build().setText(Component.translatable(WITHDRAW_TOOLTIP));
+        PaneBuilders.tooltipBuilder().hoverPane(withdrawAmount).build().setText(Component.translatable(WITHDRAW_TOOLTIP, econModuleView.getLastWithdrawAmount()));
+        PaneBuilders.tooltipBuilder().hoverPane(withdraw).build().setText(Component.translatable(WITHDRAW_TOOLTIP, econModuleView.getLastWithdrawAmount()));
     }
 
     /**
@@ -102,7 +118,7 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
     private void updateStats()
     {
 
-        int currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
+        currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
         final Text balanceLabel = findPaneOfTypeByID("currentbalance", Text.class);
         NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
         String formattedSales = "‡" + formatter.format(currentBalance);        
@@ -147,6 +163,8 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
             }
         });
         intervalDropdown.setSelectedIndex(new ArrayList<>(INTERVAL.keySet()).indexOf(selectedInterval));
+
+        updateWithdrawButton();
     }
 
     private void onDropDownListChanged(final DropDownList dropDownList)
@@ -160,14 +178,53 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
     }
 
     /**
-     * On click withdraw one trade coin.
+     * On click withdraw the configured number of trade coins.
      *
      * @param button the clicked button.
      */
     private void withdrawCoin(@NotNull final Button button)
     {
-        WithdrawMessage withdrawal = new WithdrawMessage(buildingView);
+        final int amount = getWithdrawAmount();
+        if (!canWithdraw(amount))
+        {
+            updateWithdrawButton();
+            return;
+        }
+
+        econModuleView.setLastWithdrawAmount(amount);
+        WithdrawMessage withdrawal = new WithdrawMessage(buildingView, amount);
         withdrawal.sendToServer();
         updateStats();
+    }
+
+    private int getWithdrawAmount()
+    {
+        try
+        {
+            return Math.max(1, Integer.parseInt(findPaneOfTypeByID(TAG_WITHDRAW_AMOUNT, TextField.class).getText()));
+        }
+        catch (final NumberFormatException ex)
+        {
+            return 1;
+        }
+    }
+
+    private boolean canWithdraw(final int amount)
+    {
+        final int coinValue = MCTPConfig.tradeCoinValue.get();
+        return coinValue > 0 && amount > 0 && amount <= currentBalance / coinValue;
+    }
+
+    private void updateWithdrawButton()
+    {
+        final int amount = getWithdrawAmount();
+        final Button withdraw = findPaneOfTypeByID(TAG_BUTTON_WITHDRAW_COIN, Button.class);
+        final Component tooltip = canWithdraw(amount)
+            ? Component.translatable(WITHDRAW_TOOLTIP, amount)
+            : Component.translatable(WITHDRAW_TOOLTIP_NSF, amount);
+
+        withdraw.setEnabled(canWithdraw(amount));
+        PaneBuilders.tooltipBuilder().hoverPane(withdraw).build().setText(tooltip);
+        PaneBuilders.tooltipBuilder().hoverPane(findPaneOfTypeByID(TAG_WITHDRAW_AMOUNT, TextField.class)).build().setText(tooltip);
     }
 }

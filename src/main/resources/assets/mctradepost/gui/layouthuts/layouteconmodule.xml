@@ -16,7 +16,7 @@
         <text size="70 11" pos="20 55" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.currentbalance)"/>
         <text size="60 11" pos="90 55" textalign="MIDDLE_RIGHT" color="black" id="currentbalance"/>
 
-        <button id="withdrawCoin" pos="154 51" size="14 15" label="‡" color="black"
+        <button id="withdrawCoin" pos="154 104" size="14 15" label="‡" color="black"
                         source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
                         disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png"/>
 
@@ -24,6 +24,8 @@
         <text size="60 11" pos="90 70" textalign="MIDDLE_RIGHT" color="black" id="totalcash"/>
         <text size="70 11" pos="20 85" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
         <text size="60 11" pos="90 85" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
+        <text size="70 11" pos="20 108" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.withdraw.amount)"/>
+        <input id="withdrawAmount" size="45 14" pos="90 104" maxlength="6"/>
         <itemicon size="16 16" pos="70 200" color="black" id="coinicon"/>
         <text size="70 16" pos="90 200" textalign="MIDDLE_LEFT" color="black" id="coinvalue"/>
     </view>

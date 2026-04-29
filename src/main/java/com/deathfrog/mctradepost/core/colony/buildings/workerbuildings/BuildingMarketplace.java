@@ -550,17 +550,19 @@ public class BuildingMarketplace extends AbstractBuilding
 
         if (coinsToMint > 0)
         {
-            int valueToRemove = coinsToMint * coinValue;
-
             BuildingEconModule econ = this.getModule(MCTPBuildingModules.ECON_MODULE);
-            if (valueToRemove < econ.getTotalBalance())
+            econ.markDirty();
+            
+            long valueToRemove = (long) coinsToMint * coinValue;
+
+            if (valueToRemove > 0 && valueToRemove <= Integer.MAX_VALUE && valueToRemove <= econ.getTotalBalance())
             {
                 Item coinItem = BuildingMarketplace.tradeCurrency();
 
                 coinStack = new ItemStack(coinItem, coinsToMint);
                 CoinItem.setMintColony(coinStack, colony.getName());
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
-                econ.deposit(-valueToRemove);
+                econ.deposit(-(int) valueToRemove);
             }
             else
             {

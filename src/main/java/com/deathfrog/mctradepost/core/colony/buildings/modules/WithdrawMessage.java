@@ -19,19 +19,31 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jetbrains.annotations.NotNull;
 
 public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
 {
     public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "withdraw_message", WithdrawMessage::new);
 
+    private int coinCount = 1;
+
     protected WithdrawMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
+        coinCount = Math.max(1, buf.readInt());
     }
 
-    public WithdrawMessage(final IBuildingView building) 
+    public WithdrawMessage(final IBuildingView building, final int coinCount)
     {
         super(TYPE, building);
+        this.coinCount = Math.max(1, coinCount);
+    }
+
+    @Override
+    protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
+    {
+        super.toBytes(buf);
+        buf.writeInt(coinCount);
     }
 
     /**
@@ -48,10 +60,11 @@ public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
         final int mintingLevel = MCTPConfig.mintingLevel.get();
 
         if (building instanceof BuildingMarketplace marketplace && marketplace.getBuildingLevel() >= mintingLevel) {
-            ItemStack coins = marketplace.mintCoins(player, 1);
+            ItemStack coins = marketplace.mintCoins(player, coinCount);
             if (!coins.isEmpty()) {
                 player.addItem(coins);
                 withdrawEffects(marketplace);
+
                 MessageUtils.format("mctradepost.marketplace.minted").sendTo(player);
             }  
         }

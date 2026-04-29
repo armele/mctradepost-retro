@@ -9,8 +9,8 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
-import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -26,6 +26,7 @@ import com.minecolonies.core.util.ChunkDataHelper;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
@@ -68,23 +69,25 @@ public class OutpostRitualProcessor
             return RitualResult.FAILED;
         }
 
+        final ResourceLocation hutResearch = marketplace.getColony().getResearchManager().getResearchEffectIdFrom(MCTradePostMod.blockHutOutpost.get());
+        double outpostClaimLevel = marketplace.getColony().getResearchManager().getResearchEffects().getEffectStrength(hutResearch);
+        
+        // LOGGER.info("Research effect {} with level {}.", hutResearch, outpostClaimLevel);
+
+        if (outpostClaimLevel == 0)
+        {
+            MessageUtils.format("To wish for an outpost claim you must first complete the research to unlock the Outpost.")
+                .sendTo(marketplace.getColony())
+                .forAllPlayers();
+            return RitualResult.FAILED;
+        }
+
         IBuilding outpostBuilding =
             marketplace.getColony().getServerBuildingManager().getFirstBuildingMatching(b -> b.getBuildingType() == ModBuildings.outpost);
         if (outpostBuilding != null)
         {
             LOGGER.warn("Only one outpost may be claimed per colony.", state.getCompanionCount());
             MessageUtils.format("Only one outpost may be claimed per colony.").sendTo(marketplace.getColony()).forAllPlayers();
-            return RitualResult.FAILED;
-        }
-
-        double outpostClaimLevel =
-            marketplace.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.OUTPOST_CLAIM);
-
-        if (outpostClaimLevel == 0)
-        {
-            MessageUtils.format("To wish for an outpost claim you must first complete the research.")
-                .sendTo(marketplace.getColony())
-                .forAllPlayers();
             return RitualResult.FAILED;
         }
 

@@ -13,6 +13,8 @@ import net.minecraft.resources.ResourceLocation;
  */
 public class EconModuleView extends BuildingStatisticsModuleView
 {
+    private int lastWithdrawAmount = 1;
+
     /**
      * Get the icon of the module.
      * 
@@ -34,5 +36,15 @@ public class EconModuleView extends BuildingStatisticsModuleView
     public BOWindow getWindow()
     {
         return new WindowEconModule(this, this.getBuildingStatisticsManager());
+    }
+
+    public int getLastWithdrawAmount()
+    {
+        return lastWithdrawAmount;
+    }
+
+    public void setLastWithdrawAmount(final int lastWithdrawAmount)
+    {
+        this.lastWithdrawAmount = Math.max(1, lastWithdrawAmount);
     }
 }
