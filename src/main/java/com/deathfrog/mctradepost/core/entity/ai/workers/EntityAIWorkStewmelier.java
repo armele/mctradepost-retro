@@ -1147,8 +1147,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             }
 
             // LOGGER.info("Checking building at position {} of type {} for bowls.", buildingEntry.getKey(), buildingEntry.getValue().getClass().getSimpleName());
-
-            if (InventoryUtils.hasItemInProvider(buildingEntry.getValue(), stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack)))
+            int buildingCount = InventoryUtils.getCountFromBuilding(buildingEntry.getValue(), stack -> stack != null && ItemStack.isSameItem(stack, bowlReferenceStack));
+            if (buildingCount > 0)
             {
                 job.resetBowlCounter();
                 currentBowlPickupBuilding = buildingEntry.getValue();
