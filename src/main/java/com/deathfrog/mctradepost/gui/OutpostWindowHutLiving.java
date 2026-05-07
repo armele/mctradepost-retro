@@ -59,13 +59,14 @@ public class OutpostWindowHutLiving extends AbstractModuleWindow<OutpostLivingBu
                 return home.getAssignedCitizens().size();
             }
 
+            @SuppressWarnings("null")
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
                 final ICitizenDataView citizenDataView = home.getColony().getCitizen(home.getAssignedCitizens().get(index));
                 if (citizenDataView != null)
                 {
-                    rowPane.findPaneOfTypeByID("name", Text.class).setText(Component.literal((citizenDataView.getJob().isEmpty() ? "" : (Component.translatable(citizenDataView.getJob() + "").getString() + ": ")) + citizenDataView.getName()));
+                    rowPane.findPaneOfTypeByID("name", Text.class).setText(Component.literal((citizenDataView.getJob().isEmpty() ? "" : (Component.translatableEscape(citizenDataView.getJob()).getString() + ": ")) + citizenDataView.getName()));
                 }
             }
         });

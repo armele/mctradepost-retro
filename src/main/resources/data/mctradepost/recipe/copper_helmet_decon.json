@@ -1,0 +1,25 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "everythingcopper:copper_helmet"
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "everythingcopper"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "everythingcopper:copper_helmet"
+    }
+  ],
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:copper_ingot",
+        "count": 5
+      },
+      "chance": 1.0
+    }
+  ]
+}

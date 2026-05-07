@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.core.commands.CommandTree;
 import com.deathfrog.mctradepost.core.commands.CommandVacationClear;
 import com.deathfrog.mctradepost.core.commands.CommandVacationStatus;
 import com.deathfrog.mctradepost.core.commands.CommandFrameStatus;
+import com.deathfrog.mctradepost.core.commands.CommandOutpostInit;
 import com.deathfrog.mctradepost.core.commands.CommandPendingRecycling;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopDismiss;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopStatus;
@@ -33,6 +34,7 @@ public class MCTPCommands
     public static final String CMD_RESORT_VACATIONSTATUS = "vacationstatus";
     public static final String CMD_RESORT_CLEARVACATION = "clearvacations";
     public static final String CMD_DYNTRACE_SETTRACE = "trace";
+    public static final String CMD_OUTPOST_INIT = "init";
 
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) 
@@ -61,12 +63,16 @@ public class MCTPCommands
             .addNode(new CommandVacationStatus(CMD_RESORT_VACATIONSTATUS).build())
             .addNode(new CommandVacationClear(CMD_RESORT_CLEARVACATION).build());
 
+        final CommandTree mctpOutpostCommands = new CommandTree("outpost")
+            .addNode(new CommandOutpostInit(CMD_OUTPOST_INIT).build());
+
         /*
          * Root TradePost command tree, all subtrees are added here.
          */
         final CommandTree mctpRoot = new CommandTree("mctp")
             .addNode(mctpMarketplaceCommands)
             .addNode(mctpResortCommands)
+            .addNode(mctpOutpostCommands)
             .addNode(mctpRecyclingCommands)
             .addNode(mctpStationCommands)
             .addNode(mctpAnimalTrainerCommands)

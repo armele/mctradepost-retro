@@ -72,6 +72,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.items.IItemHandler;
 
 public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnimalTrainer, BuildingPetshop>
 {
@@ -379,6 +380,13 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 continue;
             }
 
+            if (hasEnoughFoodAtWorkLocation(pet, food))
+            {
+                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Skipping pet food delivery for {}; {} already has at least {} food at {}.",
+                    pet.getPetData().getAnimal(), food, PETFOOD_SIZE, pet.getWorkLocation()));
+                continue;
+            }
+
             int onHand = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), food);
 
             if (onHand < PETFOOD_SIZE)
@@ -475,16 +483,39 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         unloadWorkLocation(currentTargetPetWorkLocation);
         
         // Put the food into the work location
-        ItemStorage food = new ItemStorage(PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass()), PETFOOD_SIZE);
-        int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> Objects.equals(new ItemStorage(stack), food));
+        Item foodItem = PetTypes.foodForPet(currentTargetPet.getPetData().getAnimal().getClass());
+        if (foodItem == null)
+        {
+            currentTargetPet = null;
+            return DECIDE;
+        }
 
-        if (foodslot >= 0)
+        ItemStorage food = new ItemStorage(foodItem, PETFOOD_SIZE);
+        int foodAlreadyPresent = getFoodCountAtWorkLocation(currentTargetPetWorkLocation, foodItem);
+        int foodToDeliver = Math.max(0, PETFOOD_SIZE - foodAlreadyPresent);
+
+        if (foodToDeliver <= 0)
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Skipping pet food delivery to {}; {} food already staged.",
+                currentTargetPetWorkLocation, foodAlreadyPresent));
+            currentTargetPet = null;
+            return DECIDE;
+        }
+
+        int foodslot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> Objects.equals(new ItemStorage(stack), food));
+        IItemHandler chestHandler = chestHandlerOpt.getItemHandlerCap();
+
+        if (foodslot >= 0 && chestHandler != null)
         {
             TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Delivering pet food to {}.", currentTargetPet.getWorkLocation()));
-            InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(worker, foodslot, chestHandlerOpt.getItemHandlerCap());
+            
+            boolean delivered = transferFoodToWorkLocation(foodslot, chestHandler, foodToDeliver);
 
-            StatsUtil.trackStat(building, PETS_FED, 1);
-            worker.getCitizenExperienceHandler().addExperience(1.0);
+            if (delivered)
+            {
+                StatsUtil.trackStat(building, PETS_FED, 1);
+                worker.getCitizenExperienceHandler().addExperience(1.0);
+            }
 
             BlockEntity be = worker.level().getBlockEntity(currentTargetPetWorkLocation);
             if (be != null)
@@ -588,19 +619,41 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
         }
 
         IItemHandlerCapProvider chestHandlerOpt = optProvider.get();
+        Item expectedFood = getAssignedPetFood(workLocation);
+        int keptFood = 0;
 
-        // Unload everything in the work location EXCEPT pet food.
+        // Unload everything in the work location except one staged batch of the assigned pet's food.
         for (int i = 0; i < chestHandlerOpt.getItemHandlerCap().getSlots(); i++)
         {
             ItemStack stack = chestHandlerOpt.getItemHandlerCap().getStackInSlot(i);
-            if (!stack.isEmpty() && !PetTypes.isPetFood(stack))
+            if (stack.isEmpty())
             {
-                boolean canTake = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, i, worker.getItemHandlerCap());
+                continue;
+            }
 
-                if (!canTake)
+            if (expectedFood != null && stack.is(expectedFood))
+            {
+                int foodToKeepFromStack = Math.max(0, PETFOOD_SIZE - keptFood);
+                if (foodToKeepFromStack >= stack.getCount())
+                {
+                    keptFood += stack.getCount();
+                    continue;
+                }
+
+                keptFood += foodToKeepFromStack;
+                int excessFood = stack.getCount() - foodToKeepFromStack;
+                if (!InventoryUtils.transferXOfItemStackIntoNextFreeSlotInItemHandler(chestHandlerOpt.getItemHandlerCap(), i, excessFood, worker.getItemHandlerCap()))
                 {
                     break;
                 }
+                continue;
+            }
+
+            boolean canTake = InventoryUtils.transferItemStackIntoNextBestSlotFromProvider(chestHandlerOpt, i, worker.getItemHandlerCap());
+
+            if (!canTake)
+            {
+                break;
             }
         }
         
@@ -619,6 +672,83 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     {
         Level level = worker.level();
         return level != null && PetRoles.HAULING.equals(PetData.roleFromPosition(level, workLocation));
+    }
+
+    /**
+     * Checks whether the pet's assigned work location already has a full staged batch of the requested food.
+     *
+     * @param pet the pet whose work location should be inspected.
+     * @param food the food item expected by the pet.
+     * @return true when the work location contains at least {@link #PETFOOD_SIZE} matching food items.
+     */
+    private boolean hasEnoughFoodAtWorkLocation(@Nonnull ITradePostPet pet, @Nonnull Item food)
+    {
+        BlockPos workLocation = pet.getWorkLocation();
+        return workLocation != null && !BlockPos.ZERO.equals(workLocation) && getFoodCountAtWorkLocation(workLocation, food) >= PETFOOD_SIZE;
+    }
+
+    /**
+     * Counts matching food items currently staged in a pet work location inventory.
+     *
+     * @param workLocation the block position of the pet work location.
+     * @param food the food item to count, or null when no valid pet food is known.
+     * @return the number of matching food items present, or 0 if the location has no accessible inventory.
+     */
+    private int getFoodCountAtWorkLocation(@Nonnull BlockPos workLocation, @Nullable Item food)
+    {
+        if (food == null)
+        {
+            return 0;
+        }
+
+        Level level = worker.level();
+        if (level == null)
+        {
+            return 0;
+        }
+
+        Optional<IItemHandlerCapProvider> optProvider = ItemHandlerHelpers.getProvider(level, workLocation, null);
+        if (optProvider.isEmpty())
+        {
+            return 0;
+        }
+
+        return InventoryUtils.getItemCountInItemHandler(optProvider.get().getItemHandlerCap(), food);
+    }
+
+    /**
+     * Resolves the food item expected by the pet currently assigned to a work location.
+     *
+     * @param workLocation the work location to match against the building's registered pets.
+     * @return the assigned pet's food item, or null when no assigned pet or food mapping can be found.
+     */
+    @Nullable
+    private Item getAssignedPetFood(@Nonnull BlockPos workLocation)
+    {
+        for (ITradePostPet pet : building.getPets())
+        {
+            if (pet == null || !workLocation.equals(pet.getWorkLocation()) || pet.getPetData() == null)
+            {
+                continue;
+            }
+
+            return PetTypes.foodForPet(pet.getPetData().getAnimal().getClass());
+        }
+
+        return null;
+    }
+
+    /**
+     * Transfers up to the requested number of food items from the trainer inventory to a work location inventory.
+     *
+     * @param workerSlot the trainer inventory slot containing the food.
+     * @param targetInventory the work location inventory receiving the food.
+     * @param maxCount the maximum number of items to transfer.
+     * @return true if the requested amount was transferred.
+     */
+    private boolean transferFoodToWorkLocation(int workerSlot, @Nonnull IItemHandler targetInventory, int maxCount)
+    {
+        return InventoryUtils.transferXOfItemStackIntoNextFreeSlotInItemHandler(worker.getItemHandlerCap(), workerSlot, maxCount, targetInventory);
     }
 
 

@@ -98,6 +98,7 @@ import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
+import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -1372,6 +1373,25 @@ public class MCTradePostMod
                 Capabilities.ItemHandler.BLOCK,
                 MCTradePostTileEntities.PET_WORK_LOCATION.get(),
                 (petWorkingBlockEntity, side) -> new InvWrapper(petWorkingBlockEntity));
+
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.BUILDING.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.MARKETPLACE.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.RESORT.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.RECYCLING.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.STATION.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.PET_SHOP.get());
+            registerBuildingItemHandlerCap(event, MCTradePostTileEntities.OUTPOST.get());
+        }
+
+        @SuppressWarnings("null")
+        private static void registerBuildingItemHandlerCap(
+            final RegisterCapabilitiesEvent event,
+            final net.minecraft.world.level.block.entity.BlockEntityType<? extends IItemHandlerCapProvider> blockEntityType)
+        {
+            event.registerBlockEntity(
+                Capabilities.ItemHandler.BLOCK,
+                blockEntityType,
+                IItemHandlerCapProvider::getItemHandlerCap);
         }
     }
 

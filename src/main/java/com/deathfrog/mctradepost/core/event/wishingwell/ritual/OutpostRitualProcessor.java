@@ -131,11 +131,12 @@ public class OutpostRitualProcessor
 
             BlockPos colonyCenter = colony.getCenter();
             int maxDistance = MCTPConfig.maxDistance.get();
-
-            if (colonyCenter.distSqr(claimLocation) > (maxDistance * maxDistance))
+            double colonyDistance = colonyCenter.distSqr(claimLocation);
+            if (colonyDistance > (maxDistance * maxDistance))
             {
+                int distanceRoot = (int) Math.ceil(Math.sqrt(colonyDistance));
                 LOGGER.warn("Outpost ritual called distance greater than max distance.");
-                MessageUtils.format("Outpost distance is too large - the maximum is " + maxDistance + ".")
+                MessageUtils.format("Outpost distance of " + distanceRoot + " is too large - the maximum is " + maxDistance + ".")
                     .sendTo(marketplace.getColony())
                     .forAllPlayers();
                 return RitualResult.FAILED;
@@ -170,31 +171,25 @@ public class OutpostRitualProcessor
                 return RitualResult.FAILED;
             }
 
-            if (connected)
-            {
-                final int range = 1;
-                boolean canClaim = ChunkDataHelper.canClaimChunksInRange(colony.getWorld(), claimLocation, range + 1);
+            final int range = 1;
+            boolean canClaim = ChunkDataHelper.canClaimChunksInRange(colony.getWorld(), claimLocation, range + 1);
 
-                if (canClaim)
+            if (canClaim)
+            {
+                ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, range, (ServerLevel) colony.getWorld(), false);
+                BlockOutpostMarker.placeOutpostMarker(level, claimLocation, null);
+
+                if (!connected)
                 {
-                    ChunkDataHelper.staticClaimInRange(colony, true, claimLocation, range, (ServerLevel) colony.getWorld(), false);
-                    BlockOutpostMarker.placeOutpostMarker(level, claimLocation, null);
-                }
-                else
-                {
-                    LOGGER.warn("The attempted claim is too close to another colony.");
-                    MessageUtils.format("The attempted claim is too close to another colony.")
+                    MessageUtils.format("The outpost claim location will need to be connected to a train station via track before it will be fully operational.")
                         .sendTo(marketplace.getColony())
                         .forAllPlayers();
-                    return RitualResult.FAILED;
                 }
             }
             else
             {
-                LOGGER.warn("The outpost claim at {} must be connected to one of these train stations {} via track.",
-                    claimLocation,
-                    stations);
-                MessageUtils.format("The outpost claim location must be connected to a train station via track.")
+                LOGGER.warn("The attempted claim is too close to another colony.");
+                MessageUtils.format("The attempted claim is too close to another colony.")
                     .sendTo(marketplace.getColony())
                     .forAllPlayers();
                 return RitualResult.FAILED;
@@ -202,7 +197,7 @@ public class OutpostRitualProcessor
         }
         catch (Exception e)
         {
-            LOGGER.error("Failed to drop items for ritual", e);
+            LOGGER.error("Failed to process items for ritual", e);
             return RitualResult.FAILED;
         }
 

@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "S": { "item": "minecraft:string" },
+      "L": { "item": "minecraft:leather" },
+      "C": { "item": "minecraft:chest" }
+    },
+    "pattern": [
+      "LSL",
+      "LCL",
+      "LLL"
+    ],
+    "result": {
+      "count": 1,
+      "id": "minecraft:bundle"
+    }
+}
+  

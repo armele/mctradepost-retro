@@ -178,7 +178,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
      */
     private void cancelClicked(@NotNull final Button button)
     {
-        if (button.getID().equals(BUTTON_CANCEL) && colony.getServerBuildingManager().getTownHall() != null)
+        if (button.getID().equals(BUTTON_CANCEL) && colony.getClientBuildingManager().getTownHall() != null)
         {
             buildingView.openGui(false);
         }
@@ -249,6 +249,7 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
              * @param index the index of the row/list element.
              * @param rowPane the parent Pane for the row, containing the elements to update.
              */
+            @SuppressWarnings("null")
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
@@ -303,11 +304,12 @@ public class OutpostWindowAssignCitizen extends AbstractWindowSkeleton
                         .append(NullnessBridge.assumeNonnull(translationKey))
                         .append(": ")
                         .append(NullnessBridge.assumeNonnull(workComponent))
-                        .append(" ").append(homeString + ""));
+                        .append(" ")
+                        .append(NullnessBridge.assumeNonnull(homeString)));
                 }
                 else
                 {
-                    newLivingLabel.setText(Component.translatable(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString + ""));
+                    newLivingLabel.setText(Component.translatable(COM_MINECOLONIES_COREMOD_GUI_TOWNHALL_CITIZEN_UNEMPLOYED).append("\n").append(homeString));
                 }
                 newLivingLabel.setTextWrap(true);
 

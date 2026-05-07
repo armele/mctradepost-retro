@@ -1,0 +1,25 @@
+{
+  "type": "mctradepost:deconstruction",
+  "input": {
+    "item": "everythingcopper:copper_chestplate"
+  },
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "everythingcopper"
+    },
+    {
+      "type": "neoforge:item_exists",
+      "item": "everythingcopper:copper_chestplate"
+    }
+  ],
+  "results": [
+    {
+      "item": {
+        "id": "minecraft:copper_ingot",
+        "count": 8
+      },
+      "chance": 1.0
+    }
+  ]
+}

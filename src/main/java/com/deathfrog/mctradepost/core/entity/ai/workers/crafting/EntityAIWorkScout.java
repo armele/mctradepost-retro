@@ -18,7 +18,6 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobScout;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.minecolonies.api.colony.ICitizenData;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
@@ -72,11 +71,13 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
     protected static final int SMALL_SCOUT_XP = 1;
     protected static final int DEFAULT_SCOUT_XP = 2;
+    protected static final int FOOD_DELIVERY_RESERVE = 2;
     protected static final int FOOD_ORDERING_THRESHOLD = 3;
     protected static final int FOOD_ORDERING_SIZE = 8;
     protected static final int BUILDER_SUPPORT_COOLDOWN_TIMER = 20;
 
-    protected long lastFoodCheck = 0;
+    protected long lastFoodOrderCheck = 0;
+    protected long lastFoodDeliveryCheck = 0;
     protected long lastReturnProductsCheck = 0;
     protected int exceptionTimer = 1;
     protected int builderSupportCooldown = 0;
@@ -87,7 +88,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
     public enum ScoutStates implements IAIState
     {
-        HANDLE_OUTPOST_REQUESTS, MAKE_DELIVERY, ORDER_FOOD, RETURN_PRODUCTS, UNLOAD_INVENTORY, PRE_STAGE_BUILDER_MATERIALS, BUILD;
+        HANDLE_OUTPOST_REQUESTS, MAKE_DELIVERY, ORDER_FOOD, DELIVER_FOOD, RETURN_PRODUCTS, UNLOAD_INVENTORY, PRE_STAGE_BUILDER_MATERIALS, BUILD;
 
         @Override
         public boolean isOkayToEat()
@@ -99,6 +100,8 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     Collection<IToken<?>> resolverBlacklist = null;
     protected ItemStack currentDeliverableSatisfier = null;
     protected IRequest<?> currentDeliverableRequest = null;
+    protected ItemStack currentFoodDeliveryStack = ItemStack.EMPTY;
+    protected BlockPos currentFoodDeliveryTarget = null;
 
     /**
      * Current goto path
@@ -117,6 +120,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             new AITarget<IAIState>(ScoutStates.UNLOAD_INVENTORY, this::unloadInventory, 10),
             new AITarget<IAIState>(ScoutStates.MAKE_DELIVERY, this::makeDelivery, 10),
             new AITarget<IAIState>(ScoutStates.ORDER_FOOD, this::orderFood, 10),
+            new AITarget<IAIState>(ScoutStates.DELIVER_FOOD, this::deliverFoodForOutpost, 10),
             new AITarget<IAIState>(ScoutStates.RETURN_PRODUCTS, this::returnProducts, 10),
             new AITarget<IAIState>(ScoutStates.PRE_STAGE_BUILDER_MATERIALS, this::preStageBuilderMaterials, 10),
             new AITarget<IAIState>(WANDER, this::wander, 10)
@@ -172,16 +176,28 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         }
 
         long today = building.getColony().getDay();
-        if (today > lastFoodCheck)
+        if (today > lastFoodOrderCheck)
         {
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("Checking outpost food status for day {} (last checked on {}) in colony {}.",
+                () -> LOGGER.info("Checking outpost food ordering status for day {} (last checked on {}) in colony {}.",
                     today,
-                    lastFoodCheck,
+                    lastFoodOrderCheck,
                     building.getColony().getName()));
 
             worker.getCitizenData().setVisibleStatus(SCOUTING);
             return ScoutStates.ORDER_FOOD;
+        }
+
+        if (today > lastFoodDeliveryCheck)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.info("Checking outpost food delivery status for day {} (last checked on {}) in colony {}.",
+                    today,
+                    lastFoodDeliveryCheck,
+                    building.getColony().getName()));
+
+            worker.getCitizenData().setVisibleStatus(SCOUTING);
+            return ScoutStates.DELIVER_FOOD;
         }
 
         if (today > lastReturnProductsCheck)
@@ -207,7 +223,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
     /**
      * Orders food for the outpost if it is needed. The scout will attempt to order food from the nearest warehouse. If the scout is
-     * successful in ordering food, the lastFoodCheck variable will be updated to the current day.
+     * successful in ordering food, the lastFoodOrderCheck variable will be updated to the current day.
      * 
      * @return The DECIDE state, which will cause the scout to decide what to do next.
      */
@@ -215,7 +231,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     {
         if (orderFoodForOutpost())
         {
-            lastFoodCheck = building.getColony().getDay();
+            lastFoodOrderCheck = building.getColony().getDay();
         }
 
         return DECIDE;
@@ -894,7 +910,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     /**
      * Attempts to order food for the outpost workers using the nearest restaurant.
      * 
-     * @return true if food was ordered, false otherwise.
+     * @return The DECIDE state, which will cause the scout to decide what to do next.
      */
     public boolean orderFoodForOutpost()
     {
@@ -941,7 +957,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
 
                 if (foodCount <= FOOD_ORDERING_THRESHOLD)
                 {
-                    if (foodAvailable != null)
+                    if (foodAvailable != null && foodAvailable.getItem() != null)
                     {
                         ItemStorage toOrder = new ItemStorage(foodAvailable.getItem(), FOOD_ORDERING_SIZE);
                         Stack requestStack = new Stack(toOrder);
@@ -950,11 +966,16 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                         {
                             try
                             {
-                                boolean outstandingRequest = outpostWorksite.isItemStackInRequest(toOrder.getItemStack());
+                                @SuppressWarnings("null")
+                                boolean outstandingRequest = building.hasWorkerOpenRequestsFiltered(
+                                    worker.getCitizenData().getId(),
+                                    request -> request.getRequest() instanceof Stack stackRequest
+                                        && stackRequest.getStack().is(foodAvailable.getItem())
+                                );
 
                                 if (!outstandingRequest)
                                 {
-                                    outpostWorksite.createRequest(citizen, requestStack, true);
+                                    building.createRequest(worker.getCitizenData(), requestStack, true);
                                     didOrder = true;
                                 }
                             }
@@ -988,33 +1009,303 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         return true;
     }
 
-    @Override
-    public void tick()
+
+    /**
+     * Attempts to deliver food for the outpost workers.  Assumes some food will already have been ordered and delivered.
+     * 
+     * @return The next AI state for the food delivery task.
+     */
+    public IAIState deliverFoodForOutpost()
     {
-        super.tick();
+        if (building.getColony().getWorld().isClientSide())
+        {
+            return getState();
+        }
+
+        final RestaurantMenuModule module = getNearestRestaurantMenuModule();
+
+        if (module == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant menu module for food delivery."));
+            lastFoodDeliveryCheck = building.getColony().getDay();
+            return DECIDE;
+        }
+
+        if (currentFoodDeliveryStack == null || currentFoodDeliveryStack.isEmpty() || currentFoodDeliveryTarget == null)
+        {
+            if (!findNextFoodDelivery(module))
+            {
+                lastFoodDeliveryCheck = building.getColony().getDay();
+                return DECIDE;
+            }
+        }
+        
+        ItemStack localFoodDelivery = currentFoodDeliveryStack;
+
+        if (localFoodDelivery == null)
+        {
+            clearFoodDelivery();
+            return DECIDE;
+        }
+
+        final IBuilding targetBuilding = building.getColony().getServerBuildingManager().getBuilding(currentFoodDeliveryTarget);
+        if (targetBuilding == null || childOutpostHasFood(targetBuilding, localFoodDelivery))
+        {
+            clearFoodDelivery();
+            return getState();
+        }
+
+        if (!hasFoodInScoutInventory(localFoodDelivery))
+        {
+            return collectFoodForDelivery();
+        }
+
+        return unloadFoodForDelivery(targetBuilding);
     }
 
-
-    @Override
-    protected boolean mineBlock(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
+    /**
+     * Find the next child building that needs a menu food the scout can distribute.
+     *
+     * @param module the restaurant menu module.
+     * @return true if a delivery was selected.
+     */
+    protected boolean findNextFoodDelivery(@Nonnull final RestaurantMenuModule module)
     {
-        boolean canmine = false;
-
-        try
+        for (final ItemStorage menuItem : module.getMenu())
         {
-            canmine = mineBlock(blockToMine,
-                safeStand,
-                true,
-                !IColonyManager.getInstance().getCompatibilityManager().isOre(world.getBlockState(NullnessBridge.assumeNonnull(blockToMine))),
-                null);
+            final ItemStack foodStack = menuItem.getItemStack();
+            if (foodStack.isEmpty() || getAvailableFoodForDelivery(foodStack) <= FOOD_DELIVERY_RESERVE)
+            {
+                continue;
+            }
+
+            for (final BlockPos outpostWorkPos : building.getWorkBuildings())
+            {
+                final IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
+                if (outpostWorksite != null && !childOutpostHasFood(outpostWorksite, foodStack)
+                    && getSafeItemHandler(outpostWorksite, "outpost food delivery target") != null)
+                {
+                    currentFoodDeliveryStack = foodStack.copyWithCount(1);
+                    currentFoodDeliveryTarget = outpostWorkPos;
+                    return true;
+                }
+            }
         }
-        catch (IllegalArgumentException e)
+
+        return false;
+    }
+
+    /**
+     * Pick up the selected food from the scout hut before walking it to the child building.
+     *
+     * @return the next AI state.
+     */
+    protected IAIState collectFoodForDelivery()
+    {
+        ItemStack localFoodDeliveryStack = currentFoodDeliveryStack;
+
+        if (localFoodDeliveryStack == null) 
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.warn("MineColonies request system error while mining block at {}: {}", blockToMine, e));
+            clearFoodDelivery();
+            return DECIDE;
         }
 
+        if (getAvailableFoodForDelivery(localFoodDeliveryStack) <= FOOD_DELIVERY_RESERVE)
+        {
+            clearFoodDelivery();
+            return getState();
+        }
 
-        return canmine;
+        if (!EntityNavigationUtils.walkToBuilding(this.worker, building))
+        {
+            setDelay(2);
+            return getState();
+        }
+
+        final IItemHandler outpostInventory = getSafeItemHandler(building, "outpost food delivery pickup");
+        final IItemHandler workerInventory = worker.getInventoryCitizen();
+
+        if (outpostInventory == null || workerInventory == null || !transferOneFoodItem(outpostInventory, localFoodDeliveryStack, workerInventory))
+        {
+            clearFoodDelivery();
+            return getState();
+        }
+
+        building.markDirty();
+        updateHeldFoodDeliveryItem();
+        return getState();
+    }
+
+    /**
+     * Walk to the target child building and unload the selected food from the scout inventory.
+     *
+     * @param targetBuilding the child building receiving food.
+     * @return the next AI state.
+     */
+    protected IAIState unloadFoodForDelivery(@Nonnull final IBuilding targetBuilding)
+    {
+        if (!EntityNavigationUtils.walkToBuilding(this.worker, targetBuilding))
+        {
+            setDelay(2);
+            return getState();
+        }
+
+        ItemStack localDeliveryStack = currentFoodDeliveryStack;
+
+        if (localDeliveryStack == null)
+        {
+            clearFoodDelivery();
+            return DECIDE;
+        }
+
+        final IItemHandler targetInventory = getSafeItemHandler(targetBuilding, "outpost food delivery target");
+        final IItemHandler workerInventory = worker.getInventoryCitizen();
+        if (targetInventory == null || workerInventory == null || !transferOneFoodItem(workerInventory, localDeliveryStack, targetInventory))
+        {
+            clearFoodDelivery();
+            return getState();
+        }
+
+        targetBuilding.markDirty();
+        updateHeldFoodDeliveryItem();
+        incrementActionsDoneAndDecSaturation();
+        worker.getCitizenExperienceHandler().addExperience(SMALL_SCOUT_XP);
+        clearFoodDelivery();
+        return getState();
+    }
+
+    /**
+     * Get the menu from the nearest restaurant, if one exists.
+     *
+     * @return the restaurant menu module, or null if no restaurant/menu is available.
+     */
+    protected @Nullable RestaurantMenuModule getNearestRestaurantMenuModule()
+    {
+        final BlockPos restaurantPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
+        if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
+        {
+            return null;
+        }
+
+        final IBuilding restaurant = building.getColony().getServerBuildingManager().getBuilding(restaurantPos);
+        if (restaurant == null)
+        {
+            return null;
+        }
+
+        return restaurant.getModule(BuildingModules.RESTAURANT_MENU);
+    }
+
+    /**
+     * Count menu food held by the scout or stocked in the outpost.
+     *
+     * @param foodStack the food to count.
+     * @return the total available count.
+     */
+    protected int getAvailableFoodForDelivery(@Nonnull final ItemStack foodStack)
+    {
+        final IItemHandler outpostInventory = getSafeItemHandler(building, "outpost food delivery source");
+        return getFoodCount(worker.getInventoryCitizen(), foodStack) + getFoodCount(outpostInventory, foodStack);
+    }
+
+    /**
+     * Check if a child outpost building or any assigned worker already has this food.
+     *
+     * @param outpostWorksite the child building to inspect.
+     * @param foodStack the food to find.
+     * @return true if the food is already present.
+     */
+    protected boolean childOutpostHasFood(@Nonnull final IBuilding outpostWorksite, @Nonnull final ItemStack foodStack)
+    {
+        if (getFoodCount(getSafeItemHandler(outpostWorksite, "outpost food delivery inspection"), foodStack) > 0)
+        {
+            return true;
+        }
+
+        for (final ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
+        {
+            if (getFoodCount(citizen.getInventory(), foodStack) > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if the scout is carrying the selected food.
+     *
+     * @param foodStack the food to find.
+     * @return true if the scout has the food.
+     */
+    protected boolean hasFoodInScoutInventory(@Nonnull final ItemStack foodStack)
+    {
+        return getFoodCount(worker.getInventoryCitizen(), foodStack) > 0;
+    }
+
+    /**
+     * Count matching food in an inventory.
+     *
+     * @param inventory the inventory to inspect.
+     * @param foodStack the food to count.
+     * @return the matching item count.
+     */
+    protected int getFoodCount(@Nullable final IItemHandler inventory, @Nonnull final ItemStack foodStack)
+    {
+        return InventoryUtils.getItemCountInItemHandler(inventory,
+            stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, foodStack));
+    }
+
+    /**
+     * Move one matching food item between inventories.
+     *
+     * @param sourceInventory the source inventory.
+     * @param foodStack the food to move.
+     * @param targetInventory the target inventory.
+     * @return true if one item was moved.
+     */
+    protected boolean transferOneFoodItem(
+        @Nonnull final IItemHandler sourceInventory,
+        @Nonnull final ItemStack foodStack,
+        @Nonnull final IItemHandler targetInventory)
+    {
+        return InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(sourceInventory,
+            stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, foodStack),
+            1,
+            targetInventory);
+    }
+
+    /**
+     * Clear the current food delivery assignment.
+     */
+    protected void clearFoodDelivery()
+    {
+        currentFoodDeliveryStack = ItemStack.EMPTY;
+        currentFoodDeliveryTarget = null;
+        worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+    }
+
+    /**
+     * Display the carried food in the scout's hand when possible.
+     */
+    protected void updateHeldFoodDeliveryItem()
+    {
+        ItemStack localFoodDeliveryStack = currentFoodDeliveryStack;
+
+        if (localFoodDeliveryStack == null) return;
+
+        final int held = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(),
+            stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, localFoodDeliveryStack));
+
+        if (held >= 0)
+        {
+            worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(worker.getInventoryCitizen().getStackInSlot(held).copy()));
+        }
+        else
+        {
+            worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+        }
     }
 
     /**

@@ -55,6 +55,7 @@ import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
+import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.core.colony.buildings.modules.WorkerBuildingModule;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
@@ -81,11 +82,16 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     private static final String TAG_REQUEST_TOKEN             = "request_token";
     private static final String TAG_REQUEST_STATE             = "request_state";
     private static final String TAG_REQUEST_TRACKING = "requestTracking";
+    private static final String TAG_CHILD_BOOTSTRAP_COMPLETE = "mctp_child_bootstrap_complete";
+    private static final String TAG_BOOTSTRAPPED_CHILDREN = "mctp_bootstrapped_children";
+    private static final String TAG_BOOTSTRAPPED_CHILD_POS = "pos";
 
     protected int stationValidationCooldown = 0;
     protected BuildingStation connectedStation = null;
     protected OutpostRequestResolver outpostResolver;
     protected IToken<?> outpostResolverToken = null;
+    protected boolean childBootstrapComplete = false;
+    protected Set<BlockPos> bootstrappedChildren = new HashSet<>();
 
 
     // Map of request tokens to shipment tracking objects.
@@ -120,6 +126,12 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         if (getBuildingLevel() == 0)
         {
             forceChunkForBuilding(true);
+            final BlockPos outpostBuilder = getBootstrappedBuilderPosition();
+            if (outpostBuilder != null)
+            {
+                super.requestWorkOrder(type, outpostBuilder);
+                return;
+            }
         }
 
         super.requestWorkOrder(type, builder);
@@ -149,11 +161,11 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         if (load)
         {
-            ChunkUtil.ensureChunkLoadedByTicket((ServerLevel)level, pos, 0, ChunkUtil.OUTPOST_TICKET);
+            ChunkUtil.ensureChunkLoadedByTicket((ServerLevel)level, pos, 1, ChunkUtil.OUTPOST_TICKET);
         }
         else
         {
-            ChunkUtil.releaseChunkTicket((ServerLevel) level, pos, 0, ChunkUtil.OUTPOST_TICKET);
+            ChunkUtil.releaseChunkTicket((ServerLevel) level, pos, 1, ChunkUtil.OUTPOST_TICKET);
         }
     }
 
@@ -267,6 +279,19 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             writeRequestTrackingToNbt(provider, compound);
         }
 
+        compound.putBoolean(TAG_CHILD_BOOTSTRAP_COMPLETE, childBootstrapComplete);
+        if (!bootstrappedChildren.isEmpty())
+        {
+            final ListTag children = new ListTag();
+            for (final BlockPos child : bootstrappedChildren)
+            {
+                final CompoundTag childTag = new CompoundTag();
+                BlockPosUtil.write(childTag, TAG_BOOTSTRAPPED_CHILD_POS, child);
+                children.add(childTag);
+            }
+            compound.put(TAG_BOOTSTRAPPED_CHILDREN, children);
+        }
+
         return compound;
     }
 
@@ -304,6 +329,20 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         readRequestTrackingFromNbt(provider, compound);
 
+        childBootstrapComplete = compound.getBoolean(TAG_CHILD_BOOTSTRAP_COMPLETE);
+        bootstrappedChildren.clear();
+        if (compound.contains(TAG_BOOTSTRAPPED_CHILDREN, net.minecraft.nbt.Tag.TAG_LIST))
+        {
+            final ListTag children = compound.getList(TAG_BOOTSTRAPPED_CHILDREN, net.minecraft.nbt.Tag.TAG_COMPOUND);
+            for (int i = 0; i < children.size(); i++)
+            {
+                final BlockPos child = BlockPosUtil.read(children.getCompound(i), TAG_BOOTSTRAPPED_CHILD_POS);
+                if (!BlockPos.ZERO.equals(child))
+                {
+                    bootstrappedChildren.add(child);
+                }
+            }
+        }
     }
 
     @Override
@@ -547,6 +586,83 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         {
             forceChunkForBuilding(false);
         }
+    }
+
+    /**
+     * Marks the outpost child-building bootstrap as complete.
+     * <p>
+     * This is set after a builder hut has been placed or an existing child builder hut has been adopted.
+     */
+    public void markChildBootstrapComplete()
+    {
+        this.childBootstrapComplete = true;
+        markDirty();
+    }
+
+    /**
+     * Checks whether the outpost has already completed child-building bootstrap.
+     *
+     * @return true if bootstrap completed successfully at least once.
+     */
+    public boolean isChildBootstrapComplete()
+    {
+        return childBootstrapComplete;
+    }
+
+    /**
+     * Records a child building that was created or adopted by the outpost bootstrap process.
+     *
+     * @param child the child building position to persist.
+     */
+    public void addBootstrappedChild(final BlockPos child)
+    {
+        if (child != null && !BlockPos.ZERO.equals(child))
+        {
+            bootstrappedChildren.add(child);
+            childBootstrapComplete = true;
+            markDirty();
+        }
+    }
+
+    /**
+     * Retrieves the persisted child building positions created or adopted by bootstrap.
+     *
+     * @return an immutable copy of the bootstrapped child positions.
+     */
+    public Set<BlockPos> getBootstrappedChildren()
+    {
+        return Set.copyOf(bootstrappedChildren);
+    }
+
+    /**
+     * Finds the bootstrapped builder hut that should claim level 0 outpost work orders.
+     * <p>
+     * Persisted bootstrap children are checked first, then all current outpost children are searched as a repair path
+     * for older saves or manually adopted buildings.
+     *
+     * @return the outpost-local builder hut position, or null if none exists.
+     */
+    public @Nullable BlockPos getBootstrappedBuilderPosition()
+    {
+        for (final BlockPos child : bootstrappedChildren)
+        {
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(child);
+            if (building instanceof AbstractBuildingStructureBuilder && this.getID().equals(building.getParent()))
+            {
+                return child;
+            }
+        }
+
+        for (final BlockPos child : getChildren())
+        {
+            final IBuilding building = colony.getServerBuildingManager().getBuilding(child);
+            if (building instanceof AbstractBuildingStructureBuilder)
+            {
+                return child;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -121,10 +121,21 @@ public class CommunityRitualProcessor
             return processRitualShelter(marketplace, pos, ritual, state);
         }
 
+        int helpedCount = 0;
+        String message = null;
 
         try
         {
             List<ICitizenData> citizens = marketplace.getColony().getCitizenManager().getCitizens();
+
+            if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get()))
+            {
+                message = "citizens fed.";
+            }
+            else 
+            {
+                message = "citizens cured.";
+            }
 
             for (ICitizenData citizen : citizens)
             {
@@ -153,6 +164,7 @@ public class CommunityRitualProcessor
                             (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
                         new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
                             .sendToTrackingEntity(entity);
+                        helpedCount++;
                     }
                 }
                 else if (companionItem.equals(MCTradePostMod.WISH_HEALTH.get()))
@@ -167,6 +179,7 @@ public class CommunityRitualProcessor
                             (float) com.minecolonies.api.util.SoundUtils.getRandomPentatonic(entity.getRandom()));
                         new CircleParticleEffectMessage(entity.position().add(0, 2, 0), ParticleTypes.HAPPY_VILLAGER, 1)
                             .sendToTrackingEntity(entity);
+                        helpedCount++;
                     }
                 }
             }
@@ -178,6 +191,11 @@ public class CommunityRitualProcessor
         }
 
         WishingWellHandler.showRitualEffect(currentLevel, pos);
+        
+        MessageUtils.format(helpedCount + message)
+            .sendTo(marketplace.getColony())
+            .forAllPlayers();
+
         return RitualResult.COMPLETED;
     }
 

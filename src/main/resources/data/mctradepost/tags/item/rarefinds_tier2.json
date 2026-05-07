@@ -14,7 +14,8 @@
     "minecraft:map",
     "minecraft:compass",
     "minecraft:clock",
-    "minecraft:red_sand"
+    "minecraft:red_sand",
+    "minecraft:bundle"
   ],
   "remove": [
     "minecraft:dandelion"

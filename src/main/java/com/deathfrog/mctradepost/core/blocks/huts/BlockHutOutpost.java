@@ -13,10 +13,13 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
+import com.deathfrog.mctradepost.core.outpost.OutpostChildBuildingBootstrapper;
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
 import com.mojang.logging.LogUtils;
 
@@ -167,7 +170,16 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
         if (allowPlacement) 
         {
             Log.getLogger().info("Placing outpost.");
-            return super.setup(player, world, pos, blueprint, rotationMirror, fancyPlacement, pack, path);
+            final boolean placed = super.setup(player, world, pos, blueprint, rotationMirror, fancyPlacement, pack, path);
+            if (placed && !world.isClientSide)
+            {
+                final IBuilding building = IColonyManager.getInstance().getBuilding(world, pos);
+                if (building instanceof BuildingOutpost outpost)
+                {
+                    OutpostChildBuildingBootstrapper.initFromBlueprint(outpost, blueprint, rotationMirror, player);
+                }
+            }
+            return placed;
         }
 
         if (player != null) 
