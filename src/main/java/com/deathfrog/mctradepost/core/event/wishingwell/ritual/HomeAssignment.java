@@ -122,4 +122,9 @@ public class HomeAssignment
         }
         return BlockPosUtil.distManhattan(workPos, currentHomePos);
     }
+
+    public boolean hasMeasurableCommute()
+    {
+        return getWorkPos() != null && getCurrentHome() != null;
+    }
 }

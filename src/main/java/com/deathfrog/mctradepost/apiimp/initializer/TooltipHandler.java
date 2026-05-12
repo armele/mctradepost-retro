@@ -29,5 +29,9 @@ public class TooltipHandler
         {
             event.getToolTip().add(Component.translatable("com.mctradepost.wishshelter.tooltip"));
         }
+        else if (stack.is(NullnessBridge.assumeNonnull(MCTradePostMod.blockHutOutpost.get().asItem())))
+        {
+            event.getToolTip().add(Component.translatable("com.mctradepost.outpost.deprecated.tooltip"));
+        }
     }
 }

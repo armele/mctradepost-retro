@@ -400,7 +400,16 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         for (ICitizenData citizen : hungryCitizens.values())
         {
-            // Defensive: saturation *should* be valid, but this keeps us robust
+            BlockPos homePos = citizen.getHomePosition();
+
+            // Stewmelier does not serve at the outpost!
+            if (homePos != null)
+            {
+                IBuilding candidateHome = building.getColony().getServerBuildingManager().getBuilding(homePos);
+
+                if (candidateHome instanceof BuildingOutpost) continue;
+            }
+
             double saturation = citizen.getSaturation();
 
             if (hungriest == null || saturation < lowestSaturation)

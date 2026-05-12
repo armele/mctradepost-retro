@@ -449,6 +449,7 @@
     "com.mctradepost.resort.burnout": "All Work and No Play",
 
     "com.mctradepost.outpost.claim" : "Outpost claim at %s",
+    "com.mctradepost.outpost.deprecated.tooltip" : "Outpost will be deprecated in a future release. Consider Greenhouse Gardener for your biome farming needs.",
     "com.mctradepost.outpost.marker.set.tooltip" : "Use a wishing well to stake an outpost claim at %s",
     "com.mctradepost.outpost.marker.unset.tooltip" : "Right click on a block to set an outpost claim location.",
     "com.mctradepost.outpost.buildfailure" : "You can only place an Outpost after making an Outpost Claim using a wishing well.",

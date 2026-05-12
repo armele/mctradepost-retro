@@ -228,8 +228,6 @@ public class CommunityRitualProcessor
         final Set<ICitizenData> initiallyHomelessCitizens = new HashSet<>();
         final Map<ICitizenData, BlockPos> initialHomePositions = new HashMap<>();
         final Map<ICitizenData, Integer> initialDistances = new HashMap<>();
-        int initialDistanceTotal = 0;
-        int initialDistanceAssignments = 0;
 
         for (ICitizenData citizen : citizens)
         {
@@ -248,9 +246,10 @@ public class CommunityRitualProcessor
             if (citizen.getHomeBuilding() != null)
             {
                 initialHomePositions.put(citizen, assignment.getCurrentHome());
-                initialDistances.put(citizen, assignment.getDistanceToWork());
-                initialDistanceTotal += assignment.getDistanceToWork();
-                initialDistanceAssignments++;
+                if (assignment.hasMeasurableCommute())
+                {
+                    initialDistances.put(citizen, assignment.getDistanceToWork());
+                }
             }
         }
 
@@ -279,9 +278,11 @@ public class CommunityRitualProcessor
         int homelessAssigned = 0;
         int remainingHomeless = 0;
         int relocatedCitizens = 0;
-        int relocatedSavingsTotal = 0;
-        int finalDistanceTotal = 0;
-        int finalDistanceAssignments = 0;
+        long relocatedSavingsTotal = 0;
+        int relocatedSavingsAssignments = 0;
+        long comparableInitialDistanceTotal = 0;
+        long comparableFinalDistanceTotal = 0;
+        int comparableDistanceAssignments = 0;
 
         for (ICitizenData citizen : citizens)
         {
@@ -302,8 +303,12 @@ public class CommunityRitualProcessor
             if (citizen.getHomeBuilding() != null)
             {
                 HomeAssignment assignment = new HomeAssignment(citizen);
-                finalDistanceTotal += assignment.getDistanceToWork();
-                finalDistanceAssignments++;
+                if (assignment.hasMeasurableCommute() && initialDistances.containsKey(citizen))
+                {
+                    comparableInitialDistanceTotal += initialDistances.get(citizen);
+                    comparableFinalDistanceTotal += assignment.getDistanceToWork();
+                    comparableDistanceAssignments++;
+                }
 
                 if (!initiallyHomelessCitizens.contains(citizen))
                 {
@@ -313,31 +318,60 @@ public class CommunityRitualProcessor
                     if (initialHomePos != null && finalHomePos != null && !initialHomePos.equals(finalHomePos))
                     {
                         relocatedCitizens++;
-                        relocatedSavingsTotal += initialDistances.get(citizen) - assignment.getDistanceToWork();
+                        if (assignment.hasMeasurableCommute() && initialDistances.containsKey(citizen))
+                        {
+                            relocatedSavingsTotal += initialDistances.get(citizen) - assignment.getDistanceToWork();
+                            relocatedSavingsAssignments++;
+                        }
                     }
                 }
             }
         }
 
         int totalAssigned = homelessAssigned + relocatedCitizens;
-        int averageInitialDistance = initialDistanceAssignments > 0 ? Math.round((float) initialDistanceTotal / (float) initialDistanceAssignments) : 0;
-        int averageFinalDistance = finalDistanceAssignments > 0 ? Math.round((float) finalDistanceTotal / (float) finalDistanceAssignments) : 0;
-        int averageSavings = relocatedCitizens > 0 ? Math.round((float) relocatedSavingsTotal / (float) relocatedCitizens) : 0;
+        int averageInitialDistance = comparableDistanceAssignments > 0 ? Math.round((float) comparableInitialDistanceTotal / (float) comparableDistanceAssignments) : 0;
+        int averageFinalDistance = comparableDistanceAssignments > 0 ? Math.round((float) comparableFinalDistanceTotal / (float) comparableDistanceAssignments) : 0;
+        int averageSavings = relocatedSavingsAssignments > 0 ? Math.round((float) relocatedSavingsTotal / (float) relocatedSavingsAssignments) : 0;
 
-        if (totalAssigned > 0)
+        StringBuilder message = new StringBuilder();
+        if (comparableDistanceAssignments > 0)
         {
-            MessageUtils.format("The average commute distance has been improved from " + averageInitialDistance + " to " + averageFinalDistance + ". "
-                + totalAssigned + " citizens have been assigned to homes. " + homelessAssigned + (homelessAssigned == 1 ? " was " : " were ") + "previously homeless, and "
-                + relocatedCitizens + (relocatedCitizens == 1 ? " was " : " were ") + "relocated with an average commute distance savings of " + averageSavings + ". "
-                + remainingHomeless + (remainingHomeless == 1 ? " citizen remains " : " citizens remain ") + "homeless.").sendTo(marketplace.getColony()).forAllPlayers();
+            if (averageFinalDistance < averageInitialDistance)
+            {
+                message.append("The average commute distance has been improved from ");
+            }
+            else if (averageFinalDistance == averageInitialDistance)
+            {
+                message.append("The average commute distance remained at ");
+            }
+            else
+            {
+                message.append("The average commute distance changed from ");
+            }
+
+            if (averageFinalDistance == averageInitialDistance)
+            {
+                message.append(averageInitialDistance).append(". ");
+            }
+            else
+            {
+                message.append(averageInitialDistance).append(" to ").append(averageFinalDistance).append(". ");
+            }
         }
-        else
+
+        message.append(totalAssigned).append(" citizens have been assigned to homes. ")
+            .append(homelessAssigned).append(homelessAssigned == 1 ? " was " : " were ").append("previously homeless, and ")
+            .append(relocatedCitizens).append(relocatedCitizens == 1 ? " was " : " were ").append("relocated");
+
+        if (relocatedSavingsAssignments > 0)
         {
-            MessageUtils.format("The average commute distance remained at " + averageInitialDistance + ". " + totalAssigned
-                + " citizens have been assigned to homes. " + homelessAssigned + (homelessAssigned == 1 ? " was " : " were ") + "previously homeless, and "
-                + relocatedCitizens + (relocatedCitizens == 1 ? " was " : " were ") + "relocated with an average commute distance savings of " + averageSavings + ". "
-                + remainingHomeless + (remainingHomeless == 1 ? " citizen remains " : " citizens remain ") + "homeless.").sendTo(marketplace.getColony()).forAllPlayers();
+            message.append(" with an average commute distance savings of ").append(averageSavings);
         }
+
+        message.append(". ")
+            .append(remainingHomeless).append(remainingHomeless == 1 ? " citizen remains " : " citizens remain ").append("homeless.");
+
+        MessageUtils.format(message.toString()).sendTo(marketplace.getColony()).forAllPlayers();
 
         WishingWellHandler.showRitualEffect(currentLevel, pos);
         return RitualResult.COMPLETED;
