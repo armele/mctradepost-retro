@@ -703,7 +703,14 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         if (maintenanceLocation == null)
         {
-            maintenanceLocation = equipmentSpots.get(ThreadLocalRandom.current().nextInt(equipmentSpots.size()));
+            if (equipmentSpots.size() > 0)
+            {
+                maintenanceLocation = equipmentSpots.get(ThreadLocalRandom.current().nextInt(equipmentSpots.size()));
+            }
+            else
+            {
+                maintenanceLocation = recycling.getPosition();
+            }
         }
 
         if (!walkToSafePos(maintenanceLocation))
