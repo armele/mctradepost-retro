@@ -102,6 +102,8 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
         helpTipBuilder.build();
 
         updatePetAssignmentList();
+
+        MCTradePostMod.LOGGER.info("Pet working locations available: {}", moduleView.getPetWorkLocations().size());
     }
 
     /**

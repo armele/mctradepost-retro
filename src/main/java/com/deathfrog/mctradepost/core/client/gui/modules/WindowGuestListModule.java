@@ -112,7 +112,14 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
 
                 ICitizenDataView citizen = moduleView.getColony().getCitizen(guest.getCivilianId());
 
-                name.setText(Component.literal(citizen.getName() + ""));
+                if (citizen != null)
+                {
+                    name.setText(Component.literal(citizen.getName() + ""));
+                }
+                else
+                {
+                    name.setText(Component.literal("Unknown"));
+                }
 
                 final AbstractTextBuilder.TooltipBuilder statusTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(name);
                 statusTipBuilder.append(Component.literal(guest.getState().toString() + ""));

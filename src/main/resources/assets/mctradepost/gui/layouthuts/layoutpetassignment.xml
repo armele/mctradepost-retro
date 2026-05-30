@@ -14,8 +14,8 @@
                     <dropdown id="buildings"
                         size="125 17"
                         pos="35 15"
-                        maxContentHeight="75"
-                        dropDownSize="140   "
+                        maxContentHeight="140"
+                        dropDownSize="140 75"
                         source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png"
                         color="black">
                         <button id="button" size="130 17" pos="0 0" source="minecolonies:textures/gui/builderhut/builder_button_medium_large.png" color="black"

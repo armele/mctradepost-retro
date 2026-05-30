@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.core.commands.CommandOutpostInit;
 import com.deathfrog.mctradepost.core.commands.CommandPendingRecycling;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopDismiss;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopStatus;
+import com.deathfrog.mctradepost.core.commands.CommandPetshopWorkLocations;
 import com.deathfrog.mctradepost.core.commands.CommandSetTrace;
 import com.deathfrog.mctradepost.core.commands.CommandStationExports;
 import com.deathfrog.mctradepost.core.commands.CommandStationStatus;
@@ -27,6 +28,7 @@ public class MCTPCommands
     public static final String CMD_STATION_STATIONDATA = "stationdata";
     public static final String CMD_ANIMALTRAINER_PETDATA = "petdata";  
     public static final String CMD_ANIMALTRAINER_DISMISS = "dismiss";   
+    public static final String CMD_ANIMALTRAINER_WORKLOCATIONS = "worklocations";
     public static final String CMD_STATION_CLEARCONNECTIONS = "clearconnections";
     public static final String CMD_STATION_CLEAREXPORTS = "clearexports";
     public static final String CMD_MARKETPLACE_FRAMESTATUS = "framestatus";
@@ -45,7 +47,8 @@ public class MCTPCommands
          */
         final CommandTree mctpAnimalTrainerCommands = new CommandTree("trainer")
             .addNode(new CommandPetshopStatus(CMD_ANIMALTRAINER_PETDATA).build())
-            .addNode(new CommandPetshopDismiss(CMD_ANIMALTRAINER_DISMISS).build());
+            .addNode(new CommandPetshopDismiss(CMD_ANIMALTRAINER_DISMISS).build())
+            .addNode(new CommandPetshopWorkLocations(CMD_ANIMALTRAINER_WORKLOCATIONS).build());
 
 
         final CommandTree mctpStationCommands = new CommandTree("station")

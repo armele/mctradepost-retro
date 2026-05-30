@@ -245,6 +245,14 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
     public IAIState decide()
     {
 
+        ImmutableList<ITradePostPet> pets = building.getPets();
+        if (pets != null && pets.size() == 0)
+        {
+            raiseCooldown = RAISE_FREQUENCY;
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} - Animal Trainer: No pets exist.  Let's try to raise one.", building.getColony().getID()));
+            return AnimalTrainerStates.RAISE_PET;
+        }
+
         if (petCheckCooldown-- <= 0)
         {
             checkOnPets();
@@ -774,7 +782,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
             if (job.checkNoMarketplaceInteraction())
             {
-                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_MARKETPLACE), ChatPriority.BLOCKING));
             }
 
             return DECIDE;
@@ -815,7 +823,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
                 if (job.checkNSF())
                 {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.ANIMAL_NSF), ChatPriority.BLOCKING));
                 }
                 continue;
             }
@@ -840,7 +848,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
                 if (job.checkNSF())
                 {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_SALE_ITEMS), ChatPriority.BLOCKING));
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.ANIMAL_NSF), ChatPriority.BLOCKING));
                 }
                 continue;
             }
