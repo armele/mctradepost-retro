@@ -640,6 +640,14 @@ public class EntityAIBurnoutTask
             return VacationAIState.SEARCH_RESORT;
         }
 
+        if (!citizen.getCitizenSleepHandler().isAsleep() && !vacationTracker.isCurrentlyAtResort())
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                () -> LOGGER.info("Vacationer {} is not marked present at the resort and needs to find a station.",
+                    citizen.getName()));
+            return VacationAIState.FIND_EMPTY_STATION;
+        }
+
         if (!citizen.getCitizenSleepHandler().isAsleep() &&
             BlockPosUtil.getDistance2D(bestResortPosition, citizen.blockPosition()) > MIN_DIST_TO_RESORT)
         {
@@ -843,6 +851,13 @@ public class EntityAIBurnoutTask
                 if (seatLocation == null)
                 {
                     seatLocation = ((BuildingResort) resort).getNextSittingPosition();
+                }
+
+                if (seatLocation == null)
+                {
+                    LOGGER.warn("Vacationer {} could not find a relaxation station at resort {} in colony {} using schematic {}. Verify that the schematic is tagged.",
+                        citizen.getName(), bestResortLocation, resort.getColony().getID(), resort.getSchematicName());
+                    return cannotVacation();
                 }
 
                 if (seatLocation != null)

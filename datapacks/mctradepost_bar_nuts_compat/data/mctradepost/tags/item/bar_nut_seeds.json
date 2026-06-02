@@ -1,0 +1,38 @@
+{
+  "replace": false,
+  "values": [
+    "#c:nuts",
+    {
+      "id": "#c:crops/candlenut",
+      "required": false
+    },
+    {
+      "id": "#c:crops/coconut",
+      "required": false
+    },
+    {
+      "id": "#c:crops/nutmeg",
+      "required": false
+    },
+    {
+      "id": "#c:nutmeg",
+      "required": false
+    },
+    {
+      "id": "tropicraft:coconut",
+      "required": false
+    },
+    {
+      "id": "tropicraft:coconut_chunk",
+      "required": false
+    },
+    {
+      "id": "tropicraft:mahogany_nut",
+      "required": false
+    },
+    {
+      "id": "wildernature:hazelnut",
+      "required": false
+    }
+  ]
+}

@@ -594,6 +594,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     continue;
                 }
 
+                if (checkbuilding.getBuildingLevel() == 0)
+                {
+                    continue;
+                }
+
                 BlockPos tcBuildingPos = tradeCapableBuilding.getPosition();
 
                 if (tcBuildingPos == null || BlockPos.ZERO.equals(tcBuildingPos))
@@ -609,8 +614,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
                     TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
                     
-                    if ((connectionResult == null) || (connectionResult.ageOfCheck(world.getGameTime()) > MCTPConfig.trackValidationFrequency.get())
-                    )                   
+                    if ((connectionResult == null) || (connectionResult.ageOfCheck(world.getGameTime()) > MCTPConfig.trackValidationFrequency.get()))                   
                     {
                         currentRemoteStation = stationData;
                         return true;
