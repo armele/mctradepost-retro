@@ -25,6 +25,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IGenericRecipe;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
@@ -444,5 +445,53 @@ public class BuildingResort extends AbstractBuilding
 
             return false;
         }
+    }
+
+    /**
+     * Should a citizen give the vacation interaction?
+     * 
+     * @param citizen
+     * @return
+     */
+    public static boolean vacationInteractionPredicate(ICitizenData citizen)
+    {
+        if (citizen == null || citizen.getColony() == null)
+        {
+            return false;
+        } 
+        
+        
+        if (!citizen.getEntity().isPresent())
+        {
+            return false;
+        }
+
+        BlockPos bestResort = citizen.getColony().getServerBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class);
+
+        if (bestResort == null)
+        {
+            return false;
+        }
+
+        IBuilding resortCandidate = citizen.getColony().getServerBuildingManager().getBuilding(bestResort);
+
+        if (resortCandidate == null || !(resortCandidate instanceof BuildingResort resort))
+        {
+            return false;
+        }
+
+        Vacationer vacationFile = resort.getGuestFile(citizen.getEntity().get().getCivilianID());
+
+        if (vacationFile == null)
+        {
+            return false;
+        }
+
+        if (vacationFile.getState() != VacationState.CHECKED_OUT && citizen.getStatus() == EntityAIBurnoutTask.VACATION_STATUS) 
+        {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -18,8 +18,6 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStewmelier;
-import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask;
-import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
 
 public class MCTPInteractionInitializer 
 {
@@ -40,14 +38,7 @@ public class MCTPInteractionInitializer
     public static void injectInteractionHandlers() 
     {
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(GREAT_VACATION),
-            citizen -> citizen.getColony() != null && citizen.getEntity().isPresent()
-            && ((BuildingResort) citizen.getColony().getServerBuildingManager().getBuilding(
-                    citizen.getColony().getServerBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
-                )).getGuestFile(citizen.getEntity().get().getCivilianID()) != null
-            && ((BuildingResort) citizen.getColony().getServerBuildingManager().getBuilding(
-                    citizen.getColony().getServerBuildingManager().getBestBuilding(citizen.getEntity().get(), BuildingResort.class)
-                )).getGuestFile(citizen.getEntity().get().getCivilianID()).getState() != VacationState.CHECKED_OUT
-            && (citizen.getStatus() == EntityAIBurnoutTask.VACATION_STATUS)
+            citizen -> BuildingResort.vacationInteractionPredicate(citizen)
         );
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(DISCONNECTED_OUTPOST),

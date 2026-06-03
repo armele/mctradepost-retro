@@ -24,6 +24,7 @@ import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.compat.recycling.IOptionalRecyclingProvider;
 import com.deathfrog.mctradepost.compat.recycling.OptionalRecyclingProviders;
 import com.deathfrog.mctradepost.compat.recycling.RecyclingPlan;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.RecipeAnalysisHelper;
@@ -1071,7 +1072,7 @@ public class BuildingRecycling extends AbstractBuilding
             return new RecyclingPlan.IngredientOutputs(outputsFromDeconstructionRecipe(level, deconRecipe.get().value()), inputStack.copy());
         }
 
-        final RecyclingPlan compatPlan = resolveOptionalRecyclingPlan(inputStack, level, workerSkill);
+        final RecyclingPlan compatPlan = resolveOptionalRecyclingPlan(inputStack, level, workerSkill, advancedResearchStrength(this.getColony()));
         if (compatPlan != null)
         {
             return compatPlan;
@@ -1097,11 +1098,11 @@ public class BuildingRecycling extends AbstractBuilding
      * @return the first optional recycling plan that matches, or {@code null} if no provider handles the input
      */
     @Nullable
-    protected RecyclingPlan resolveOptionalRecyclingPlan(@Nonnull final ItemStack inputStack, @Nonnull final Level level, final int workerSkill)
+    protected RecyclingPlan resolveOptionalRecyclingPlan(@Nonnull final ItemStack inputStack, @Nonnull final Level level, final int workerSkill, double researchLevel)
     {
-        for (final var provider : OptionalRecyclingProviders.getProviders())
+        for (final IOptionalRecyclingProvider provider : OptionalRecyclingProviders.getProviders())
         {
-            final RecyclingPlan plan = provider.tryResolve(inputStack, level, workerSkill);
+            final RecyclingPlan plan = provider.tryResolve(inputStack, level, workerSkill, researchLevel);
             if (plan != null)
             {
                 return plan;
@@ -1223,6 +1224,23 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
+     * Verifies what level of research for advanced recycling is available within the specified colony.
+     * @param colony
+     * @return level of research (0.0 for none)
+     */
+    protected double advancedResearchStrength(IColony colony)
+    {
+        if (colony == null) return 0.0;
+
+        double advancedResearch = colony
+            .getResearchManager()
+            .getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.RESEARCH_DISENCHANTING);
+
+        return advancedResearch;
+    }
+
+    /**
      * Checks whether an enchanted item has any path to safe disenchantment.
      *
      * @param inputStack the item stack being considered for recycling
@@ -1235,10 +1253,7 @@ public class BuildingRecycling extends AbstractBuilding
             return true;
         }
 
-        double disenchantmentStrength = this.getColony()
-            .getResearchManager()
-            .getResearchEffects()
-            .getEffectStrength(MCTPResearchConstants.RESEARCH_DISENCHANTING);
+        double disenchantmentStrength = advancedResearchStrength(this.getColony());
 
         return disenchantmentStrength > 0.0 && !MCTPInventoryUtils.extractEnchantmentsToBooks(inputStack.copy()).isEmpty();
     }
@@ -1261,10 +1276,8 @@ public class BuildingRecycling extends AbstractBuilding
             return true;
         }
 
-        double disenchantmentStrength = this.getColony()
-            .getResearchManager()
-            .getResearchEffects()
-            .getEffectStrength(MCTPResearchConstants.RESEARCH_DISENCHANTING);
+        double disenchantmentStrength = advancedResearchStrength(this.getColony());
+
         double roll = level.random.nextDouble();
         if (disenchantmentStrength > 0.0 && roll < disenchantmentStrength)
         {

@@ -1,11 +1,12 @@
-{
-  "replace": false,
-  "values": [
-    "minecraft:wheat_seeds",
-    "minecraft:beetroot_seeds",
-    "minecraft:melon_seeds",
-    "minecraft:pumpkin_seeds",
-    "#c:seeds",
-    {"id": "wildernature:hazelnut", "required": false}
-  ]
-}
+  {
+    "replace": false,
+    "values": [
+      "minecraft:wheat_seeds",
+      "minecraft:beetroot_seeds",
+      "minecraft:melon_seeds",
+      "minecraft:pumpkin_seeds",
+      "#c:seeds",
+      {"id": "wildernature:hazelnut", "required": false},
+      {"tag": "c:nuts", "required": false}
+    ]
+  }

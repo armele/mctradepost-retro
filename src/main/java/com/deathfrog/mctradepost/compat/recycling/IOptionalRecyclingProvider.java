@@ -21,5 +21,5 @@ public interface IOptionalRecyclingProvider
      * @return a recycling plan if this provider can handle the input, or {@code null} otherwise
      */
     @Nullable
-    RecyclingPlan tryResolve(ItemStack input, Level level, int workerSkill);
+    RecyclingPlan tryResolve(ItemStack input, Level level, int workerSkill, double researchLevel);
 }
