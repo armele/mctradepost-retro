@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule.PendingWarehouseRequest;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
@@ -41,9 +43,15 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.modules.settings.ISettingKey;
 import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.colony.managers.interfaces.IRegisteredStructureManager;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
+import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Delivery;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.AbstractBuilding;
@@ -1358,16 +1366,227 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
-     * Retrieves the list of items that are pending for recycling in the building.
-     * 
-     * @return a list of ItemStorage objects representing the items awaiting processing.
+     * Returns warehouse requests for recyclable items that are still expected to be delivered.
+     *
+     * @return mutable list of pending warehouse requests.
      */
-    public List<ItemStorage> getPendingRecyclingQueue()
+    public List<PendingWarehouseRequest> getPendingWarehouseRequests()
     {
-        List<ItemStorage> pendingRecyclingQueue =
-            getModule(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST))
-                .getPendingRecyclingQueue();
-        return pendingRecyclingQueue;
+        return getModule(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST))
+            .getPendingWarehouseRequests();
+    }
+
+    /**
+     * Returns delivered recyclable items that have entered recycler custody but have not yet entered a recycling processor.
+     *
+     * @return mutable list of accepted recycling inputs.
+     */
+    public List<ItemStorage> getAcceptedRecyclingInputs()
+    {
+        return getModule(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST))
+            .getAcceptedRecyclingInputs();
+    }
+
+    /**
+     * Reconciles pending recyclable warehouse requests with the MineColonies request system and current warehouse inventory. Requests
+     * are cleared when they are no longer live, when the item became invalid, or when no warehouse stock or delivery child can still
+     * satisfy them.
+     */
+    public void reconcileRecyclingRequests()
+    {
+        if (getColony() == null || getColony().getRequestManager() == null)
+        {
+            return;
+        }
+
+        final RecyclingItemListModule module =
+            getModule(RecyclingItemListModule.class, m -> m.getId().equals(EntityAIWorkRecyclingEngineer.RECYCLING_LIST));
+
+        final List<PendingWarehouseRequest> requestsToRemove = new ArrayList<>();
+
+        for (PendingWarehouseRequest pendingRequest : new ArrayList<>(module.getPendingWarehouseRequests()))
+        {
+            IRequest<?> request = pendingRequest.token() == null ? findMatchingOpenRecyclingRequest(pendingRequest.item())
+                : getColony().getRequestManager().getRequestForToken(pendingRequest.token());
+
+            if (request == null)
+            {
+                requestsToRemove.add(pendingRequest);
+                continue;
+            }
+
+            if (isTerminalRecyclingRequestState(request.getState()))
+            {
+                requestsToRemove.add(pendingRequest);
+                continue;
+            }
+
+            final ItemStack pendingStack = pendingRequest.item().getItemStack();
+            if (RecyclingBlacklistManager.isBlacklisted(pendingStack, getColony().getWorld()))
+            {
+                getColony().getRequestManager().updateRequestState(request.getId(), RequestState.CANCELLED);
+                requestsToRemove.add(pendingRequest);
+                continue;
+            }
+
+            if (!hasDeliveryInProgress(request, pendingRequest.item()) && !warehouseContains(pendingRequest.item()))
+            {
+                if (request.getState() != RequestState.COMPLETED)
+                {
+                    getColony().getRequestManager().updateRequestState(request.getId(), RequestState.CANCELLED);
+                }
+                requestsToRemove.add(pendingRequest);
+            }
+        }
+
+        for (PendingWarehouseRequest pendingRequest : requestsToRemove)
+        {
+            module.removePendingWarehouseRequest(pendingRequest);
+        }
+
+        if (!requestsToRemove.isEmpty())
+        {
+            markDirty();
+        }
+    }
+
+    /**
+     * Determines whether a request state means the recycler should no longer expect a future warehouse delivery.
+     *
+     * @param state The request state to test.
+     * @return true if the pending warehouse request should be removed.
+     */
+    private boolean isTerminalRecyclingRequestState(RequestState state)
+    {
+        return state == RequestState.CANCELLED
+            || state == RequestState.FAILED
+            || state == RequestState.RECEIVED
+            || state == RequestState.OVERRULED;
+    }
+
+    /**
+     * Finds an open recyclable request matching a tokenless legacy pending entry.
+     *
+     * @param item The pending item to match.
+     * @return the matching open request, or null if none exists.
+     */
+    private IRequest<?> findMatchingOpenRecyclingRequest(ItemStorage item)
+    {
+        for (Collection<IToken<?>> tokens : getOpenRequestsByRequestableType().values())
+        {
+            for (IToken<?> token : tokens)
+            {
+                IRequest<?> request = getColony().getRequestManager().getRequestForToken(token);
+                if (request != null && request.getRequest() instanceof StackList stackList && stackListMatches(stackList, item))
+                {
+                    return request;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks whether the request already has a delivery result or active delivery child for the given item.
+     *
+     * @param request The parent recyclable request.
+     * @param item    The item expected by the recycler.
+     * @return true if a matching delivery is still in progress or awaiting pickup.
+     */
+    private boolean hasDeliveryInProgress(IRequest<?> request, ItemStorage item)
+    {
+        for (ItemStack deliveryStack : request.getDeliveries())
+        {
+            if (stacksMatch(item, deliveryStack))
+            {
+                return true;
+            }
+        }
+
+        for (IToken<?> childToken : request.getChildren())
+        {
+            IRequest<?> childRequest = getColony().getRequestManager().getRequestForToken(childToken);
+            if (childRequest == null || isTerminalRecyclingRequestState(childRequest.getState()))
+            {
+                continue;
+            }
+
+            if (childRequest.getRequest() instanceof Delivery delivery && stacksMatch(item, delivery.getStack()))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks whether any colony warehouse still has a matching item available.
+     *
+     * @param item The item to search for.
+     * @return true if a matching stack exists in warehouse inventory.
+     */
+    private boolean warehouseContains(ItemStorage item)
+    {
+        if (getColony() == null || getColony().getServerBuildingManager() == null)
+        {
+            return false;
+        }
+
+        IRegisteredStructureManager buildingManager = getColony().getServerBuildingManager();
+        for (IWareHouse wh : buildingManager.getWareHouses())
+        {
+            BlockPos whPos = wh.getPosition();
+            if (whPos == null)
+            {
+                continue;
+            }
+
+            IBuilding warehouse = IColonyManager.getInstance().getBuilding(getColony().getWorld(), whPos);
+            Object2IntMap<ItemStorage> whItems = MCTPInventoryUtils.contentsForBuilding(warehouse);
+            for (Entry<ItemStorage> entry : whItems.object2IntEntrySet())
+            {
+                if (entry.getIntValue() > 0 && item.equals(entry.getKey()))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks whether a StackList request can be satisfied by the given item.
+     *
+     * @param stackList The request payload.
+     * @param item      The item to match.
+     * @return true if any requested stack matches the item.
+     */
+    private boolean stackListMatches(StackList stackList, ItemStorage item)
+    {
+        for (ItemStack stack : stackList.getStacks())
+        {
+            if (stacksMatch(item, stack))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Compares an ItemStorage definition against an ItemStack using the storage's damage and NBT matching rules.
+     *
+     * @param item  The stored item definition.
+     * @param stack The stack to compare.
+     * @return true if the stack matches the item definition.
+     */
+    private boolean stacksMatch(ItemStorage item, ItemStack stack)
+    {
+        return ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), !item.ignoreDamageValue(), !item.ignoreNBT());
     }
 
     /**
@@ -1386,9 +1605,16 @@ public class BuildingRecycling extends AbstractBuilding
             return;
         }
 
+        reconcileRecyclingRequests();
+
         IRegisteredStructureManager buildingManager = getColony().getServerBuildingManager();
         List<IWareHouse> warehouses = buildingManager.getWareHouses();
-        final Set<ItemStorage> pendingRecyclingSet = new HashSet<>(getPendingRecyclingQueue());
+        final Set<ItemStorage> pendingWarehouseRequestSet = new HashSet<>();
+        for (PendingWarehouseRequest request : getPendingWarehouseRequests())
+        {
+            pendingWarehouseRequestSet.add(request.item());
+        }
+        final Set<ItemStorage> acceptedInputSet = new HashSet<>(getAcceptedRecyclingInputs());
 
         for (IWareHouse wh : warehouses)
         {
@@ -1411,7 +1637,9 @@ public class BuildingRecycling extends AbstractBuilding
                         continue;
                     }
 
-                    if (!pendingRecyclingSet.contains(entry.getKey()) && !RecyclingBlacklistManager.isBlacklisted(keyStack, getColony().getWorld()))
+                    if (!pendingWarehouseRequestSet.contains(entry.getKey())
+                        && !acceptedInputSet.contains(entry.getKey())
+                        && !RecyclingBlacklistManager.isBlacklisted(keyStack, getColony().getWorld()))
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }

@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost.core.commands;
 
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule.PendingWarehouseRequest;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.crafting.ItemStorage;
@@ -48,17 +50,31 @@ public class CommandPendingRecycling extends AbstractCommands
 
         if (recycling != null)
         {
-            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("Pending recycling orders from the warehouse:"),
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("Pending recycling warehouse requests:"),
                 false);
 
-            for (ItemStorage pending : recycling.getPendingRecyclingQueue())
+            for (PendingWarehouseRequest pending : recycling.getPendingWarehouseRequests())
             {
                 if (pending == null)
                 {
                     continue;
                 }
 
-                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(pending.toString() + ""), false);
+                IRequest<?> request = pending.token() == null ? null : recycling.getColony().getRequestManager().getRequestForToken(pending.token());
+                String state = request == null ? "unknown" : request.getState().name();
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(pending.item() + " token=" + pending.token() + " state=" + state), false);
+            }
+
+            source.sendSuccess(() -> net.minecraft.network.chat.Component.literal("Accepted recycling inputs:"), false);
+
+            for (ItemStorage accepted : recycling.getAcceptedRecyclingInputs())
+            {
+                if (accepted == null)
+                {
+                    continue;
+                }
+
+                source.sendSuccess(() -> net.minecraft.network.chat.Component.literal(accepted.toString() + ""), false);
             }
 
             return 1;

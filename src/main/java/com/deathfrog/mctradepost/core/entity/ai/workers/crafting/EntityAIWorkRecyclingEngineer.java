@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
+import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule.PendingWarehouseRequest;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
@@ -115,48 +116,60 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      */
     public boolean checkDeliveryStatus()
     {
-        final List<ItemStorage> pendingRecyclingQueue = building.getPendingRecyclingQueue();
+        final RecyclingItemListModule module = building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
 
         // Check if any deliveries from the warehouse went directly to the recycling engineer and need to be processed
-        if (InventoryUtils.hasItemInProvider(worker, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack))))
+        if (InventoryUtils.hasItemInProvider(worker, stack -> module.findPendingWarehouseRequest(new ItemStorage(stack)) != null))
         {
             TraceUtils.dynamicTrace(TRACE_RECYCLING,
                             () -> LOGGER.info("A pending item {} has arrived at the recycling engineer."));
 
-            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack)));
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> module.findPendingWarehouseRequest(new ItemStorage(stack)) != null);
 
             if (slot >= 0)
             {
                 ItemStorage listItem = new ItemStorage(worker.getItemHandlerCap().getStackInSlot(slot));
+                PendingWarehouseRequest pendingRequest = module.findPendingWarehouseRequest(listItem);
 
                 TraceUtils.dynamicTrace(TRACE_RECYCLING,
                                 () -> LOGGER.info("The {} has arrived.", listItem));
 
-                pendingRecyclingQueue.remove(listItem);
+                if (pendingRequest != null)
+                {
+                    module.removePendingWarehouseRequest(pendingRequest);
+                    module.addAcceptedRecyclingInput(listItem);
+                    building.markDirty();
+                }
                 return true;
             }
 
         }
 
         // If something in our queue has made it to the building, get it out and recycle it.
-        if (InventoryUtils.hasItemInProvider(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true))))
+        if (InventoryUtils.hasItemInProvider(building, stack -> module.findPendingWarehouseRequest(new ItemStorage(stack, true, true)) != null))
         {
-            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true)));
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(building, stack -> module.findPendingWarehouseRequest(new ItemStorage(stack, true, true)) != null);
 
             if (slot >= 0)
             {
                 ItemStorage listItem = new ItemStorage(building.getItemHandlerCap().getStackInSlot(slot), true, true);
+                PendingWarehouseRequest pendingRequest = module.findPendingWarehouseRequest(listItem);
                 InventoryUtils.transferItemStackIntoNextFreeSlotFromProvider(building, slot, worker.getInventoryCitizen());
 
                 TraceUtils.dynamicTrace(TRACE_RECYCLING,
                                 () -> LOGGER.info("Pending item {} has arrived at the building.", listItem));
 
-                slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> pendingRecyclingQueue.contains(new ItemStorage(stack, true, true)));
+                slot = InventoryUtils.findFirstSlotInItemHandlerWith(worker.getInventoryCitizen(), stack -> module.findPendingWarehouseRequest(new ItemStorage(stack, true, true)) != null);
                 if (slot >= 0)
                 {
                     ItemStack stackInSlot = worker.getInventoryCitizen().getStackInSlot(slot);
                     worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(stackInSlot));
-                    pendingRecyclingQueue.remove(listItem); // This has been delivered and we're about to recycle it. Remove it from the queue.
+                    if (pendingRequest != null)
+                    {
+                        module.removePendingWarehouseRequest(pendingRequest);
+                        module.addAcceptedRecyclingInput(new ItemStorage(stackInSlot, true, true));
+                        building.markDirty();
+                    }
                     
                     return true;
                 }
@@ -226,7 +239,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             else
             {
                 final List<ItemStorage> list = building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
-                if (list.isEmpty() || building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
+                if (list.isEmpty())
                 {
                     TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Maintain equipment while no warehouse orders need to be placed."));
                     return RecyclingStates.MAINTAIN_EQUIPMENT;
@@ -539,6 +552,10 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     if (processStack != null && recycling.addRecyclingProcess(processStack,
                         worker.getCitizenData().getCitizenSkillHandler().getLevel(getModuleForJob().getPrimarySkill())))
                     {
+                        building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST))
+                            .removeAcceptedRecyclingInput(new ItemStorage(processStack, true, true));
+                        building.markDirty();
+
                         TraceUtils.dynamicTrace(TRACE_RECYCLING,
                             () -> LOGGER.info("Recording recycling stats for: {}, count {}",
                                 stackToRecycle.getDescriptionId(),
@@ -641,9 +658,12 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             return getState();
         }
 
+        building.reconcileRecyclingRequests();
+
         final List<ItemStorage> list =
             building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
-        final List<ItemStorage> pendingRecyclingQueue = building.getPendingRecyclingQueue();
+        final RecyclingItemListModule recyclingModule =
+            building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
 
         if (list.isEmpty()  && building.getRecyclingProcessors().isEmpty())
         {
@@ -653,34 +673,36 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
-        if (!building.hasWorkerOpenRequests(worker.getCitizenData().getId()))
+        int requestedCount = 0;
+        ItemListModule module = building.getModule(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
+        final List<ItemStorage> requestableSnapshot = new ArrayList<>(list);
+        for (final ItemStorage item : requestableSnapshot)
         {
-            int maxSize = 0;
+            if (recyclingModule.hasPendingWarehouseRequest(item) || recyclingModule.hasAcceptedRecyclingInput(item))
+            {
+                continue;
+            }
+
+            final ItemStack itemStack = item.getItemStack().copy();
+            itemStack.setCount(item.getAmount());
             final ArrayList<ItemStack> itemList = new ArrayList<>();
-            for (final ItemStorage item : list)
-            {
-                final ItemStack itemStack = item.getItemStack();
-                maxSize = maxSize > item.getAmount() ? maxSize : item.getAmount();
-                itemStack.setCount(item.getAmount());
-                itemList.add(itemStack);
-                pendingRecyclingQueue.add(item); // add the item to the queue
-                break; // only use the first item
-            }
-            if (!itemList.isEmpty())
-            {
-                worker.getCitizenData()
-                    .createRequestAsync(new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, maxSize, 1));
+            itemList.add(itemStack);
 
-                ItemListModule module = building.getModule(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
+            final IToken<?> requestToken = building.createRequest(worker.getCitizenData(),
+                new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, item.getAmount(), 1),
+                true);
 
-                // These are meant to be one-time calls to the warehouse for garbage to be recycled. Prevent requests
-                // that might result in items being crafted just to be recycled by turning off the item setting in the module list.
-                for (ItemStack item : itemList)
-                {
-                    module.removeItem(new ItemStorage(item));
-                    building.refreshItemList();
-                }
-            }
+            recyclingModule.addPendingWarehouseRequest(requestToken, new ItemStorage(itemStack));
+            requestedCount++;
+
+            // These are meant to be one-time calls to the warehouse for garbage to be recycled. Prevent requests
+            // that might result in items being crafted just to be recycled by turning off the item setting in the module list.
+            module.removeItem(new ItemStorage(itemStack));
+        }
+
+        if (requestedCount > 0)
+        {
+            building.refreshItemList();
         }
 
         setDelay(2);
