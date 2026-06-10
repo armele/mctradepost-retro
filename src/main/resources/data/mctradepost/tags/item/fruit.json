@@ -5,9 +5,9 @@
     "minecraft:glow_berries",
     "minecraft:sweet_berries",
     "#minecolonies:fruit",
-    {"id": "c:foods/fruit", "required": false},
-    {"id": "c:foods/berry", "required": false},
-    {"tag": "c:fruits", "required": false}
+    {"id": "#c:foods/fruit", "required": false},
+    {"id": "#c:foods/berry", "required": false},
+    {"id": "#c:fruits", "required": false}
   ],
   "remove": [
   ]

@@ -130,11 +130,11 @@ public class CommunityRitualProcessor
 
             if (companionItem.equals(MCTradePostMod.WISH_PLENTY.get()))
             {
-                message = "citizens fed.";
+                message = " citizens fed.";
             }
             else 
             {
-                message = "citizens cured.";
+                message = " citizens cured.";
             }
 
             for (ICitizenData citizen : citizens)

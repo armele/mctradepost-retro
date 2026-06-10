@@ -7,6 +7,6 @@
       "minecraft:pumpkin_seeds",
       "#c:seeds",
       {"id": "wildernature:hazelnut", "required": false},
-      {"tag": "c:nuts", "required": false}
+      {"id": "#c:nuts", "required": false}
     ]
   }

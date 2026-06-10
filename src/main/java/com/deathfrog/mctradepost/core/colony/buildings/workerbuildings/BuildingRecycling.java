@@ -1388,7 +1388,7 @@ public class BuildingRecycling extends AbstractBuilding
 
         IRegisteredStructureManager buildingManager = getColony().getServerBuildingManager();
         List<IWareHouse> warehouses = buildingManager.getWareHouses();
-        final List<ItemStorage> pendingRecyclingQueue = getPendingRecyclingQueue();
+        final Set<ItemStorage> pendingRecyclingSet = new HashSet<>(getPendingRecyclingQueue());
 
         for (IWareHouse wh : warehouses)
         {
@@ -1411,9 +1411,7 @@ public class BuildingRecycling extends AbstractBuilding
                         continue;
                     }
 
-                    if (!pendingRecyclingQueue.contains(entry.getKey()) &&
-                        !RecyclingBlacklistManager.isBlacklisted(keyStack, getColony().getWorld()) &&
-                        isRecyclable(keyStack))
+                    if (!pendingRecyclingSet.contains(entry.getKey()) && !RecyclingBlacklistManager.isBlacklisted(keyStack, getColony().getWorld()))
                     {
                         allItems.addTo(entry.getKey(), entry.getIntValue());
                     }
