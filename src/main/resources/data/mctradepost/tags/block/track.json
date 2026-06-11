@@ -5,6 +5,10 @@
     "minecraft:powered_rail",
     "minecraft:detector_rail",
     "minecraft:activator_rail",
-    "#minecraft:rails"
+    "#minecraft:rails",
+    {
+      "id": "#create:tracks",
+      "required": false
+    }
   ]
 }

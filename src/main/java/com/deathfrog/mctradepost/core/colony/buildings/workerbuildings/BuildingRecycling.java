@@ -1422,6 +1422,9 @@ public class BuildingRecycling extends AbstractBuilding
             }
 
             final ItemStack pendingStack = pendingRequest.item().getItemStack();
+
+            if (pendingStack == null) continue;
+
             if (RecyclingBlacklistManager.isBlacklisted(pendingStack, getColony().getWorld()))
             {
                 getColony().getRequestManager().updateRequestState(request.getId(), RequestState.CANCELLED);

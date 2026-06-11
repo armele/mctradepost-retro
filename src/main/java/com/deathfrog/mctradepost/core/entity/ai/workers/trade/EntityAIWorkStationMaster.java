@@ -21,6 +21,7 @@ import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
@@ -800,7 +801,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 continue;
             }
 
-            if (building.isItemStackInRequest(exportData.getTradeItem().getItemStack()))
+            if (hasOpenExportRequest(exportData.getTradeItem().getItemStack()))
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Skipping request for {} - request already outstanding.", exportData.getTradeItem().getItemStack().getHoverName()));
                 continue;
@@ -838,6 +839,35 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         setDelay(2);
         return DECIDE;
+    }
+
+    /**
+     * Checks for outstanding station export requests by inspecting the requested StackList itself. MineColonies'
+     * generic isItemStackInRequest check only sees deliveries, which are empty until the request is already being fulfilled.
+     *
+     * @param requestedStack the export item to check
+     * @return true if this station master already has an open export request for the item
+     */
+    private boolean hasOpenExportRequest(final ItemStack requestedStack)
+    {
+        return building.hasWorkerOpenRequestsFiltered(worker.getCitizenData().getId(), request -> isMatchingExportRequest(request, requestedStack));
+    }
+
+    /**
+     * Returns true if the request is a station export StackList that can satisfy the requested item.
+     *
+     * @param request the open request to inspect
+     * @param requestedStack the export item to check
+     * @return true if the request is already asking for this export item
+     */
+    private boolean isMatchingExportRequest(final IRequest<?> request, final ItemStack requestedStack)
+    {
+        if (!(request.getRequest() instanceof StackList stackList))
+        {
+            return false;
+        }
+
+        return BuildingStation.EXPORT_ITEMS.equals(stackList.getDescription()) && stackList.matches(requestedStack);
     }
 
     /**

@@ -241,7 +241,11 @@ public class RecyclingItemListModule extends ItemListModule
                 token = new StandardToken(new UUID(tokenTag.getLong(TAG_TOKEN_MSB), tokenTag.getLong(TAG_TOKEN_LSB)));
             }
 
-            pendingWarehouseRequests.add(new PendingWarehouseRequest(token, new ItemStorage(ItemStack.parseOptional(nnProvider, listItem.getCompound(TAG_ITEM)))));
+            CompoundTag tag = listItem.getCompound(TAG_ITEM);
+
+            if (tag == null) continue;
+
+            pendingWarehouseRequests.add(new PendingWarehouseRequest(token, new ItemStorage(ItemStack.parseOptional(nnProvider, tag))));
         }
 
         ListTag acceptedInputs = compound.getList(TAG_ACCEPTED_RECYCLING_INPUTS, 10);
