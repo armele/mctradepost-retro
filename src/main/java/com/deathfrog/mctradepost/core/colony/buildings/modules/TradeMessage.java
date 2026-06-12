@@ -138,7 +138,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
                         building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, new ItemStorage(itemStack, quantity), cost);
                     }
-                    notifyConnectedStations(building, player);
+                    notifyConnectedStations(building, player, true, true);
                 }
                 break;
 
@@ -155,37 +155,45 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add import."));
                         building.getModule(MCTPBuildingModules.IMPORTS).addImport(itemStack, cost, quantity);
                     }
-                    notifyConnectedStations(building, player);
+                    notifyConnectedStations(building, player, true, true);
                 }
                 break;
 
             case QUERY:
-                // notifyConnectedStations(building, player);
+                notifyConnectedStations(building, player, false, false);
                 break;
 
         }
     }
 
     /**
-     * Notifies connected stations by marking them dirty (which indicates
-     * that they require an update or reevaluation) and subscribing the player
-     * who initiated this message as to the remote colony view.
+     * Notifies connected stations and subscribes the requesting player to their colony views.
+     * Query messages use this only to obtain fresh remote views for export offer display.
      */
-    protected void notifyConnectedStations(IBuilding building, final ServerPlayer player)
+    protected void notifyConnectedStations(IBuilding building, final ServerPlayer player, final boolean markTradesDirty, final boolean announce)
     {
         if (building instanceof BuildingStation station)
         {
 
             for (StationData remoteStationData : station.getStations().values())
             {
-                if (remoteStationData.getStation() != null && station.getTrackConnectionResult(remoteStationData).connected)
+                if (remoteStationData.getStation() != null &&
+                    station.getTrackConnectionResult(remoteStationData) != null &&
+                    station.getTrackConnectionResult(remoteStationData).connected)
                 {
                     ITradeCapable remoteStation = remoteStationData.getStation();
-                    remoteStation.markTradesDirty();
                     IColony colony = remoteStation.getColony();
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));
 
-                    MessageUtils.format(TRADES_UPDATED).sendTo(colony).forAllPlayers();
+                    if (markTradesDirty)
+                    {
+                        remoteStation.markTradesDirty();
+                    }
+
+                    if (announce)
+                    {
+                        TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Notifying station at {} of trade terms changes.", station.getPosition()));
+                        MessageUtils.format(TRADES_UPDATED).sendTo(colony).forAllPlayers();
+                    }
 
                     colony.getPackageManager().addCloseSubscriber(player);
                 }

@@ -269,8 +269,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
             final boolean stationConnected = conn.isConnected();
 
-            // 3) If not an outpost, the remote must offer the trade and be connected, else eliminate
-            state = validateRemoteImportOrEliminate(dest, stationConnected, exportData);
+            // 3) If not an outpost, the remote must still offer the trade.
+            state = validateRemoteImportOrEliminate(dest, exportData);
             if (state != null) return state;
 
             // 4) Do we have the goods locally?
@@ -396,16 +396,15 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     }
 
     /**
-     * Validates if the remote station is connected and offers the trade.
-     * If either condition is not met, the export is marked for removal.
+     * Validates if the remote station still offers the trade.
+     * Connectivity is treated as transient and only blocks shipment attempts.
      * Outposts skip import validation.
      * 
      * @param dest the destination station to validate
-     * @param stationConnected whether the station is connected
      * @param e the export data to validate
      * @return the next AI state to transition to, or null if no transition is needed
      */
-    protected IAIState validateRemoteImportOrEliminate(final StationData dest, final boolean stationConnected, final ExportData e)
+    protected IAIState validateRemoteImportOrEliminate(final StationData dest, final ExportData e)
     {
         if (dest.isOutpost()) return null; // outposts skip import validation
 
@@ -423,7 +422,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         final boolean tradeOffered = remoteImport.hasTrade(e.getTradeItem().getItemStack().copy(), e.getCost(), e.getQuantity());
 
-        if (!stationConnected || !tradeOffered)
+        if (!tradeOffered)
         {
             TraceUtils.dynamicTrace(TRACE_STATION,
                 () -> LOGGER.info("Export of {} for {} is no longer valid (trade not offered) - marking for removal.",

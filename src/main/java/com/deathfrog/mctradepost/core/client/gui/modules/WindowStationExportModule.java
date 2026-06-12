@@ -352,30 +352,28 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
 
                 for (ExportGui exportGui : potentialExportMap)
                 {
-                    if (TrackConnectionStatus.CONNECTED.equals(((StationView) buildingView).stationConnectionStatus(exportGui.destinationStation)))
+                    // Selection reflects configured exports, independent of the current route status.
+                    // Connectivity only controls whether the player can toggle the row.
+                    for (ExportData export : moduleView.getExportList())
                     {
-                        // MCTradePostMod.LOGGER.info("{} exports to check.", moduleView.getExportList());
+                        Item item = exportGui.getItemStorage().getItem();
 
-                        for (ExportData export : moduleView.getExportList())
+                        if (item == null)
                         {
-                            Item item = exportGui.getItemStorage().getItem();
+                            continue;
+                        }
 
-                            if (item == null)
-                            {
-                                continue;
-                            }
-
-                            if (exportGui.isEnabled() && export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
-                                export.getTradeItem().getItemStack().is(item) &&
-                                exportGui.cost.equals(export.getCost()))
-                            {
-                                exportGui.selected = true;
-                                exportGui.shipDistance = export.getShipDistance();
-                                exportGui.trackDistance = export.getTrackDistance();
-                                exportGui.lastShipDay = export.getLastShipDay();
-                                exportGui.nsf = export.isInsufficientFunds();
-                                break;
-                            }
+                        if (export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                            export.getTradeItem().getItemStack().is(item) &&
+                            exportGui.cost.equals(export.getCost()) &&
+                            exportGui.quantity.equals(export.getQuantity()))
+                        {
+                            exportGui.selected = true;
+                            exportGui.shipDistance = export.getShipDistance();
+                            exportGui.trackDistance = export.getTrackDistance();
+                            exportGui.lastShipDay = export.getLastShipDay();
+                            exportGui.nsf = export.isInsufficientFunds();
+                            break;
                         }
                     }
                 }
