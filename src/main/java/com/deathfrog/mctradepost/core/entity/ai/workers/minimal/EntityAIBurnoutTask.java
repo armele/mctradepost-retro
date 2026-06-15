@@ -363,6 +363,15 @@ public class EntityAIBurnoutTask
             return false;
         }
 
+        if (vacationTracker != null && vacationTracker.getState() != Vacationer.VacationState.CHECKED_OUT
+            && citizenData.getJob() == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                () -> LOGGER.info("Cancelling vacation for unemployed citizen: {}", citizen));
+            reset();
+            return false;
+        }
+
         IBuilding workBuilding = citizenData.getWorkBuilding();
         if (workBuilding != null)
         {

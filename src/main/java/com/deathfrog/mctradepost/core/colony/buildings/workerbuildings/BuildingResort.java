@@ -186,6 +186,18 @@ public class BuildingResort extends AbstractBuilding
             return;
         }
 
+        for (Vacationer guest : getGuests())
+        {
+            final ICitizenData guestData = colony.getCitizenManager().getCivilian(guest.getCivilianId());
+            if (guestData != null && guestData.getJob() == null)
+            {
+                TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                    () -> LOGGER.info("Cancelling vacation for unemployed guest {} at resort {} in colony {}.",
+                        guest.getCivilianId(), getPosition(), colony.getID()));
+                removeGuestFile(guest.getCivilianId());
+            }
+        }
+
         advertisingCooldown--;
 
         if (advertisingCooldown > 0) return;
