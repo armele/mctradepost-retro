@@ -1,16 +1,19 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ResortGuestListModuleView;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage.GuestAction;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
+import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -36,6 +39,7 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
     private static final String LABEL_GUESTLIST = "guestlist";
     private static final String LABEL_NAME = "name";
     private static final String LABEL_ITEMBASE = "item";
+    private static final String BUTTON_SUMMONGUEST = "summonGuest";
 
     /**
      * Resource scrolling list.
@@ -52,7 +56,7 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
     public WindowGuestListModule(final ResortGuestListModuleView moduleView)
     {
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
-
+        registerButton(BUTTON_SUMMONGUEST, this::summonGuest);
         guestList = this.window.findPaneOfTypeByID(LABEL_GUESTLIST, ScrollingList.class);
 
     }
@@ -121,6 +125,9 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
                     name.setText(Component.literal("Unknown"));
                 }
 
+                final ButtonImage summonGuestButton = rowPane.findPaneOfTypeByID(BUTTON_SUMMONGUEST, ButtonImage.class);
+                PaneBuilders.tooltipBuilder().hoverPane(summonGuestButton).build().setText(Component.translatable("com.minecolonies.coremod.gui.guestlist.summon"));
+
                 final AbstractTextBuilder.TooltipBuilder statusTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(name);
                 statusTipBuilder.append(Component.literal(guest.getState().toString() + ""));
                 statusTipBuilder.build();
@@ -134,6 +141,23 @@ public class WindowGuestListModule extends AbstractModuleWindow<ResortGuestListM
             }
 
         });
+    }
+
+    /**
+     * Summons the guest associated with the given button.
+     * @param button the button associated with the guest to recall.
+     */
+    private void summonGuest(@NotNull final Button button)
+    {
+        final int row = guestList.getListElementIndexByPane(button);
+        if (row < 0 || row >= moduleView.getGuests().size())
+        {
+            return;
+        }
+
+        Vacationer guest = moduleView.getGuests().get(row);
+        ResortGuestMessage guestMessage = new ResortGuestMessage(buildingView, GuestAction.SUMMON, guest.getCivilianId());
+        guestMessage.sendToServer();
     }
 
 }

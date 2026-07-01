@@ -93,6 +93,7 @@ public class EntityAIBurnoutTask
      * Min distance to resort before trying to find a relaxation station.
      */
     private static final int MIN_DIST_TO_RESORT = 10;
+    private static final int MIN_DIST_TO_STATION = 1;
 
     private static final int ENTITY_AI_BURNOUT_TICKRATE = 1000;
 
@@ -649,6 +650,22 @@ public class EntityAIBurnoutTask
             return VacationAIState.SEARCH_RESORT;
         }
 
+        if (!citizen.getCitizenSleepHandler().isAsleep() && seatLocation == null)
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                () -> LOGGER.info("Vacationer {} needs a relaxation station assignment.", citizen.getName()));
+            return VacationAIState.FIND_EMPTY_STATION;
+        }
+
+        if (!citizen.getCitizenSleepHandler().isAsleep() &&
+            BlockPosUtil.getDistance2D(seatLocation, citizen.blockPosition()) > MIN_DIST_TO_STATION)
+        {
+            TraceUtils.dynamicTrace(TRACE_BURNOUT,
+                () -> LOGGER.info("Vacationer {} is away from their relaxation station and needs to go back.",
+                    citizen.getName()));
+            return VacationAIState.FIND_EMPTY_STATION;
+        }
+
         if (!citizen.getCitizenSleepHandler().isAsleep() && !vacationTracker.isCurrentlyAtResort())
         {
             TraceUtils.dynamicTrace(TRACE_BURNOUT,
@@ -874,7 +891,7 @@ public class EntityAIBurnoutTask
                     TraceUtils.dynamicTrace(TRACE_BURNOUT,
                         () -> LOGGER.info("Vacationer {} has a seat assignment, and is walking to their seat.", citizen.getName()));
 
-                    if (!EntityNavigationUtils.walkToPos(citizen, seatLocation, 1, true))
+                    if (!EntityNavigationUtils.walkToPos(citizen, seatLocation, MIN_DIST_TO_STATION, true))
                     {
                         return VacationAIState.FIND_EMPTY_STATION;
                     }

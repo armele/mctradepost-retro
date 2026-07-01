@@ -403,6 +403,7 @@ public class CommunityRitualProcessor
     /**
      * Sorts citizens so higher-priority jobs are handled first, and among those, the worst commute is handled first.
      */
+    @SuppressWarnings("null")
     protected static void sortAssignmentsByPriority(@Nonnull List<HomeAssignment> assignments)
     {
         assignments.sort(Comparator
@@ -607,6 +608,7 @@ public class CommunityRitualProcessor
         @Nonnull Map<BlockPos, IAssignsCitizen> housingMap,
         @Nonnull ShelterTotals totals)
     {
+        @SuppressWarnings("null")
         List<HomeAssignment> cleanupCandidates = assignments.stream()
             .map(assignment -> new HomeAssignment(assignment.getCitizen()))
             .filter(assignment -> !excludedCitizens.contains(assignment.getCitizen()))

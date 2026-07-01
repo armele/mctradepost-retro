@@ -38,6 +38,7 @@ public class MakeWishTrigger extends SimpleCriterionTrigger<MakeWishTrigger.Make
 
     public static record MakeWishTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<MakeWishTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(MakeWishTriggerInstance::player))
             .apply(builder, MakeWishTriggerInstance::new));

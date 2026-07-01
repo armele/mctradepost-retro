@@ -67,6 +67,7 @@ public class RecipeAnalysisHelper
      * @param depth         the current recursion depth of the estimation
      * @return the estimated value of the item
      */
+    @SuppressWarnings("null")
     private static int appraiseRecipeListForItem(Item item,
         RecipeManager recipeManager,
         Set<Recipe<?>> visited,
@@ -166,6 +167,7 @@ public class RecipeAnalysisHelper
             ItemStack[] stacks = ingredient.getItems();
             if (stacks.length > 0)
             {
+                @SuppressWarnings("null")
                 int ingredientvalue = Arrays.stream(stacks).map(stack -> {
                     int value = 0;
                     Item item = stack.getItem();
@@ -285,6 +287,7 @@ public class RecipeAnalysisHelper
      */
     public static void logValues()
     {
+        @SuppressWarnings("null")
         Map<String, Integer> output = itemValues.entrySet()
             .stream()
             .collect(Collectors

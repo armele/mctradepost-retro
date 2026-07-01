@@ -54,6 +54,7 @@ public class PotionShapelessRecipe implements CraftingRecipe
         return result;
     }
 
+    @SuppressWarnings("null")
     public int getInputCount()
     {
         return inputs.stream().mapToInt(PotionInput::count).sum();
@@ -62,6 +63,7 @@ public class PotionShapelessRecipe implements CraftingRecipe
     @Override
     public boolean matches(@Nonnull final CraftingInput input, @Nonnull final Level level)
     {
+        @SuppressWarnings("null")
         final int[] remaining = inputs.stream().mapToInt(PotionInput::count).toArray();
         int found = 0;
 
@@ -223,6 +225,7 @@ public class PotionShapelessRecipe implements CraftingRecipe
 
     public static class Serializer implements RecipeSerializer<PotionShapelessRecipe>
     {
+        @SuppressWarnings("null")
         public static final MapCodec<PotionShapelessRecipe> CODEC =
             RecordCodecBuilder.mapCodec(instance -> instance.group(
                     PotionInput.CODEC.codec().listOf().fieldOf("inputs").forGetter(PotionShapelessRecipe::getPotionInputs),

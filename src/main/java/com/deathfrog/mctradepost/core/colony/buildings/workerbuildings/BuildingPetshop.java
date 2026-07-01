@@ -271,6 +271,7 @@ public class BuildingPetshop extends AbstractBuilding
      * <p>
      * Returns an unmodifiable list of all pet data tags for the pets that are currently part of this petshop.
      */
+    @SuppressWarnings("null")
     private List<CompoundTag> getPetDataTagsForView()
     {
         final Map<UUID, CompoundTag> petTags = new LinkedHashMap<>();

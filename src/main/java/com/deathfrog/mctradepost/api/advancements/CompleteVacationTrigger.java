@@ -38,6 +38,7 @@ public class CompleteVacationTrigger extends SimpleCriterionTrigger<CompleteVaca
 
     public static record CompleteVacationTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<CompleteVacationTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(CompleteVacationTriggerInstance::player))
             .apply(builder, CompleteVacationTriggerInstance::new));

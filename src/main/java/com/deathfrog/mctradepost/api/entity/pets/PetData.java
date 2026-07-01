@@ -1438,9 +1438,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         if (a.isNoAi()) return true;
 
         // 1) Any goal or target goal currently running?
+        @SuppressWarnings("null")
         boolean goalRunning = a.goalSelector.getAvailableGoals().stream()
             .anyMatch(WrappedGoal::isRunning);
 
+        @SuppressWarnings("null")
         boolean targetRunning = a.targetSelector.getAvailableGoals().stream()
             .anyMatch(WrappedGoal::isRunning);
 
@@ -1467,6 +1469,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         boolean hasAttackTarget = a.getTarget() != null;
 
         // 5) “Eligible to act”: there exists *any* MOVE goal
+        @SuppressWarnings("null")
         boolean hasMoveGoals =
             a.goalSelector.getAvailableGoals().stream()
                 .map(WrappedGoal::getGoal)

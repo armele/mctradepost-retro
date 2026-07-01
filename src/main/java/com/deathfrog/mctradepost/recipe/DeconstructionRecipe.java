@@ -95,6 +95,7 @@ public class DeconstructionRecipe implements Recipe<SingleRecipeInput>
     /** Serializer for 1.21.x (MapCodec + StreamCodec) */
     public static class Serializer implements RecipeSerializer<DeconstructionRecipe>
     {
+        @SuppressWarnings("null")
         public static final MapCodec<DeconstructionRecipe> CODEC = RecordCodecBuilder.mapCodec(
             i -> i
                 .group(Ingredient.CODEC_NONEMPTY.fieldOf("input").forGetter(DeconstructionRecipe::getInput),

@@ -38,6 +38,7 @@ public class RecycleItemTrigger extends SimpleCriterionTrigger<RecycleItemTrigge
 
     public static record RecycleItemTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<RecycleItemTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(RecycleItemTriggerInstance::player))
             .apply(builder, RecycleItemTriggerInstance::new));

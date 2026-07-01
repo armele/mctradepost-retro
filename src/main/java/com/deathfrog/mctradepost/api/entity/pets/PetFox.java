@@ -337,11 +337,13 @@ public class PetFox extends Fox implements ITradePostPet, IHerdingPet, IManagedA
             // try to unblock MOVE just in case
             goalSelector.enableControlFlag(Goal.Flag.MOVE);
 
+            @SuppressWarnings("null")
             String runningMove = goalSelector.getAvailableGoals().stream()
                 .filter(WrappedGoal::isRunning)
                 .map(w -> w.getPriority() + ":" + w.getGoal().getClass().getSimpleName())
                 .findFirst().orElse("none");
 
+            @SuppressWarnings("null")
             String runningTarget = targetSelector.getAvailableGoals().stream()
                 .filter(WrappedGoal::isRunning)
                 .map(w -> w.getPriority() + ":" + w.getGoal().getClass().getSimpleName())

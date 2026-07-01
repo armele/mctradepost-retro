@@ -320,7 +320,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
     }
 
     /**
-     * Frees the pet associated with the given button.
+     * Summons the pet associated with the given button.
      * @param button the button to free the pet associated with.
      */
     @SuppressWarnings("rawtypes")

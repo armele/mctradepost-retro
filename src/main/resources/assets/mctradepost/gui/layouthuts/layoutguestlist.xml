@@ -5,9 +5,10 @@
         label="$(com.minecolonies.coremod.gui.guestlist)"/>
     <list id="guestlist" size="170 191" pos="13 34" emptytext="$(com.minecolonies.coremod.gui.guestlist.empty)" emptycolor="black">
     <box size="100% 18" linewidth="1">
-        <text id="name" size="124 12" pos="1 3" color="black"/>
-        <itemicon id="item0" size="16 16" pos="125 1"/>
-        <itemicon id="item1" size="16 16" pos="146 1"/>
+        <text id="name" size="104 12" pos="1 3" color="black"/>
+        <itemicon id="item0" size="16 16" pos="108 1"/>
+        <itemicon id="item1" size="16 16" pos="126 1"/>
+        <button id="summonGuest" pos="147 1" size="14 15" color="black" source="mctradepost:textures/gui/modules/home.png"/>
     </box>
     </list>
 </window>

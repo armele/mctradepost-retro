@@ -24,6 +24,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
     public static final CustomPacketPayload.Type<RitualPacket> TYPE =
         new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "sync_rituals"));
 
+    @SuppressWarnings("null")
     public static final Codec<RitualPacket> CODEC = Codec.unboundedMap(ResourceLocation.CODEC, RitualDefinition.CODEC)
         .fieldOf("rituals")
         .codec()

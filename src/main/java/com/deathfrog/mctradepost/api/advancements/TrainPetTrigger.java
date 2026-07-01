@@ -38,6 +38,7 @@ public class TrainPetTrigger extends SimpleCriterionTrigger<TrainPetTrigger.Trai
 
     public static record TrainPetTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<TrainPetTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(TrainPetTriggerInstance::player))
             .apply(builder, TrainPetTriggerInstance::new));

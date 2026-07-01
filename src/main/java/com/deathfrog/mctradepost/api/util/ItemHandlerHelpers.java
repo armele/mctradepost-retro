@@ -167,6 +167,7 @@ public final class ItemHandlerHelpers
         
         if (allowPartial && !matchingStacks.isEmpty()) 
         {
+            @SuppressWarnings("null")
             ItemStack biggestStack = matchingStacks.stream()
                 .max(Comparator.comparingInt(ItemStack::getCount))
                 .orElse(ItemStack.EMPTY);

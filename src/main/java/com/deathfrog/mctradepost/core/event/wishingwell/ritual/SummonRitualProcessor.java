@@ -124,6 +124,7 @@ public class SummonRitualProcessor
      * @param ritual the ritual definition containing the target entity type and radius
      * @return true if the ritual was triggered, false otherwise
      */
+    @SuppressWarnings("null")
     public static boolean processRitualSlay(@Nonnull ServerLevel level, @Nonnull BlockPos pos, RitualDefinitionHelper ritual)
     {
         List<? extends Entity> targets = gatherSummonTargets(level, pos, ritual);

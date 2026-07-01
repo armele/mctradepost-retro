@@ -38,6 +38,7 @@ public class BurnoutRemedyManager extends SimpleJsonResourceReloadListener
             }
         }
 
+        @SuppressWarnings("null")
         public List<ItemStorage> toItemStorage()
         {
             return remedy.stream().map(ItemEntry::toStack).toList();

@@ -110,6 +110,7 @@ public class WishingWellHandler
      * @param level       The server level containing the marketplace building.
      * @param marketplace The marketplace building containing the wishing wells.
      */
+    @SuppressWarnings("null")
     protected static void processMarketplaceRituals(@Nonnull ServerLevel level, @Nonnull BuildingMarketplace marketplace)
     {
         WellLocations data = marketplace.getRitualData();

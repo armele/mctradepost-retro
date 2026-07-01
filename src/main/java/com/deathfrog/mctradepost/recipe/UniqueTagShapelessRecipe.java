@@ -152,6 +152,7 @@ public class UniqueTagShapelessRecipe implements CraftingRecipe
         //   "count": 4,
         //   "result": { "id": "mctradepost:bar_nuts", "count": 8 }
         // }
+    @SuppressWarnings("null")
     public static final MapCodec<UniqueTagShapelessRecipe> CODEC =
         RecordCodecBuilder.mapCodec(i -> i.group(
                 Ingredient.CODEC_NONEMPTY.fieldOf("base")

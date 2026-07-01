@@ -38,6 +38,7 @@ public class RunsOnStewTrigger extends SimpleCriterionTrigger<RunsOnStewTrigger.
 
     public static record RunsOnStewTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<RunsOnStewTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(RunsOnStewTriggerInstance::player))
             .apply(builder, RunsOnStewTriggerInstance::new));

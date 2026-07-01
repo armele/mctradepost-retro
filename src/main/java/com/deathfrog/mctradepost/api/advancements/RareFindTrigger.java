@@ -38,6 +38,7 @@ public class RareFindTrigger extends SimpleCriterionTrigger<RareFindTrigger.Rare
 
     public static record RareFindTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<RareFindTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(RareFindTriggerInstance::player))
             .apply(builder, RareFindTriggerInstance::new));

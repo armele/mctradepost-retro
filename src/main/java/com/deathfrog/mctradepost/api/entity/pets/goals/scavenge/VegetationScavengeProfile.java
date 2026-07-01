@@ -251,7 +251,9 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         IntegerProperty age = findIntProp(state, "age");
         if (age != null)
         {
+            @SuppressWarnings("null")
             int min = age.getPossibleValues().stream().min(Integer::compareTo).orElse(0);
+            @SuppressWarnings("null")
             int max = age.getPossibleValues().stream().max(Integer::compareTo).orElse(min);
 
             // If it's a long-growth plant (e.g., melon/pumpkin stems are 0..7),
@@ -310,6 +312,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         if (age != null)
         {
             int cur = state.getValue(age);
+            @SuppressWarnings("null")
             int max = age.getPossibleValues().stream().max(Integer::compareTo).orElse(cur);
             return cur >= max;
         }

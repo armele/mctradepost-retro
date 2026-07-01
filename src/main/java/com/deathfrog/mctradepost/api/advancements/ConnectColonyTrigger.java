@@ -38,6 +38,7 @@ public class ConnectColonyTrigger extends SimpleCriterionTrigger<ConnectColonyTr
 
     public static record ConnectColonyTriggerInstance(Optional<ContextAwarePredicate> player) implements SimpleInstance
     {
+        @SuppressWarnings("null")
         public static final Codec<ConnectColonyTriggerInstance> CODEC = RecordCodecBuilder.create(builder -> builder
             .group(EntityPredicate.ADVANCEMENT_CODEC.optionalFieldOf("player").forGetter(ConnectColonyTriggerInstance::player))
             .apply(builder, ConnectColonyTriggerInstance::new));

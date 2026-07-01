@@ -60,6 +60,7 @@ public final class UniqueTagShapelessCraftingExtension
             }
             else
             {
+                @SuppressWarnings("null")
                 final List<ItemStack> displayStacks = Arrays.stream(stacks).map(ItemStack::copy).toList();
                 final boolean isRepeatedTagIngredient = ingredientIndex > 0 && repeatedTagSlot < uniqueCount;
 
