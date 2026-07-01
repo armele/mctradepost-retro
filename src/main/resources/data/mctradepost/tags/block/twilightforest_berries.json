@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {"id": "twilightforest:iron_oreberry", "required": false},
+    {"id": "twilightforest:gold_oreberry", "required": false},
+    {"id": "twilightforest:copper_oreberry", "required": false},
+    {"id": "twilightforest:essence_oreberry", "required": false},
+    {"id": "twilightforest:raspberry_bush", "required": false},
+    {"id": "twilightforest:blueberry_bush", "required": false},
+    {"id": "twilightforest:blackberry_bush", "required": false},
+    {"id": "twilightforest:maloberry_bush", "required": false},
+    {"id": "twilightforest:blightberry_bush", "required": false},
+    {"id": "twilightforest:duskberry_bush", "required": false},
+    {"id": "twilightforest:skyberry_bush", "required": false},
+    {"id": "twilightforest:stingberry_bush", "required": false}
+  ]
+}

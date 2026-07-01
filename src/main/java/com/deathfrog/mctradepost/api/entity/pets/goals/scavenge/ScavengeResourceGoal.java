@@ -421,24 +421,26 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
 
         if (lootTableKey == null) return;
 
-        // Access the loot table from MinecraftServer correctly
+        Vec3 centerPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(pos));
+
+        // Access the custom scavenge loot table first. If there isn't one, use
+        // the block's normal loot behavior for the actual state being harvested.
         LootTable lootTable = level.getServer().reloadableRegistries().getLootTable(lootTableKey);
 
         // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Loot table Key: {} is {}", lootTableKey, lootTable));
 
-        if (lootTable == null || lootTable == LootTable.EMPTY) return;
+        List<ItemStack> drops;
 
-        Vec3 centerPos = NullnessBridge.assumeNonnull(Vec3.atCenterOf(pos));
+        if (lootTable == null || lootTable == LootTable.EMPTY)
+        {
+            drops = getDefaultBlockDrops(level, harvestSpotState, centerPos);
+        }
+        else
+        {
+            drops = getCustomScavengeDrops(level, lootTable, centerPos);
+        }
 
-        // Modify luck based on animal trainer skill level
-        LootParams lootParams = new LootParams.Builder(level).withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
-            .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet)
-            .withLuck(pet.getLuck()) 
-            .create(NullnessBridge.assumeNonnull(LootContextParamSets.EMPTY));
-
-        if (lootParams == null) return;
-
-        List<ItemStack> drops = lootTable.getRandomItems(lootParams);
+        if (drops == null || drops.isEmpty()) return;
 
         for (ItemStack drop : drops)
         {
@@ -459,6 +461,42 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
 
         profile.onSuccessfulHarvest(level, pos, pet);
 
+    }
+
+    /**
+     * Rolls drops from a custom Trade Post scavenge loot table.
+     */
+    private List<ItemStack> getCustomScavengeDrops(@Nonnull ServerLevel level, @Nonnull LootTable lootTable, @Nonnull Vec3 centerPos)
+    {
+        // Modify luck based on animal trainer skill level
+        LootParams lootParams = new LootParams.Builder(level).withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
+            .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet)
+            .withLuck(pet.getLuck())
+            .create(NullnessBridge.assumeNonnull(LootContextParamSets.EMPTY));
+
+        if (lootParams == null) return List.of();
+
+        return lootTable.getRandomItems(lootParams);
+    }
+
+    /**
+     * Rolls the normal block drops for the current state when no custom scavenge
+     * table exists.
+     */
+    @SuppressWarnings("null")
+    private List<ItemStack> getDefaultBlockDrops(@Nonnull ServerLevel level, @Nonnull BlockState state, @Nonnull Vec3 centerPos)
+    {
+        LootParams.Builder lootParams = new LootParams.Builder(level)
+            .withParameter(NullnessBridge.assumeNonnull(LootContextParams.ORIGIN), centerPos)
+            .withParameter(NullnessBridge.assumeNonnull(LootContextParams.TOOL), ItemStack.EMPTY)
+            .withOptionalParameter(NullnessBridge.assumeNonnull(LootContextParams.THIS_ENTITY), pet);
+
+        if (lootParams == null)
+        {
+            return List.of();
+        }
+
+        return state.getDrops(lootParams);
     }
 
     /**

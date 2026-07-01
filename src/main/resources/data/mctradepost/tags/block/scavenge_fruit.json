@@ -9,6 +9,8 @@
     "minecraft:pumpkin",
     "minecraft:melon_stem",
     "minecraft:pumpkin_stem",
-    "minecraft:melon"
+    "minecraft:melon",
+    "#mctradepost:pamhc2trees_fruit",
+    "#mctradepost:twilightforest_berries"
   ]
 }

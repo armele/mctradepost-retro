@@ -1,16 +1,16 @@
 {
   "type": "mctradepost:deconstruction",
   "input": {
-    "item": "twighlightforest:ice_sword"
+    "item": "twilightforest:ice_sword"
   },
   "neoforge:conditions": [
     {
       "type": "neoforge:mod_loaded",
-      "modid": "twighlightforest"
+      "modid": "twilightforest"
     },
     {
       "type": "neoforge:item_exists",
-      "item": "twighlightforest:ice_sword"
+      "item": "twilightforest:ice_sword"
     }
   ],
   "results": [
