@@ -10,7 +10,6 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ForageGoal;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.PetUtil;
@@ -50,6 +49,9 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
 
     // Number of tries to search for items at a given target position before moving on.
     private static final int MAX_SEARCH_TRIES = 10;
+
+    // Stats key for items scavenged.
+    public static final String ITEMS_SCAVENGED = "items_scavenged";
 
     private final P pet;
     private final int searchRadius;
@@ -454,11 +456,12 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
             // Track the stat with item name
             if (trainerBuilding != null)
             {
-                StatsUtil.trackStatByName(trainerBuilding, ForageGoal.ITEMS_SCAVENGED, itemEntity.getDisplayName().getString(), 1);
+                StatsUtil.trackStatByName(trainerBuilding, ITEMS_SCAVENGED, itemEntity.getDisplayName().getString(), 1);
             }
 
         }
 
+        profile.onDropsAwarded(level, pos, pet, drops);
         profile.onSuccessfulHarvest(level, pos, pet);
 
     }

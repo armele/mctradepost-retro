@@ -3,6 +3,8 @@ package com.deathfrog.mctradepost.api.entity.pets.goals.scavenge;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import java.util.List;
+
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 
@@ -10,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
 public interface IScavengeProfile<P extends Animal & ITradePostPet> 
@@ -30,6 +33,9 @@ public interface IScavengeProfile<P extends Animal & ITradePostPet>
 
     /** Loot table key for a harvestable spot (or null if none). */
     @Nullable ResourceLocation lootTableFor(ServerLevel level, BlockPos pos, @Nonnull BlockState state);
+
+    /** Applies any world changes that depend on the generated drops. */
+    default void onDropsAwarded(ServerLevel level, BlockPos pos, P pet, List<ItemStack> drops) { }
 
     /** cosmetics on success. */
     void onSuccessfulHarvest(ServerLevel level, BlockPos pos, P pet);

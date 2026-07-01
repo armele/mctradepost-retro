@@ -20,9 +20,9 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.OpenGateOrDoorGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.PetDefensiveAttackGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.PetHurtByTargetGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.ReturnToTrainerAtNightGoal;
-import com.deathfrog.mctradepost.api.entity.pets.goals.ForageGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.UnloadInventoryToWorkLocationGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.MushroomScavengeProfile;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.ScavengeResourceGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.VegetationScavengeProfile;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengeProfile;
@@ -62,7 +62,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.damagesource.DamageSource;
@@ -77,11 +76,9 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.AABB;
@@ -519,11 +516,9 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      * Assigns a goal to the pet based on the work location, if the work location is valid.
      *
      * If the work location is a herd, assigns a {@link HerdGoal HerdGoal}.
-     * If the work location is a scavenge for land, assigns a {@link ForageGoal ScavengeForResourceGoal}.
-     * If the work location is a scavenge for water, assigns a {@link ScavengeResourceGoal ScavengeWaterResourceGoal}.
+     * If the work location is a scavenge for land, water, or vegetation, assigns a {@link ScavengeResourceGoal ScavengeResourceGoal}.
      *
      * @see HerdGoal
-     * @see ForageGoal
      * @see ScavengeResourceGoal
      */
     public void assignGoalFromWorkLocation()
@@ -551,28 +546,12 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             case SCAVENGE_LAND:
                 TraceUtils.dynamicTrace(TRACE_PETSCAVENGEGOALS, () -> LOGGER.info("Assigning scavenge_land goals for pet {}:", this.animal.getUUID()));
-                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ForageGoal<>(
+                localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
                     localAnimal,
-                    16,                      // search radius
-                    8.0,                     // light level (optional to ignore)
-                    0.3f,                    // 30% success rate
-                    pos -> {
-                        BlockState stateBelow = localAnimal.level().getBlockState(NullnessBridge.assumeNonnull(pos.below()));
-                        return localAnimal.level().getMaxLocalRawBrightness(pos) < 8 &&
-                            (stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.DIRT)) || stateBelow.is(NullnessBridge.assumeNonnull(BlockTags.MUSHROOM_GROW_BLOCK))) &&
-                            localAnimal.level().isEmptyBlock(pos);
-                    },
-                    pos -> {
-                        // Pick a mushroom
-                        Block mushroomBlock = localAnimal.getRandom().nextBoolean() ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM;
-                        Item mushroomItem = mushroomBlock.asItem();
-                        
-                        // Track the stat with item name
-                        StatsUtil.trackStatByName(this.getTrainerBuilding(), ForageGoal.ITEMS_SCAVENGED, mushroomItem.getDefaultInstance().getDisplayName(), 1);
-
-                        // Place the mushroom
-                        localAnimal.level().setBlock(NullnessBridge.assumeNonnull(pos), NullnessBridge.assumeNonnull(mushroomBlock.defaultBlockState()), 3);
-                    },
+                    new MushroomScavengeProfile<>(),
+                    16,
+                    0.03f,          // Chance per try; there are 10 tries per cooldown cycle.
+                    this.getTrainerBuilding(),
                     1000
                 ));
                 break;
