@@ -599,6 +599,15 @@
     "mctradepost.stewmolier.ingredients_updated": "Perpetual stew ingredients updated.",
     "block.mctradepost.stewpot_filled": "Cauldron of Perpetual Stew",
     "com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip": "How many stacks to leave in the warehouse?",
-    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks"
+    "com.minecolonies.coremod.gui.stewmolier.quantity.protected": "Protected Stacks",
+    "jei.mctradepost.pet_foraging": "Pet Foraging",
+    "jei.mctradepost.pet_foraging.role.scavenge_vegetation": "Vegetation Foraging",
+    "jei.mctradepost.pet_foraging.role.scavenge_water": "Water Foraging",
+    "jei.mctradepost.pet_foraging.role.scavenge_land": "Mushroom Scavenging",
+    "jei.mctradepost.pet_foraging.note.vegetation_fruit": "Pets assigned to the Feeder can harvest mature fruit-bearing plants.",
+    "jei.mctradepost.pet_foraging.note.vegetation_leaves": "Pets assigned to the Feeder can search tagged leaves.",
+    "jei.mctradepost.pet_foraging.note.vegetation_groundcover": "Pets assigned to the Feeder can search tagged groundcover.",
+    "jei.mctradepost.pet_foraging.note.water": "Pets assigned to the Dredger search this material near shallow water or ice.",
+    "jei.mctradepost.pet_foraging.note.mushroom": "Pets assigned to the Scavenging Base can harvest tagged mushrooms."
 }
   

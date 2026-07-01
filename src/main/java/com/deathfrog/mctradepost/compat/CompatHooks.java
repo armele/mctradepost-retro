@@ -29,4 +29,27 @@ public final class CompatHooks
             com.deathfrog.mctradepost.MCTradePostMod.LOGGER.warn("Failed to refresh JEI rituals", t);
         }
     }
+
+    public static void refreshPetForagingJei()
+    {
+        if (net.neoforged.fml.loading.FMLEnvironment.dist != net.neoforged.api.distmarker.Dist.CLIENT)
+        {
+            return;
+        }
+
+        if (!net.neoforged.fml.ModList.get().isLoaded("jei"))
+        {
+            return;
+        }
+
+        try
+        {
+            Class<?> c = Class.forName("com.deathfrog.mctradepost.compat.jei.JEIMCTPPlugin");
+            c.getMethod("refreshPetForagingRecipes").invoke(null);
+        }
+        catch (Throwable t)
+        {
+            com.deathfrog.mctradepost.MCTradePostMod.LOGGER.warn("Failed to refresh JEI pet foraging entries", t);
+        }
+    }
 }

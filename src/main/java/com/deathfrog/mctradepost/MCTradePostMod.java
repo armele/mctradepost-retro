@@ -69,6 +69,7 @@ import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
+import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiSyncPacket;
 import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
 import com.deathfrog.mctradepost.core.network.messages.OutpostAssignMessage;
 import com.deathfrog.mctradepost.core.placementhandlers.OutpostPlacementHandler;
@@ -174,6 +175,7 @@ import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
@@ -1266,6 +1268,12 @@ public class MCTradePostMod
                 (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
             );  
 
+            registrar.playToClient(
+                PetForagingJeiSyncPacket.TYPE,
+                PetForagingJeiSyncPacket.STREAM_CODEC,
+                (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
+            );
+
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
@@ -1285,7 +1293,20 @@ public class MCTradePostMod
                     MCTradePostMod.LOGGER.debug("Synchronizing information to new player: {} ", player);
                     ConfigurationPacket.sendPacketsToPlayer(player);
                     RitualPacket.sendPacketsToPlayer(player);
+                    PetForagingJeiSyncPacket.sendPacketsToPlayer(player);
                 }
+            }
+
+            @SubscribeEvent
+            public static void onDatapackSync(OnDatapackSyncEvent event)
+            {
+                if (event.getPlayer() != null)
+                {
+                    PetForagingJeiSyncPacket.sendPacketsToPlayer(event.getPlayer());
+                    return;
+                }
+
+                PetForagingJeiSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
             }
         }   
     }

@@ -550,7 +550,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                     localAnimal,
                     new MushroomScavengeProfile<>(),
                     16,
-                    0.03f,          // Chance per try; there are 10 tries per cooldown cycle.
+                    0.11f,          // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     1000
                 ));
