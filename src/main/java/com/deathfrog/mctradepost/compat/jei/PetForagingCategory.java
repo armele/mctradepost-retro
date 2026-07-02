@@ -34,7 +34,7 @@ public class PetForagingCategory implements IRecipeCategory<PetForagingJeiEntry>
     public static final String JEI_CATEGORY_TITLE = "jei.mctradepost.pet_foraging";
     public static final int WIDTH = 170;
     public static final int HEIGHT = 64;
-    private static final int MAX_OUTPUT_SLOTS = 6;
+    private static final int MAX_OUTPUT_SLOTS = 10;
 
     private final IDrawable icon;
 
@@ -87,7 +87,7 @@ public class PetForagingCategory implements IRecipeCategory<PetForagingJeiEntry>
             .setSlotName("work_location")
             .addItemStack(blockStack(recipe.workLocationBlock()));
 
-        builder.addSlot(RecipeIngredientRole.INPUT, 31, 18)
+        builder.addSlot(RecipeIngredientRole.INPUT, 28, 18)
             .setSlotName("source")
             .addItemStack(blockStack(recipe.sourceBlock()));
 
@@ -96,7 +96,7 @@ public class PetForagingCategory implements IRecipeCategory<PetForagingJeiEntry>
 
         for (int i = 0; i < visibleOutputs; i++)
         {
-            builder.addSlot(RecipeIngredientRole.OUTPUT, 78 + (i % 3) * 22, 8 + (i / 3) * 22)
+            builder.addSlot(RecipeIngredientRole.OUTPUT, 74 + (i % 5) * 18, 9 + (i / 5) * 18)
                 .setSlotName("output_" + i)
                 .addItemStack(outputs.get(i));
         }
@@ -111,7 +111,7 @@ public class PetForagingCategory implements IRecipeCategory<PetForagingJeiEntry>
         @Nonnull final PetForagingJeiEntry recipe,
         @Nonnull final IFocusGroup focuses)
     {
-        builder.addRecipeArrow().setPosition(55, 18);
+        builder.addRecipeArrow().setPosition(52, 18);
 
         builder.addText(Component.translatable(roleKey(recipe)), 70, 10)
             .setPosition(4, 0)
