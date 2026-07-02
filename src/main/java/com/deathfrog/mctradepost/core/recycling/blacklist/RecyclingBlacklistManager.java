@@ -252,6 +252,7 @@ public final class RecyclingBlacklistManager extends SimpleJsonResourceReloadLis
                 case "tag" -> compileTagRule(normalizedId);
                 case "namespace", "mod", "modid" -> new CompiledRule("namespace", normalizedId,
                     (stack, level) -> {
+                        if ("*".equals(normalizedId)) return true;
                         Item item = stack.getItem();
                         if (item == null) return false;
                         final ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(item);

@@ -199,8 +199,24 @@ Important behavior:
 - `allow` rules override `deny` rules
 - `replace: true` clears previously accumulated rules
 - `rules` is accepted as an alias for simple deny-only files
+- For `namespace`, `mod`, or `modid` rules, `id: "*"` matches all item namespaces
 
 This is one of the cleanest integration points for excluding quest items, progression keys, curios, or mod-specific components from recycling.
+
+Example: deny recycling from every mod by default, then opt specific mods back in:
+
+```json
+{
+  "replace": false,
+  "deny": [
+    { "type": "modid", "id": "*" }
+  ],
+  "allow": [
+    { "type": "modid", "id": "minecraft" },
+    { "type": "modid", "id": "domum_ornamentum" }
+  ]
+}
+```
 
 ### Wishing Well Rituals
 
