@@ -88,8 +88,7 @@ runs {
     }
 
     data {
-        // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-        // workingDirectory project.file('run-data')
+        systemProperty 'mctradepost.projectDir', project.projectDir.absolutePath
 
         // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
         arguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
@@ -140,6 +139,7 @@ dependencies {
 
     compileOnly name: 'domum-ornamentum-1.0.234-snapshot-main'  // use the actual filename without .jar
     localRuntime files('../Minecolonies/build/libs/domum-ornamentum-1.0.234-snapshot-main.jar')    
+    localRuntime("com.ldtteam:datagenerators:1.19.3-0.1.54-ALPHA:universal")
 
     // JEI for compile-time access
     compileOnly("mezz.jei:jei-1.21.1-neoforge-api:19.27.0.336")

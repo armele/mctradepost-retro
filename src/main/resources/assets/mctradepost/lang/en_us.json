@@ -520,6 +520,7 @@
     "com.minecolonies.coremod.gui.petstore.freed" : "Your pet has retired to a farm in the countryside!",
     "com.minecolonies.coremod.gui.petstore.summoned" : "Your pet has been summoned back to the trainer!",
     "com.minecolonies.coremod.gui.petstore.summonfailed" : "No safe place was found near the trainer for your pet.",
+    "com.minecolonies.coremod.gui.petstore.missing" : "This pet could not be found and has been removed from the pet shop list.",
     "com.minecolonies.coremod.gui.petstore.noperms" : "You don't have permission in this pet shop.",
 
     "com.minecolonies.coremod.gui.guestlist" : "Guest List",

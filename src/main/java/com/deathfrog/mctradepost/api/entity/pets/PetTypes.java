@@ -8,9 +8,11 @@ import com.minecolonies.api.blocks.ModBlocks;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.Bee;
 import net.minecraft.world.entity.animal.Chicken;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -23,9 +25,11 @@ public enum PetTypes
     AXOLOTL(new ItemStack(NullnessBridge.assumeNonnull(Items.KELP), 16), 3, PetAxolotl.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_AXOLOTL.get()), "Axolotl", true),
     PARROT(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockCorn.asItem()), 16), 3, PetParrot.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_PARROT.get()), "Parrot", true),
     COW(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockDurum.asItem()), 16), 2, Cow.class, NullnessBridge.assumeNonnull(EntityType.COW), "Cow", false),
-    PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false),
+    PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.BEETROOT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false),
     CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false),
-    SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false);
+    SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false),
+    BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false),
+    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false);
 
     private final @Nonnull ItemStack trainingItem;
     private final @Nonnull Class<? extends Animal> petClass;

@@ -10,6 +10,8 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.managers.interfaces.IManagedAnimal;
 
+import java.util.UUID;
+
 import net.minecraft.world.entity.animal.Animal;
 
 public final class PetAnimalManagerUtil
@@ -101,6 +103,66 @@ public final class PetAnimalManagerUtil
         }
 
         return changed;
+    }
+
+    /**
+     * Resolve a loaded pet through MineColonies animal data when the pet registry cannot find it.
+     *
+     * @param colony the colony whose animal manager should be searched
+     * @param uuid the pet UUID
+     * @return the loaded pet entity, or null if the animal manager has no loaded entity for it
+     */
+    @SuppressWarnings("null")
+    public static ITradePostPet resolveManagedPet(@Nonnull final IColony colony, @Nonnull final UUID uuid)
+    {
+        if (colony == null || uuid == null)
+        {
+            return null;
+        }
+
+        for (final IAnimalData animalData : colony.getAnimalManager().getAnimals())
+        {
+            if (animalData == null || !uuid.equals(animalData.getUUID()))
+            {
+                continue;
+            }
+
+            return animalData.getManagedAnimal()
+                .map(IManagedAnimal::getEntity)
+                .filter(ITradePostPet.class::isInstance)
+                .map(ITradePostPet.class::cast)
+                .orElse(null);
+        }
+
+        return null;
+    }
+
+    /**
+     * Clear all pet shop state that can keep an unreachable pet visible in the assignment window.
+     *
+     * @param petshop the pet shop that listed the pet
+     * @param uuid the stale pet UUID
+     */
+    public static void purgePetshopRecord(@Nonnull final BuildingPetshop petshop, @Nonnull final UUID uuid)
+    {
+        if (petshop == null || uuid == null)
+        {
+            return;
+        }
+
+        petshop.forgetPetData(uuid);
+        PetRegistryUtil.unregister(petshop, uuid);
+
+        for (final IAnimalData animalData : petshop.getColony().getAnimalManager().getAnimals())
+        {
+            if (animalData != null && uuid.equals(animalData.getUUID()) && animalData.getHomeBuilding() != null
+                && petshop.getID().equals(animalData.getHomeBuilding().getID()))
+            {
+                animalData.setHomeBuilding(null);
+            }
+        }
+
+        petshop.markPetsDirty();
     }
 
     @SuppressWarnings("unchecked")

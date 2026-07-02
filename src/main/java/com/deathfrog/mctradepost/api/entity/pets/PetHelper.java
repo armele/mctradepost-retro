@@ -74,7 +74,25 @@ public class PetHelper<P extends Animal & ITradePostPet>
             return Optional.empty();
         }
 
-        Level level = entity.level();
+        return findNearbyValidSpawn(entity.level(), entity, origin, radius);
+    }
+
+    /**
+     * Finds a nearby safe spawn position for an entity in the specified level.
+     *
+     * @param level the level where the entity should be placed
+     * @param entity the entity to place
+     * @param origin the origin of the search
+     * @param radius the radius of the search
+     * @return a valid spawn position, or empty if no safe spot is found
+     */
+    public static Optional<BlockPos> findNearbyValidSpawn(Level level, Entity entity, BlockPos origin, int radius)
+    {
+        if (level == null || entity == null || origin == null)
+        {
+            return Optional.empty();
+        }
+
         List<BlockPos> candidates = new ArrayList<>();
         int searchRadius = Math.max(5, radius);
 

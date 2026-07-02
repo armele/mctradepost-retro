@@ -4,6 +4,7 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_ANIMALTRAINER;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -55,13 +56,38 @@ public class PetRegistryUtil
     }
 
     /**
+     * Resolve a pet by UUID across all currently loaded server levels.
+     *
+     * @param server the server to search
+     * @param uuid the uuid of the pet to resolve
+     * @return the resolved pet entity, or null if no loaded entity with this UUID is found
+     */
+    public static @Nullable ITradePostPet resolve(@Nonnull MinecraftServer server, @Nonnull UUID uuid)
+    {
+        for (ServerLevel serverLevel : server.getAllLevels())
+        {
+            if (serverLevel == null) continue;
+
+            ITradePostPet pet = resolve(serverLevel, uuid);
+            if (pet != null)
+            {
+                return pet;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Resolve a pet in the global registry to its actual entity object on the given server.
      * @param server the server to resolve the pet on
      * @param petHandle the handle of the pet to resolve
      * @return the resolved pet entity, or null if the pet is not registered or the server has no level with the given dimension
      */
-    public static @Nullable ITradePostPet resolve(@Nonnull MinecraftServer server, @Nonnull PetHandle petHandle)
+    public static @Nullable ITradePostPet resolve(@Nonnull MinecraftServer server, PetHandle petHandle)
     {
+        if (petHandle == null) return null;
+
         ResourceKey<Level> dim = petHandle.dimension();
         UUID uuid = petHandle.uuid();
 
@@ -117,10 +143,42 @@ public class PetRegistryUtil
     {
         IBuilding b = pet.getTrainerBuilding();
         if (b == null) return;
-        Queue<PetHandle> q = safePetsForBuilding(b);
-        UUID id = pet.getUUID();
-        q.removeIf(h -> h.uuid().equals(id));
-        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unregister pet {} from {}", id, b));
+
+        UUID petUUID = pet.getUUID();
+
+        if (petUUID == null) return;
+
+        unregister(b, petUUID);
+    }
+
+    /**
+     * Unregisters a pet UUID from a specific building.
+     *
+     * @param building the building whose pet registry should be updated
+     * @param uuid the UUID to remove
+     */
+    public static void unregister(@Nonnull IBuilding building, @Nonnull UUID uuid)
+    {
+        if (building == null || uuid == null) return;
+
+        Queue<PetHandle> q = safePetsForBuilding(building);
+        q.removeIf(h -> h.uuid().equals(uuid));
+        TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unregister pet {} from {}", uuid, building));
+    }
+
+    /**
+     * Find the registered handle for a pet UUID in a building.
+     *
+     * @param building the building to search
+     * @param uuid the pet UUID
+     * @return the registered handle, if any
+     */
+    public static Optional<PetHandle> findHandle(@Nonnull IBuilding building, @Nonnull UUID uuid)
+    {
+        if (building == null || uuid == null) return Optional.empty();
+
+        Queue<PetHandle> q = safePetsForBuilding(building);
+        return q.stream().filter(h -> h.uuid().equals(uuid)).findFirst();
     }
 
     /**
@@ -163,7 +221,8 @@ public class PetRegistryUtil
 
         PetHandle handle = new PetHandle(pet.getUUID(), pet.getDimension());
 
-        // Avoid duplicates by UUID
+        // Keep the handle current when pets move between dimensions.
+        boolean removedStaleHandle = q.removeIf(h -> h.uuid().equals(handle.uuid()) && !h.equals(handle));
         boolean exists = q.stream().anyMatch(h -> h.uuid().equals(handle.uuid()));
         if (!exists)
         {
@@ -173,7 +232,7 @@ public class PetRegistryUtil
             return true;
         }
         PetAnimalManagerUtil.ensureManaged(pet);
-        return false;
+        return removedStaleHandle;
     }
 
     /**

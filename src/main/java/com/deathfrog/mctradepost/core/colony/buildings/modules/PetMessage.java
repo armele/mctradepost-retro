@@ -4,6 +4,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetHelper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
@@ -19,9 +20,12 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import org.slf4j.Logger;
@@ -176,7 +180,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     return;
                 }
 
-                entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+                entity = (Entity) resolvePet(level, colony, petshop, localUuid);
 
                 if (entity != null && entity instanceof ITradePostPet pet) 
                 {
@@ -191,6 +195,10 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.freed")).sendTo(player);
                     petshop.markPetsDirty();
                 } 
+                else
+                {
+                    purgeMissingPet(player, petshop, localUuid);
+                }
                 break;
 
             case QUERY:
@@ -205,7 +213,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     return;
                 }
 
-                entity = (Entity) PetRegistryUtil.resolve(level, localUuid);
+                entity = (Entity) resolvePet(level, colony, petshop, localUuid);
 
                 if (entity != null && entity instanceof ITradePostPet pet) 
                 {
@@ -217,7 +225,7 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     }
 
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> MCTradePostMod.LOGGER.info("Summoning pet: {}", pet));
-                    Optional<BlockPos> targetPos = PetHelper.findNearbyValidSpawn(entity, trainerBuilding.getPosition(), 3);
+                    Optional<BlockPos> targetPos = PetHelper.findNearbyValidSpawn(level, entity, trainerBuilding.getPosition(), 3);
                     if (targetPos.isEmpty())
                     {
                         MCTradePostMod.LOGGER.warn("Unable to find a safe summon position near pet shop {} for pet {}.",
@@ -227,12 +235,91 @@ public class PetMessage extends AbstractBuildingServerMessage<IBuilding>
                     }
 
                     BlockPos safeTargetPos = targetPos.get();
-                    entity.teleportTo(safeTargetPos.getX() + 0.5D, safeTargetPos.getY(), safeTargetPos.getZ() + 0.5D);
+                    entity = teleportPetHome(entity, level, safeTargetPos);
+                    if (entity instanceof ITradePostPet summonedPet)
+                    {
+                        PetRegistryUtil.register(summonedPet);
+                        petshop.rememberPetData(summonedPet);
+                    }
                     MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.summoned")).sendTo(player);
                     petshop.markPetsDirty();
                 } 
+                else
+                {
+                    purgeMissingPet(player, petshop, localUuid);
+                }
                 break;
 
         }
+    }
+
+    /**
+     * Resolve a pet from every authoritative source that can point to a loaded entity.
+     */
+    private ITradePostPet resolvePet(final @Nonnull ServerLevel level, final @Nonnull IColony colony, final @Nonnull BuildingPetshop petshop, final @Nonnull UUID uuid)
+    {
+        ITradePostPet pet = PetRegistryUtil.resolve(level, uuid);
+        if (pet != null)
+        {
+            return pet;
+        }
+
+        MinecraftServer server = level.getServer();
+        if (server != null)
+        {
+            pet = PetRegistryUtil.findHandle(petshop, uuid)
+                .map(handle -> PetRegistryUtil.resolve(server, handle))
+                .orElse(null);
+            if (pet != null)
+            {
+                return pet;
+            }
+
+            pet = PetRegistryUtil.resolve(server, uuid);
+            if (pet != null)
+            {
+                return pet;
+            }
+        }
+
+        return PetAnimalManagerUtil.resolveManagedPet(colony, uuid);
+    }
+
+    /**
+     * Move a pet to the target server level and position.
+     */
+    private Entity teleportPetHome(final Entity entity, final @Nonnull ServerLevel targetLevel, final BlockPos safeTargetPos)
+    {
+        double x = safeTargetPos.getX() + 0.5D;
+        double y = safeTargetPos.getY();
+        double z = safeTargetPos.getZ() + 0.5D;
+
+        if (entity.level() == targetLevel)
+        {
+            entity.teleportTo(x, y, z);
+            return entity;
+        }
+
+        @SuppressWarnings("null")
+        Entity changedEntity = entity.changeDimension(new DimensionTransition(
+            targetLevel,
+            new Vec3(x, y, z),
+            Vec3.ZERO,
+            entity.getYRot(),
+            entity.getXRot(),
+            DimensionTransition.DO_NOTHING));
+        return changedEntity == null ? entity : changedEntity;
+    }
+
+    /**
+     * Remove an unreachable pet from persisted pet shop state and tell the player what happened.
+     */
+    @SuppressWarnings("null")
+    private void purgeMissingPet(final ServerPlayer player, final BuildingPetshop petshop, final UUID uuid)
+    {
+        MCTradePostMod.LOGGER.warn("Pet {} was listed in pet shop {} but no loaded entity could be resolved. Purging stale pet record.",
+            uuid, petshop.getPosition());
+        PetAnimalManagerUtil.purgePetshopRecord(petshop, uuid);
+        MessageUtils.format(Component.translatable("com.minecolonies.coremod.gui.petstore.missing")).sendTo(player);
     }
 }
