@@ -257,7 +257,9 @@
         "minecolonies:large_empty_bottle": 5,
         "minecolonies:large_water_bottle": 6,
         "minecolonies:large_milk_bottle": 6,
-        "minecolonies:large_soy_milk_bottle": 6
+        "minecolonies:large_soy_milk_bottle": 6,
+        "minecolonies:chiefsword": 300,
+        "minecolonies:scroll_buff": 800
     },
     "tag_values": {
         "#minecraft:wool": 31,

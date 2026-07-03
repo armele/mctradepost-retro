@@ -9,6 +9,7 @@ import net.minecraft.data.DataGenerator;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
@@ -27,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
-@EventBusSubscriber(modid = MCTradePostMod.MODID)
+@EventBusSubscriber(modid = MCTradePostMod.MODID, value = Dist.CLIENT)
 public class MCTPEntityIconProvider implements DataProvider
 {
     private static final String OUTPUT_NAMESPACE = "minecolonies";
