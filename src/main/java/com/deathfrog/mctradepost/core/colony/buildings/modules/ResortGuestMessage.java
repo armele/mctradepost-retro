@@ -135,6 +135,8 @@ public class ResortGuestMessage extends AbstractBuildingServerMessage<IBuilding>
         BlockPos safeTargetPos = targetPos.get();
         citizen.teleportTo(safeTargetPos.getX() + 0.5D, safeTargetPos.getY(), safeTargetPos.getZ() + 0.5D);
         guestFile.setCurrentlyAtResort(true);
+        resort.resumeGuestVacation(citizen, guestFile, true);
+
         ResortGuestListModule module = resort.getModule(ResortGuestListModule.class);
         if (module != null)
         {

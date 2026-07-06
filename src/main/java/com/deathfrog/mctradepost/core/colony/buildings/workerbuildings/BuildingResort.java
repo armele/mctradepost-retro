@@ -78,7 +78,7 @@ public class BuildingResort extends AbstractBuilding
     // Keep a map of who the resort has "advertized" to (who has had the
     // EntityAIBurnoutTask added to their AI)
     // This is deliberately global across all resorts.
-    protected static Map<EntityCitizen, EntityAIBurnoutTask> advertisingMap = new HashMap<EntityCitizen, EntityAIBurnoutTask>();
+    protected static Map<Integer, EntityAIBurnoutTask> advertisingMap = new HashMap<Integer, EntityAIBurnoutTask>();
 
     private final Map<Integer, Vacationer> guests = new ConcurrentHashMap<Integer, Vacationer>();
 
@@ -188,14 +188,32 @@ public class BuildingResort extends AbstractBuilding
 
         for (Vacationer guest : getGuests())
         {
+            if (guest.getState() == VacationState.CHECKED_OUT || guest.getBurntSkill() == null)
+            {
+                continue;
+            }
+
             final ICitizenData guestData = colony.getCitizenManager().getCivilian(guest.getCivilianId());
-            if (guestData != null && guestData.getJob() == null)
+            if (guestData == null || guestData.getJob() == null)
             {
                 TraceUtils.dynamicTrace(TRACE_BURNOUT,
                     () -> LOGGER.info("Cancelling vacation for unemployed guest {} at resort {} in colony {}.",
                         guest.getCivilianId(), getPosition(), colony.getID()));
                 removeGuestFile(guest.getCivilianId());
+                continue;
             }
+
+            if (guestData.getEntity().isEmpty())
+            {
+                continue;
+            }
+
+            AbstractEntityCitizen entity = guestData.getEntity().get();
+            if (!entity.isDead())
+            {
+                resumeGuestVacation(entity, guest, false);
+            }
+
         }
 
         advertisingCooldown--;
@@ -211,13 +229,14 @@ public class BuildingResort extends AbstractBuilding
 
                 if (citizen.getJob() != null)
                 {
-                    if (!advertisingMap.containsKey(advertisingTarget))
+                    EntityAIBurnoutTask burnoutTask = advertisingMap.get(advertisingTarget.getCivilianID());
+                    if (burnoutTask == null || !burnoutTask.isForCitizen(advertisingTarget))
                     {
                         // Citizens who have jobs get the EntityAIBurnoutTask added to their AI
 
-                        EntityAIBurnoutTask burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task
-                                                                                                       // to the AI automatically
-                        advertisingMap.put(advertisingTarget, burnoutTask);
+                        burnoutTask = new EntityAIBurnoutTask(advertisingTarget);  // Note that this adds the task
+                                                                                   // to the AI automatically
+                        advertisingMap.put(advertisingTarget.getCivilianID(), burnoutTask);
 
                         Vacationer guest = guests.get(advertisingTarget.getCivilianID());
                         if (guest != null)
@@ -233,6 +252,58 @@ public class BuildingResort extends AbstractBuilding
         });
 
         advertisingCooldown = ADVERTISING_COOLDOWN_MAX;
+    }
+
+    /**
+     * Reattach a persisted guest reservation to the citizen's burnout AI and nudge it back into the vacation flow.
+     *
+     * @param citizen the summoned citizen.
+     * @param guest the resort guest file.
+     * @return true when the vacation was active and the resume event was queued.
+     */
+    public boolean resumeGuestVacation(final AbstractEntityCitizen citizen, final Vacationer guest, boolean force)
+    {
+        if (!(citizen instanceof EntityCitizen entityCitizen) || guest == null)
+        {
+            return false;
+        }
+
+        if (guest.getState() == VacationState.CHECKED_OUT || guest.getBurntSkill() == null)
+        {
+            return false;
+        }
+
+        final ICitizenData citizenData = getColony().getCitizenManager().getCivilian(guest.getCivilianId());
+        if (citizenData == null || citizenData.getJob() == null)
+        {
+            return false;
+        }
+
+        if (guest.getTargetLevel() > 0
+            && citizenData.getCitizenSkillHandler().getLevel(guest.getBurntSkill()) >= guest.getTargetLevel())
+        {
+            return false;
+        }
+
+        guest.setResort(this);
+        EntityAIBurnoutTask burnoutTask = advertisingMap.get(entityCitizen.getCivilianID());
+        if (burnoutTask == null || !burnoutTask.isForCitizen(entityCitizen))
+        {
+            burnoutTask = new EntityAIBurnoutTask(entityCitizen);
+            advertisingMap.put(entityCitizen.getCivilianID(), burnoutTask);
+        }
+
+        if (!force && burnoutTask.isTrackingVacation(guest))
+        {
+            return false;
+        }
+
+        burnoutTask.resumeVacation(guest);
+
+        TraceUtils.dynamicTrace(TRACE_BURNOUT,
+            () -> LOGGER.info("Queued vacation resume for guest {} at resort {}.", guest.getCivilianId(), getPosition()));
+
+        return true;
     }
 
     /**

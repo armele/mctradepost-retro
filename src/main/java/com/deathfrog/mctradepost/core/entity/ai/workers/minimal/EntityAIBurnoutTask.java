@@ -19,6 +19,7 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.ai.statemachine.AIOneTimeEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
 import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
@@ -95,7 +96,7 @@ public class EntityAIBurnoutTask
     private static final int MIN_DIST_TO_RESORT = 10;
     private static final int MIN_DIST_TO_STATION = 1;
 
-    private static final int ENTITY_AI_BURNOUT_TICKRATE = 1000;
+    private static final int ENTITY_AI_BURNOUT_TICKRATE = 200;
 
     public final static String NO_RESORT = "com.mctradepost.resort.no_resort";
     public final static String GREAT_VACATION = "com.mctradepost.resort.great_vacation";
@@ -150,6 +151,38 @@ public class EntityAIBurnoutTask
         ai.addTransition(new TickingTransition<>(VacationAIState.WAIT_FOR_CURE, () -> true, this::waitForCure, 20));
         ai.addTransition(new TickingTransition<>(VacationAIState.APPLY_CURE, () -> true, this::applyCure, 20));
         ai.addTransition(new TickingTransition<>(VacationAIState.WANDER, () -> true, this::wander, 20));
+    }
+
+    /**
+     * Reattaches an existing resort reservation to this citizen and nudges the AI back into the vacation flow.
+     *
+     * @param vacationTracker the active vacation tracker from the resort's guest list.
+     */
+    public void resumeVacation(final Vacationer vacationTracker)
+    {
+        this.vacationTracker = vacationTracker;
+        this.skillToHeal = vacationTracker.getBurntSkill();
+        this.seatLocation = null;
+        this.adSaturationLevel = 0;
+
+        citizenData.setVisibleStatus(VACATION_STATUS);
+
+        citizen.getCitizenAI().addTransition(new AIOneTimeEventTarget<IState>(
+            () -> this.vacationTracker == vacationTracker
+                && this.vacationTracker.getState() != VacationState.CHECKED_OUT
+                && this.vacationTracker.getBurntSkill() != null,
+            this::resumeActiveVacationState));
+    }
+
+    /**
+     * Checks whether this task is attached to the current entity instance for a citizen.
+     *
+     * @param citizen the citizen entity to compare.
+     * @return true when this task belongs to that entity instance.
+     */
+    public boolean isForCitizen(final EntityCitizen citizen)
+    {
+        return this.citizen == citizen;
     }
 
     /**
@@ -323,9 +356,10 @@ public class EntityAIBurnoutTask
             citizen.getCitizenData().setVisibleStatus(VACATION_STATUS);
             TraceUtils.dynamicTrace(TRACE_BURNOUT,
                 () -> LOGGER.info("Continuing the vacation for {} (state {}).", citizen.getName(), citizen.getCitizenAI().getState()));
+
+            return resumeActiveVacationState();
         }
 
-        return VacationAIState.SEARCH_RESORT;
     }
 
     /**
@@ -1000,5 +1034,37 @@ public class EntityAIBurnoutTask
         citizen.releaseUsingItem();
         citizen.stopUsingItem();
         citizen.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+    }
+
+    /**
+     * Indicates whether this task is currently tracking an active vacation.
+     * @param tracker vacation information
+     * @return true when tracking a valid vacation
+     */
+    public boolean isTrackingVacation(final Vacationer tracker)
+    {
+        return this.vacationTracker == tracker
+            && tracker.getState() != VacationState.CHECKED_OUT
+            && tracker.getBurntSkill() != null;
+    }
+
+    /**
+     * Return the best state for an in-progress vacation
+     * @return vacation state
+     */
+    private IState resumeActiveVacationState()
+    {
+        if (checkForCure() == VacationAIState.APPLY_CURE)
+        {
+            return VacationAIState.APPLY_CURE;
+        }
+
+        final IState currentState = citizen.getCitizenAI().getState();
+        if (currentState instanceof VacationAIState)
+        {
+            return currentState;
+        }
+
+        return VacationAIState.CHECK_FOR_CURE;
     }
 }
