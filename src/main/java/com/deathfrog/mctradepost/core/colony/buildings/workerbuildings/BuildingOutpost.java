@@ -36,8 +36,8 @@ import com.deathfrog.mctradepost.core.colony.requestsystem.IRequestSatisfaction;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolver;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
-import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRouteConnection;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
@@ -99,6 +99,16 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
     protected Map<StationData, TrackConnectionResult> connectionresults = new HashMap<>();
     
+    /**
+     * Exposes cached station connection results for diagnostics and event-driven cache invalidation.
+     *
+     * @return mutable cached route results keyed by station data
+     */
+    public Map<StationData, TrackConnectionResult> getConnectionResults()
+    {
+        return connectionresults;
+    }
+
 
     public BuildingOutpost(@NotNull IColony colony, BlockPos pos, String schematicName, int maxLevel)
     {
@@ -678,7 +688,6 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
         Collection<IBuilding> buildings = colony.getServerBuildingManager().getBuildings().values();
         BuildingStation candidateStation = null;
-        boolean isCurrentlyDisconnected = this.isDisconnected();
         boolean connected = false;
 
         for (IBuilding building : buildings)
@@ -687,8 +696,10 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             {
                 candidateStation = station;
 
-                TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks((ServerLevel) colony.getWorld(), this.getRailStartPosition(), station.getRailStartPosition(), isCurrentlyDisconnected);
-                connectionresults.put(new StationData(station), result);
+                StationData stationData = new StationData(station);
+                boolean hasNoCachedResult = connectionresults.get(stationData) == null;
+                TrackConnectionResult result = TrackRouteConnection.findRoute(station, new StationData(this), hasNoCachedResult);
+                connectionresults.put(stationData, result);
                 
                 if (result.isConnected())
                 {

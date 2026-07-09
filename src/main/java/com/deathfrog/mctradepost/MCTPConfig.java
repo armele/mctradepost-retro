@@ -130,7 +130,7 @@ public class MCTPConfig
         // Station Settings
         BUILDER.push("station");
         trackValidationFrequency = BUILDER.comment("Tick frequency of verifying tracks remain connected (processor intensive).")
-            .define("trackValidationFrequency", 10000);
+            .define("trackValidationFrequency", 6000);
 
         baseTradeSpeed = BUILDER.comment("Base trade speed per building level.").define("baseTradeSpeed", 4);
 

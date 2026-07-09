@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.api.items;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.mojang.serialization.Codec;
@@ -44,4 +45,11 @@ public class MCTPModDataComponents
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> LINKED_BLOCK_POS =
         REGISTRAR.registerComponentType("linked_block_pos",
             builder -> builder.persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<DimensionalLinkageRecord>> DIMENSIONAL_LINKAGE =
+        REGISTRAR.registerComponentType("dimensional_linkage",
+            builder -> builder
+                .persistent(DimensionalLinkageRecord.CODEC)
+                .networkSynchronized(DimensionalLinkageRecord.STREAM_CODEC));
 }

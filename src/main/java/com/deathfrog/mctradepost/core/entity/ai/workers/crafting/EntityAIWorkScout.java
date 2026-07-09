@@ -54,7 +54,10 @@ import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -74,6 +77,9 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     protected static final int FOOD_DELIVERY_RESERVE = 2;
     protected static final int FOOD_ORDERING_THRESHOLD = 3;
     protected static final int FOOD_ORDERING_SIZE = 8;
+    protected static final int FOOD_TRANSFER_SOURCE_SLOT_LIMIT = 64;
+    protected static final int FOOD_TRANSFER_TARGET_SLOT_LIMIT = 64;
+    protected static final long FOOD_DELIVERY_TARGET_RETRY_DAYS = 1;
     protected static final int BUILDER_SUPPORT_COOLDOWN_TIMER = 20;
 
     protected long lastFoodOrderCheck = 0;
@@ -102,6 +108,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     protected IRequest<?> currentDeliverableRequest = null;
     protected ItemStack currentFoodDeliveryStack = ItemStack.EMPTY;
     protected BlockPos currentFoodDeliveryTarget = null;
+    protected final Map<BlockPos, Long> failedFoodDeliveryTargets = new HashMap<>();
 
     /**
      * Current goto path
@@ -1017,6 +1024,33 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      */
     public IAIState deliverFoodForOutpost()
     {
+        try
+        {
+            return doDeliverFoodForOutpost();
+        }
+        catch (RuntimeException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.warn("Scout food delivery failed unexpectedly in colony {}. Clearing delivery and retrying later.",
+                    building.getColony().getID(),
+                    e));
+            clearFoodDelivery();
+            lastFoodDeliveryCheck = building.getColony().getDay();
+            return DECIDE;
+        }
+        finally
+        {
+            pruneExpiredFoodDeliveryTargetFailures();
+        }
+    }
+
+    /**
+     * Attempts to deliver food for the outpost workers.  Assumes some food will already have been ordered and delivered.
+     *
+     * @return The next AI state for the food delivery task.
+     */
+    protected IAIState doDeliverFoodForOutpost()
+    {
         if (building.getColony().getWorld().isClientSide())
         {
             return getState();
@@ -1080,7 +1114,14 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             }
 
             for (final BlockPos outpostWorkPos : building.getWorkBuildings())
-            {
+            {   
+                if (outpostWorkPos == null) continue;
+
+                if (isFoodDeliveryTargetCoolingDown(outpostWorkPos))
+                {
+                    continue;
+                }
+
                 final IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
                 if (outpostWorksite != null && !childOutpostHasFood(outpostWorksite, foodStack)
                     && getSafeItemHandler(outpostWorksite, "outpost food delivery target") != null)
@@ -1142,6 +1183,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      * @param targetBuilding the child building receiving food.
      * @return the next AI state.
      */
+    @SuppressWarnings("null")
     protected IAIState unloadFoodForDelivery(@Nonnull final IBuilding targetBuilding)
     {
         if (!EntityNavigationUtils.walkToBuilding(this.worker, targetBuilding))
@@ -1162,6 +1204,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         final IItemHandler workerInventory = worker.getInventoryCitizen();
         if (targetInventory == null || workerInventory == null || !transferOneFoodItem(workerInventory, localDeliveryStack, targetInventory))
         {
+            markFoodDeliveryTargetFailed(targetBuilding.getPosition());
             clearFoodDelivery();
             return getState();
         }
@@ -1253,8 +1296,24 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      */
     protected int getFoodCount(@Nullable final IItemHandler inventory, @Nonnull final ItemStack foodStack)
     {
-        return InventoryUtils.getItemCountInItemHandler(inventory,
-            stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, foodStack));
+        if (inventory == null || foodStack.isEmpty())
+        {
+            return 0;
+        }
+
+        try
+        {
+            return InventoryUtils.getItemCountInItemHandler(inventory,
+                stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, foodStack));
+        }
+        catch (RuntimeException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST,
+                () -> LOGGER.warn("Scout could not count food {} in an item handler. Treating it as unavailable.",
+                    foodStack,
+                    e));
+            return 0;
+        }
     }
 
     /**
@@ -1265,15 +1324,149 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      * @param targetInventory the target inventory.
      * @return true if one item was moved.
      */
+    @SuppressWarnings("null")
     protected boolean transferOneFoodItem(
         @Nonnull final IItemHandler sourceInventory,
         @Nonnull final ItemStack foodStack,
         @Nonnull final IItemHandler targetInventory)
     {
-        return InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(sourceInventory,
-            stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, foodStack),
-            1,
-            targetInventory);
+        final int sourceSlots = Math.min(sourceInventory.getSlots(), FOOD_TRANSFER_SOURCE_SLOT_LIMIT);
+        for (int sourceSlot = 0; sourceSlot < sourceSlots; sourceSlot++)
+        {
+            final ItemStack inSlot = sourceInventory.getStackInSlot(sourceSlot);
+            if (inSlot.isEmpty() || !ItemStack.isSameItemSameComponents(inSlot, foodStack))
+            {
+                continue;
+            }
+
+            final ItemStack simulatedExtract = sourceInventory.extractItem(sourceSlot, 1, true);
+            if (simulatedExtract.isEmpty())
+            {
+                continue;
+            }
+
+            final ItemStack foodToMove = simulatedExtract.copyWithCount(1);
+            if (!canInsertBounded(targetInventory, foodToMove, FOOD_TRANSFER_TARGET_SLOT_LIMIT))
+            {
+                return false;
+            }
+
+            final ItemStack extracted = sourceInventory.extractItem(sourceSlot, 1, false);
+            if (extracted.isEmpty())
+            {
+                return false;
+            }
+
+            final ItemStack remainder = insertBounded(targetInventory, extracted.copyWithCount(1), FOOD_TRANSFER_TARGET_SLOT_LIMIT);
+            if (remainder.isEmpty())
+            {
+                return true;
+            }
+
+            ItemStack returnRemainder = sourceInventory.insertItem(sourceSlot, remainder, false);
+            if (!returnRemainder.isEmpty())
+            {
+                insertBounded(sourceInventory, returnRemainder, FOOD_TRANSFER_SOURCE_SLOT_LIMIT);
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check whether an item can be inserted without scanning an unbounded combined inventory.
+     *
+     * @param targetInventory the inventory to inspect.
+     * @param stack the stack to insert.
+     * @param slotLimit the maximum number of slots to inspect.
+     * @return true if at least part of the stack can be inserted.
+     */
+    @SuppressWarnings("null")
+    protected boolean canInsertBounded(
+        @Nonnull final IItemHandler targetInventory,
+        @Nonnull final ItemStack stack,
+        final int slotLimit)
+    {
+        if (stack.isEmpty())
+        {
+            return true;
+        }
+
+        final int targetSlots = Math.min(targetInventory.getSlots(), slotLimit);
+        for (int targetSlot = 0; targetSlot < targetSlots; targetSlot++)
+        {
+            final ItemStack remainder = targetInventory.insertItem(targetSlot, stack.copy(), true);
+            if (remainder.getCount() < stack.getCount())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Insert into a bounded number of target slots.
+     *
+     * @param targetInventory the inventory to insert into.
+     * @param stack the stack to insert.
+     * @param slotLimit the maximum number of slots to try.
+     * @return any remaining stack.
+     */
+    protected ItemStack insertBounded(
+        @Nonnull final IItemHandler targetInventory,
+        @Nonnull final ItemStack stack,
+        final int slotLimit)
+    {
+        ItemStack remainder = stack;
+        final int targetSlots = Math.min(targetInventory.getSlots(), slotLimit);
+        for (int targetSlot = 0; targetSlot < targetSlots && !remainder.isEmpty(); targetSlot++)
+        {
+            remainder = targetInventory.insertItem(targetSlot, remainder, false);
+        }
+
+        return remainder;
+    }
+
+    /**
+     * Temporarily skip a child building that rejected a food delivery.
+     *
+     * @param targetPosition the building position that failed insertion.
+     */
+    protected void markFoodDeliveryTargetFailed(@Nonnull final BlockPos targetPosition)
+    {
+        failedFoodDeliveryTargets.put(targetPosition.immutable(), (long) building.getColony().getDay());
+    }
+
+    /**
+     * Check whether a child building should be skipped for food delivery this colony day.
+     *
+     * @param targetPosition the building position to check.
+     * @return true if the target should be skipped.
+     */
+    protected boolean isFoodDeliveryTargetCoolingDown(@Nonnull final BlockPos targetPosition)
+    {
+        pruneExpiredFoodDeliveryTargetFailures();
+
+        return failedFoodDeliveryTargets.containsKey(targetPosition);
+    }
+
+    /**
+     * Clear expired food delivery target failures.
+     */
+    protected void pruneExpiredFoodDeliveryTargetFailures()
+    {
+        final long today = building.getColony().getDay();
+        final Iterator<Map.Entry<BlockPos, Long>> iterator = failedFoodDeliveryTargets.entrySet().iterator();
+        while (iterator.hasNext())
+        {
+            final Map.Entry<BlockPos, Long> entry = iterator.next();
+            if (today - entry.getValue() >= FOOD_DELIVERY_TARGET_RETRY_DAYS)
+            {
+                iterator.remove();
+            }
+        }
     }
 
     /**

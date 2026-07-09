@@ -5,10 +5,24 @@
            label="$(com.mctradepost.core.gui.modules.stationconnections)"/>
     <text id="tabHelp" size="120 22" pos="30 40" textalign="MIDDLE" color="black"
            label="$(com.minecolonies.coremod.gui.station.connection.empty)"/>
-    <list id="stations" size="170 154" pos="13 46">
+    <list id="stations" size="170 100" pos="13 46" emptytext="$(com.minecolonies.coremod.gui.station.connection.empty)" emptycolor="black">
         <box id="stationx" size="100% 25" linewidth="1">
             <text id="location" size="150 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
             <text id="status" size="150 11" pos="2 13" textalign="MIDDLE_LEFT" color="black"/>
+        </box>
+    </list>
+    <text size="96 11" pos="13 153" textalign="MIDDLE_LEFT" color="black"
+           label="$(mctradepost.linkage.gui.title)"/>
+    <text id="linkageCapacity" size="72 11" pos="106 153" textalign="MIDDLE_RIGHT" color="black"/>
+    <list id="linkages" size="170 58" pos="13 166" emptytext="$(mctradepost.linkage.gui.empty)" emptycolor="black">
+        <box id="linkagex" size="100% 36" linewidth="1">
+            <itemicon id="linkageIcon" size="14 14" pos="2 2"/>
+            <text id="linkageName" size="126 10" pos="20 2" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="linkageOverworld" size="162 10" pos="2 15" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="linkageNether" size="162 10" pos="2 25" textalign="MIDDLE_LEFT" color="black"/>
+            <button id="removeLinkage" pos="145 2" size="14 15" color="red"
+                        source="minecolonies:textures/gui/builderhut/builder_button_mini.png"
+                        disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png"/>
         </box>
     </list>
 </window>

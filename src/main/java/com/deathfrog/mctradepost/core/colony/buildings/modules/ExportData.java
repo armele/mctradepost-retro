@@ -20,6 +20,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.domumornamentum.block.IMateriallyTexturedBlock;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
@@ -28,6 +29,7 @@ import com.minecolonies.core.util.DomumOrnamentumUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 
@@ -42,7 +44,7 @@ public class ExportData
     {
     };
 
-    private final ITradeCapable sourceStation;
+    private final @Nullable ITradeCapable sourceStation;
     private final StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
@@ -56,10 +58,12 @@ public class ExportData
     private boolean insufficientFunds = false;
     private IToken<?> requestToken = null;
     private GhostCartEntity cart = null;
+    private TrackRoute activeRoute = null;
+    private int activeRouteSegmentIndex = -1;
 
 
 
-    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
+    public ExportData(@Nullable ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
@@ -83,7 +87,7 @@ public class ExportData
         return destinationStationData;
     }
 
-    public ITradeCapable getSourceStation()
+    public @Nullable ITradeCapable getSourceStation()
     {
         return sourceStation;
     }
@@ -137,14 +141,18 @@ public class ExportData
      */
     public @Nullable GhostCartEntity spawnCartForTrade(List<BlockPos> path)
     {
+        ServerLevel level = (ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld();
+        return spawnCartForTrade(level, path);
+    }
+
+    public @Nullable GhostCartEntity spawnCartForTrade(ServerLevel level, List<BlockPos> path)
+    {
         if (path == null || path.isEmpty()) 
         {
             TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null or empty path while spawning cart: {}", this));
             return null;
         }
 
-        ServerLevel level = (ServerLevel) this.getDestinationStationData().getStation().getColony().getWorld();
-        
         if (level == null)
         {
             TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null level while spawning cart: {}", this));
@@ -187,6 +195,26 @@ public class ExportData
     }
 
     /**
+     * Spawns or updates the ghost cart for a segmented, dimension-aware route.
+     * <p>
+     * Return shipments use the reversed route so progress moves from destination back to source.
+     *
+     * @param route route to visualize
+     * @return active ghost cart, or null when the current route segment is a transfer or cannot spawn
+     */
+    public @Nullable GhostCartEntity spawnCartForTrade(TrackRoute route)
+    {
+        if (route == null)
+        {
+            return null;
+        }
+
+        this.activeRoute = isReverse() ? route.reversed() : route;
+        updateCartForRouteDistance(this.shipDistance < 0 ? 0 : this.shipDistance);
+        return cart;
+    }
+
+    /**
      * Spawns a GhostCartEntity for trade if one does not already exist. The cart is initialized with the current export's trade item
      * and set on this export data.
      *
@@ -215,7 +243,11 @@ public class ExportData
             }
         }
 
-        if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
+        if (tcr != null && tcr.getRoute() != null)
+        {
+            spawnCartForTrade(tcr.getRoute());
+        }
+        else if (tcr != null && tcr.path != null && !tcr.path.isEmpty())
         {
             if (this.cart == null)
             {
@@ -238,8 +270,9 @@ public class ExportData
     }
 
     /**
-     * Sets the ship distance for this export and updates the visualization of the ghost cart (if it exists) to reflect the new
-     * distance. If the cart does not exist yet, it will be spawned if possible.
+     * Sets the ship distance for this export and updates the visualization of the ghost cart.
+     * <p>
+     * Negative distances clear route/cart state. Segmented dimensional routes map this global distance into the current rail segment.
      * 
      * @param shipDistance the new ship distance.
      */
@@ -247,9 +280,113 @@ public class ExportData
     {
         this.shipDistance = shipDistance;
 
+        if (shipDistance < 0)
+        {
+            discardCart();
+            activeRoute = null;
+            activeRouteSegmentIndex = -1;
+            return;
+        }
+
+        if (activeRoute != null)
+        {
+            updateCartForRouteDistance(shipDistance);
+            return;
+        }
+
         if (cart != null && shipDistance >= 0)
         {
             cart.setSegment(shipDistance);
+        }
+    }
+
+    /**
+     * Moves the ghost cart to the rail segment matching the supplied global route distance.
+     * <p>
+     * Transfer segments discard the visible cart after playing transfer effects. The cart will respawn on the next rail segment as
+     * progress advances.
+     *
+     * @param routeDistance distance traveled along the full segmented route
+     */
+    @SuppressWarnings("unused")
+    private void updateCartForRouteDistance(int routeDistance)
+    {
+        if (activeRoute == null || routeDistance < 0)
+        {
+            return;
+        }
+
+        int cursor = 0;
+        List<TrackRoute.Segment> segments = activeRoute.segments();
+        for (int i = 0; i < segments.size(); i++)
+        {
+            TrackRoute.Segment segment = segments.get(i);
+            int segmentDistance = Math.max(1, segment.distance());
+            boolean inSegment = routeDistance <= cursor + segmentDistance || i == segments.size() - 1;
+            if (!inSegment)
+            {
+                cursor += segmentDistance;
+                continue;
+            }
+
+            if (segment.type() == TrackRoute.SegmentType.TRANSFER)
+            {
+                if (cart != null)
+                {
+                    cart.playTransferEffects();
+                }
+                discardCart();
+                activeRouteSegmentIndex = i;
+                return;
+            }
+
+            if (segment.path() == null || segment.path().isEmpty())
+            {
+                return;
+            }
+
+            if (sourceStation == null)
+            {
+                return;
+            }
+
+            MinecraftServer stationServer = sourceStation.getColony().getWorld().getServer();
+            if (stationServer == null)
+            {
+                return;
+            }
+
+            ServerLevel level = stationServer.getLevel(segment.dimension());
+            if (level == null)
+            {
+                return;
+            }
+
+            if (cart == null || !cart.hasPath() || activeRouteSegmentIndex != i)
+            {
+                discardCart();
+                cart = spawnCartForTrade(level, segment.path());
+                activeRouteSegmentIndex = i;
+            }
+
+            if (cart != null)
+            {
+                int localSegment = Math.max(0, Math.min(segment.path().size() - 1, routeDistance - cursor));
+                cart.setSegment(localSegment);
+            }
+            return;
+        }
+    }
+
+    /**
+     * Removes the active ghost cart entity, if one exists.
+     */
+    public void discardCart()
+    {
+        if (cart != null)
+        {
+            cart.discard();
+            cart = null;
         }
     }
 
@@ -366,7 +503,9 @@ public class ExportData
     @Override
     public String toString()
     {
-        return "ExportData{" + "sourceStation={" + sourceStation.getLocation().getInDimensionLocation().toShortString()
+        String sourceStationIdentifier = sourceStation == null ? "null" : sourceStation.getLocation().getInDimensionLocation().toShortString();
+
+        return "ExportData{" + "sourceStation={" + sourceStationIdentifier
         + "}, destinationStation={" + destinationStationData.toString() 
         + "}, tradeItem=" + tradeItem 
         + ", reverse=" + reverse +'}';

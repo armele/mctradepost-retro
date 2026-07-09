@@ -80,6 +80,8 @@ public class StationView extends AbstractBuildingView
     public void deserialize(@NotNull final RegistryFriendlyByteBuf buf) 
     {
         super.deserialize(buf);
+        stations.clear();
+        connectionstatus.clear();
         final int stationsize = buf.readInt();
         for (int i = 0; i < stationsize; i++)
         {
