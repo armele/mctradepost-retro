@@ -311,6 +311,7 @@
     "com.minecolonies.coremod.gui.station.exports.empty" : "No connected colonies are currently importing goods.",
     "com.deathfrog.mctradepost.gui.workerhuts.station.funding" : "Trade Funding",
     "com.minecolonies.coremod.gui.station.connection.empty" : "Cannot find connected stations.",
+    "com.minecolonies.coremod.gui.station.connection.hover" : "Connect stations by track to enable trading.\n\nTrack can connect through nether portals as well. To do this use a Trans-Dimensional Track Linker to associate an overworld track adjacent to a nether portal with it's corresponding nether track (which also must be adjacent to a nether portal).",
 
     "com.mctradepost.building.petshop": "Pet Shop",
     "com.minecolonies.building.petshop": "Pet Shop",

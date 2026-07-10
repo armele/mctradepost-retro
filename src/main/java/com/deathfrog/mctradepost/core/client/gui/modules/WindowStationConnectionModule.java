@@ -13,7 +13,9 @@ import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
+import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.Box;
@@ -31,6 +33,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
     private static final String PANE_STATIONS = "stations";
     private static final String PANE_LINKAGES = "linkages";
     private static final String BUTTON_REMOVE_LINKAGE = "removeLinkage";
+    private static final String IMAGE_HELP = "help";
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
     IBuildingView buildingView = null;
@@ -56,6 +59,12 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
     public void onOpened()
     {
         super.onOpened();
+
+        final Image help = findPaneOfTypeByID(IMAGE_HELP, Image.class);
+        final AbstractTextBuilder.TooltipBuilder helpTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(help);
+        helpTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.station.connection.hover"));
+        helpTipBuilder.build();
+  
         updateConnections();
         updateLinkages();
     }
