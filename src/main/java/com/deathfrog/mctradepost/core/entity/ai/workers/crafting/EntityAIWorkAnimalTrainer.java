@@ -794,10 +794,14 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
         List<PetTypes> activePetTypes = new ArrayList<PetTypes>();
         int husbandryResearch = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.HUSBANDRY);  
+        int exoticLevelResearched = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.EXOTIC);  
 
         // Make the list of animals to raise smart enough to be research-aware.
         for (PetTypes type : PetTypes.values())
         {
+            // Skip pets for whom research does not yet support their exotic level
+            if (type.getExoticLevel() > exoticLevelResearched) continue;
+
             if (type.isPet() == true || husbandryResearch > 0)
             {
                 activePetTypes.add(type);

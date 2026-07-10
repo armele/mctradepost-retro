@@ -27,7 +27,9 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 
@@ -52,7 +54,9 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
      * Resource scrolling list.
      */
     private final ScrollingList petList;
+    private final Map<PetTypes, Entity> previewEntities = new EnumMap<>(PetTypes.class);
     protected final int husbandryResearch;
+    protected final int exoticLevelResearch;
 
 
     /**
@@ -65,6 +69,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
     {
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RESOURCE_STRING));
         husbandryResearch = (int) moduleView.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.HUSBANDRY);  
+        exoticLevelResearch = (int) moduleView.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.EXOTIC); 
 
         petList = this.window.findPaneOfTypeByID(LABEL_PETLIST, ScrollingList.class);
 
@@ -118,6 +123,9 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                 // Make the list smart enough to be research-aware.
                 for (PetTypes type : PetTypes.values())
                 {
+                    // Skip pets whose exotic level is not supported by research.
+                    if (type.getExoticLevel() > exoticLevelResearch) continue;
+
                     if (type.isPet() == true || husbandryResearch > 0)
                     {
                         activePetTypes.add(type);
@@ -146,7 +154,11 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                 final EntityIcon entityIcon = rowPane.findPaneOfTypeByID(ENTITY_ICON, EntityIcon.class);
 
                 PetTypes petTypeEntry = activePetTypes.get(index);
-                Entity previewEntity = petTypeEntry.getEntityType().create(level);
+                // Keep one preview entity per type for the lifetime of this screen. PetCat
+                // randomizes its variant when constructed, so recreating it on every list
+                // refresh caused the displayed coat to flash rapidly between variants.
+                Entity previewEntity = previewEntities.computeIfAbsent(petTypeEntry,
+                    type -> type.getEntityType().create(level));
                 
                 if (previewEntity != null)
                 {

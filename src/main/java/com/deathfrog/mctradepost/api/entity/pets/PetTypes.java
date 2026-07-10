@@ -20,16 +20,18 @@ import net.minecraft.world.item.Items;
 
 public enum PetTypes
 {
-    WOLF(new ItemStack(NullnessBridge.assumeNonnull(Items.BONE), 16), 3, PetWolf.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_WOLF.get()), "Wolf", true),
-    FOX(new ItemStack(NullnessBridge.assumeNonnull(Items.SWEET_BERRIES), 16), 3, PetFox.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_FOX.get()), "Fox", true),
-    AXOLOTL(new ItemStack(NullnessBridge.assumeNonnull(Items.KELP), 16), 3, PetAxolotl.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_AXOLOTL.get()), "Axolotl", true),
-    PARROT(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockCorn.asItem()), 16), 3, PetParrot.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_PARROT.get()), "Parrot", true),
-    COW(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockDurum.asItem()), 16), 2, Cow.class, NullnessBridge.assumeNonnull(EntityType.COW), "Cow", false),
-    PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.BEETROOT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false),
-    CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false),
-    SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false),
-    BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false),
-    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false);
+    WOLF(new ItemStack(NullnessBridge.assumeNonnull(Items.BONE), 16), 3, PetWolf.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_WOLF.get()), "Wolf", true, 0),
+    FOX(new ItemStack(NullnessBridge.assumeNonnull(Items.SWEET_BERRIES), 16), 3, PetFox.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_FOX.get()), "Fox", true, 0),
+    CAT(new ItemStack(NullnessBridge.assumeNonnull(Items.COD), 16), 3, PetCat.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_CAT.get()), "Cat", true, 0),
+    PARROT(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockCorn.asItem()), 16), 3, PetParrot.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_PARROT.get()), "Parrot", true, 0),
+    AXOLOTL(new ItemStack(NullnessBridge.assumeNonnull(Items.KELP), 16), 3, PetAxolotl.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_AXOLOTL.get()), "Axolotl", true, 1),
+    PANDA(new ItemStack(NullnessBridge.assumeNonnull(Items.BAMBOO), 16), 3, PetPanda.class, NullnessBridge.assumeNonnull(MCTradePostMod.PET_PANDA.get()), "Panda", true, 1),
+    COW(new ItemStack(NullnessBridge.assumeNonnull(ModBlocks.blockDurum.asItem()), 16), 2, Cow.class, NullnessBridge.assumeNonnull(EntityType.COW), "Cow", false, 0),
+    PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.BEETROOT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false, 0),
+    CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false, 0),
+    SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false, 0),
+    BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false, 0),
+    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false, 0);
 
     private final @Nonnull ItemStack trainingItem;
     private final @Nonnull Class<? extends Animal> petClass;
@@ -37,13 +39,15 @@ public enum PetTypes
     private final @Nonnull String typeName;
     private final int coinCost;
     private final boolean isPet;
+    private final int exoticLevel;
 
     PetTypes(@Nonnull ItemStack trainingItem,
         int coinCost,
         @Nonnull Class<? extends Animal> petClass,
         @Nonnull EntityType<? extends Animal> entityType,
         @Nonnull String typeName,
-        boolean isPet)
+        boolean isPet,
+        int exoticLevel)
     {
         this.trainingItem = trainingItem;
         this.petClass = petClass;
@@ -51,6 +55,7 @@ public enum PetTypes
         this.typeName = typeName;
         this.coinCost = coinCost;
         this.isPet = isPet;
+        this.exoticLevel = exoticLevel;
     }
 
     /**
@@ -195,6 +200,8 @@ public enum PetTypes
             case PetTypes.FOX -> new PetData<PetFox>(null, compound);
             case PetTypes.AXOLOTL -> new PetData<PetAxolotl>(null, compound);
             case PetTypes.PARROT -> new PetData<PetParrot>(null, compound);
+            case PetTypes.CAT -> new PetData<PetCat>(null, compound);
+            case PetTypes.PANDA -> new PetData<PetPanda>(null, compound);
             default -> throw new IllegalArgumentException("Unknown pet type: " + type.getTypeName());
         };
 
@@ -209,5 +216,15 @@ public enum PetTypes
     public boolean isPet()
     {
         return isPet;
+    }
+
+    /**
+     * Does this pet require exotic research for availability?
+     * 
+     * @return
+     */
+    public int getExoticLevel()
+    {
+        return exoticLevel;
     }
 }

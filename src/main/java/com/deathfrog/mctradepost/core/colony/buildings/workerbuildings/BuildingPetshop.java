@@ -432,8 +432,7 @@ public class BuildingPetshop extends AbstractBuilding
     // Armadillo
     // Bat (flying)
     // Camel
-    // Cat
-    // Dolphin (aquatic)
+    // Dolphin (aquatic) - Kelp, sea pickles, coral, sponge, etc
     // Donkey
     // Frog
     // Goat
