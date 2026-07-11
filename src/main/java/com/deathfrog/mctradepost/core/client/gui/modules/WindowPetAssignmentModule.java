@@ -47,6 +47,8 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
     private static final String RESOURCE_STRING = "gui/layouthuts/layoutpetassignment.xml";
     private static final String LABEL_HOWTO = "howto";
     private static final String IMAGE_HELP = "help";
+    private static final String LABEL_PET_COUNT = "petcount";
+    private static final String PET_COUNT_TOOLTIP = "com.minecolonies.coremod.gui.petstore.petcount.hover";
     private static final String LABEL_TYPE = "pettype";
     private static final String LABEL_OOR = "entityoor";
     private static final String BUILDING_SELECTION_ID = "buildings";
@@ -100,6 +102,14 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
         final AbstractTextBuilder.TooltipBuilder helpTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(help);
         helpTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.worklocations.hover"));
         helpTipBuilder.build();
+
+        final PetshopView petshopView = (PetshopView) buildingView;
+        final int petCount = petshopView.getPets().size();
+        final int maxPets = petshopView.getMaxPets();
+        final Text petCountLabel = findPaneOfTypeByID(LABEL_PET_COUNT, Text.class);
+        petCountLabel.setText(Component.literal(petCount + " / " + maxPets));
+        PaneBuilders.tooltipBuilder().hoverPane(petCountLabel).build().setText(
+            Component.translatable(PET_COUNT_TOOLTIP, petCount, maxPets));
 
         updatePetAssignmentList();
 

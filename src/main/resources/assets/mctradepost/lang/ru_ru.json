@@ -487,6 +487,8 @@
   "entity.mctradepost.pet_fox": "Питомец-лис",
   "entity.mctradepost.pet_axolotl": "Питомец-аксолотль",
   "entity.mctradepost.pet_parrot": "Питомец-попугай",
+  "entity.mctradepost.pet_cat": "Домашняя кошка",
+  "entity.mctradepost.pet_panda": "Домашняя панда",
   "entity.mctradepost.ghost_cart": "Торговая тележка",
   "entity.mctradepost.pet_inventory": "Инвентарь питомца",
   "advancement.mctradepost.root.title": "Торговый пост для MineColonies",
