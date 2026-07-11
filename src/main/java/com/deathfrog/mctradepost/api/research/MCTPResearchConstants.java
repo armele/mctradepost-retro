@@ -17,6 +17,7 @@ public class MCTPResearchConstants {
     public static final ResourceLocation THRIFTSHOP_REROLL          = getResearchEffectID("thriftshop_reroll");
     public static final ResourceLocation THRIFTSHOP_BOTTOMLESS      = getResearchEffectID("thriftshop_bottomless");
     public static final ResourceLocation HUSBANDRY                  = getResearchEffectID("husbandry");
+    public static final ResourceLocation EXOTIC                     = getResearchEffectID("exotic");
     public static final ResourceLocation VET                        = getResearchEffectID("vet");
 
     public static ResourceLocation getResearchEffectID(String researchName) {

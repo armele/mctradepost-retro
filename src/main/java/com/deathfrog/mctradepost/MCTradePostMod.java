@@ -12,8 +12,10 @@ import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
+import com.deathfrog.mctradepost.api.entity.pets.PetCat;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
 import com.deathfrog.mctradepost.api.entity.pets.PetParrot;
+import com.deathfrog.mctradepost.api.entity.pets.PetPanda;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
@@ -123,12 +125,14 @@ import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.entity.AxolotlRenderer;
+import net.minecraft.client.renderer.entity.CatRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.EntityRendererProvider.Context;
 import net.minecraft.client.renderer.entity.FoxRenderer;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.entity.ParrotRenderer;
+import net.minecraft.client.renderer.entity.PandaRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.BlockPos;
@@ -143,7 +147,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Fox;
+import net.minecraft.world.entity.animal.Cat;
 import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.Panda;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
@@ -445,6 +451,18 @@ public class MCTradePostMod
         () -> EntityType.Builder.of(PetParrot::new, MobCategory.CREATURE)
             .sized(EntityType.PARROT.getDimensions().width(), EntityType.PARROT.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_parrot").toString()));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<EntityType<?>, EntityType<PetCat>> PET_CAT = ENTITIES.register("pet_cat",
+        () -> EntityType.Builder.of(PetCat::new, MobCategory.CREATURE)
+            .sized(EntityType.CAT.getDimensions().width(), EntityType.CAT.getDimensions().height())
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_cat").toString()));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<EntityType<?>, EntityType<PetPanda>> PET_PANDA = ENTITIES.register("pet_panda",
+        () -> EntityType.Builder.of(PetPanda::new, MobCategory.CREATURE)
+            .sized(0.9f, EntityType.PANDA.getDimensions().height())
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_panda").toString()));
 
     /*
     * BLOCKS
@@ -1393,6 +1411,8 @@ public class MCTradePostMod
             event.put(MCTradePostMod.PET_FOX.get(), Fox.createAttributes().build());
             event.put(MCTradePostMod.PET_AXOLOTL.get(), Axolotl.createAttributes().build());
             event.put(MCTradePostMod.PET_PARROT.get(), Parrot.createAttributes().add(Attributes.ATTACK_DAMAGE, 1.0D).build());
+            event.put(MCTradePostMod.PET_CAT.get(), Cat.createAttributes().build());
+            event.put(MCTradePostMod.PET_PANDA.get(), Panda.createAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D).build());
         }
 
         /**
@@ -1817,6 +1837,8 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_PARROT.get(), ParrotRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_CAT.get(), CatRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_PANDA.get(), PandaRenderer::new);
         }
 
         /**

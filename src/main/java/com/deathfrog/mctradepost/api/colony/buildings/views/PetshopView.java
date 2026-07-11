@@ -21,6 +21,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 public class PetshopView extends AbstractBuildingView 
 {
     protected final @Nonnull List<PetData<?>> pets = new ArrayList<>();
+    private int maxPets;
 
     public PetshopView(IColonyView c, @NotNull BlockPos l)
     {
@@ -50,6 +51,7 @@ public class PetshopView extends AbstractBuildingView
                 pets.add(pet);
             }
         }
+        maxPets = buf.readInt();
 
         // MCTradePostMod.LOGGER.info("Deserialized Petshop at {} has {} pets.", this.getPosition(), pets.size());
     }
@@ -62,6 +64,16 @@ public class PetshopView extends AbstractBuildingView
     public ImmutableList<PetData> getPets()
     {
         return ImmutableList.copyOf(pets);
+    }
+
+    /**
+     * Gets the maximum number of pets supported by this pet shop.
+     *
+     * @return the synchronized pet capacity
+     */
+    public int getMaxPets()
+    {
+        return maxPets;
     }
     
 }
