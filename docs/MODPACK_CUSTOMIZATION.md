@@ -197,6 +197,7 @@ Important behavior:
 
 - Files are processed in sorted order
 - `allow` rules override `deny` rules
+- An `allow` match wins globally, even when the matching `deny` rule came from a different file
 - `replace: true` clears previously accumulated rules
 - `rules` is accepted as an alias for simple deny-only files
 - For `namespace`, `mod`, or `modid` rules, `id: "*"` matches all item namespaces
@@ -217,6 +218,9 @@ Example: deny recycling from every mod by default, then opt specific mods back i
   ]
 }
 ```
+
+This is the recycler's whole-mod whitelist pattern; there is no separate whitelist mode. The wildcard deny rule blacklists every
+namespace, and the `allow` entries opt selected namespaces back in.
 
 ### Wishing Well Rituals
 
@@ -370,6 +374,7 @@ Pet scavenging uses explicit loot tables:
 
 ```text
 data/mctradepost/loot_table/pet/amphibious_scavenge/*.json
+data/mctradepost/loot_table/pet/mushroom_scavenge/*.json
 data/mctradepost/loot_table/pet/vegetation_scavenge/fruit/*.json
 data/mctradepost/loot_table/pet/vegetation_scavenge/leaves/*.json
 data/mctradepost/loot_table/pet/vegetation_scavenge/groundcover/*.json
@@ -378,11 +383,57 @@ data/mctradepost/loot_table/pet/vegetation_scavenge/groundcover/*.json
 The associated trigger tags are:
 
 - `#mctradepost:amphibious_scavenge` -> `pet/amphibious_scavenge/<block_path>.json`
+- `#mctradepost:mushroom_scavenge` -> `pet/mushroom_scavenge/<block_path>.json`
 - `#mctradepost:scavenge_fruit` -> `pet/vegetation_scavenge/fruit/<block_path>.json`
 - `#mctradepost:scavenge_leaves` -> `pet/vegetation_scavenge/leaves/<block_path>.json`
 - `#mctradepost:scavenge_groundcover` -> `pet/vegetation_scavenge/groundcover/<block_path>.json`
 
 If you add a block to one of these scavenge tags, you should usually also provide the matching loot table for that block path.
+
+Only the block path is used when resolving these tables; the source block namespace is discarded. For example,
+`othermod:blue_mushroom` resolves to
+`data/mctradepost/loot_table/pet/mushroom_scavenge/blue_mushroom.json`. Two mods that define blocks with the same path therefore
+share the same Trade Post scavenge table and cannot be configured independently through this mechanism.
+
+#### Mushroom Forage Loot
+
+Mushroom scavenging has two target types:
+
+- Existing blocks in `#mctradepost:mushroom_scavenge` are harvested and use
+  `pet/mushroom_scavenge/<block_path>.json`.
+- Empty locations use the shared `mctradepost:pet/mushroom_scavenge/forage` table when the location has a raw brightness below 8
+  and is above a block in `#minecraft:dirt` or `#minecraft:mushroom_grow_block`.
+
+Override the shared table here:
+
+```text
+data/mctradepost/loot_table/pet/mushroom_scavenge/forage.json
+```
+
+It is a standard loot table, so a pack can add or remove results, adjust their weights, apply loot functions, or control the chance
+of finding nothing with an `empty` entry. A compact example is:
+
+```json
+{
+  "type": "minecraft:generic",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "empty", "weight": 4 },
+        { "type": "item", "name": "minecraft:red_mushroom", "weight": 8 },
+        { "type": "item", "name": "minecraft:brown_mushroom", "weight": 8 },
+        { "type": "item", "name": "othermod:blue_mushroom", "weight": 2 }
+      ]
+    }
+  ]
+}
+```
+
+All generated drops are awarded to the pet. At an empty forage location, the first generated result that is both a block item and
+whose block belongs to `#mctradepost:mushroom_scavenge` is also planted, provided its default block state can survive there.
+Non-block results remain valid loot but are not planted. To make a custom mushroom discoverable and plantable, add its block to the
+tag, add its item to `forage.json`, and ensure its default block state can survive on the eligible ground.
 
 ## Tag-Driven Logic
 
@@ -459,6 +510,7 @@ Use these together:
 - `data/mctradepost/tags/block/scavenge_leaves.json`
 - `data/mctradepost/tags/block/scavenge_groundcover.json`
 - `data/mctradepost/tags/block/amphibious_scavenge.json`
+- `data/mctradepost/tags/block/mushroom_scavenge.json`
   - pet trainer scavenging targets
 - `data/mctradepost/tags/block/icy.json`
   - used by pathing helpers
@@ -504,7 +556,10 @@ These are worth overriding if your pack changes building material progression or
 
 1. Add blocks to the scavenge block tags
 2. Add matching loot tables under the corresponding `pet/...` loot-table folders
-3. Test harvest/reset behavior for fruit-bearing plants with unusual blockstate properties
+3. Customize `pet/mushroom_scavenge/forage.json` to control discoveries in empty mushroom-growing locations
+4. For plantable forage results, add the block to `#mctradepost:mushroom_scavenge` and verify its default state can survive there
+5. Test harvest/reset behavior for fruit-bearing plants with unusual blockstate properties
+6. Check for block-path collisions when integrating similarly named blocks from multiple mods
 
 ### If You Want To Lock Down Recycler Abuse
 
@@ -521,6 +576,8 @@ These are worth overriding if your pack changes building material progression or
 - Test one rarefinds roll from each tier
 - Test one station route if you changed `#mctradepost:track`
 - Test one pet scavenge target for every new block tag you added
+- Test both an existing mushroom target and an empty, dim mushroom forage location if you changed mushroom scavenging
+- Confirm custom mushroom forage results are awarded and that intended block results are planted
 - Restart a dedicated server once if you changed rituals
 
 ## High-Value Files To Review First

@@ -177,10 +177,32 @@ public class DimensionalLinkageItem extends Item
         DimensionalLinkageRecord record = stack.get(linkageComponent());
         if (record == null)
         {
-            record = DimensionalLinkageRecord.empty();
+            record = DimensionalLinkageRecord.uninitialized();
             stack.set(linkageComponent(), record);
         }
         return record;
+    }
+
+    /**
+     * Assigns a new identity to a copied linkage when it becomes an installed station entry.
+     *
+     * @param stack installed linkage copy
+     */
+    public static void assignFreshInstalledIdentity(ItemStack stack)
+    {
+        DimensionalLinkageRecord record = linkageRecord(stack);
+        stack.set(linkageComponent(), record.withFreshIdentity());
+    }
+
+    /**
+     * Removes an installed-entry identity before a linkage is returned to an inventory.
+     *
+     * @param stack linkage being uninstalled
+     */
+    public static void clearInstalledIdentity(ItemStack stack)
+    {
+        DimensionalLinkageRecord record = linkageRecord(stack);
+        stack.set(linkageComponent(), record.withoutIdentity());
     }
 
     /**

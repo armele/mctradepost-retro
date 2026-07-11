@@ -391,7 +391,7 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<DimensionalLinkageItem> DIMENSIONAL_LINKAGE = ITEMS.register("dimensional_linkage",
         () -> new DimensionalLinkageItem(new Item.Properties().stacksTo(1)
-            .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.empty())));
+            .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.uninitialized())));
     
     @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 

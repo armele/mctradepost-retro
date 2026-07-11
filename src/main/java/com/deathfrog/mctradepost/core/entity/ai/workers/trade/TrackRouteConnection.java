@@ -141,7 +141,7 @@ public class TrackRouteConnection
         List<DimensionalLinkageRecord> sourceLinkages = installedValidLinkages(source);
         List<DimensionalLinkageRecord> destinationLinkages = installedValidLinkages(destinationBuilding);
         List<DimensionalLinkageRecord> combinedLinkages = combineLinkages(sourceLinkages, destinationLinkages);
-        context.logLinkageCounts(sourceLinkages.size(), destinationLinkages.size(), combinedLinkages.size());
+        context.logLinkages(sourceLinkages, destinationLinkages, combinedLinkages);
         TrackPathConnection.TrackConnectionResult routed = findLinkedRoute(sourceLevel,
             sourceRail,
             destinationLevel,
@@ -470,19 +470,25 @@ public class TrackRouteConnection
         }
 
         /**
-         * Logs the linkage candidate counts available to a route search.
+         * Logs the linkage candidates available to a route search, including their identities.
          *
-         * @param sourceCount number of source-owned linkages
-         * @param destinationCount number of destination-owned linkages
-         * @param combinedCount number of unique linkages after combining endpoint records
+         * @param sourceLinkages source-owned linkages
+         * @param destinationLinkages destination-owned linkages
+         * @param combinedLinkages unique linkages after combining endpoint records
          */
-        private void logLinkageCounts(int sourceCount, int destinationCount, int combinedCount)
+        @SuppressWarnings("null")
+        private void logLinkages(List<DimensionalLinkageRecord> sourceLinkages,
+            List<DimensionalLinkageRecord> destinationLinkages,
+            List<DimensionalLinkageRecord> combinedLinkages)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} LINKAGES source={} destination={} combined={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} LINKAGES source={} sourceIds={} destination={} destinationIds={} combined={} combinedIds={}",
                 routeSearchId,
-                sourceCount,
-                destinationCount,
-                combinedCount));
+                sourceLinkages.size(),
+                sourceLinkages.stream().map(DimensionalLinkageRecord::id).toList(),
+                destinationLinkages.size(),
+                destinationLinkages.stream().map(DimensionalLinkageRecord::id).toList(),
+                combinedLinkages.size(),
+                combinedLinkages.stream().map(DimensionalLinkageRecord::id).toList()));
         }
 
         /**

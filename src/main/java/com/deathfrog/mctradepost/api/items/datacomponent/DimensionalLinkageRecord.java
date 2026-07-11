@@ -24,6 +24,8 @@ import net.minecraft.network.codec.StreamCodec;
  */
 public record DimensionalLinkageRecord(@Nonnull UUID id, Optional<DimPos> overworldEndpoint, Optional<DimPos> netherEndpoint)
 {
+    private static final @Nonnull UUID UNINITIALIZED_ID = new UUID(0L, 0L);
+
     /**
      * Codec used to persist this linkage in item data components and building module NBT.
      */
@@ -67,6 +69,43 @@ public record DimensionalLinkageRecord(@Nonnull UUID id, Optional<DimPos> overwo
     public static DimensionalLinkageRecord empty()
     {
         return new DimensionalLinkageRecord(UUID.randomUUID(), Optional.empty(), Optional.empty());
+    }
+
+    /**
+     * Creates the shared item-component default. It is replaced with a fresh identity when a concrete stack is first accessed.
+     */
+    public static DimensionalLinkageRecord uninitialized()
+    {
+        return new DimensionalLinkageRecord(UNINITIALIZED_ID, Optional.empty(), Optional.empty());
+    }
+
+    /**
+     * @return true when this is the shared default rather than the identity of a concrete linkage stack
+     */
+    public boolean isUninitialized()
+    {
+        return UNINITIALIZED_ID.equals(id);
+    }
+
+    /**
+     * Returns this linkage with a fresh identity for one installed station entry.
+     *
+     * @return a copy with a newly generated id and the same endpoints
+     */
+    @SuppressWarnings("null")
+    public DimensionalLinkageRecord withFreshIdentity()
+    {
+        return new DimensionalLinkageRecord(UUID.randomUUID(), overworldEndpoint, netherEndpoint);
+    }
+
+    /**
+     * Returns this linkage without an installed-entry identity.
+     *
+     * @return a copy with the shared uninitialized id and the same endpoints
+     */
+    public DimensionalLinkageRecord withoutIdentity()
+    {
+        return new DimensionalLinkageRecord(UNINITIALIZED_ID, overworldEndpoint, netherEndpoint);
     }
 
     /**

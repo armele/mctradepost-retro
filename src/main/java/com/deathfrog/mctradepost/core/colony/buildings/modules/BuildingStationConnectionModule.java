@@ -115,6 +115,7 @@ public class BuildingStationConnectionModule extends AbstractBuildingModule impl
         }
 
         ItemStack installed = stack.copyWithCount(1);
+        DimensionalLinkageItem.assignFreshInstalledIdentity(installed);
         dimensionalLinkages.add(installed);
         stack.shrink(1);
         markDirty();
@@ -135,6 +136,7 @@ public class BuildingStationConnectionModule extends AbstractBuildingModule impl
         }
 
         ItemStack removed = dimensionalLinkages.remove(index);
+        DimensionalLinkageItem.clearInstalledIdentity(removed);
         markDirty();
         return removed;
     }
