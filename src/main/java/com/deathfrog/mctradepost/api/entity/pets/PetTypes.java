@@ -30,8 +30,8 @@ public enum PetTypes
     PIG(new ItemStack(NullnessBridge.assumeNonnull(Items.BEETROOT), 16), 2, Pig.class, NullnessBridge.assumeNonnull(EntityType.PIG), "Pig", false, 0),
     CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false, 0),
     SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false, 0),
-    BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false, 0),
-    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false, 0);
+    BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false, 1),
+    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false, 1);
 
     private final @Nonnull ItemStack trainingItem;
     private final @Nonnull Class<? extends Animal> petClass;

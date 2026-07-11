@@ -836,7 +836,7 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
 
             if (petType.isPet())
             {
-                if (building.getPets().size() >= (MCTPConfig.petsPerLevel.get() * building.getBuildingLevel()))
+                if (building.getPets().size() >= ((BuildingPetshop)building).maxPets())
                 {
                     TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: No room for more pets at this time - skipping request for {}.", building.getColony().getID(), petType.getTypeName()));
 

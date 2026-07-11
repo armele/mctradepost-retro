@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.entity.pets.PetData;
@@ -129,6 +130,7 @@ public class BuildingPetshop extends AbstractBuilding
         {
             buf.writeNbt(petTag);
         }
+        buf.writeInt(maxPets());
     }
 
     /**
@@ -429,6 +431,15 @@ public class BuildingPetshop extends AbstractBuilding
     }
 
 
+    /**
+     * The maximum number of pets supported by this pet shop.
+     * @return
+     */
+    public int maxPets()
+    {
+        return (MCTPConfig.petsPerLevel.get() * getBuildingLevel());
+    }
+
     // Armadillo
     // Bat (flying)
     // Camel
@@ -440,7 +451,6 @@ public class BuildingPetshop extends AbstractBuilding
     // Llama
     // Mule
     // Ocelot
-    // Panda
     // Polar Bear
     // Turtle
 

@@ -419,6 +419,7 @@
     "com.mctradepost.research.effects.thriftshop_bottomless.description": "Purchase common or uncommon items as many times as you like - while they're available.",
     "com.mctradepost.research.effects.husbandry.description": "Allows your animal trainer to acquire husbandry animals.",
     "com.mctradepost.research.effects.vet.description": "Allows your animal trainer to save pets that are on the verge of death.",
+    "com.mctradepost.research.effects.exotic.description": "Gives access to +%d level of exotic pets.",
 
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "Trade availability has changed in connected stations!",
@@ -507,11 +508,12 @@
     "com.mctradepost.core.gui.modules.recyclerprogress": "Recycler Progress",
 
     "com.minecolonies.coremod.gui.petstore.assignment" : "Pet Assignments",
+    "com.minecolonies.coremod.gui.petstore.petcount.hover" : "%s pets trained out of %s maximum.",
     "com.minecolonies.coremod.gui.petstore.workbuilding" : "Work Building",
     "com.minecolonies.coremod.gui.petstore.empty" : "No Trained Animals",
     "com.minecolonies.coremod.gui.petstore.trainingitems" : "Training Items",
     "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Animals",
-    "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer. (‡) costs will be deducted from your marketplace balance.",
+    "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer.\n\nAnimals designated as Pets are trained and can be assigned jobs.\n\nOther animals are simply lifestock.\n\n(‡) costs will be deducted from your marketplace balance.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
     "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Place a pet working location block to designate the pet job:\nTrough: Herding\nMushroom Base: Truffle Hunting\nDredger: Water-based scavenging\nFeeder: Foliage-based scavenging\nHauler: Carries items from the hauler block to the nearest warehouse, or to the pet shop if no warehouse exists.\n\nThen assign a pet to the working block.",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
