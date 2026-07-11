@@ -7,11 +7,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.ModTags;
 
 import java.util.List;
@@ -19,27 +22,41 @@ import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+
+import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_TRACKPATH;
 
 public class TrackPathConnection
 {
     public static final int RAIL_CHUNK_RADIUS = 2;
     private static final int MAX_DEPTH = 10000; // Prevent runaway traversal
+    private static final int BFS_PROGRESS_LOG_INTERVAL = 1000;
+    private static final long SLOW_BFS_LOG_NANOS = 50_000_000L;
+    private static final AtomicLong RAIL_SEARCH_SEQUENCE = new AtomicLong();
 
     public static class TrackConnectionResult
     {
         public boolean connected;
         public BlockPos closestPoint;         // same semantics as before
         public List<BlockPos> path;           // ordered start → end, tracks only
+        public TrackRoute route;
         public long lastChecked = 0L;
 
         public TrackConnectionResult(boolean connected, BlockPos closestPoint, List<BlockPos> path, long now)
         {
+            this(connected, closestPoint, path, now, null);
+        }
+
+        public TrackConnectionResult(boolean connected, BlockPos closestPoint, List<BlockPos> path, long now, TrackRoute route)
+        {
             this.connected = connected;
             this.closestPoint = closestPoint;
             this.path = path;
+            this.route = route;
             this.lastChecked = now;
         }
 
@@ -61,6 +78,40 @@ public class TrackPathConnection
         public boolean isConnected()
         {
             return connected;
+        }
+
+        /**
+         * Gets the dimension-aware route for this result.
+         * <p>
+         * Legacy single-dimension results are wrapped as Overworld routes to keep older callers working.
+         *
+         * @return route for this connection, or null when no path is available
+         */
+        @SuppressWarnings("null")
+        public TrackRoute getRoute()
+        {
+            if (route != null)
+            {
+                return route;
+            }
+            if (path != null && !path.isEmpty())
+            {
+                return TrackRoute.singleDimension(Level.OVERWORLD, path);
+            }
+            return null;
+        }
+
+        /**
+         * @return total route distance, including dimensional transfer hops
+         */
+        public int getRouteDistance()
+        {
+            TrackRoute localRoute = getRoute();
+            if (localRoute != null)
+            {
+                return localRoute.totalDistance();
+            }
+            return path == null ? 0 : path.size();
         }
 
         /**
@@ -89,13 +140,16 @@ public class TrackPathConnection
      * @param end   the end point of the track path
      * @return a TrackConnectionResult describing the result of the traversal
      */
+    @SuppressWarnings("null")
     public static TrackConnectionResult arePointsConnectedByTracks(ServerLevel level, BlockPos start, BlockPos end, boolean loadChunks)
     {
         ServerLevel localLevel = level;
 
         if (localLevel == null || start == null || end == null) return new TrackConnectionResult(false, null, null, level.getGameTime());
 
+        RailSearchDiagnostics diagnostics = new RailSearchDiagnostics(localLevel, start, end, loadChunks);
         Set<BlockPos> visited = new HashSet<>();
+        Set<ChunkPos> addedRailTickets = new HashSet<>();
         Queue<BlockPos> toVisit = new ArrayDeque<>();
         Map<BlockPos, BlockPos> parent = new HashMap<>();  // <child , parent>
 
@@ -104,6 +158,9 @@ public class TrackPathConnection
         BlockPos closestSoFar = start;
         double closestDist = distance(start, end);
 
+        try
+        {
+        diagnostics.logStart();
         while (!toVisit.isEmpty() && visited.size() < MAX_DEPTH)
         {
             BlockPos current = toVisit.poll();
@@ -112,10 +169,12 @@ public class TrackPathConnection
             if (current.equals(end) || isAdjacent(current, end))
             {
                 List<BlockPos> path = rebuildPath(parent, current, start, end);
-                return new TrackConnectionResult(true, end, path, level.getGameTime());
+                diagnostics.logFinished("connected", visited.size(), toVisit.size(), addedRailTickets.size(), closestSoFar);
+                return new TrackConnectionResult(true, end, path, localLevel.getGameTime(), TrackRoute.singleDimension(localLevel.dimension(), path));
             }
 
             if (!visited.add(current)) continue;   // already handled
+            diagnostics.logProgressIfNeeded(visited.size(), toVisit.size(), current, closestSoFar, addedRailTickets.size());
 
             double dist = distance(current, end);
             if (dist < closestDist)
@@ -128,20 +187,188 @@ public class TrackPathConnection
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
                 if (dir == null) continue;
-                tryMove(level, current, dir, 0, toVisit, visited, parent, loadChunks);
+                tryMove(localLevel, current, dir, 0, toVisit, visited, parent, loadChunks, addedRailTickets, diagnostics);
             }
 
             /* upward / downward slopes */
             for (Direction dir : Direction.Plane.HORIZONTAL)
             {
                 if (dir == null) continue;
-                tryMove(level, current, dir, +1, toVisit, visited, parent, loadChunks);
-                tryMove(level, current, dir, -1, toVisit, visited, parent, loadChunks);
+                tryMove(localLevel, current, dir, +1, toVisit, visited, parent, loadChunks, addedRailTickets, diagnostics);
+                tryMove(localLevel, current, dir, -1, toVisit, visited, parent, loadChunks, addedRailTickets, diagnostics);
             }
         }
 
         // not connected
-        return new TrackConnectionResult(false, closestSoFar, List.of(), level.getGameTime());
+        diagnostics.logFinished(visited.size() >= MAX_DEPTH ? "max-depth" : "disconnected", visited.size(), toVisit.size(), addedRailTickets.size(), closestSoFar);
+        return new TrackConnectionResult(false, closestSoFar, List.of(), localLevel.getGameTime());
+        }
+        finally
+        {
+            releaseRailSearchTickets(localLevel, addedRailTickets);
+        }
+    }
+
+    /**
+     * Releases rail-search chunk tickets added during a single BFS pass.
+     *
+     * @param level level containing the ticketed chunks
+     * @param addedRailTickets chunks that received rail-search tickets during this search
+     */
+    private static void releaseRailSearchTickets(@Nonnull ServerLevel level, Set<ChunkPos> addedRailTickets)
+    {
+        if (addedRailTickets == null || addedRailTickets.isEmpty())
+        {
+            return;
+        }
+        ChunkUtil.releaseChunkTickets(level, addedRailTickets, RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
+    }
+
+    /**
+     * Carries identifying information and counters for one rail BFS diagnostic log stream.
+     */
+    private static class RailSearchDiagnostics
+    {
+        private final long searchId = RAIL_SEARCH_SEQUENCE.incrementAndGet();
+        private final ServerLevel level;
+        private final BlockPos start;
+        private final BlockPos end;
+        private final boolean loadChunks;
+        private final long startNanos = System.nanoTime();
+        private int chunkLoadAttempts = 0;
+
+        /**
+         * Creates diagnostics for one rail path search.
+         *
+         * @param level level being searched
+         * @param start rail search start position
+         * @param end rail search end position
+         * @param loadChunks whether this search may synchronously load chunks
+         */
+        private RailSearchDiagnostics(ServerLevel level, BlockPos start, BlockPos end, boolean loadChunks)
+        {
+            this.level = level;
+            this.start = start;
+            this.end = end;
+            this.loadChunks = loadChunks;
+        }
+
+        /**
+         * Logs the start of the rail search.
+         */
+        private void logStart()
+        {
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Rail BFS #{} START dim={} start={} end={} loadChunks={}",
+                searchId,
+                level.dimension().location(),
+                start,
+                end,
+                loadChunks));
+        }
+
+        /**
+         * Logs periodic search progress so a long-running expansion can be located.
+         *
+         * @param visited number of visited rail positions
+         * @param queued number of queued rail positions
+         * @param current current position being expanded
+         * @param closest current closest reached position to the destination
+         * @param ticketCount number of chunk tickets added by the search
+         */
+        private void logProgressIfNeeded(int visited, int queued, BlockPos current, BlockPos closest, int ticketCount)
+        {
+            if (visited % BFS_PROGRESS_LOG_INTERVAL != 0)
+            {
+                return;
+            }
+
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Rail BFS #{} PROGRESS dim={} visited={} queued={} current={} closest={} chunkLoads={} tickets={} elapsedMs={}",
+                searchId,
+                level.dimension().location(),
+                visited,
+                queued,
+                current,
+                closest,
+                chunkLoadAttempts,
+                ticketCount,
+                elapsedMillis()));
+        }
+
+        /**
+         * Logs immediately before a synchronous chunk load is requested.
+         *
+         * @param pos block position whose chunk is about to be loaded
+         */
+        private void logBeforeChunkLoad(@Nonnull BlockPos pos)
+        {
+            chunkLoadAttempts++;
+            ChunkPos chunk = new ChunkPos(pos);
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Rail BFS #{} CHUNK_LOAD_BEGIN dim={} chunk={} pos={} attempt={} elapsedMs={}",
+                searchId,
+                level.dimension().location(),
+                chunk,
+                pos,
+                chunkLoadAttempts,
+                elapsedMillis()));
+        }
+
+        /**
+         * Logs after a synchronous chunk load request returns.
+         *
+         * @param pos block position whose chunk was requested
+         * @param loaded whether the block position is loaded after the request
+         * @param ticketCount number of chunk tickets added by the search
+         */
+        private void logAfterChunkLoad(@Nonnull BlockPos pos, boolean loaded, int ticketCount)
+        {
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Rail BFS #{} CHUNK_LOAD_END dim={} chunk={} pos={} loaded={} tickets={} elapsedMs={}",
+                searchId,
+                level.dimension().location(),
+                new ChunkPos(pos),
+                pos,
+                loaded,
+                ticketCount,
+                elapsedMillis()));
+        }
+
+        /**
+         * Logs the end state of the rail search.
+         *
+         * @param outcome connected, disconnected, or max-depth
+         * @param visited number of visited rail positions
+         * @param queued number of queued rail positions
+         * @param ticketCount number of chunk tickets added by the search
+         * @param closest current closest reached position to the destination
+         */
+        private void logFinished(String outcome, int visited, int queued, int ticketCount, BlockPos closest)
+        {
+            long elapsedNanos = System.nanoTime() - startNanos;
+            if (loadChunks || elapsedNanos >= SLOW_BFS_LOG_NANOS || "max-depth".equals(outcome))
+            {
+                TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Rail BFS #{} END outcome={} dim={} start={} end={} visited={} queued={} closest={} chunkLoads={} tickets={} elapsedMs={}",
+                    searchId,
+                    outcome,
+                    level.dimension().location(),
+                    start,
+                    end,
+                    visited,
+                    queued,
+                    closest,
+                    chunkLoadAttempts,
+                    ticketCount,
+                    elapsedNanos / 1_000_000L));
+            }
+        }
+
+        /**
+         * Gets elapsed milliseconds for this search.
+         *
+         * @return elapsed wall-clock milliseconds
+         */
+        private long elapsedMillis()
+        {
+            return (System.nanoTime() - startNanos) / 1_000_000L;
+        }
     }
 
     /**
@@ -195,6 +422,9 @@ public class TrackPathConnection
      * @param q       the queue of BlockPos to visit
      * @param visited the set of BlockPos that have already been visited
      * @param parent  the map of BlockPos to BlockPos that tracks the parent of each BlockPos in the path
+     * @param loadChunks whether unloaded chunks may be synchronously loaded
+     * @param addedRailTickets chunks that received tickets during this search
+     * @param diagnostics logging state for this search
      */
     private static void tryMove(ServerLevel level,
         BlockPos from,
@@ -203,7 +433,9 @@ public class TrackPathConnection
         Queue<BlockPos> q,
         Set<BlockPos> visited,
         Map<BlockPos, BlockPos> parent,
-        boolean loadChunks)
+        boolean loadChunks,
+        Set<ChunkPos> addedRailTickets,
+        RailSearchDiagnostics diagnostics)
     {
         BlockPos nxt = from.relative(dir).offset(0, dy, 0);
 
@@ -213,7 +445,9 @@ public class TrackPathConnection
         {
             if (loadChunks)
             {
-                ChunkUtil.ensureChunkLoadedByTicket(level, nxt, RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
+                diagnostics.logBeforeChunkLoad(nxt);
+                ChunkUtil.ensureChunkLoadedByTicket(level, nxt, RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET, addedRailTickets);
+                diagnostics.logAfterChunkLoad(nxt, level.isLoaded(nxt), addedRailTickets.size());
             }
         }
 

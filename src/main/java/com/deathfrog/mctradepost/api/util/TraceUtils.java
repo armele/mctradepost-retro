@@ -32,6 +32,7 @@ public class TraceUtils {
     public static final String TRACE_OUTPOST_REQUESTS = "outpostrequests";
     public static final String TRACE_STEWMELIER =       "stewmelier";
     public static final String TRACE_RAREFINDS =        "rarefinds";
+    public static final String TRACE_TRACKPATH =        "trackpath";
 
     // Static setting to control whether we should execute the logging
     private static final Map<String, Boolean> TRACE_MAP = new HashMap<>();
@@ -112,6 +113,7 @@ public class TraceUtils {
         keys.add(TRACE_OUTPOST_REQUESTS);
         keys.add(TRACE_STEWMELIER);
         keys.add(TRACE_RAREFINDS);
+        keys.add(TRACE_TRACKPATH);
 
         return keys;
     }

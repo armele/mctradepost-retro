@@ -451,6 +451,28 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     }
 
     /**
+     * Plays the short portal effect used when a segmented route crosses a dimensional transfer.
+     */
+    public void playTransferEffects()
+    {
+        if (!(level() instanceof ServerLevel serverLevel))
+        {
+            return;
+        }
+
+        level().playSound(null,
+            getX(),
+            getY(),
+            getZ(),
+            NullnessBridge.assumeNonnull(SoundEvents.PORTAL_TRAVEL),
+            net.minecraft.sounds.SoundSource.NEUTRAL,
+            0.35F,
+            1.4F);
+
+        serverLevel.sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.PORTAL), getX(), getY() + 0.2, getZ(), 18, 0.35, 0.35, 0.35, 0.0);
+    }
+
+    /**
      * Called when the ghost cart stops rolling. Plays a cash register sound effect and spawns happy villager particles.
      */
     private void endingEffects()

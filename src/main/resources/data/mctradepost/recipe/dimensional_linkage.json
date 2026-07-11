@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+      "O": { "item": "minecraft:obsidian" },
+      "R": { "item": "minecraft:redstone" },
+      "I": { "item": "minecraft:iron_ingot" }
+    },
+    "pattern": [
+      "IRI",
+      "IOI",
+      "IRI"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:dimensional_linkage"
+    }
+}
+  

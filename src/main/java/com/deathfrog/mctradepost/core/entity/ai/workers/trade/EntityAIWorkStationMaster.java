@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationIm
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -41,6 +42,7 @@ import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
@@ -135,6 +137,15 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             return StationMasterStates.REQUEST_FUNDS;
         }
 
+        if (validationCooldown <= 0)
+        {
+            validationCooldown = VALIDATION_COOLDOWN_TIMER;
+            if (shouldCheckConnection())
+            {
+                return StationMasterStates.CHECK_CONNECTION;
+            }
+        }
+
         if (matchingCooldown <= 0)
         {
             matchingCooldown = MATCHING_COOLDOWN_TIMER;
@@ -143,15 +154,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 return StationMasterStates.FIND_MATCHING_OFFERS;
             }
-        }
-
-        if (validationCooldown <= 0)
-        {
-            validationCooldown = VALIDATION_COOLDOWN_TIMER;
-            if (shouldCheckConnection())
-            {
-                return StationMasterStates.CHECK_CONNECTION;
-            }   
         }
 
         EntityNavigationUtils.walkToRandomPos(worker, 15, 0.6D);
@@ -314,17 +316,28 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
             else
             {
+                if (dest.isOutpost())
+                {
+                    TraceUtils.dynamicTrace(TRACE_STATION,
+                        () -> LOGGER.info("Colony {}: Outpost export of {} is waiting on outpost request logistics; not requesting generic station materials.",
+                            building.getColony().getID(),
+                            exportData.getTradeItem().getItem()));
+                    continue;
+                }
+
                 TraceUtils.dynamicTrace(TRACE_STATION,
                     () -> LOGGER
-                        .info("Supplies needed to export {}: {}.", exportData.getTradeItem().getItem(), exportData.getQuantity()));
+                        .info("Colony {}: Supplies needed to export {}: {}.", building.getColony().getID(), exportData.getTradeItem().getItem(), exportData.getQuantity()));
                 unsatisfiedNeeds++;
                 // keep scanning other exports
             }
         }
 
+        final int finalNeeds = unsatisfiedNeeds;
+
         if (unsatisfiedNeeds > 0)
         {
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Supplies needed for exports."));
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Total unsatisified needs: ", finalNeeds));
             return AIWorkerState.GET_MATERIALS;
         }
 
@@ -521,7 +534,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
 
 
-            int trackDistance = tcr.path.size();
+            int trackDistance = tcr.getRouteDistance();
             currentExport.setShipDistance(0);
             currentExport.setTrackDistance(trackDistance);
             currentExport.setLastShipDay(building.getColony().getDay());
@@ -552,7 +565,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
 
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
-            GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.path);
+            GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.getRoute());
             if (cart == null) {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {} send shipment: Could not spawn cart for export: {}", building.getColony().getID(), currentExport));
             }
@@ -584,17 +597,27 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected boolean shouldCheckConnection() 
     { 
+
+        List<IBuilding> checklist = new ArrayList<>();
+
         for (IColony colony : IColonyManager.getInstance().getAllColonies())
         {
             for (IBuilding checkbuilding : colony.getServerBuildingManager().getBuildings().values())
             {
-                // Disregard if it's not a station, or if it is the current station.
+                // Disregard if it's not a station/outpost, or if it is the current station.
                 if (!(checkbuilding instanceof ITradeCapable tradeCapableBuilding) || tradeCapableBuilding.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
                 {
                     continue;
                 }
 
+                // Disregard if not built.
                 if (checkbuilding.getBuildingLevel() == 0)
+                {
+                    continue;
+                }
+
+                // Disregard other colonies' outposts
+                if (checkbuilding instanceof BuildingOutpost && checkbuilding.getColony().getID() != building.getColony().getID())
                 {
                     continue;
                 }
@@ -608,26 +631,73 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
                 if (this.building.hasStationAt(tcBuildingPos))
                 {
-                    StationData stationData = this.building.getStationAt(tcBuildingPos);
-
-                    TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Determining if trade capable building at {} should be checked: {}", tcBuildingPos, stationData));
-
-                    TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
-                    
-                    if ((connectionResult == null) || (connectionResult.ageOfCheck(world.getGameTime()) > MCTPConfig.trackValidationFrequency.get()))                   
-                    {
-                        currentRemoteStation = stationData;
-                        return true;
-                    }
+                    checklist.add(checkbuilding);
                 }
                 else
                 {
                     // Add the newly discovered station.
                     currentRemoteStation = new StationData(tradeCapableBuilding);
                     this.building.addStation(currentRemoteStation);
-                    return true;
+                    checklist.add(checkbuilding);
                 }
             }
+        }
+
+        final long now = world.getGameTime();
+        checklist.sort((firstBuilding, secondBuilding) ->
+        {
+            @SuppressWarnings("null")
+            StationData firstStation = this.building.getStationAt(firstBuilding.getPosition());
+            @SuppressWarnings("null")
+            StationData secondStation = this.building.getStationAt(secondBuilding.getPosition());
+            TrackConnectionResult firstResult = building.getTrackConnectionResult(firstStation);
+            TrackConnectionResult secondResult = building.getTrackConnectionResult(secondStation);
+
+            if (firstResult == null && secondResult == null)
+            {
+                return 0;
+            }
+            if (firstResult == null)
+            {
+                return -1;
+            }
+            if (secondResult == null)
+            {
+                return 1;
+            }
+
+            return Long.compare(secondResult.ageOfCheck(now), firstResult.ageOfCheck(now));
+        });
+
+        for (IBuilding checkThisBuilding : checklist)
+        {
+            BlockPos tcBuildingPos = checkThisBuilding.getPosition();
+
+            if (tcBuildingPos == null) continue;
+
+            StationData stationData = this.building.getStationAt(tcBuildingPos);
+
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Determining if trade capable building at {} should be checked: {}", building.getColony().getID(), tcBuildingPos, stationData));
+
+            TrackConnectionResult connectionResult = building.getTrackConnectionResult(stationData);
+
+            if (connectionResult == null)                  
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: No existing connection result - do a check.",  building.getColony().getID()));
+                currentRemoteStation = stationData;
+                return true;
+            }
+
+            final long lastCheckAge = connectionResult.ageOfCheck(now);
+
+            if (lastCheckAge > MCTPConfig.trackValidationFrequency.get())
+            {
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Check cooldown expired - do a check.",  building.getColony().getID()));
+                currentRemoteStation = stationData;
+                return true;
+            }
+
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Last checked {} {} ticks ago - not checking yet.",  building.getColony().getID(), tcBuildingPos, lastCheckAge));
         }
 
         return false;
@@ -646,26 +716,35 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         {
             TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
 
-            if (connectionResult == null)
+            if (connectionResult == null || !connectionResult.connected)
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("No cached result. Checking connection to remote station: {} seeking endpoint: {}", building.getRailStartPosition(), currentRemoteStation.getRailStartPosition()));
-                connectionResult = TrackPathConnection.arePointsConnectedByTracks(world, building.getRailStartPosition(), currentRemoteStation.getRailStartPosition(),true);
+                final boolean hasNoCachedResult = connectionResult == null;
+                TraceUtils.dynamicTrace(TRACE_STATION,
+                    () -> LOGGER.info("Colony {}: {} cached connection result. Checking connection to remote station: {} seeking endpoint: {}.",
+                        building.getColony().getID(),
+                        hasNoCachedResult ? "No" : "Disconnected",
+                        building.getRailStartPosition(),
+                        currentRemoteStation.getRailStartPosition()));
+                connectionResult = TrackRouteConnection.findRoute(building, currentRemoteStation, hasNoCachedResult);
                 building.putTrackConnectionResult(currentRemoteStation, connectionResult);
             }
             else
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Cached connection found. Validating it."));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Cached connection found. Validating it.",  building.getColony().getID()));
 
-                boolean isValid = TrackPathConnection.validateExistingPath(world, connectionResult);
+                boolean isValid = connectionResult.route == null
+                    ? TrackPathConnection.validateExistingPath(world, connectionResult)
+                    : TrackRouteConnection.validateExistingRoute(world.getServer(), connectionResult);
 
                 currentCheckingTrack.addAll(connectionResult.path);
 
                 connectionResult.setConnected(isValid);
+                building.putTrackConnectionResult(currentRemoteStation, connectionResult);
             }
 
             if (connectionResult.connected)
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is connected!", currentRemoteStation));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Remote station {} is connected!", building.getColony().getID(), currentRemoteStation));
 
                 AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
                         player -> {
@@ -678,7 +757,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             else
             {
                 final TrackConnectionResult logResult = connectionResult;
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Remote station {} is NOT connected. Closest track found at {}", currentRemoteStation, logResult.closestPoint));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Remote station {} is NOT connected. Closest track found at {}", building.getColony().getID(), currentRemoteStation, logResult.closestPoint));
             }
         }
         
@@ -780,7 +859,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         for (ExportData exportData : building.getModule(MCTPBuildingModules.EXPORTS).getExports())
         {
 
-            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Analyzing need for {}.", exportData.getTradeItem().getItemStack().getHoverName()));
+            TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Analyzing need for {}.", building.getColony().getID(), exportData.getTradeItem().getItemStack().getHoverName()));
 
             if (exportData.isReverse())
             {
@@ -802,7 +881,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
             if (hasOpenExportRequest(exportData.getTradeItem().getItemStack()))
             {
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Skipping request for {} - request already outstanding.", exportData.getTradeItem().getItemStack().getHoverName()));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Skipping request for {} - request already outstanding.", building.getColony().getID(), exportData.getTradeItem().getItemStack().getHoverName()));
                 continue;
             }
 
@@ -822,8 +901,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 amountStillNeeded -= amountToTake;
 
                 final int currentAmountStillNeeded = amountStillNeeded;
-                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Adding {} to delivery request list in colony {}. Total order: {}. On hand: {}. Amount still needed: {}. Taking {} in this stack.", 
-                    itemStack, building.getColony().getID(), quantity, availableExportItemCount, currentAmountStillNeeded, amountToTake));
+                TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Adding {} to delivery request list in colony {}. Total order: {}. On hand: {}. Amount still needed: {}. Taking {} in this stack.", 
+                    building.getColony().getID(), itemStack, building.getColony().getID(), quantity, availableExportItemCount, currentAmountStillNeeded, amountToTake));
 
                 itemList.add(itemStack);
             }

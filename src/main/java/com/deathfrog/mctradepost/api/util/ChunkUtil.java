@@ -36,11 +36,35 @@ public class ChunkUtil
      */
     public static boolean ensureChunkLoadedByTicket(ServerLevel level, ChunkPos cp, int radius, @Nonnull TicketType<ChunkPos> ticketType)
     {
+        return ensureChunkLoadedByTicket(level, cp, radius, ticketType, null);
+    }
+
+    /**
+     * Ensure the given chunk is loaded, and optionally records tickets this call added so callers can release them after a bounded
+     * operation completes.
+     *
+     * @param level The level to check.
+     * @param cp the chunk to check for.
+     * @param radius the region ticket radius.
+     * @param ticketType the ticket type to add if the chunk is not already loaded.
+     * @param ticketsAdded optional set that receives chunks for which this call added a ticket.
+     * @return true if the chunk is loaded, false if not.
+     */
+    public static boolean ensureChunkLoadedByTicket(ServerLevel level,
+        ChunkPos cp,
+        int radius,
+        @Nonnull TicketType<ChunkPos> ticketType,
+        @Nullable Set<ChunkPos> ticketsAdded)
+    {
         // already resident?
         if (level.hasChunk(cp.x, cp.z)) return true;
 
         // 1. add a short-lived ticket
         level.getChunkSource().addRegionTicket(ticketType, cp, radius, cp);
+        if (ticketsAdded != null)
+        {
+            ticketsAdded.add(cp);
+        }
 
         // 2. pull the chunk synchronously so the search can proceed *this* tick
         level.getChunk(cp.x, cp.z, NullnessBridge.assumeNonnull(ChunkStatus.FULL), true);   // may generate
@@ -62,6 +86,25 @@ public class ChunkUtil
     }
 
     /**
+     * Ensure the chunk containing a block position is loaded, recording newly added tickets when requested.
+     *
+     * @param level The level to check.
+     * @param pos the position of the block to check for.
+     * @param radius the region ticket radius.
+     * @param ticketType the ticket type to add if the chunk is not already loaded.
+     * @param ticketsAdded optional set that receives chunks for which this call added a ticket.
+     * @return true if the chunk is loaded, false if not.
+     */
+    public static boolean ensureChunkLoadedByTicket(@Nonnull ServerLevel level,
+        @Nonnull BlockPos pos,
+        int radius,
+        @Nonnull TicketType<ChunkPos> ticketType,
+        @Nullable Set<ChunkPos> ticketsAdded)
+    {
+        return ensureChunkLoadedByTicket(level, new ChunkPos(pos), radius, ticketType, ticketsAdded);
+    }
+
+    /**
      * Release the chunk ticket for the given BlockPos and radius. This method should be called after pathfinding has completed to
      * release the ticket and free up resources.
      * 
@@ -73,6 +116,29 @@ public class ChunkUtil
     {
         ChunkPos cp = new ChunkPos(pos);
         level.getChunkSource().removeRegionTicket(ticketType, cp, radius, cp);
+    }
+
+    /**
+     * Releases chunk tickets for exact chunk positions that were previously recorded by a ticket-adding operation.
+     *
+     * @param level the level to release the tickets in
+     * @param chunks chunk positions that were ticketed
+     * @param radius the radius of the tickets to release
+     * @param ticketType the ticket type to release
+     */
+    public static void releaseChunkTickets(@Nonnull ServerLevel level,
+        @Nonnull Set<ChunkPos> chunks,
+        int radius,
+        @Nonnull TicketType<ChunkPos> ticketType)
+    {
+        for (ChunkPos cp : chunks)
+        {
+            if (cp == null)
+            {
+                continue;
+            }
+            level.getChunkSource().removeRegionTicket(ticketType, cp, radius, cp);
+        }
     }
 
 

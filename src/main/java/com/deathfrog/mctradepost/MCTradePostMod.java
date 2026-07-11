@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -18,6 +19,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetPanda;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
+import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.ItemValueManager;
@@ -30,6 +32,7 @@ import com.deathfrog.mctradepost.apiimp.initializer.ModBuildingsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModJobsInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.ModModelTypeInitializer;
 import com.deathfrog.mctradepost.apiimp.initializer.TileEntityInitializer;
+import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
 import com.deathfrog.mctradepost.core.blocks.BlockCheckerboard;
 import com.deathfrog.mctradepost.core.blocks.BlockDistressed;
@@ -57,8 +60,11 @@ import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
@@ -66,12 +72,18 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.MCTPSettingsFactory;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.OutpostRequestResolverFactory;
 import com.deathfrog.mctradepost.core.colony.requestsystem.resolvers.TrainDeliveryResolverFactory;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiSyncPacket;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute;
 import com.deathfrog.mctradepost.core.loot.ModLootModifiers;
 import com.deathfrog.mctradepost.core.network.messages.OutpostAssignMessage;
 import com.deathfrog.mctradepost.core.placementhandlers.OutpostPlacementHandler;
@@ -84,6 +96,7 @@ import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.CurrencyExchangeItem;
+import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
@@ -101,6 +114,7 @@ import com.google.gson.stream.JsonWriter;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.core.items.ItemFood;
@@ -144,6 +158,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.crafting.RecipeSerializer;
@@ -372,6 +387,11 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<SouvenirItem> SOUVENIR = ITEMS.register("souvenir",
         () -> new SouvenirItem(new Item.Properties().component(MCTPModDataComponents.SOUVENIR_COMPONENT.get(), new SouvenirRecord("empty", 0))));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<DimensionalLinkageItem> DIMENSIONAL_LINKAGE = ITEMS.register("dimensional_linkage",
+        () -> new DimensionalLinkageItem(new Item.Properties().stacksTo(1)
+            .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.empty())));
     
     @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
@@ -1296,6 +1316,7 @@ public class MCTradePostMod
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);
+            StationLinkageMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);
             StewIngredientMessage.TYPE.register(registrar);
             ThriftShopMessage.TYPE.register(registrar);
@@ -1470,20 +1491,176 @@ public class MCTradePostMod
          * as a valid work location for a pet in the colony at that BlockPos.
          * @param event The event containing the broken block and its BlockPos.
          */
+        /**
+         * Handles server-side block break cleanup for pet work locations and cached station route invalidation.
+         *
+         * @param event block break event
+         */
         @SubscribeEvent
         public static void onBlockBroken(final BlockEvent.BreakEvent event) {
             if (!(event.getLevel() instanceof ServerLevel level)) return;
 
             BlockState state = event.getState();
-            if (!(state.getBlock() instanceof AbstractBlockPetWorkingLocation)) return;
-
             BlockPos pos = event.getPos();
-            IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
-            if (colony != null) {
-                PetRegistryUtil.unregisterWorkLocation(colony, pos);
-                MCTradePostMod.LOGGER.info("Unregistered Work Location block at {} for colony {}", pos, colony.getID());
+            if (state.getBlock() instanceof AbstractBlockPetWorkingLocation)
+            {
+                IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
+                if (colony != null) {
+                    PetRegistryUtil.unregisterWorkLocation(colony, pos);
+                    MCTradePostMod.LOGGER.info("Unregistered Work Location block at {} for colony {}", pos, colony.getID());
+                }
             }
 
+            if (state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)))
+            {
+                invalidateTrackCachesForBrokenTrack(level, pos);
+            }
+        }
+
+        /**
+         * Marks cached station/outpost routes disconnected when they contain a broken track.
+         * <p>
+         * This deliberately avoids path recomputation during the block event; normal station validation will discover replacement
+         * routes later if an alternate path exists.
+         *
+         * @param level level where the track was broken
+         * @param pos broken track position
+         */
+        private static void invalidateTrackCachesForBrokenTrack(final ServerLevel level, final BlockPos pos)
+        {
+            int invalidatedRoutes = 0;
+            int affectedLinkages = 0;
+
+            for (IColony colony : IColonyManager.getInstance().getAllColonies())
+            {
+                for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
+                {
+                    if (building instanceof BuildingStation station)
+                    {
+                        int invalidatedStationRoutes = invalidateCachedRoutes(station.getConnectionResults(), level, pos);
+                        int affectedStationLinkages = dirtyBrokenEndpointLinkages(station, level, pos);
+                        if (invalidatedStationRoutes > 0 || affectedStationLinkages > 0)
+                        {
+                            station.markTradesDirty();
+                        }
+                        invalidatedRoutes += invalidatedStationRoutes;
+                        affectedLinkages += affectedStationLinkages;
+                    }
+                    else if (building instanceof BuildingOutpost outpost)
+                    {
+                        int invalidatedOutpostRoutes = invalidateCachedRoutes(outpost.getConnectionResults(), level, pos);
+                        if (invalidatedOutpostRoutes > 0)
+                        {
+                            invalidatedRoutes += invalidatedOutpostRoutes;
+                            outpost.markTradesDirty();
+                        }
+                    }
+                }
+            }
+
+            if (invalidatedRoutes > 0 || affectedLinkages > 0)
+            {
+                MCTradePostMod.LOGGER.info("Broken track at {} in {} invalidated {} cached route(s) and affected {} dimensional linkage(s).",
+                    pos.toShortString(), level.dimension().location(), invalidatedRoutes, affectedLinkages);
+            }
+        }
+
+        /**
+         * Marks every cached connection result containing the supplied position as disconnected.
+         *
+         * @param results cached route results to inspect
+         * @param level level where the track was broken
+         * @param pos broken track position
+         * @return number of route results invalidated
+         */
+        private static int invalidateCachedRoutes(final Map<StationData, TrackConnectionResult> results, final ServerLevel level, final BlockPos pos)
+        {
+            int invalidated = 0;
+            for (TrackConnectionResult result : results.values())
+            {
+                if (result == null || !result.connected || !routeContains(result, level, pos))
+                {
+                    continue;
+                }
+
+                result.setConnected(false);
+                result.lastChecked = level.getGameTime();
+                invalidated++;
+            }
+            return invalidated;
+        }
+
+        /**
+         * Tests whether a cached connection result contains a position in the supplied dimension.
+         *
+         * @param result cached route result
+         * @param level level to match against route segment dimensions
+         * @param pos position to search for
+         * @return true when the route includes the position in the same dimension
+         */
+        private static boolean routeContains(final TrackConnectionResult result, final ServerLevel level, final BlockPos pos)
+        {
+            TrackRoute route = result.getRoute();
+            if (route != null)
+            {
+                for (TrackRoute.Segment segment : route.segments())
+                {
+                    if (segment.dimension().equals(level.dimension()) && segment.path() != null && segment.path().contains(pos))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            return result.path != null && result.path.contains(pos);
+        }
+
+        /**
+         * Marks a station linkage module dirty when a broken track is one of its recorded endpoints.
+         *
+         * @param station station whose installed linkages should be checked
+         * @param level level where the track was broken
+         * @param pos broken track position
+         * @return number of installed linkage endpoints affected
+         */
+        private static int dirtyBrokenEndpointLinkages(final BuildingStation station, final ServerLevel level, final BlockPos pos)
+        {
+            BuildingStationConnectionModule module = station.getModule(MCTPBuildingModules.STATION_CONNECTION);
+            if (module == null)
+            {
+                return 0;
+            }
+
+            int affected = 0;
+            for (ItemStack stack : module.getDimensionalLinkages())
+            {
+                DimensionalLinkageRecord record = DimensionalLinkageItem.linkageRecord(stack);
+                if (isEndpoint(record.overworldEndpoint().orElse(null), level, pos) ||
+                    isEndpoint(record.netherEndpoint().orElse(null), level, pos))
+                {
+                    affected++;
+                }
+            }
+
+            if (affected > 0)
+            {
+                module.markDirty();
+            }
+            return affected;
+        }
+
+        /**
+         * Tests whether a dimensional endpoint matches a level and block position.
+         *
+         * @param endpoint endpoint to test
+         * @param level level to match
+         * @param pos position to match
+         * @return true when endpoint dimension and position match
+         */
+        private static boolean isEndpoint(final DimPos endpoint, final ServerLevel level, final BlockPos pos)
+        {
+            return endpoint != null && endpoint.dimension().equals(level.dimension()) && endpoint.pos().equals(pos);
         }
 
         @SubscribeEvent
@@ -1532,6 +1709,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.DAIQUIRI.get());
                     event.accept(MCTradePostMod.IMMERSION_BLENDER.get());
                     event.accept(MCTradePostMod.CURRENCY_EXCHANGE.get());
+                    event.accept(MCTradePostMod.DIMENSIONAL_LINKAGE.get());
                     event.accept(MCTradePostMod.VEGGIE_JUICE.get());
                     event.accept(MCTradePostMod.FRUIT_JUICE.get());
                     event.accept(MCTradePostMod.PROTIEN_SHAKE.get());
