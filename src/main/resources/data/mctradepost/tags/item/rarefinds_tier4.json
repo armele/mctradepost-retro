@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "minecraft:shulker_shell",
+    "minecraft:chorus_flower",
     "minecraft:chorus_fruit",
     "minecraft:elytra",
     "minecraft:end_crystal",
@@ -16,5 +17,7 @@
     "minecraft:diamond_leggings",
     "minecraft:diamond_chestplate",
     {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier4", "required": false}
+  ],
+  "remove": [
   ]
 }

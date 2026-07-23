@@ -18,6 +18,7 @@
     "minecraft:bundle"
   ],
   "remove": [
-    "minecraft:dandelion"
+    "minecraft:dandelion",
+    "minecraft:chorus_flower"
   ]
 }

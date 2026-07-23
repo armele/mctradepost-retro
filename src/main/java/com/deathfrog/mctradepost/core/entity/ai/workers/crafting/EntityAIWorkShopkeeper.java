@@ -19,12 +19,14 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.DisplayCase.SaleState;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
+import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockui.mod.Log;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
@@ -510,6 +512,13 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      */
     protected int coinsNeededInColony()
     {
+        BuildingMarketplace localBuilding = building;
+
+        if (localBuilding == null)
+        {
+            return 0;
+        }
+
         IColony colony = building.getColony();
 
         if (colony == null)
@@ -520,22 +529,90 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         Item coin = BuildingMarketplace.tradeCurrency();
         int coinRequests = RequestUtil.matchingRequestsInColony(colony, coin);
 
-        int coinsOnHand = MCTPInventoryUtils.combinedInventoryCount(this.building, new ItemStorage(coin));
+        putCoinsAway();
 
-        if (coinRequests > 0 && coinsOnHand >= coinRequests)
+        int coinsInBuilding = InventoryUtils.hasBuildingEnoughElseCount(localBuilding, new ItemStorage(coin), coinRequests);
+
+        int pendingCoinDeliveries = RequestUtil.matchingPendingDeliveries(colony, localBuilding, coin);
+
+        if (pendingCoinDeliveries > 0)
         {
             TraceUtils.dynamicTrace(TRACE_AUTOMINT,
-                () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand (pickup request created).", colony.getID(), coinRequests, coinsOnHand));
-            building.createPickupRequest(building.getPickUpPriority());
+                () -> LOGGER.info("Colony {} Shopkeeper: {} coins are already pending delivery from the marketplace.", colony.getID(), pendingCoinDeliveries));
             return 0;
         }
 
-        final int coinsNeeded = coinRequests - coinsOnHand;
+        if (coinRequests > 0 && coinsInBuilding >= coinRequests)
+        {
+            TraceUtils.dynamicTrace(TRACE_AUTOMINT,
+                () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand (pickup request created).", colony.getID(), coinRequests, coinsInBuilding));
+            IToken<?> token = BuildingUtil.bringThisToTheWarehouse(localBuilding, new ItemStack(coin, Math.min(coinRequests, CoinItem.DEFAULT_MAX_STACK_SIZE)));
+
+            if (token != null)
+            {
+                return 0;
+            }
+        }
+
+        final int coinsNeeded = Math.max(0, coinRequests - coinsInBuilding);
         
         TraceUtils.dynamicTrace(TRACE_AUTOMINT,
-            () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand ({} coins needed).", colony.getID(), coinRequests, coinsOnHand, coinsNeeded));
+            () -> LOGGER.info("Colony {} Shopkeeper: found {} needed coins, with {} on hand ({} coins needed).", colony.getID(), coinRequests, coinsInBuilding, coinsNeeded));
 
         return coinsNeeded;
+    }
+
+    /**
+     * Shopkeeper puts all held coins into building inventory;
+     * 
+     * @return
+     */
+    protected int putCoinsAway()
+    {
+        int quantityMoved = 0;
+        Item coin = BuildingMarketplace.tradeCurrency();
+        ItemStack coinStack = new ItemStack(coin, 1);
+
+        // Check if any deliveries from the warehouse went directly to the recycling engineer and need to be processed
+        if (InventoryUtils.hasItemInProvider(worker, coin))
+        {
+
+            int slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> stack != null && ItemStack.isSameItem(stack, coinStack));
+            int initialWorkerCount = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), stack -> stack != null && ItemStack.isSameItem(stack, coinStack));
+            int workerCount = initialWorkerCount;
+
+            while (workerCount > 0 && slot >= 0)
+            {
+                int movedThisPass = 0;
+                ItemStorage listItem = new ItemStorage(worker.getItemHandlerCap().getStackInSlot(slot));
+
+                if (listItem != null)
+                {
+                    InventoryUtils.mergeItemStackIntoNextBestSlotInItemHandlers(worker.getItemHandlerCap(), slot, building.getItemHandlerCap());
+
+                    movedThisPass = listItem.getAmount();
+                }
+
+                slot = InventoryUtils.findFirstSlotInProviderNotEmptyWith(worker, stack -> stack != null && ItemStack.isSameItem(stack, coinStack));
+                workerCount = InventoryUtils.getItemCountInItemHandler(worker.getCitizenData().getInventory(), stack -> stack != null && ItemStack.isSameItem(stack, coinStack));
+
+                // If we're "stuck" (can't unload more coins) this prevents an endless loop.
+                if (workerCount == initialWorkerCount) 
+                {
+                    movedThisPass = 0;
+                    slot = -1;
+                }
+                else
+                {
+                    initialWorkerCount = workerCount;
+                    quantityMoved = quantityMoved + movedThisPass;
+                }
+
+            }
+
+        }
+
+        return quantityMoved;
     }
 
 
