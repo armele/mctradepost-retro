@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.ldtteam.common.network.PlayMessageType;
@@ -19,12 +20,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+
+import java.util.List;
+
 import org.jetbrains.annotations.NotNull;
 
 public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
 {
     public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(MCTradePostMod.MODID, "withdraw_message", WithdrawMessage::new);
-
+    private static final int MAX_WITHDRAWAL = 512;
     private int coinCount = 1;
 
     protected WithdrawMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
@@ -54,17 +58,35 @@ public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
      * @param colony the colony the message is for
      * @param building the building that the message is for
      */
+    @SuppressWarnings("null")
     @Override
     protected void onExecute(IPayloadContext payload, ServerPlayer player, IColony colony, IBuilding building)
     {
         final int mintingLevel = MCTPConfig.mintingLevel.get();
 
-        if (building instanceof BuildingMarketplace marketplace && marketplace.getBuildingLevel() >= mintingLevel) {
-            ItemStack coins = marketplace.mintCoins(player, coinCount);
-            if (!coins.isEmpty()) {
-                player.addItem(coins);
-                withdrawEffects(marketplace);
+        if (building instanceof BuildingMarketplace marketplace && marketplace.getBuildingLevel() >= mintingLevel) 
+        {
+            if (coinCount > MAX_WITHDRAWAL)
+            {
+                MessageUtils.format("mctradepost.marketplace.maxwithdrawal").sendTo(player);
+                return;
+            }
 
+            List<ItemStack> coins = marketplace.mintCoins(player, coinCount);
+            if (!coins.isEmpty()) 
+            {
+                for (ItemStack coinStack : coins)
+                {
+                    if (coinStack == null) continue;
+
+                    boolean success = player.addItem(coinStack);
+                    withdrawEffects(marketplace);
+
+                    if (!success)
+                    {
+                        MCTPInventoryUtils.dropItemsInWorld((ServerLevel) player.serverLevel(), player.getOnPos().above(), coinStack);
+                    }
+                }
                 MessageUtils.format("mctradepost.marketplace.minted").sendTo(player);
             }  
         }

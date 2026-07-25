@@ -543,10 +543,12 @@ public class BuildingMarketplace extends AbstractBuilding
      * @param coinsToMint the number of coins to mint
      * @return a stack of the minted coins
      */
-    public ItemStack mintCoins(Player player, int coinsToMint)
+    public List<ItemStack> mintCoins(Player player, int coinsToMint)
     {
+        List<ItemStack> coinStacks = new ArrayList<ItemStack>();
         int coinValue = MCTPConfig.tradeCoinValue.get();
         ItemStack coinStack = ItemStack.EMPTY;
+        int remainingCoinCount = coinsToMint;
 
         if (coinsToMint > 0)
         {
@@ -559,10 +561,18 @@ public class BuildingMarketplace extends AbstractBuilding
             {
                 Item coinItem = BuildingMarketplace.tradeCurrency();
 
-                coinStack = new ItemStack(coinItem, coinsToMint);
-                CoinItem.setMintColony(coinStack, colony.getName());
+                while (remainingCoinCount > 0)
+                {
+                    int stackSize = Math.min(remainingCoinCount, coinItem.getDefaultMaxStackSize());
+                    coinStack = new ItemStack(coinItem, stackSize);
+                    remainingCoinCount -= stackSize;
+
+                    CoinItem.setMintColony(coinStack, colony.getName());
+                    coinStacks.add(coinStack);
+                }
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
                 econ.deposit(-(int) valueToRemove);
+
             }
             else
             {
@@ -573,7 +583,7 @@ public class BuildingMarketplace extends AbstractBuilding
             }
         }
 
-        return coinStack;
+        return coinStacks;
     }
 
     /**

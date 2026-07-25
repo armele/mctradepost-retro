@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.item;
 import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.gui.AdvancedWindowClipBoard;
@@ -17,6 +18,7 @@ import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
@@ -27,6 +29,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_CLIPBOARD_COLONY_SET;
+
+import java.util.List;
 
 public class AdvancedClipboardItem extends ItemClipboard
 {
@@ -77,6 +81,7 @@ public class AdvancedClipboardItem extends ItemClipboard
      * @param ctx the context
      * @return the result
      */
+    @SuppressWarnings("null")
     @Override
     @NotNull
     public InteractionResult useOn(final UseOnContext ctx)
@@ -99,10 +104,20 @@ public class AdvancedClipboardItem extends ItemClipboard
 
             if (building instanceof BuildingMarketplace marketplace && marketplace.getBuildingLevel() >= mintingLevel)
             {
-                ItemStack coins = marketplace.mintCoins(player, 1);
+                List<ItemStack> coins = marketplace.mintCoins(player, 1);
                 if (!coins.isEmpty())
                 {
-                    player.addItem(coins);
+                    for (ItemStack coinStack : coins)
+                    {
+                        if (coinStack == null) continue;
+                        boolean success = player.addItem(coinStack);
+
+                        if (!success)
+                        {
+                            MCTPInventoryUtils.dropItemsInWorld((ServerLevel) ctx.getLevel(), player.getOnPos().above(), coinStack);
+                        }
+                    }
+                    
                     return InteractionResult.SUCCESS;
                 }
             }

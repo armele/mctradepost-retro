@@ -124,6 +124,8 @@ public class RequestUtil
                 continue;
             }
 
+            if (request == null) continue;
+
             if (request.getRequest() instanceof Delivery delivery
                 && delivery.getStart().equals(source.getLocation())
                 && delivery.getStack().is(searchItem))

@@ -635,36 +635,44 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         if (coinsToMint > 0 && shouldMintCoins.isPresent() && shouldMintCoins.get().getValue())
         {
-            ItemStack stack = localBuilding.mintCoins(null, coinsToMint);
-            coinsToMint = 0;
+            List<ItemStack> coinStacks = localBuilding.mintCoins(null, coinsToMint);
             
             TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                () -> LOGGER.info("Colony {} Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", localBuilding.getColony().getID(), coinsToMint, stack));
+                () -> LOGGER.info("Colony {} Shopkeeper: {} coins are needed and autominting is turned on. Mint result: {}", localBuilding.getColony().getID(), coinsToMint, coinStacks));
             
-            if (stack.isEmpty())
+            if (coinStacks.isEmpty())
             {
                 MessageUtils.format("mctradepost.marketplace.nsf").sendTo(localBuilding.getColony()).forAllPlayers();
                 settings.with(BuildingMarketplace.AUTOMINT, new BoolSetting(false));
                 return DECIDE;
             }
 
-            StatsUtil.trackStat(localBuilding, WindowEconModule.COINS_MINTED, stack.getCount());
-
-            if (!InventoryUtils.addItemStackToProvider(localBuilding, stack))
+            for (ItemStack coinStack : coinStacks)
             {
-                if (!InventoryUtils.addItemStackToProvider(worker, stack))
+                if (!InventoryUtils.addItemStackToProvider(localBuilding, coinStack))
                 {
-                    BuildingEconModule econ = localBuilding.getModule(MCTPBuildingModules.ECON_MODULE);
-                    econ.deposit(coinsToMint * MCTPConfig.tradeCoinValue.get());
+                    if (!InventoryUtils.addItemStackToProvider(worker, coinStack))
+                    {
+                        BuildingEconModule econ = localBuilding.getModule(MCTPBuildingModules.ECON_MODULE);
+                        econ.deposit(coinStack.getCount() * MCTPConfig.tradeCoinValue.get());
 
-                    stack.setCount(0);
-                    MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(localBuilding.getColony()).forAllPlayers();
-
-                    return DECIDE;
+                        coinStack.setCount(0);
+                        econ.incrementBy(WindowEconModule.COINS_MINTED, -coinStack.getCount());
+                        MessageUtils.format("entity.shopkeeper.nospaceforcoins").sendTo(localBuilding.getColony()).forAllPlayers();
+                    }
+                    else
+                    {
+                        StatsUtil.trackStat(localBuilding, WindowEconModule.COINS_MINTED, coinStack.getCount());
+                    }
                 }
+                else
+                {
+                    StatsUtil.trackStat(localBuilding, WindowEconModule.COINS_MINTED, coinStack.getCount());
+                    // Successfully inserted into the building inventory - deliver it to the warehouse.
+                    BuildingUtil.bringThisToTheWarehouse(localBuilding, coinStack);
+                }
+                
             }
-            
-            BuildingUtil.bringThisToTheWarehouse(localBuilding, stack);
         }
 
         return DECIDE;

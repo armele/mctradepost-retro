@@ -475,6 +475,7 @@
     "mctradepost.marketplace.nsf": "Not enough funds to mint coins.",
     "mctradepost.marketplace.invalid": "This marketplace cannot mint coins.",
     "mctradepost.marketplace.minted": "Trade Coins (‡) Minted!",
+    "mctradepost.marketplace.maxwithdrawal": "A max of 512 Trade Coins (‡) can be withdrawn at once.",
     "jei.mctradepost.rituals": "Wishing Well Rituals",
     "jei.mctradepost.tooltip.wishingwell": "Wishing Well: 2x2 water surrounded by Mixed Stone",
     "com.mctradepost.resort.guest.full_inventory": "A resort guest's inventory is full.",
