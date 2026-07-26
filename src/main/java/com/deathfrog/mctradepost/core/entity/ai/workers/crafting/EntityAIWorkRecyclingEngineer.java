@@ -59,7 +59,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      */
     public static final String RECYCLING_LIST = "recyclables";
 
-    public static final int BASE_XP_GAIN = 1;
+    public static final double BASE_XP_GAIN = 1.25;
     public static final String REQUESTS_TYPE_RECYCLABLE_UI = "com.deathfrog.mctradepost.gui.workerhuts.recyclingengineer.recyclables";
 
     public static final String RECYCLING_STAT = "recycling_stat";

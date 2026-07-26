@@ -5,6 +5,8 @@
     { "id": "rootsclassic:nightshade", "required": false },
     { "id": "rootsclassic:blackcurrant", "required": false },
     { "id": "rootsclassic:redcurrant", "required": false },
-    { "id": "rootsclassic:whitecurrant", "required": false }
+    { "id": "rootsclassic:whitecurrant", "required": false },
+    { "id": "immersiveengineering:seed", "required": false },
+    { "id": "immersiveengineering:hemp_fiber", "required": false }
   ]
 }
