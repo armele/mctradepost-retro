@@ -7,6 +7,7 @@ import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiEntry;
 
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
@@ -87,9 +88,20 @@ public class PetForagingCategory implements IRecipeCategory<PetForagingJeiEntry>
             .setSlotName("work_location")
             .addItemStack(blockStack(recipe.workLocationBlock()));
 
+        final Block sourceBlock = BuiltInRegistries.BLOCK.get(recipe.sourceBlock());
         builder.addSlot(RecipeIngredientRole.INPUT, 28, 18)
             .setSlotName("source")
-            .addItemStack(blockStack(recipe.sourceBlock()));
+            .addItemStack(new ItemStack(sourceBlock))
+            .setCustomRenderer(
+                VanillaTypes.ITEM_STACK,
+                new BlockStateIngredientRenderer(sourceBlock, recipe.sourceBlock()))
+            .addRichTooltipCallback((slot, tooltip) -> {
+                tooltip.clear();
+                tooltip.add(Component.translatable(
+                    "jei.mctradepost.pet_foraging.tooltip.source",
+                    sourceBlock.getName()));
+                tooltip.add(Component.literal(recipe.sourceBlock().toString() + "").withStyle(ChatFormatting.DARK_GRAY));
+            });
 
         final List<ItemStack> outputs = recipe.outputs();
         final int visibleOutputs = Math.min(outputs.size(), MAX_OUTPUT_SLOTS);

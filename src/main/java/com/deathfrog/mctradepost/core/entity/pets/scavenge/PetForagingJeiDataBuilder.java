@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.ScavengeBlockStateHelper;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -27,13 +28,15 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 
 /**
  * Builds display-only JEI entries for pet foraging from the server's active datapack state.
  * <p>
  * The builder intentionally mirrors the path conventions used by the runtime scavenge profiles while staying display-oriented:
  * expand each source block tag, derive the matching loot-table id, then flatten simple item entries from the loot-table JSON into
- * possible JEI outputs.
+ * possible JEI outputs. When a custom forage table does not exist, the source block's normal loot table is inspected instead.
  * </p>
  */
 public final class PetForagingJeiDataBuilder
@@ -124,10 +127,17 @@ public final class PetForagingJeiDataBuilder
             final ResourceLocation sourceBlockId = blockId(sourceBlock);
             if (sourceBlockId == null) continue;
 
-            final ResourceLocation lootTableId =
+            final ResourceLocation customLootTableId =
                 ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, definition.lootPathPrefix() + "/" + sourceBlockId.getPath());
+            final BlockState representativeState = ScavengeBlockStateHelper.representativeState(sourceBlock);
 
-            final List<ItemStack> outputs = readLootOutputs(server, lootTableId);
+            ResourceLocation effectiveLootTableId = customLootTableId;
+            List<ItemStack> outputs = readLootOutputs(server, customLootTableId, representativeState);
+            if (!lootTableExists(server, customLootTableId))
+            {
+                effectiveLootTableId = normalBlockLootTableId(sourceBlockId);
+                outputs = readLootOutputs(server, effectiveLootTableId, representativeState);
+            }
             final List<ItemStack> displayOutputs = outputs.isEmpty() ? fallbackOutput(sourceBlock) : outputs;
             if (displayOutputs.isEmpty()) continue;
 
@@ -140,10 +150,49 @@ public final class PetForagingJeiDataBuilder
                 definition.workLocationBlock(),
                 sourceBlockId,
                 definition.sourceTag().location(),
-                lootTableId,
+                effectiveLootTableId,
                 displayOutputs,
                 definition.noteKey()));
         }
+    }
+
+    /**
+     * Returns the conventional normal loot-table id for a registered block.
+     *
+     * @param sourceBlockId registry id of the source block
+     * @return the block's normal loot-table id
+     */
+    @SuppressWarnings("null")
+    private static ResourceLocation normalBlockLootTableId(final ResourceLocation sourceBlockId)
+    {
+        return ResourceLocation.fromNamespaceAndPath(sourceBlockId.getNamespace(), "blocks/" + sourceBlockId.getPath());
+    }
+
+    /**
+     * Determines whether a loot-table JSON resource exists in the active server data.
+     *
+     * @param server server that owns the active resource manager
+     * @param lootTableId logical loot-table id
+     * @return {@code true} when the corresponding JSON resource exists
+     */
+    @SuppressWarnings("null")
+    private static boolean lootTableExists(final MinecraftServer server, final ResourceLocation lootTableId)
+    {
+        return server.getResourceManager().getResource(lootTableResourceId(lootTableId)).isPresent();
+    }
+
+    /**
+     * Converts a logical loot-table id to its datapack JSON resource id.
+     *
+     * @param lootTableId logical loot-table id
+     * @return datapack resource id for the loot-table JSON
+     */
+    @SuppressWarnings("null")
+    private static ResourceLocation lootTableResourceId(final ResourceLocation lootTableId)
+    {
+        return ResourceLocation.fromNamespaceAndPath(
+            lootTableId.getNamespace(),
+            "loot_table/" + lootTableId.getPath() + ".json");
     }
 
     /**
@@ -153,15 +202,13 @@ public final class PetForagingJeiDataBuilder
      * scavenge tables, with light support for {@code minecraft:set_count}.
      * </p>
      */
-    private static List<ItemStack> readLootOutputs(final MinecraftServer server, final ResourceLocation lootTableId)
+    @SuppressWarnings("null")
+    private static List<ItemStack> readLootOutputs(
+        final MinecraftServer server,
+        final ResourceLocation lootTableId,
+        final BlockState sourceState)
     {
-        final String namespace = lootTableId.getNamespace();
-
-        if (namespace == null) return List.of();
-
-        final ResourceLocation resourceId = ResourceLocation.fromNamespaceAndPath(namespace, "loot_table/" + lootTableId.getPath() + ".json");
-
-        if (resourceId == null) return List.of();
+        final ResourceLocation resourceId = lootTableResourceId(lootTableId);
 
         final Optional<Resource> resource = server.getResourceManager().getResource(resourceId);
         if (resource.isEmpty()) return List.of();
@@ -179,8 +226,9 @@ public final class PetForagingJeiDataBuilder
             for (JsonElement poolElement : pools)
             {
                 if (!poolElement.isJsonObject()) continue;
-                final JsonArray entries = poolElement.getAsJsonObject().getAsJsonArray("entries");
-                collectItemOutputs(entries, outputs);
+                final JsonObject pool = poolElement.getAsJsonObject();
+                if (!conditionsMatch(pool, sourceState)) continue;
+                collectItemOutputs(pool.getAsJsonArray("entries"), outputs, sourceState);
             }
         }
         catch (Exception e)
@@ -195,7 +243,10 @@ public final class PetForagingJeiDataBuilder
     /**
      * Recursively collects direct item entries from loot-table entry arrays.
      */
-    private static void collectItemOutputs(final JsonArray entries, final List<ItemStack> outputs)
+    private static void collectItemOutputs(
+        final JsonArray entries,
+        final List<ItemStack> outputs,
+        final BlockState sourceState)
     {
         if (entries == null) return;
 
@@ -204,6 +255,7 @@ public final class PetForagingJeiDataBuilder
             if (!entryElement.isJsonObject()) continue;
 
             final JsonObject entry = entryElement.getAsJsonObject();
+            if (!conditionsMatch(entry, sourceState)) continue;
             final String type = stringValue(entry, "type");
 
             if ("item".equals(type) || "minecraft:item".equals(type))
@@ -215,9 +267,91 @@ public final class PetForagingJeiDataBuilder
                 continue;
             }
 
-            collectItemOutputs(entry.getAsJsonArray("children"), outputs);
-            collectItemOutputs(entry.getAsJsonArray("entries"), outputs);
+            collectItemOutputs(entry.getAsJsonArray("children"), outputs, sourceState);
+            collectItemOutputs(entry.getAsJsonArray("entries"), outputs, sourceState);
         }
+    }
+
+    /**
+     * Evaluates loot conditions that can be determined from the pet's known
+     * harvest context. Unknown and random conditions remain eligible so JEI
+     * continues to show all genuinely possible results.
+     *
+     * @param owner loot pool or entry containing an optional conditions array
+     * @param sourceState representative state harvested by the pet
+     * @return {@code true} when the owner can apply to the pet harvest context
+     */
+    private static boolean conditionsMatch(final JsonObject owner, final BlockState sourceState)
+    {
+        final JsonArray conditions = owner.getAsJsonArray("conditions");
+        if (conditions == null) return true;
+
+        for (JsonElement condition : conditions)
+        {
+            if (condition.isJsonObject() && !conditionMatches(condition.getAsJsonObject(), sourceState))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Evaluates one supported loot condition against the pet's empty-tool,
+     * mature-source harvest context.
+     *
+     * @param condition loot condition JSON
+     * @param sourceState representative state harvested by the pet
+     * @return whether the condition permits the output
+     */
+    @SuppressWarnings("null")
+    private static boolean conditionMatches(final JsonObject condition, final BlockState sourceState)
+    {
+        final String type = stringValue(condition, "condition");
+        if ("minecraft:match_tool".equals(type) || "match_tool".equals(type))
+        {
+            return false;
+        }
+        if ("minecraft:block_state_property".equals(type) || "block_state_property".equals(type))
+        {
+            final String expectedBlock = stringValue(condition, "block");
+            if (!expectedBlock.isEmpty() && !blockId(sourceState.getBlock()).toString().equals(expectedBlock))
+            {
+                return false;
+            }
+
+            final JsonObject properties = condition.getAsJsonObject("properties");
+            if (properties == null) return true;
+            for (String propertyName : properties.keySet())
+            {
+                final Property<?> property = sourceState.getProperties().stream()
+                    .filter(candidate -> propertyName.equals(candidate.getName()))
+                    .findFirst()
+                    .orElse(null);
+                if (property == null
+                    || !propertyValueName(sourceState, property).equals(properties.get(propertyName).getAsString()))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Gets the serialized name of a block-state property's current value.
+     *
+     * @param state state containing the property
+     * @param property property whose value should be serialized
+     * @param <T> comparable property value type
+     * @return serialized property value
+     */
+    @SuppressWarnings("null")
+    private static <T extends Comparable<T>> String propertyValueName(
+        final BlockState state,
+        final Property<T> property)
+    {
+        return property.getName(state.getValue(property));
     }
 
     /**

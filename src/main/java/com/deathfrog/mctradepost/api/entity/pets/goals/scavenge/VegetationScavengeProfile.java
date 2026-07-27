@@ -24,6 +24,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.StemBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
@@ -251,7 +252,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         if (!state.is(ModTags.BLOCKS.TAG_FRUIT)) return;
 
         // AGE property: drop to a reasonable post-harvest stage
-        IntegerProperty age = findIntProp(state, "age");
+        IntegerProperty age = findIntProp(state, ScavengePropertyNames.AGE);
         if (age != null)
         {
             @SuppressWarnings("null")
@@ -259,17 +260,22 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             @SuppressWarnings("null")
             int max = age.getPossibleValues().stream().max(Integer::compareTo).orElse(min);
 
-            // If it's a long-growth plant (e.g., melon/pumpkin stems are 0..7),
-            // don't downgrade it at all.  This keeps mature stems mature.
-            if (max >= 7)
+            // Preserve mature melon/pumpkin-style stems, but reset other
+            // age-7 crops such as modded maturing fruit.
+            if (max >= ScavengePropertyNames.LONG_GROWTH_MAX_AGE && state.getBlock() instanceof StemBlock)
             {
                 return;
             }
 
             // Heuristic for small ranges:
+            // - non-stem age-7 crops: set to their minimum age
             // - berries (0..3): set to 1
             // - cocoa (0..2): set to 0
-            int newAge = (max >= 3) ? Math.min(1, max) : min;
+            int newAge = max >= ScavengePropertyNames.LONG_GROWTH_MAX_AGE
+                ? min
+                : max >= ScavengePropertyNames.SMALL_FRUIT_MAX_AGE
+                    ? Math.min(ScavengePropertyNames.SMALL_FRUIT_POST_HARVEST_AGE, max)
+                    : min;
 
             if (state.getValue(age) != newAge)
             {
@@ -279,7 +285,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         }
 
         // BERRIES boolean: set false
-        BooleanProperty berries = findBoolProp(state, "berries");
+        BooleanProperty berries = findBoolProp(state, ScavengePropertyNames.BERRIES);
         if (berries != null && state.getValue(berries))
         {
             level.setBlock(pos, NullnessBridge.assumeNonnull(state.setValue(berries, false)), 3);
@@ -311,7 +317,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
      */
     private static boolean passesGenericMaturityGate(final BlockState state)
     {
-        IntegerProperty age = findIntProp(state, "age");
+        IntegerProperty age = findIntProp(state, ScavengePropertyNames.AGE);
         if (age != null)
         {
             int cur = state.getValue(age);
@@ -320,7 +326,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
             return cur >= max;
         }
 
-        BooleanProperty berries = findBoolProp(state, "berries");
+        BooleanProperty berries = findBoolProp(state, ScavengePropertyNames.BERRIES);
         if (berries != null)
         {
             return state.getValue(berries);

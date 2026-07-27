@@ -655,6 +655,7 @@
     "jei.mctradepost.pet_foraging.note.vegetation_groundcover": "Pets assigned to the Feeder can search tagged groundcover.",
     "jei.mctradepost.pet_foraging.note.water": "Pets assigned to the Dredger search this material near shallow water or ice.",
     "jei.mctradepost.pet_foraging.note.mushroom": "Pets assigned to the Scavenging Base can harvest tagged mushrooms.",
+    "jei.mctradepost.pet_foraging.tooltip.source": "Forage source: %s",
     "gui.mctradepost.focused_foraging.research_required": "Research Required",
     "gui.mctradepost.focused_foraging.insert.1": "Insert an item here to help your pets",
     "gui.mctradepost.focused_foraging.insert.2": "understand what they're looking for.",
