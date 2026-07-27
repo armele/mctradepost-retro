@@ -80,6 +80,7 @@ import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistMana
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiSyncPacket;
+import com.deathfrog.mctradepost.core.entity.pets.scavenge.FocusedForagingIndex;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
@@ -163,6 +164,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
@@ -188,6 +190,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
@@ -213,6 +216,7 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.entity.CoinRenderer;
@@ -268,6 +272,9 @@ public class MCTradePostMod
 
     @SuppressWarnings("null")
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(BuiltInRegistries.RECIPE_SERIALIZER, MCTradePostMod.MODID);
+    public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(NullnessBridge.assumeNonnull(Registries.MENU), MCTradePostMod.MODID);
+    public static final DeferredHolder<MenuType<?>, MenuType<com.deathfrog.mctradepost.core.inventory.PetWorkingMenu>> PET_WORKING_MENU =
+        MENUS.register("pet_working", () -> IMenuTypeExtension.create(com.deathfrog.mctradepost.core.inventory.PetWorkingMenu::new));
 
     public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
 
@@ -1178,6 +1185,7 @@ public class MCTradePostMod
         // Register recipe support
         RECIPES.register(modEventBus);
         RECIPE_SERIALIZERS.register(modEventBus);
+        MENUS.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class to respond directly to events.
@@ -1339,6 +1347,7 @@ public class MCTradePostMod
             @SubscribeEvent
             public static void onDatapackSync(OnDatapackSyncEvent event)
             {
+                FocusedForagingIndex.rebuild(event.getPlayerList().getServer());
                 if (event.getPlayer() != null)
                 {
                     PetForagingJeiSyncPacket.sendPacketsToPlayer(event.getPlayer());
@@ -1948,6 +1957,19 @@ public class MCTradePostMod
                         OutpostClaimMarkerItem.hasLinkedBlockPos(stack) ? 1.0F : 0.0F
                 );
             });
+        }
+
+        /**
+         * Registers the custom pet-working inventory screen on the client.
+         *
+         * @param event menu-screen registration event
+         */
+        @SuppressWarnings("null")
+        @OnlyIn(Dist.CLIENT)
+        @SubscribeEvent
+        public static void registerMenuScreens(RegisterMenuScreensEvent event)
+        {
+            event.register(PET_WORKING_MENU.get(), com.deathfrog.mctradepost.core.client.gui.PetWorkingScreen::new);
         }
     }
 

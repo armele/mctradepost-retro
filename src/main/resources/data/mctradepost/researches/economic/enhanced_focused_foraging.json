@@ -1,0 +1,37 @@
+{
+  "name": "Enhanced Focus",
+  "subtitle": "A well-trained nose always knows!",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/focused_foraging",
+  "researchLevel": 3,
+  "sortOrder": 3,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:petshop",
+      "level": 3
+    }
+  ],
+  "costs": [
+    {
+      "count": 5,
+      "item": "mctradepost:mctp_coin"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:golden_carrot"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/enhanced_focused_foraging",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:golden_carrot"
+}

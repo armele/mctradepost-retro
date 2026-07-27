@@ -1,0 +1,37 @@
+{
+  "name": "Focused Foraging",
+  "subtitle": "Teach them what to look for.",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/bestfriend",
+  "researchLevel": 2,
+  "sortOrder": 3,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:petshop",
+      "level": 2
+    }
+  ],
+  "costs": [
+    {
+      "count": 3,
+      "item": "mctradepost:mctp_coin"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:apple"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/focused_foraging",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:spyglass"
+}

@@ -5,11 +5,19 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
+import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.blocks.BlockDredger;
+import com.deathfrog.mctradepost.core.blocks.BlockFeeder;
+import com.deathfrog.mctradepost.core.entity.pets.scavenge.FocusedForagingIndex;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -23,6 +31,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -54,7 +63,24 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     private int currentCheckIntervalTicks = 20 * 10; // start with 10s
     private static final int MAX_CHECK_INTERVAL_TICKS = 20 * 60 * 10; // cap at 10 min
     public static final int SLOT_COUNT = 27;
+    private static final int MAX_FOCUSED_TARGETS = 64;
     private NonNullList<ItemStack> items = NonNullList.withSize(SLOT_COUNT, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+    private final Deque<BlockPos> focusedTargets = new ArrayDeque<>();
+    private final SimpleContainer focusContainer = new SimpleContainer(1)
+    {
+        @Override
+        public void setChanged()
+        {
+            focusedTargets.clear();
+            PetWorkingBlockEntity.this.setChanged();
+        }
+
+        @Override
+        public int getMaxStackSize()
+        {
+            return 1;
+        }
+    };
 
     public PetWorkingBlockEntity(BlockPos pos, BlockState state)
     {
@@ -125,6 +151,12 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             ContainerHelper.saveAllItems(tag, this.items, registries);
         }
 
+        final CompoundTag focusTag = new CompoundTag();
+        final NonNullList<ItemStack> focusItems = NonNullList.withSize(1, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+        focusItems.set(0, focusContainer.getItem(0));
+        ContainerHelper.saveAllItems(focusTag, focusItems, registries);
+        tag.put("FocusedForaging", focusTag);
+
         if (this.customName != null)
         {
             String customString = Component.Serializer.toJson(this.customName, registries);
@@ -142,6 +174,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
      * @param tag the CompoundTag to load the data from.
      * @param registries the HolderLookup.Provider containing the registries of items and blocks.
      */
+    @SuppressWarnings("null")
     @Override
     public void loadAdditional(@Nonnull CompoundTag tag, @Nonnull HolderLookup.Provider registries)
     {
@@ -155,6 +188,14 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         {
             ContainerHelper.loadAllItems(tag, this.items, registries);
         }
+
+        final NonNullList<ItemStack> focusItems = NonNullList.withSize(1, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
+        if (tag.contains("FocusedForaging"))
+        {
+            ContainerHelper.loadAllItems(tag.getCompound("FocusedForaging"), focusItems, registries);
+        }
+        focusContainer.setItem(0, focusItems.get(0));
+        focusedTargets.clear();
 
         if (tag.contains(TAG_PWB_CUSTOM_NAME))
         {
@@ -179,7 +220,111 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     @Override
     protected AbstractContainerMenu createMenu(int windowId, @Nonnull Inventory inv)
     {
+        if (supportsFocusedForaging())
+        {
+            return new com.deathfrog.mctradepost.core.inventory.PetWorkingMenu(windowId, inv, this);
+        }
         return ChestMenu.threeRows(windowId, inv, this);
+    }
+
+    /**
+     * Determines whether this working-block type supports an item focus.
+     *
+     * @return {@code true} for Feeders and Dredgers
+     */
+    public boolean supportsFocusedForaging()
+    {
+        final Block block = getBlockState().getBlock();
+        return block instanceof BlockFeeder || block instanceof BlockDredger;
+    }
+
+    /**
+     * Returns the separately stored focus inventory exposed only by the custom
+     * player menu.
+     *
+     * @return one-slot focus container
+     */
+    public SimpleContainer getFocusContainer()
+    {
+        return focusContainer;
+    }
+
+    /**
+     * Returns the item currently selected as the preferred forage output.
+     *
+     * @return focus item, or an empty stack when no focus is configured
+     */
+    public ItemStack getFocusStack()
+    {
+        return focusContainer.getItem(0);
+    }
+
+    /**
+     * Checks whether the active datapack index contains a source for the given
+     * item and this working block's forage role.
+     *
+     * @param stack proposed reference item
+     * @return {@code true} when the item is a known possible forage output
+     */
+    public boolean isValidFocusItem(@Nonnull final ItemStack stack)
+    {
+        final Level localLevel = level;
+
+        if (stack.isEmpty() || localLevel == null || localLevel.isClientSide) return !stack.isEmpty();
+        final PetRoles role = getBlockState().getBlock() instanceof BlockFeeder
+            ? PetRoles.SCAVENGE_VEGETATION : PetRoles.SCAVENGE_WATER;
+        return !FocusedForagingIndex.sourcesFor(localLevel.getServer(), role, stack.getItem()).isEmpty();
+    }
+
+    /**
+     * Checks whether the colony has unlocked basic focused foraging.
+     *
+     * @return {@code true} when this block supports focusing and its colony has
+     *         the required research effect
+     */
+    public boolean isFocusedForagingEnabled()
+    {
+        if (!supportsFocusedForaging() || level == null) return false;
+        final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        return colony != null && colony.getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.FOCUSED_FORAGING) > 0;
+    }
+
+    /**
+     * Checks whether the colony has unlocked the enhanced focused-item bonus.
+     *
+     * @return {@code true} when enhanced focused foraging is researched
+     */
+    public boolean isEnhancedFocusedForagingEnabled()
+    {
+        if (level == null) return false;
+        final IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, worldPosition);
+        return colony != null && colony.getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.ENHANCED_FOCUSED_FORAGING) > 0;
+    }
+
+    /**
+     * Adds or refreshes a source position in the bounded opportunistic cache.
+     * The least-recently remembered entry is discarded when the cache is full.
+     *
+     * @param pos compatible forage-source position
+     */
+    public void rememberFocusedTarget(@Nonnull final BlockPos pos)
+    {
+        final BlockPos immutable = pos.immutable();
+        focusedTargets.remove(immutable);
+        focusedTargets.addLast(immutable);
+        while (focusedTargets.size() > MAX_FOCUSED_TARGETS) focusedTargets.removeFirst();
+    }
+
+    /**
+     * Removes and returns the next position awaiting cache validation.
+     *
+     * @return next cached source position, or {@code null} when the cache is empty
+     */
+    public @Nullable BlockPos pollFocusedTarget()
+    {
+        return focusedTargets.pollFirst();
     }
 
     @Override
@@ -221,6 +366,10 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             .append(")");
     }
 
+    /**
+     * Indicate the pet(s) assigned to a given working block.
+     * @return Count of pets as component, or pet name if one pet assigned.
+     */
     private Component getAssignedPetName()
     {
         Level level = getLevel();
@@ -235,6 +384,9 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
             return Component.literal("No Pet Assigned");
         }
 
+        int petCount = 0;
+        Component foundName = null;
+
         for (IBuilding building : colony.getServerBuildingManager().getBuildings().values())
         {
             for (ITradePostPet pet : PetRegistryUtil.getPetsInBuilding(building))
@@ -244,16 +396,31 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
                     continue;
                 }
 
+                petCount++;
+
                 if (pet.getPetData() != null && pet.getPetData().getOriginalName() != null)
                 {
-                    return pet.getPetData().getOriginalName();
+                    foundName = pet.getPetData().getOriginalName();
                 }
-
-                return ((Entity) pet).getName();
+                else
+                {
+                    foundName = ((Entity) pet).getName();
+                }
             }
         }
 
-        return Component.literal("No Pet Assigned");
+        if (petCount == 0)
+        {
+            return Component.literal("None");
+        }
+        else if (petCount == 1)
+        {
+            return foundName;
+        }
+        else
+        {
+            return Component.literal(petCount + " Pets");
+        }
     }
 
     /**

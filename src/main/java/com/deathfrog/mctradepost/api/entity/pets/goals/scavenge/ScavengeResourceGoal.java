@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.entity.pets.goals.scavenge;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_PETSCAVENGEGOALS;
 
 import java.util.EnumSet;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -14,6 +15,9 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PathingUtil;
 import com.deathfrog.mctradepost.api.util.PetUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
+import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingPetshop;
+import com.deathfrog.mctradepost.core.entity.pets.scavenge.FocusedForagingIndex;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.StatsUtil;
 import com.mojang.logging.LogUtils;
@@ -403,6 +407,7 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
      *
      * @param pos the position of the block to be harvested
      */
+    @SuppressWarnings("null")
     protected void harvest(@Nonnull BlockPos pos)
     {
         if (!(pet.level() instanceof ServerLevel level)) return;
@@ -442,7 +447,8 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
             drops = getCustomScavengeDrops(level, lootTable, centerPos);
         }
 
-        if (drops == null || drops.isEmpty()) return;
+        drops = applyEnhancedFocusedForaging(level, harvestSpot, drops == null ? List.of() : drops);
+        if (drops.isEmpty()) return;
 
         for (ItemStack drop : drops)
         {
@@ -464,6 +470,43 @@ public class ScavengeResourceGoal<P extends Animal & ITradePostPet> extends Goal
         profile.onDropsAwarded(level, pos, pet, drops);
         profile.onSuccessfulHarvest(level, pos, pet);
 
+    }
+
+    /**
+     * Applies the enhanced-focused-foraging bonus after the normal loot roll.
+     * When the relevant research is active and the harvested source can produce
+     * the configured focus item, the trainer's primary skill is used directly
+     * as a percentage chance to add one copy of that item.
+     *
+     * @param level server level in which the harvest occurred
+     * @param sourceBlock block used as the forage source
+     * @param normalDrops results of the ordinary loot-table roll
+     * @return the original drops, or a copied list containing the bonus item
+     */
+    private List<ItemStack> applyEnhancedFocusedForaging(
+        @Nonnull final ServerLevel level, @Nonnull final Block sourceBlock, @Nonnull final List<ItemStack> normalDrops)
+    {
+        final BlockPos workPos = pet.getWorkLocation();
+        if (workPos == null || !(level.getBlockEntity(workPos) instanceof PetWorkingBlockEntity working)
+            || !working.isFocusedForagingEnabled() || !working.isEnhancedFocusedForagingEnabled())
+        {
+            return normalDrops;
+        }
+
+        final ItemStack focus = working.getFocusStack();
+        if (focus.isEmpty()
+            || !FocusedForagingIndex.mayProduce(level.getServer(), profile.requiredRole(), sourceBlock, focus.getItem())
+            || !(trainerBuilding instanceof BuildingPetshop petshop))
+        {
+            return normalDrops;
+        }
+
+        final int chance = Math.clamp(petshop.trainerPrimarySkill(), 0, 100);
+        if (pet.getRandom().nextInt(100) >= chance) return normalDrops;
+
+        final List<ItemStack> enhanced = new ArrayList<>(normalDrops);
+        enhanced.add(focus.copyWithCount(1));
+        return enhanced;
     }
 
     /**

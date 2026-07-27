@@ -19,6 +19,8 @@ public class MCTPResearchConstants {
     public static final ResourceLocation HUSBANDRY                  = getResearchEffectID("husbandry");
     public static final ResourceLocation EXOTIC                     = getResearchEffectID("exotic");
     public static final ResourceLocation VET                        = getResearchEffectID("vet");
+    public static final ResourceLocation FOCUSED_FORAGING           = getResearchEffectID("focused_foraging");
+    public static final ResourceLocation ENHANCED_FOCUSED_FORAGING  = getResearchEffectID("enhanced_focused_foraging");
 
     public static ResourceLocation getResearchEffectID(String researchName) {
         return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "effects/" + researchName);

@@ -24,6 +24,8 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.Containers;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -116,6 +118,37 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
     @Override
     public boolean useShapeForLightOcclusion(@Nonnull BlockState state) {
         return true;
+    }
+
+    /**
+     * Drops both the normal work inventory and the separately protected focus
+     * item when a pet working block is replaced.
+     *
+     * @param state state being removed
+     * @param level level containing the block
+     * @param pos position of the block
+     * @param newState replacement state
+     * @param movedByPiston whether the replacement was caused by piston movement
+     */
+    @Override
+    protected void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos,
+        @Nonnull BlockState newState, boolean movedByPiston)
+    {
+        Block newStateBlock = newState.getBlock();
+
+        if (newStateBlock != null && !state.is(newStateBlock) && level.getBlockEntity(pos) instanceof PetWorkingBlockEntity working)
+        {
+            SimpleContainer focusContainer = working.getFocusContainer();
+
+            Containers.dropContents(level, pos, working);
+            if (focusContainer != null)
+            {
+                Containers.dropContents(level, pos, focusContainer);
+            }
+
+            level.updateNeighbourForOutputSignal(pos, this);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     /**
@@ -227,7 +260,14 @@ public class AbstractBlockPetWorkingLocation extends Block implements EntityBloc
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (blockEntity instanceof MenuProvider provider)
         {
-            player.openMenu(provider);
+            if (blockEntity instanceof PetWorkingBlockEntity working && working.supportsFocusedForaging())
+            {
+                player.openMenu(provider, buffer -> buffer.writeBlockPos(pos));
+            }
+            else
+            {
+                player.openMenu(provider);
+            }
             return ItemInteractionResult.CONSUME;
         }
 

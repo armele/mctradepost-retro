@@ -68,7 +68,10 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
     {
         if (!(pet.level() instanceof ServerLevel level)) return null;
 
-        final BlockPos origin = pet.blockPosition();
+        final BlockPos focused = FocusedForaging.findTarget(pet, this, searchRadius, -2, this.maxVerticalSearch);
+        if (focused != null) return focused;
+
+        final BlockPos origin = pet.getWorkLocation() == null ? pet.blockPosition() : pet.getWorkLocation();
         final @Nonnull RandomSource rng = NullnessBridge.assumeNonnull(pet.getRandom());
 
         final int r = Math.max(3, searchRadius);
