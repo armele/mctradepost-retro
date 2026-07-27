@@ -49,6 +49,8 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
     private static final String LABEL_TRAINING_ITEM = "trainingitem";
     private static final String LABEL_COIN_ITEM = "coinitem";
     private static final String LABEL_HOWTO = "howto";
+    private static final String LABEL_TITLE = "title";
+    private static final String LABEL_RESEARCH_REQUIRED = "researchrequired";
 
     /**
      * Resource scrolling list.
@@ -87,14 +89,20 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
 
         final Text howto = findPaneOfTypeByID(LABEL_HOWTO, Text.class);
         final AbstractTextBuilder.TooltipBuilder howtoTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(howto);
-        howtoTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.trainingtips.hover"));
+        howtoTipBuilder.append(moduleView.getItemsTooltip());
         howtoTipBuilder.build();
     
         final Image help = findPaneOfTypeByID(IMAGE_HELP, Image.class);
         final AbstractTextBuilder.TooltipBuilder helpTipBuilder = PaneBuilders.tooltipBuilder().hoverPane(help);
-        helpTipBuilder.append(Component.translatable("com.minecolonies.coremod.gui.petstore.trainingtips.hover"));
+        helpTipBuilder.append(moduleView.getItemsTooltip());
         helpTipBuilder.build();
 
+        findPaneOfTypeByID(LABEL_TITLE, Text.class).setText(moduleView.getDesc());
+        if (moduleView.requiresHusbandryResearch() && husbandryResearch <= 0)
+        {
+            howto.hide();
+            help.hide();
+        }
         updatePetTrainingList();
     }
 
@@ -103,6 +111,15 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
      */
     private void updatePetTrainingList()
     {
+        final Text researchRequired = findPaneOfTypeByID(LABEL_RESEARCH_REQUIRED, Text.class);
+        if (moduleView.requiresHusbandryResearch() && husbandryResearch <= 0)
+        {
+            petList.hide();
+            researchRequired.show();
+            return;
+        }
+
+        researchRequired.hide();
         petList.enable();
         petList.show();
         petList.setDataProvider(new ScrollingList.DataProvider()
@@ -126,7 +143,7 @@ public class WindowPetTrainingItemsModule extends AbstractModuleWindow<PetTraini
                     // Skip pets whose exotic level is not supported by research.
                     if (type.getExoticLevel() > exoticLevelResearch) continue;
 
-                    if (type.isPet() == true || husbandryResearch > 0)
+                    if (type.isPet() == moduleView.displaysPets())
                     {
                         activePetTypes.add(type);
                     }

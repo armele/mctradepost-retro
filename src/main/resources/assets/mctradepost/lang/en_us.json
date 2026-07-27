@@ -549,8 +549,12 @@
     "com.minecolonies.coremod.gui.petstore.workbuilding" : "Work Building",
     "com.minecolonies.coremod.gui.petstore.empty" : "No Trained Animals",
     "com.minecolonies.coremod.gui.petstore.trainingitems" : "Training Items",
+    "com.minecolonies.coremod.gui.petstore.herdanimals" : "Herd Animals",
+    "com.minecolonies.coremod.gui.petstore.researchrequired" : "Research required to unlock.",
     "com.minecolonies.coremod.gui.petstore.trainingtips" : "Items Needed For Animals",
     "com.minecolonies.coremod.gui.petstore.trainingtips.hover" : "Provide the following items to the trainer.\n\nAnimals designated as Pets are trained and can be assigned jobs.\n\nOther animals are simply lifestock.\n\n(‡) costs will be deducted from your marketplace balance.",
+    "com.minecolonies.coremod.gui.petstore.trainingtips.pets.hover" : "Provide the following items to the trainer.\n\nAnimals designated as Pets are trained and can be assigned jobs.\n\n(‡) costs will be deducted from your marketplace balance.",
+    "com.minecolonies.coremod.gui.petstore.trainingtips.herd.hover" : "Provide the following items to the trainer.\n\nThese animals are livestock and cannot be assigned jobs.\n\n(‡) costs will be deducted from your marketplace balance.",
     "com.minecolonies.coremod.gui.petstore.worklocations" : "Pick Work Locations",
     "com.minecolonies.coremod.gui.petstore.worklocations.hover" : "Place a pet working location block to designate the pet job:\nTrough: Herding\nMushroom Base: Truffle Hunting\nDredger: Water-based scavenging\nFeeder: Foliage-based scavenging\nHauler: Carries items from the hauler block to the nearest warehouse, or to the pet shop if no warehouse exists.\n\nThen assign a pet to the working block.",
     "com.minecolonies.coremod.gui.petstore.outofrange" : "Out of Range", 
@@ -650,6 +654,12 @@
     "jei.mctradepost.pet_foraging.note.vegetation_leaves": "Pets assigned to the Feeder can search tagged leaves.",
     "jei.mctradepost.pet_foraging.note.vegetation_groundcover": "Pets assigned to the Feeder can search tagged groundcover.",
     "jei.mctradepost.pet_foraging.note.water": "Pets assigned to the Dredger search this material near shallow water or ice.",
-    "jei.mctradepost.pet_foraging.note.mushroom": "Pets assigned to the Scavenging Base can harvest tagged mushrooms."
+    "jei.mctradepost.pet_foraging.note.mushroom": "Pets assigned to the Scavenging Base can harvest tagged mushrooms.",
+    "gui.mctradepost.focused_foraging.research_required": "Research Required",
+    "gui.mctradepost.focused_foraging.insert.1": "Insert an item here to help your pets",
+    "gui.mctradepost.focused_foraging.insert.2": "understand what they're looking for.",
+    "gui.mctradepost.focused_foraging.prefer": "Prefer %s Sources",
+    "gui.mctradepost.focused_foraging.item": "Item",
+    "gui.mctradepost.focused_foraging.title": "Focus"
 }
   

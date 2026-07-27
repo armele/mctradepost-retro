@@ -49,6 +49,9 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
     @Nullable
     public BlockPos findTarget(P pet, int searchRadius)
     {
+        final BlockPos focused = FocusedForaging.findTarget(pet, this, searchRadius, -3, 3);
+        if (focused != null) return focused;
+
         final Level level = pet.level();
         final BlockPos origin = pet.getWorkLocation();
 

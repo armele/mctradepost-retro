@@ -36,6 +36,36 @@ public class PetTrainingItemsModuleView extends AbstractBuildingModuleView
     }
 
     /**
+     * Whether this tab displays trainable pets rather than herd animals.
+     *
+     * @return true for trainable pets
+     */
+    public boolean displaysPets()
+    {
+        return true;
+    }
+
+    /**
+     * Whether husbandry research is required before this tab can display its contents.
+     *
+     * @return true when husbandry research is required
+     */
+    public boolean requiresHusbandryResearch()
+    {
+        return false;
+    }
+
+    /**
+     * Gets the explanatory tooltip shown for this tab.
+     *
+     * @return the tooltip text
+     */
+    public Component getItemsTooltip()
+    {
+        return Component.translatable("com.minecolonies.coremod.gui.petstore.trainingtips.pets.hover");
+    }
+
+    /**
      * Get the icon of the module.
      * 
      * @return the icon to show.

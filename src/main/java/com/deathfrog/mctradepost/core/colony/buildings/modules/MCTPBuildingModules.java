@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListM
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.BuildingStationImportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.HerdAnimalsModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostExportModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.OutpostLivingBuildingModuleView;
@@ -168,6 +169,11 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("pet_training",
         () -> new PetTrainingItemsModule(),
         () -> PetTrainingItemsModuleView::new);
+
+   public static final BuildingEntry.ModuleProducer<PetTrainingItemsModule,HerdAnimalsModuleView> HERD_ANIMALS =
+      new BuildingEntry.ModuleProducer<>("herd_animals",
+        () -> new PetTrainingItemsModule(),
+        () -> HerdAnimalsModuleView::new);
 
     public static final BuildingEntry.ModuleProducer<OutpostLivingBuildingModule, OutpostLivingBuildingModuleView> OUTPOST_LIVING =
       new BuildingEntry.ModuleProducer<>("outpost_living", () -> new OutpostLivingBuildingModule(), () -> OutpostLivingBuildingModuleView::new);
