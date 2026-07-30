@@ -347,12 +347,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         Block block = this.getBlockState().getBlock();
         String key = block.getDescriptionId();
 
-        Component translated = Component.translatable(key + ".shortname");
-        // LOGGER.info("Default name key {} translates to {}. ", key, translated);
-
-        Component name = Component.literal(translated.getString() + " @ " + this.getBlockPos().toShortString());
-
-        return name;
+        return Component.translatable(key + ".shortname");
     }
 
     @SuppressWarnings("null")

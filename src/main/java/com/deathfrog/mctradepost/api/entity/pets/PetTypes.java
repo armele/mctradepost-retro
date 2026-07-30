@@ -14,6 +14,8 @@ import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.animal.armadillo.Armadillo;
+import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -31,7 +33,9 @@ public enum PetTypes
     CHICKEN(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT_SEEDS), 16), 2, Chicken.class, NullnessBridge.assumeNonnull(EntityType.CHICKEN), "Chicken", false, 0),
     SHEEP(new ItemStack(NullnessBridge.assumeNonnull(Items.WHEAT), 16), 2, Sheep.class, NullnessBridge.assumeNonnull(EntityType.SHEEP), "Sheep", false, 0),
     BEE(new ItemStack(NullnessBridge.assumeNonnull(Items.DANDELION), 16), 3, Bee.class, NullnessBridge.assumeNonnull(EntityType.BEE), "Bee", false, 1),
-    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false, 1);
+    RABBIT(new ItemStack(NullnessBridge.assumeNonnull(Items.CARROT), 16), 3, Rabbit.class, NullnessBridge.assumeNonnull(EntityType.RABBIT), "Rabbit", false, 1),
+    ARMADILLO(new ItemStack(NullnessBridge.assumeNonnull(Items.SPIDER_EYE), 16), 4, Armadillo.class, NullnessBridge.assumeNonnull(EntityType.ARMADILLO), "Armadillo", false, 2),
+    FROG(new ItemStack(NullnessBridge.assumeNonnull(Items.SLIME_BALL), 16), 4, Frog.class, NullnessBridge.assumeNonnull(EntityType.FROG), "Frog", false, 2);
 
     private final @Nonnull ItemStack trainingItem;
     private final @Nonnull Class<? extends Animal> petClass;

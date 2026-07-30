@@ -1,6 +1,5 @@
 {
-    "name": "Husbandry Specialist",
-    "subtitle": "I can find you a cow!",
+    "subtitle": "com.mctradepost.research.economic.husbandry_specialist.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/bestfriend",
     "researchLevel": 2,

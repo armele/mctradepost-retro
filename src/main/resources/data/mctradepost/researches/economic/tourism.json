@@ -1,6 +1,5 @@
 {
-    "name": "Tourism",
-    "subtitle": "Travel the world!",
+    "subtitle": "com.mctradepost.research.economic.tourism.subtitle",
     "branch": "economic",
     "researchLevel": 2,
     "parentResearch": "mctradepost:economic/expansion",

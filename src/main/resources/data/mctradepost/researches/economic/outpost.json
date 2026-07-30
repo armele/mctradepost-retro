@@ -1,6 +1,5 @@
 {
-    "name": "Outpost",
-    "subtitle": "Exploring the world!",
+    "subtitle": "com.mctradepost.research.economic.outpost.subtitle",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/tourism",

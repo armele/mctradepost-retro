@@ -1,6 +1,5 @@
 {
-    "name": "Faster Tracks",
-    "subtitle": "I need it YESTERDAY.",
+    "subtitle": "com.mctradepost.research.economic.fastertracks.subtitle",
     "branch": "economic",
     "researchLevel": 4,
     "parentResearch": "mctradepost:economic/fasttracks",

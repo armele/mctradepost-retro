@@ -1,6 +1,5 @@
 {
-    "name": "Criers",
-    "subtitle": "Hear ye, hear ye...",
+    "subtitle": "com.mctradepost.research.economic.criers.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/flyers",
     "researchLevel": 3,

@@ -1,6 +1,5 @@
 {
-  "name": "Focused Foraging",
-  "subtitle": "Teach them what to look for.",
+  "subtitle": "com.mctradepost.research.economic.focused_foraging.subtitle",
   "branch": "economic",
   "parentResearch": "mctradepost:economic/bestfriend",
   "researchLevel": 2,

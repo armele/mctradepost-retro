@@ -1,6 +1,5 @@
 {
-    "name": "Meticulous Disassembly",
-    "subtitle": "Let me show you how to do that... better.",
+    "subtitle": "com.mctradepost.research.economic.meticulousdisassembly.subtitle",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/arcanedisassembly",

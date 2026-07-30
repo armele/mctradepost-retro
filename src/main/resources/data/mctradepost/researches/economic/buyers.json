@@ -1,6 +1,5 @@
 {
-    "name": "Buyers",
-    "subtitle": "No need to camp outside the store...",
+    "subtitle": "com.mctradepost.research.economic.buyers.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/criers",
     "researchLevel": 4,

@@ -1,6 +1,5 @@
 {
-    "name": "Even More Selection",
-    "subtitle": "Choices, choices...",
+    "subtitle": "com.mctradepost.research.economic.evenmoreselection.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/moreselection",
     "researchLevel": 4,

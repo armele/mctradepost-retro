@@ -1,6 +1,5 @@
 {
-    "name": "Premium Vacation",
-    "subtitle": "I'd come back here again...",
+    "subtitle": "com.mctradepost.research.economic.premium_vacation.subtitle",
     "branch": "economic",
     "researchLevel": 2,
     "parentResearch": "mctradepost:economic/staycations",

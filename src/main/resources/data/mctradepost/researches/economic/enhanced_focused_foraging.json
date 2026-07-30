@@ -1,6 +1,5 @@
 {
-  "name": "Enhanced Focus",
-  "subtitle": "A well-trained nose always knows!",
+  "subtitle": "com.mctradepost.research.economic.enhanced_focused_foraging.subtitle",
   "branch": "economic",
   "parentResearch": "mctradepost:economic/focused_foraging",
   "researchLevel": 3,

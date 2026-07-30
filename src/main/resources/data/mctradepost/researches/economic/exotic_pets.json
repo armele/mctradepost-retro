@@ -1,6 +1,5 @@
 {
-    "name": "Exotic Pets",
-    "subtitle": "I've never seen one of those before...",
+    "subtitle": "com.mctradepost.research.economic.exotic_pets.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/bestfriend",
     "researchLevel": 2,

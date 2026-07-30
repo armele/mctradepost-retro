@@ -1,6 +1,5 @@
 {
-    "name": "More Selection",
-    "subtitle": "Not enough!",
+    "subtitle": "com.mctradepost.research.economic.moreselection.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/selection",
     "researchLevel": 3,

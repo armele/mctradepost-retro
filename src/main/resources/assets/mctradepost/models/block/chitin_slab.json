@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "mctradepost:block/chitin",
+    "top":    "mctradepost:block/chitin",
+    "side":   "mctradepost:block/chitin"
+  }
+}

@@ -1,6 +1,5 @@
 {
-    "name": "Selection",
-    "subtitle": "How about a few more choices?",
+    "subtitle": "com.mctradepost.research.economic.selection.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/capitalism",
     "researchLevel": 2,

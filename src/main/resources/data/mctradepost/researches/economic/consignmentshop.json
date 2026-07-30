@@ -1,6 +1,5 @@
 {
-    "name": "Consignment Shop",
-    "subtitle": "You don't see that too often...",
+    "subtitle": "com.mctradepost.research.economic.consignmentshop.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/pawnshop",
     "researchLevel": 3,

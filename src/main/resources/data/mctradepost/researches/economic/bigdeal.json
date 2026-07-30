@@ -1,6 +1,5 @@
 {
-    "name": "Big Deal",
-    "subtitle": "I'm kind of a big deal.",
+    "subtitle": "com.mctradepost.research.economic.bigdeal.subtitle",
     "branch": "economic",
     "researchLevel": 4,
     "parentResearch": "mctradepost:economic/wheelerdealer",

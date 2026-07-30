@@ -1,6 +1,5 @@
 {
-    "name": "Bottomless Inventory",
-    "subtitle": "Buy as many as you need.",
+    "subtitle": "com.mctradepost.research.economic.bottomlessinventory.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/newdeals",
     "researchLevel": 3,

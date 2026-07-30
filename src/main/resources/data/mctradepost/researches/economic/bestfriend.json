@@ -1,6 +1,5 @@
 {
-    "name": "Best Friends",
-    "subtitle": "So many pets!",
+    "subtitle": "com.mctradepost.research.economic.bestfriend.subtitle",
     "branch": "economic",
     "researchLevel": 1,
     "sortOrder" : 0,

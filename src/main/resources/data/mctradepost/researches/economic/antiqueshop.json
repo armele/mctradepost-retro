@@ -1,6 +1,5 @@
 {
-    "name": "Antique Shop",
-    "subtitle": "My precious!",
+    "subtitle": "com.mctradepost.research.economic.antiqueshop.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/consignmentshop",
     "researchLevel": 4,

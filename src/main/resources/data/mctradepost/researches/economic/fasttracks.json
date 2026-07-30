@@ -1,6 +1,5 @@
 {
-    "name": "Fast Tracks",
-    "subtitle": "I need it NOW.",
+    "subtitle": "com.mctradepost.research.economic.fasttracks.subtitle",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/tourism",

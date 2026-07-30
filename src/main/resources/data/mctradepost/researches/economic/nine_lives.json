@@ -1,6 +1,5 @@
 {
-    "name": "Nine Lives",
-    "subtitle": "We can fix this...",
+    "subtitle": "com.mctradepost.research.economic.nine_lives.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/husbandry_specialist",
     "researchLevel": 3,

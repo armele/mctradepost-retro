@@ -1,6 +1,5 @@
 {
-    "name": "Capitalism",
-    "subtitle": "Someone explain the economy to me like I'm 5...",
+    "subtitle": "com.mctradepost.research.economic.capitalism.subtitle",
     "branch": "economic",
     "researchLevel": 1,
     "sortOrder" : 0,

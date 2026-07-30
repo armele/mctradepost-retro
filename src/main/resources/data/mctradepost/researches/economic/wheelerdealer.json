@@ -1,6 +1,5 @@
 {
-    "name": "Wheeler Dealer",
-    "subtitle": "Let's make a deal!",
+    "subtitle": "com.mctradepost.research.economic.wheelerdealer.subtitle",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/tourism",

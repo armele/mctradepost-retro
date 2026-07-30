@@ -1,6 +1,5 @@
 {
-    "name": "More Buyers",
-    "subtitle": "Everyone gets a souvenir!",
+    "subtitle": "com.mctradepost.research.economic.morebuyers.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/buyers",
     "researchLevel": 5,

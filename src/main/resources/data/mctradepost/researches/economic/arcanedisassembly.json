@@ -1,6 +1,5 @@
 {
-    "name": "Arcane Disassembly",
-    "subtitle": "To you, it's junk. To me, it's magical.",
+    "subtitle": "com.mctradepost.research.economic.arcanedisassembly.subtitle",
     "branch": "economic",
     "researchLevel": 2,
     "parentResearch": "mctradepost:economic/environmentalism",

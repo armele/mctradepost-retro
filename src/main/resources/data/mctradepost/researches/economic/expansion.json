@@ -1,6 +1,5 @@
 {
-    "name": "Expansionism",
-    "subtitle": "There's a whole world out there!",
+    "subtitle": "com.mctradepost.research.economic.expansion.subtitle",
     "branch": "economic",
     "researchLevel": 1,
     "sortOrder" : 0,

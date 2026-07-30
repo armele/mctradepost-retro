@@ -1,6 +1,5 @@
 {
-    "name": "Pawn Shop",
-    "subtitle": "Some of this is interesting.",
+    "subtitle": "com.mctradepost.research.economic.pawnshop.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/thriftshop",
     "researchLevel": 2,

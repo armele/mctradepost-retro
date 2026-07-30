@@ -76,6 +76,10 @@ public final class ModBlocksInitializer
     public final static String WOVEN_KELP_STAIRS_NAME = "woven_kelp_stairs";
     public final static String WOVEN_KELP_WALL_NAME = "woven_kelp_wall";
     public final static String WOVEN_KELP_SLAB_NAME = "woven_kelp_slab";
+    public final static String CHITIN_NAME = "chitin";
+    public final static String CHITIN_STAIRS_NAME = "chitin_stairs";
+    public final static String CHITIN_WALL_NAME = "chitin_wall";
+    public final static String CHITIN_SLAB_NAME = "chitin_slab";
 	public final static String MIXED_STONE_BRICK_NAME = "mixed_stone_brick";
     public final static String MIXED_STONE_BRICK_STAIRS_NAME = "mixed_stone_brick_stairs";
     public final static String MIXED_STONE_BRICK_WALL_NAME = "mixed_stone_brick_wall";

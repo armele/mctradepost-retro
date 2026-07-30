@@ -11,6 +11,10 @@
     "mctradepost:scavenge",
     "mctradepost:dredger",
     "mctradepost:feeder",
-    "mctradepost:hauler"
+    "mctradepost:hauler",
+    "mctradepost:chitin",
+    "mctradepost:chitin_stairs",
+    "mctradepost:chitin_wall",
+    "mctradepost:chitin_slab"
   ]
 }

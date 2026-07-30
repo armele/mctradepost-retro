@@ -1,6 +1,5 @@
 {
-    "name": "Thrift Shop",
-    "subtitle": "Is this... Junk?",
+    "subtitle": "com.mctradepost.research.economic.thriftshop.subtitle",
     "branch": "economic",
     "researchLevel": 1,
     "sortOrder" : 0,

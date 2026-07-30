@@ -1,6 +1,5 @@
 {
-    "name": "Flyers",
-    "subtitle": "A poster in every window...",
+    "subtitle": "com.mctradepost.research.economic.flyers.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/capitalism",
     "researchLevel": 2,

@@ -1,6 +1,5 @@
 {
-    "name": "New Deals",
-    "subtitle": "What do you have in the back?",
+    "subtitle": "com.mctradepost.research.economic.newdeals.subtitle",
     "branch": "economic",
     "parentResearch": "mctradepost:economic/capitalism",
     "researchLevel": 2,

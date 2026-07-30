@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:reinforced_leather_helmet",
+    "mctradepost:reinforced_leather_chestplate",
+    "mctradepost:reinforced_leather_leggings",
+    "mctradepost:reinforced_leather_boots"
+  ]
+}

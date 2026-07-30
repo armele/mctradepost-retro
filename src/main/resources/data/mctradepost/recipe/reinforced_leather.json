@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "S": {
+      "item": "minecraft:armadillo_scute"
+    }
+  },
+  "pattern": [
+    "S S",
+    " L ",
+    "S S"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:reinforced_leather"
+  }
+}

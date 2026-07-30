@@ -1,6 +1,5 @@
 {
-    "name": "Staycations",
-    "subtitle": "Everyone needs some down time!",
+    "subtitle": "com.mctradepost.research.economic.staycations.subtitle",
     "branch": "economic",
     "researchLevel": 1,
     "sortOrder": 0,

@@ -1,6 +1,5 @@
 {
-    "name": "Five Star Resort",
-    "subtitle": "I deserve nothing less.",
+    "subtitle": "com.mctradepost.research.economic.five_star_vacation.subtitle",
     "branch": "economic",
     "researchLevel": 5,
     "parentResearch": "mctradepost:economic/white_glove_vacation",

@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost;
 
 import java.io.IOException;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -116,8 +118,10 @@ import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.compatibility.Compatibility;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
+import com.minecolonies.api.util.constant.EquipmentLevelConstants;
 import com.minecolonies.core.items.ItemFood;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
@@ -137,6 +141,7 @@ import net.minecraft.client.renderer.entity.PandaRenderer;
 import net.minecraft.client.renderer.entity.WolfRenderer;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -156,6 +161,8 @@ import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorMaterial;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -164,6 +171,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -175,6 +183,8 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockBehaviour.Properties;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.Util;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.EventPriority;
@@ -263,6 +273,10 @@ public class MCTradePostMod
     // Create a Deferred Register to hold Items which will all be registered under the "mctradepost" namespace
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
 
+    // Create a Deferred Register for armor materials.
+    public static final DeferredRegister<ArmorMaterial> ARMOR_MATERIALS =
+        DeferredRegister.create(NullnessBridge.assumeNonnull(Registries.ARMOR_MATERIAL), MODID);
+
     // Create a Deferred Register to hold Entities which will all be registered under the "mctradepost" namespace
     @SuppressWarnings("null")
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MCTradePostMod.MODID);
@@ -346,6 +360,57 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.register("copper_nugget",
         () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> REINFORCED_LEATHER = ITEMS.register("reinforced_leather",
+        () -> new Item(new Item.Properties()));
+
+    /**
+     * Reinforced leather is intentionally stronger than leather while remaining
+     * a level-one MineColonies guard armor. Durability is specified per piece
+     * below so the set lasts approximately twice as long as leather.
+     */
+    @SuppressWarnings("null")
+    public static final Holder<ArmorMaterial> REINFORCED_LEATHER_ARMOR_MATERIAL =
+        ARMOR_MATERIALS.register("reinforced_leather", () -> new ArmorMaterial(
+            Util.make(new EnumMap<>(ArmorItem.Type.class), defense -> {
+                defense.put(ArmorItem.Type.BOOTS, 2);
+                defense.put(ArmorItem.Type.LEGGINGS, 3);
+                defense.put(ArmorItem.Type.CHESTPLATE, 4);
+                defense.put(ArmorItem.Type.HELMET, 2);
+            }),
+            15,
+            SoundEvents.ARMOR_EQUIP_LEATHER,
+            () -> Ingredient.of(REINFORCED_LEATHER.get()),
+            List.of(new ArmorMaterial.Layer(
+                ResourceLocation.fromNamespaceAndPath(MODID, "reinforced_leather"),
+                "",
+                false)),
+            0.0F,
+            0.0F));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ArmorItem> REINFORCED_LEATHER_HELMET =
+        ITEMS.register("reinforced_leather_helmet",
+            () -> new ArmorItem(REINFORCED_LEATHER_ARMOR_MATERIAL, ArmorItem.Type.HELMET,
+                new Item.Properties().durability(110)));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ArmorItem> REINFORCED_LEATHER_CHESTPLATE =
+        ITEMS.register("reinforced_leather_chestplate",
+            () -> new ArmorItem(REINFORCED_LEATHER_ARMOR_MATERIAL, ArmorItem.Type.CHESTPLATE,
+                new Item.Properties().durability(160)));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ArmorItem> REINFORCED_LEATHER_LEGGINGS =
+        ITEMS.register("reinforced_leather_leggings",
+            () -> new ArmorItem(REINFORCED_LEATHER_ARMOR_MATERIAL, ArmorItem.Type.LEGGINGS,
+                new Item.Properties().durability(150)));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ArmorItem> REINFORCED_LEATHER_BOOTS =
+        ITEMS.register("reinforced_leather_boots",
+            () -> new ArmorItem(REINFORCED_LEATHER_ARMOR_MATERIAL, ArmorItem.Type.BOOTS,
+                new Item.Properties().durability(130)));
 
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
@@ -821,6 +886,19 @@ public class MCTradePostMod
         BLOCKS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new SlabBlock(WOVEN_KELP.get().properties()));
 
     @SuppressWarnings("null")
+    public static final DeferredBlock<Block> CHITIN = BLOCKS.register(ModBlocksInitializer.CHITIN_NAME,
+        () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)));
+    @SuppressWarnings("null")
+    public static final DeferredBlock<StairBlock> CHITIN_STAIRS = BLOCKS.register(ModBlocksInitializer.CHITIN_STAIRS_NAME,
+        () -> new StairBlock(CHITIN.get().defaultBlockState(), CHITIN.get().properties()));
+    @SuppressWarnings("null")
+    public static final DeferredBlock<WallBlock> CHITIN_WALL =
+        BLOCKS.register(ModBlocksInitializer.CHITIN_WALL_NAME, () -> new WallBlock(CHITIN.get().properties()));
+    @SuppressWarnings("null")
+    public static final DeferredBlock<SlabBlock> CHITIN_SLAB =
+        BLOCKS.register(ModBlocksInitializer.CHITIN_SLAB_NAME, () -> new SlabBlock(CHITIN.get().properties()));
+
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockOutpostMarker> BLOCK_OUTPOST_MARKER =
         BLOCKS.register(ModBlocksInitializer.BLOCK_OUTPOST_MARKER_NAME, () -> new BlockOutpostMarker(Blocks.BLACK_BANNER.properties()));
  
@@ -1114,6 +1192,19 @@ public class MCTradePostMod
         ITEMS.register(ModBlocksInitializer.WOVEN_KELP_SLAB_NAME, () -> new BlockItem(WOVEN_KELP_SLAB.get(), new Item.Properties()));
 
     @SuppressWarnings("null")
+    public static final DeferredItem<Item> CHITIN_ITEM =
+        ITEMS.register(ModBlocksInitializer.CHITIN_NAME, () -> new BlockItem(CHITIN.get(), new Item.Properties()));
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> CHITIN_STAIRS_ITEM =
+        ITEMS.register(ModBlocksInitializer.CHITIN_STAIRS_NAME, () -> new BlockItem(CHITIN_STAIRS.get(), new Item.Properties()));
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> CHITIN_WALL_ITEM =
+        ITEMS.register(ModBlocksInitializer.CHITIN_WALL_NAME, () -> new BlockItem(CHITIN_WALL.get(), new Item.Properties()));
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> CHITIN_SLAB_ITEM =
+        ITEMS.register(ModBlocksInitializer.CHITIN_SLAB_NAME, () -> new BlockItem(CHITIN_SLAB.get(), new Item.Properties()));
+
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> STEWPOT_FILLED_ITEM =
         ITEMS.register(ModBlocksInitializer.STEWPOT_FILLED_NAME, () -> new BlockItem(STEWPOT_FILLED.get(), new Item.Properties()));
 
@@ -1169,7 +1260,10 @@ public class MCTradePostMod
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modEventBus);
-        
+
+        // Register armor materials before their item instances are constructed.
+        ARMOR_MATERIALS.register(modEventBus);
+
         // Register the Deferred Register to the mod event bus so items get registered
         ITEMS.register(modEventBus);
        
@@ -1258,6 +1352,14 @@ public class MCTradePostMod
             StandardFactoryController.getInstance().registerNewFactory(new MCTPSettingsFactory.SortSettingFactory());
 
             PlacementHandlers.add(new OutpostPlacementHandler());
+
+            // Keep the improved armor legal for level-one MineColonies guards.
+            // Explicit registrations take precedence over MineColonies' automatic
+            // defense-based classification.
+            Compatibility.registerItemTier(REINFORCED_LEATHER_HELMET.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
+            Compatibility.registerItemTier(REINFORCED_LEATHER_CHESTPLATE.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
+            Compatibility.registerItemTier(REINFORCED_LEATHER_LEGGINGS.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
+            Compatibility.registerItemTier(REINFORCED_LEATHER_BOOTS.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
         });
     }
 
@@ -1733,6 +1835,11 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.COLD_BREW.get());
                     event.accept(MCTradePostMod.MYSTIC_TEA.get());
                     event.accept(MCTradePostMod.NAPKIN.get());
+                    event.accept(MCTradePostMod.REINFORCED_LEATHER.get());
+                    event.accept(MCTradePostMod.REINFORCED_LEATHER_HELMET.get());
+                    event.accept(MCTradePostMod.REINFORCED_LEATHER_CHESTPLATE.get());
+                    event.accept(MCTradePostMod.REINFORCED_LEATHER_LEGGINGS.get());
+                    event.accept(MCTradePostMod.REINFORCED_LEATHER_BOOTS.get());
                     event.accept(MCTradePostMod.END_MORTAR.get());
                     event.accept(MCTradePostMod.PRISMARINE_MORTAR.get());
                     event.accept(MCTradePostMod.QUARTZ_MORTAR.get());
@@ -1811,6 +1918,10 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WOVEN_KELP_STAIRS.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_WALL.get());
                     event.accept(MCTradePostMod.WOVEN_KELP_SLAB.get());
+                    event.accept(MCTradePostMod.CHITIN.get());
+                    event.accept(MCTradePostMod.CHITIN_STAIRS.get());
+                    event.accept(MCTradePostMod.CHITIN_WALL.get());
+                    event.accept(MCTradePostMod.CHITIN_SLAB.get());
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_COW.get());

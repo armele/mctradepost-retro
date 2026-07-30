@@ -1,6 +1,5 @@
 {
-    "name": "Luxury Vacation",
-    "subtitle": "Ooooh, swanky!",
+    "subtitle": "com.mctradepost.research.economic.luxury_vacation.subtitle",
     "branch": "economic",
     "researchLevel": 3,
     "parentResearch": "mctradepost:economic/premium_vacation",

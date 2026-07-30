@@ -1,6 +1,5 @@
 {
-    "name": "White Glove Service",
-    "subtitle": "Yes, you may polish my boots.",
+    "subtitle": "com.mctradepost.research.economic.white_glove_vacation.subtitle",
     "branch": "economic",
     "researchLevel": 4,
     "parentResearch": "mctradepost:economic/luxury_vacation",
