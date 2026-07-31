@@ -53,6 +53,35 @@ import net.minecraft.world.entity.player.Player;
 public class MCTPInventoryUtils
 {
     /**
+     * Checks whether an item stack exposes an inventory containing at least one item.
+     * Item capabilities cover modded containers such as backpacks, while the data
+     * component fallback covers vanilla-style component-backed containers.
+     *
+     * @param stack the possible container item
+     * @return true when the stack is a container with non-empty contents
+     */
+    @SuppressWarnings("null")
+    public static boolean isNonEmptyItemContainer(@Nonnull final ItemStack stack)
+    {
+        final IItemHandler itemHandler = stack.getCapability(Capabilities.ItemHandler.ITEM);
+        if (itemHandler != null)
+        {
+            for (int slot = 0; slot < itemHandler.getSlots(); slot++)
+            {
+                if (!itemHandler.getStackInSlot(slot).isEmpty())
+                {
+                    return true;
+                }
+            }
+        }
+
+        return stack.getOrDefault(DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.EMPTY)
+            .nonEmptyItems()
+            .iterator()
+            .hasNext();
+    }
+
+    /**
      * Finds a random slot in the given IItemHandler which matches the given predicate and returns it.
      * If no slot is found, returns -1.
      *

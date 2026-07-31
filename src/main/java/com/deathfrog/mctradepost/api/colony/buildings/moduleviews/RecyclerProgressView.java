@@ -51,7 +51,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
     @Override
     public BOWindow getWindow()
     {
-        return new WindowRecyclerProgressModule(this, maxProcessors);
+        return new WindowRecyclerProgressModule(buildingView, this, maxProcessors);
     }
 
     /**

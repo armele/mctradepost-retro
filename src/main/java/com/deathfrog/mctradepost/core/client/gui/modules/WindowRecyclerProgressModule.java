@@ -5,12 +5,16 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.RecyclerProgressView;
 import com.deathfrog.mctradepost.api.util.GuiUtil;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.CancelRecyclingMessage;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
+import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
 import com.ldtteam.blockui.views.Box;
 import com.minecolonies.api.util.constant.WindowConstants;
+import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.network.chat.Component;
@@ -24,6 +28,8 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
     private static final int MAX_OUTPUT_SHOWN = 10;     // How many stacks of output items will we display?
 
     private static final String REQUEST_WRAPPER = "requestx";
+    private static final String CANCEL_RECYCLING = "cancelRecycling";
+    private static final String CANCEL_RECYCLING_TOOLTIP = "com.mctradepost.coremod.gui.recycler.cancel";
     /**
      * Scrollinglist of the resources.
      */
@@ -31,14 +37,17 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
 
     protected Text capacityPane;
     protected int maxProcessors;
+    private final IBuildingView buildingView;
 
-    public WindowRecyclerProgressModule(RecyclerProgressView moduleView, int maxProcessors)
+    public WindowRecyclerProgressModule(final IBuildingView buildingView, RecyclerProgressView moduleView, int maxProcessors)
     {
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, RECYCPROGRESSWINDOW_RESOURCE_SUFFIX));
+        this.buildingView = buildingView;
 
         processorDisplayList = findPaneOfTypeByID(WindowConstants.WINDOW_ID_LIST_REQUESTS, ScrollingList.class);
         capacityPane = findPaneOfTypeByID("capacity", Text.class);
         this.maxProcessors = maxProcessors;
+        registerButton(CANCEL_RECYCLING, this::cancelRecycling);
     }
 
     @Override
@@ -92,6 +101,9 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
 
                 drawProgressBar(wrapperBox, progressBar, processor);
 
+                final Button cancelButton = rowPane.findPaneOfTypeByID(CANCEL_RECYCLING, Button.class);
+                PaneBuilders.tooltipBuilder().hoverPane(cancelButton).build().setText(Component.translatable(CANCEL_RECYCLING_TOOLTIP));
+
                 if (!inputStack.isEmpty())
                 {
                     inputStackDisplay.setVisible(true);
@@ -111,6 +123,17 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
 
             }
         });
+    }
+
+    private void cancelRecycling(final Button button)
+    {
+        final int row = processorDisplayList.getListElementIndexByPane(button);
+        final List<RecyclingProcessor> processors = moduleView.getRecyclingProcessors().stream().toList();
+        if (row >= 0 && row < processors.size())
+        {
+            new CancelRecyclingMessage(buildingView, processors.get(row).id).sendToServer();
+            button.disable();
+        }
     }
 
 

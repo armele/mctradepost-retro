@@ -63,6 +63,7 @@ import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.CancelRecyclingMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
@@ -1425,6 +1426,7 @@ public class MCTradePostMod
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
+            CancelRecyclingMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);
             StationLinkageMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);

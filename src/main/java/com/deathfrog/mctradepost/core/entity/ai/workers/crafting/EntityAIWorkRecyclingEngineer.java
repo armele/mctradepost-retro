@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule;
 import com.deathfrog.mctradepost.api.colony.buildings.modules.RecyclingItemListModule.PendingWarehouseRequest;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling.RecyclingProcessor;
@@ -543,6 +544,22 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
                 if ((stackToRecycle.getCount() > 0) && recycling.hasProcessingCapacity())
                 {
+                    if (MCTPInventoryUtils.isNonEmptyItemContainer(stackToRecycle))
+                    {
+                        TraceUtils.dynamicTrace(TRACE_RECYCLING,
+                            () -> LOGGER.info("Rejecting non-empty container {} from recycling.", stackToRecycle));
+                        final ItemStack rejectedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
+                        complain(BuildingRecycling.RECYCLER_CONTAINER_NOT_EMPTY, stackToRecycle.getHoverName());
+
+                        if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), rejectedStack))
+                        {
+                            InventoryUtils.spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), rejectedStack);
+                            return INVENTORY_FULL;
+                        }
+
+                        continue;
+                    }
+
                     TraceUtils.dynamicTrace(TRACE_RECYCLING,
                         () -> LOGGER.info("Starting recycling process for {}", stackToRecycle.getDescriptionId()));
                     final ItemStack removedStack = chestHandlerOpt.getItemHandlerCap().extractItem(i, Integer.MAX_VALUE, false);
@@ -632,12 +649,12 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
      * 
      * @param message the message to send.
      */
-    private void complain(String message)
+    private void complain(String message, Object... args)
     {
         if (complaintCooldown <= 0)
         {
             complaintCooldown = COMPLAINT_COOLDOWN_MAX;
-            MessageUtils.format(message).sendTo(building.getColony()).forAllPlayers();
+            MessageUtils.format(message, args).sendTo(building.getColony()).forAllPlayers();
         }
         else
         {

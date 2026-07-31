@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -95,6 +96,7 @@ public class BuildingRecycling extends AbstractBuilding
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final String ITEMS_RECOVERED = "items_recovered";
+    public static final String CANCELLED_JOBS = "cancelled_jobs";
 
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
     public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING =
@@ -107,6 +109,7 @@ public class BuildingRecycling extends AbstractBuilding
     public static final String RECYCLER_NO_INPUT_BOX = "com.mctradepost.recycler.no_input_box";
     public static final String RECYCLER_NO_OUTPUT_BOX = "com.mctradepost.recycler.no_output_box";
     public static final String RECYCLER_NO_RECYCLABLES_SET = "com.mctradepost.recycler.no_list_configured";
+    public static final String RECYCLER_CONTAINER_NOT_EMPTY = "com.mctradepost.recycler.container_not_empty";
     public static final String NO_RECYCLE_TAG = "NoRecycle";
 
     public static final int PENALTY_RECYCLING_STAT_LEVEL = 10;
@@ -363,6 +366,8 @@ public class BuildingRecycling extends AbstractBuilding
 
     public static class RecyclingProcessor
     {
+        @SuppressWarnings("null")
+        public @Nonnull UUID id = UUID.randomUUID();
         public ItemStack processingItem = null;
         public int processingTimer = -1;
         public int processingTimerComplete = -1;
@@ -385,6 +390,7 @@ public class BuildingRecycling extends AbstractBuilding
         public CompoundTag serialize(@Nonnull HolderLookup.Provider provider)
         {
             CompoundTag tag = new CompoundTag();
+            tag.putUUID("ProcessorId", id);
 
             if (!processingItem.isEmpty())
             {
@@ -422,8 +428,11 @@ public class BuildingRecycling extends AbstractBuilding
          * @param provider The holder lookup provider for item and block references.
          * @param tag      The CompoundTag containing the serialized state of the processor.
          */
+        @SuppressWarnings("null")
         public void deserialize(@NotNull final HolderLookup.Provider provider, @NotNull final CompoundTag tag)
         {
+            this.id = tag.hasUUID("ProcessorId") ? tag.getUUID("ProcessorId") : UUID.randomUUID();
+
             if (tag.contains("ProcessingItem"))
             {
                 CompoundTag itemTag = tag.getCompound("ProcessingItem");
@@ -538,6 +547,49 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /**
+     * Cancels an active processor and returns its original input to this building's inventory.
+     * The processor is removed before the refund is attempted so duplicate requests cannot
+     * refund the same input more than once.
+     *
+     * @param processorId stable identifier of the processor to cancel
+     * @return the returned input stack, or an empty stack when no active processor matched
+     */
+    public ItemStack cancelRecyclingProcess(@Nonnull final UUID processorId)
+    {
+        RecyclingProcessor cancelledProcessor = null;
+        for (final RecyclingProcessor processor : recyclingProcessors)
+        {
+            if (processorId.equals(processor.id) && recyclingProcessors.remove(processor))
+            {
+                cancelledProcessor = processor;
+                break;
+            }
+        }
+
+        if (cancelledProcessor == null || cancelledProcessor.processingItem == null || cancelledProcessor.processingItem.isEmpty())
+        {
+            return ItemStack.EMPTY;
+        }
+
+        final ItemStack returnedStack = cancelledProcessor.processingItem.copy();
+        ItemStack remaining = returnedStack.copy();
+        final IItemHandler buildingInventory = getItemHandlerCap();
+        for (int slot = 0; slot < buildingInventory.getSlots() && !remaining.isEmpty(); slot++)
+        {
+            remaining = buildingInventory.insertItem(slot, remaining, false);
+        }
+
+        if (!remaining.isEmpty())
+        {
+            InventoryUtils.spawnItemStack(getColony().getWorld(), getPosition().getX(), getPosition().getY(), getPosition().getZ(), remaining);
+        }
+
+        StatsUtil.trackStat(this, CANCELLED_JOBS, 1);
+        markDirty();
+        return returnedStack;
+    }
+
+    /**
      * Checks if the given item can be recycled by this building. This is done by checking if the output list for the given item is not
      * empty. If the output list is not empty, then the item can be recycled.
      * 
@@ -546,6 +598,11 @@ public class BuildingRecycling extends AbstractBuilding
      */
     public boolean isRecyclable(@Nonnull ItemStack itemToRecycle)
     {
+        if (MCTPInventoryUtils.isNonEmptyItemContainer(itemToRecycle))
+        {
+            return false;
+        }
+
         if (RecyclingBlacklistManager.isBlacklisted(itemToRecycle, getColony() != null ? getColony().getWorld() : null))
         {
             return false;
@@ -995,6 +1052,12 @@ public class BuildingRecycling extends AbstractBuilding
      */
     public List<ItemStack> outputList(@Nonnull ItemStack inputStack, int workerSkill)
     {
+        if (MCTPInventoryUtils.isNonEmptyItemContainer(inputStack))
+        {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING_RECIPE, () -> LOGGER.info("Item {} contains other items and cannot be recycled.", inputStack));
+            return null;
+        }
+
         if (getColony() == null || getColony().getWorld() == null || getColony().getWorld().getRecipeManager() == null)
         {
             return null;
