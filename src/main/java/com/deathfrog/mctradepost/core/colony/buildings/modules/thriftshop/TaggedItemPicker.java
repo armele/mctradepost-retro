@@ -40,6 +40,7 @@ public final class TaggedItemPicker
 
     // The tier tags we want to detect conflicts across.
     private static final List<TagKey<Item>> TIER_TAGS = List.of(
+        ModTags.ITEMS.RARE_FINDS_TIER0_TAG,
         ModTags.ITEMS.RARE_FINDS_TIER1_TAG,
         ModTags.ITEMS.RARE_FINDS_TIER2_TAG,
         ModTags.ITEMS.RARE_FINDS_TIER3_TAG,

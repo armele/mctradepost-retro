@@ -152,6 +152,10 @@ public final class MarketDailyRoller
                 {
                     // copy() so we don’t mutate anything reused internally
                     net.minecraft.nbt.CompoundTag norm = ct.copy();
+                    // ItemStack's codec uses lowercase "count" in 1.21. Remove the
+                    // legacy spelling too so the identity remains count-independent
+                    // if an older serialized stack reaches this path.
+                    norm.remove("count");
                     norm.remove("Count");
 
                     key = norm.toString();

@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
+    {
+      "id": "#mctradepost:rarefinds_generated_tier3",
+      "required": false
+    },
     "minecraft:blaze_rod",
     "minecraft:blaze_powder",
     "minecraft:nether_wart",
@@ -17,60 +21,374 @@
     "minecraft:diamond_hoe",
     "minecraft:diamond_boots",
     "minecraft:diamond_helmet",
-    "minecraft:chorus_flower",
-    {"id": "#mysticalagriculture:mysticalagriculture_seeds_elemental", "required": false},
-    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier1", "required": false},
-    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier2", "required": false},
-    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier3", "required": false},
-    {"id": "artifacts:scarf_of_invisibility", "required": false},
-    {"id": "artifacts:umbrella", "required": false},
-    {"id": "artifacts:everlasting_beef", "required": false},
-    {"id": "artifacts:eternal_steak", "required": false},
-    {"id": "artifacts:plastic_drinking_hat", "required": false},
-    {"id": "artifacts:novelty_drinking_hat", "required": false},
-    {"id": "artifacts:snorkel", "required": false},
-    {"id": "artifacts:night_vision_goggles", "required": false},
-    {"id": "artifacts:villager_hat", "required": false},
-    {"id": "artifacts:superstitious_hat", "required": false},
-    {"id": "artifacts:cowboy_hat", "required": false},
-    {"id": "artifacts:anglers_hat", "required": false},
-    {"id": "artifacts:lucky_scarf", "required": false},
-    {"id": "artifacts:cross_necklace", "required": false},
-    {"id": "artifacts:panic_necklace", "required": false},
-    {"id": "artifacts:shock_pendant", "required": false},
-    {"id": "artifacts:flame_pendant", "required": false},
-    {"id": "artifacts:thorn_pendant", "required": false},
-    {"id": "artifacts:villager_hat", "required": false},
-    {"id": "artifacts:charm_of_sinking", "required": false},
-    {"id": "artifacts:charm_of_shrinking", "required": false},
-    {"id": "artifacts:cloud_in_a_bottle", "required": false},
-    {"id": "artifacts:obsidian_skull", "required": false},
-    {"id": "artifacts:antidote_vessel", "required": false},
-    {"id": "artifacts:universal_attractor", "required": false},
-    {"id": "artifacts:crystal_heart", "required": false},
-    {"id": "artifacts:helium_flamingo", "required": false},
-    {"id": "artifacts:chorus_totem", "required": false},
-    {"id": "artifacts:warp_drive", "required": false},
-    {"id": "artifacts:digging_claws", "required": false},
-    {"id": "artifacts:feral_claws", "required": false},
-    {"id": "artifacts:power_glove", "required": false},
-    {"id": "artifacts:fire_gauntlet", "required": false},
-    {"id": "artifacts:pocket_piston", "required": false},
-    {"id": "artifacts:vampiric_glove", "required": false},
-    {"id": "artifacts:golden_hook", "required": false},
-    {"id": "artifacts:onion_ring", "required": false},
-    {"id": "artifacts:pickaxe_heater", "required": false},
-    {"id": "artifacts:withered_bracelet", "required": false},
-    {"id": "artifacts:aqua_dashers", "required": false},
-    {"id": "artifacts:bunny_hoppers", "required": false},
-    {"id": "artifacts:kitty_slippers", "required": false},
-    {"id": "artifacts:running_shoes", "required": false},
-    {"id": "artifacts:snowshoes", "required": false},
-    {"id": "artifacts:steadfast_spikes", "required": false},
-    {"id": "artifacts:flippers", "required": false},
-    {"id": "artifacts:rooted_boots", "required": false},
-    {"id": "artifacts:strider_shoes", "required": false},
-    {"id": "artifacts:whoopee_cushion", "required": false}
+    "minecraft:ancient_debris",
+    "minecraft:bell",
+    "minecraft:candle",
+    "minecraft:black_candle",
+    "minecraft:blue_candle",
+    "minecraft:brown_candle",
+    "minecraft:cyan_candle",
+    "minecraft:gray_candle",
+    "minecraft:green_candle",
+    "minecraft:light_blue_candle",
+    "minecraft:light_gray_candle",
+    "minecraft:lime_candle",
+    "minecraft:magenta_candle",
+    "minecraft:orange_candle",
+    "minecraft:pink_candle",
+    "minecraft:purple_candle",
+    "minecraft:red_candle",
+    "minecraft:white_candle",
+    "minecraft:yellow_candle",
+    "minecraft:redstone_lamp",
+    "minecraft:music_disc_creator_music_box",
+    "minecraft:music_disc_precipice",
+    "minecraft:conduit",
+    "minecraft:crimson_fungus",
+    "minecraft:crimson_nylium",
+    "minecraft:crimson_roots",
+    "minecraft:diamond_block",
+    "minecraft:emerald_block",
+    "minecraft:ender_chest",
+    "minecraft:gilded_blackstone",
+    "minecraft:glowstone",
+    "minecraft:guster_banner_pattern",
+    "minecraft:light_weighted_pressure_plate",
+    "minecraft:packed_ice",
+    "minecraft:sculk",
+    "minecraft:sculk_catalyst",
+    "minecraft:slime_block",
+    "minecraft:soul_lantern",
+    "minecraft:soul_sand",
+    "minecraft:soul_torch",
+    "minecraft:trident",
+    "minecraft:ender_eye",
+    "minecraft:wither_rose",
+    "mctradepost:prismarine_mortar",
+    "mctradepost:marine_lapis",
+    "mctradepost:marine_lapis_brick",
+    "mctradepost:marine_lapis_brick_slab",
+    "mctradepost:marine_lapis_brick_stairs",
+    "mctradepost:marine_lapis_brick_wall",
+    "mctradepost:marine_lapis_slab",
+    "mctradepost:marine_lapis_stairs",
+    "mctradepost:marine_lapis_wall",
+    "mctradepost:marine_basalt",
+    "mctradepost:marine_basalt_stairs",
+    "mctradepost:marine_basalt_wall",
+    "mctradepost:marine_basalt_slab",
+    {
+      "id": "#mysticalagriculture:mysticalagriculture_seeds_elemental",
+      "required": false
+    },
+    {
+      "id": "#mysticalagriculture:mysticalagriculture_seeds_tier1",
+      "required": false
+    },
+    {
+      "id": "#mysticalagriculture:mysticalagriculture_seeds_tier2",
+      "required": false
+    },
+    {
+      "id": "#mysticalagriculture:mysticalagriculture_seeds_tier3",
+      "required": false
+    },
+    {
+      "id": "artifacts:scarf_of_invisibility",
+      "required": false
+    },
+    {
+      "id": "artifacts:umbrella",
+      "required": false
+    },
+    {
+      "id": "artifacts:everlasting_beef",
+      "required": false
+    },
+    {
+      "id": "artifacts:eternal_steak",
+      "required": false
+    },
+    {
+      "id": "artifacts:plastic_drinking_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:novelty_drinking_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:snorkel",
+      "required": false
+    },
+    {
+      "id": "artifacts:night_vision_goggles",
+      "required": false
+    },
+    {
+      "id": "artifacts:villager_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:superstitious_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:cowboy_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:anglers_hat",
+      "required": false
+    },
+    {
+      "id": "artifacts:lucky_scarf",
+      "required": false
+    },
+    {
+      "id": "artifacts:cross_necklace",
+      "required": false
+    },
+    {
+      "id": "artifacts:panic_necklace",
+      "required": false
+    },
+    {
+      "id": "artifacts:shock_pendant",
+      "required": false
+    },
+    {
+      "id": "artifacts:flame_pendant",
+      "required": false
+    },
+    {
+      "id": "artifacts:thorn_pendant",
+      "required": false
+    },
+    {
+      "id": "artifacts:charm_of_sinking",
+      "required": false
+    },
+    {
+      "id": "artifacts:charm_of_shrinking",
+      "required": false
+    },
+    {
+      "id": "artifacts:cloud_in_a_bottle",
+      "required": false
+    },
+    {
+      "id": "artifacts:obsidian_skull",
+      "required": false
+    },
+    {
+      "id": "artifacts:antidote_vessel",
+      "required": false
+    },
+    {
+      "id": "artifacts:universal_attractor",
+      "required": false
+    },
+    {
+      "id": "artifacts:crystal_heart",
+      "required": false
+    },
+    {
+      "id": "artifacts:helium_flamingo",
+      "required": false
+    },
+    {
+      "id": "artifacts:chorus_totem",
+      "required": false
+    },
+    {
+      "id": "artifacts:warp_drive",
+      "required": false
+    },
+    {
+      "id": "artifacts:digging_claws",
+      "required": false
+    },
+    {
+      "id": "artifacts:feral_claws",
+      "required": false
+    },
+    {
+      "id": "artifacts:power_glove",
+      "required": false
+    },
+    {
+      "id": "artifacts:fire_gauntlet",
+      "required": false
+    },
+    {
+      "id": "artifacts:pocket_piston",
+      "required": false
+    },
+    {
+      "id": "artifacts:vampiric_glove",
+      "required": false
+    },
+    {
+      "id": "artifacts:golden_hook",
+      "required": false
+    },
+    {
+      "id": "artifacts:onion_ring",
+      "required": false
+    },
+    {
+      "id": "artifacts:pickaxe_heater",
+      "required": false
+    },
+    {
+      "id": "artifacts:withered_bracelet",
+      "required": false
+    },
+    {
+      "id": "artifacts:aqua_dashers",
+      "required": false
+    },
+    {
+      "id": "artifacts:bunny_hoppers",
+      "required": false
+    },
+    {
+      "id": "artifacts:kitty_slippers",
+      "required": false
+    },
+    {
+      "id": "artifacts:running_shoes",
+      "required": false
+    },
+    {
+      "id": "artifacts:snowshoes",
+      "required": false
+    },
+    {
+      "id": "artifacts:steadfast_spikes",
+      "required": false
+    },
+    {
+      "id": "artifacts:flippers",
+      "required": false
+    },
+    {
+      "id": "artifacts:rooted_boots",
+      "required": false
+    },
+    {
+      "id": "artifacts:strider_shoes",
+      "required": false
+    },
+    {
+      "id": "artifacts:whoopee_cushion",
+      "required": false
+    },
+    {
+      "id": "ae2:16k_crafting_storage",
+      "required": false
+    },
+    {
+      "id": "ae2:4k_crafting_storage",
+      "required": false
+    },
+    {
+      "id": "ae2:64k_crafting_storage",
+      "required": false
+    },
+    {
+      "id": "ae2:cell_component_16k",
+      "required": false
+    },
+    {
+      "id": "ae2:cell_component_64k",
+      "required": false
+    },
+    {
+      "id": "ae2:color_applicator",
+      "required": false
+    },
+    {
+      "id": "ae2:dense_energy_cell",
+      "required": false
+    },
+    {
+      "id": "ae2:fluid_storage_cell_4k",
+      "required": false
+    },
+    {
+      "id": "ae2:energy_card",
+      "required": false
+    },
+    {
+      "id": "ae2:fluid_storage_cell_16k",
+      "required": false
+    },
+    {
+      "id": "ae2:fluid_storage_cell_64k",
+      "required": false
+    },
+    {
+      "id": "ae2:inscriber",
+      "required": false
+    },
+    {
+      "id": "ae2:item_storage_cell_16k",
+      "required": false
+    },
+    {
+      "id": "ae2:item_storage_cell_4k",
+      "required": false
+    },
+    {
+      "id": "ae2:item_storage_cell_64k",
+      "required": false
+    },
+    {
+      "id": "ae2:matter_cannon",
+      "required": false
+    },
+    {
+      "id": "ae2:portable_fluid_cell_16k",
+      "required": false
+    },
+    {
+      "id": "ae2:portable_fluid_cell_4k",
+      "required": false
+    },
+    {
+      "id": "ae2:portable_fluid_cell_64k",
+      "required": false
+    },
+    {
+      "id": "ae2:portable_item_cell_16k",
+      "required": false
+    },
+    {
+      "id": "ae2:portable_item_cell_4k",
+      "required": false
+    },
+    {
+      "id": "ae2:spatial_cell_component_16",
+      "required": false
+    },
+    {
+      "id": "ae2:spatial_storage_cell_16",
+      "required": false
+    },
+    {
+      "id": "ae2:spatial_storage_cell_2",
+      "required": false
+    },
+    {
+      "id": "ae2:wireless_crafting_terminal",
+      "required": false
+    },
+    {
+      "id": "ae2:wireless_terminal",
+      "required": false
+    }
   ],
   "remove": [
     "minecraft:flowering_azalea",

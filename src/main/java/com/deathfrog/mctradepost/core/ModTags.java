@@ -58,6 +58,10 @@ public class ModTags
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Item> RARE_FINDS_BLACKLIST_TAG = ItemTags.create(RARE_FINDS_BLACKLIST_TAG_KEY);
 
+        public static final ResourceLocation RARE_FINDS_TIER0_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "rarefinds_tier0");
+        @SuppressWarnings("null")
+        public @Nonnull static final TagKey<Item> RARE_FINDS_TIER0_TAG = ItemTags.create(RARE_FINDS_TIER0_TAG_KEY);
+
         public static final ResourceLocation RARE_FINDS_TIER1_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "rarefinds_tier1");
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Item> RARE_FINDS_TIER1_TAG = ItemTags.create(RARE_FINDS_TIER1_TAG_KEY);

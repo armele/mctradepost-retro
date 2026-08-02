@@ -258,7 +258,7 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
                     PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
                         .setText(Component.translatable("mctradepost.research.unlock_tooltip"));
                 }
-                else if (MarketTierSources.taggedTier(resource) != offer.tier())
+                else if (!MarketTierSources.matchesOfferTier(resource, offer.tier()))
                 {
                     subscribeButton.disable();
                     PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()

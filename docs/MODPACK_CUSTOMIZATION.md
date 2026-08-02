@@ -106,6 +106,9 @@ Format:
 ```json
 {
   "replace": false,
+  "namespace_exclusions": [
+    "allthecompressed"
+  ],
   "tag_policy": "MIN",
   "tag_overrides_items": false,
   "tag_values": {
@@ -123,7 +126,11 @@ Behavior:
 
 - `tag_policy` may be `MIN`, `MAX`, or `FIRST`
 - `tag_overrides_items: false` means explicit item entries win over tag expansion
+- `namespace_exclusions` omits every item in the listed namespaces from seeds, recipe-derived values, and generated output
 - The generator writes a datapack to `<world>/datapacks/mctp_generated/data/mctradepost/item_values.json`
+- Generation merges loaded `data/mctradepost/item_values.json` files in normal datapack priority order and honors `replace`. These authoritative values are protected from recipe-derived replacement and remain available as recipe inputs.
+- The existing `mctp_generated` datapack is excluded from that merge, so stale generated values cannot feed back into later runs.
+- Output contains only values originating in `item_value_seeds.json` (including tag expansion and intentional overrides) plus newly derived items that have no authoritative value.
 
 Recommended workflow:
 
@@ -443,6 +450,7 @@ Tags are the most important integration layer for modpacks.
 
 - `data/mctradepost/tags/item/base_currency.json`
   - valid trade currencies for `tradeCurrency`
+- `data/mctradepost/tags/item/rarefinds_tier0.json`
 - `data/mctradepost/tags/item/rarefinds_tier1.json`
 - `data/mctradepost/tags/item/rarefinds_tier2.json`
 - `data/mctradepost/tags/item/rarefinds_tier3.json`
@@ -451,9 +459,96 @@ Tags are the most important integration layer for modpacks.
 
 Rare Finds notes:
 
+- Tier 0 is eligible only for Retained Search and subscriptions created from a successful search; it never enters random Rare Finds rolls
 - Each tier has a 20% chance to roll directly from its tag before falling back to chest/fishing/wandering-trader sources
 - If an item appears in multiple rarefinds tiers, the mod treats the highest tier as owner and logs a warning
 - `rarefinds_blacklist` blocks an item from appearing even if other sources would roll it
+- The effective tier tags include optional generator-owned companions named `rarefinds_generated_tier0` through
+  `rarefinds_generated_tier4`. Direct/manual membership remains definitive; generated membership only fills unclassified items.
+
+### Generated Rare Finds Tiers
+
+The pack-level analyzer can propose tiers for modded items without consulting chunks, players, colonies, or other world state:
+
+```text
+/mctp generateRareFindTiers dryRun
+/mctp generateRareFindTiers
+```
+
+The generator uses definitive manual Rare Finds tags, the blacklist, explicit generator rules, item values, food properties, non-common item rarity,
+MineColonies block tiers, recipe ingredient progression, structure-template NBT loot-table references, and statically discoverable
+loot-table outputs. It is conservative and leaves items without positive evidence unclassified. Tier 4 requires an authoritative
+signal or corroborating independent evidence.
+
+Generation writes only generator-owned files beneath `<world>/datapacks/mctp_generated`:
+
+```text
+data/mctradepost/tags/item/rarefinds_generated_tier0.json
+data/mctradepost/tags/item/rarefinds_generated_tier1.json
+data/mctradepost/tags/item/rarefinds_generated_tier2.json
+data/mctradepost/tags/item/rarefinds_generated_tier3.json
+data/mctradepost/tags/item/rarefinds_generated_tier4.json
+data/mctradepost/tags/item/rarefinds_generated_blacklist.json
+data/mctradepost/tags/item/spawn_eggs.json
+data/mctradepost/tags/item/rarefinds_generated_tier_without_value.json
+data/mctradepost/reports/rare_find_generation.json
+```
+
+Every item in a generated tag is written with `"required": false`. If that datapack is later used without one of the mods that
+contributed items, Minecraft skips each missing item individually instead of dropping the entire generated companion tag.
+
+The built-in `#mctradepost:spawn_eggs` tag is always present and is referenced by `rarefinds_blacklist`. During generation, every
+loaded item implemented as a Minecraft `SpawnEggItem` is excluded immediately and written as an optional entry to the generated
+`spawn_eggs.json`. Explicit blacklist entries remain appropriate for custom mod items that behave like eggs without extending the
+standard spawn-egg item class.
+
+The `rarefinds_generated_tier_without_value` tag records classified items with no positive entry in `item_values.json`. Such items
+cannot be selected for Retained Search until a value is assigned, and the tag can be used as input to later economy tuning.
+
+Positive values below the Tier 2 threshold generate Tier 0. Food items also generate Tier 0 regardless of automated evidence or
+namespace floors; a definitive manual Tier 1-4 assignment still wins. A successful Tier 0 search replaces a Tier 1 roll, supplies
+the item's maximum stack size, and costs twice the configured value of that stack. Tier 0 subscriptions retain that stack size and
+use the configured subscription multiplier without a Tier 1 price floor.
+
+Generator configuration is loaded from `data/mctradepost/rare_find_generation_rules.json`. Files merge in datapack order;
+`replace: true` clears earlier structure and item rules. Default value thresholds follow Trade Post coin denominations:
+
+```json
+{
+  "replace": false,
+  "value_thresholds": {
+    "tier2": 1000,
+    "tier3": 8000,
+    "tier4": 64000
+  },
+  "blacklisted_namespaces": [
+    "allthecompressed"
+  ],
+  "namespace_tier_floors": {
+    "apothic_enchanting": 2
+  },
+  "structure_tiers": {
+    "othermod:sky_temple/*": 4
+  },
+  "item_tiers": {
+    "othermod:known_relic": 3
+  }
+}
+```
+
+`blacklisted_namespaces` expands every currently loaded item whose registry namespace matches into the optional
+`rarefinds_generated_blacklist` companion tag. A namespace whose mod is absent simply contributes no items. This avoids relying
+on a non-standard per-mod "all items" tag and safely adapts when a mod adds or removes items between pack versions.
+
+`namespace_tier_floors` assigns a minimum generated tier to every non-blacklisted item in a loaded registry namespace. It promotes
+unclassified items and derived classifications below the floor, but never lowers a higher derived tier. Definitive manual tier
+tags remain absolute and are not promoted. Floors apply only to items in the named namespace and do not propagate through recipes
+to outputs in other namespaces. An absent namespace matches nothing and does not cause a loading error.
+
+Structure rules accept exact IDs or trailing-`*` prefix matches. The report includes unmatched structure templates, the
+structure-to-loot-table reverse map, manual/derived disagreements, multiple-manual-tier conflicts, evidence for every classified
+item, and summary counts. Direct NBT scanning does not discover loot assigned by procedural Java structure pieces; cover those
+cases with explicit rules.
 
 ### Crafting And Food Categories
 

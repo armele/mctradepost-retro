@@ -62,6 +62,10 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
 
             offers.add(new MarketOffer(stack, tier, price));
         }
+
+        // Keep active subscriptions at the top, including offers loaded from saves
+        // created before subscription rows were inserted first on the server.
+        offers.sort((left, right) -> Boolean.compare(isSubscribed(right.stack()), isSubscribed(left.stack())));
     }
 
     /**

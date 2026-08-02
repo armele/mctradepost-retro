@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceSourcingModuleView;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule.RetainedSearch;
 import com.ldtteam.blockui.Pane;
@@ -59,8 +60,12 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     {
         new WindowSelectStewIngredients(this,
             stack -> !stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)
-                && (stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG) || stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)
-                || stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG) || stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)),
+                && MarketplaceItemListModule.marketplaceValue(stack) > 0
+                && (stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG)
+                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)
+                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)
+                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)
+                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)),
             (stack, ignored) -> new MarketplaceSourcingMessage(buildingView, Action.ADD_SEARCH, stack, 0).sendToServer(), true).open();
     }
 

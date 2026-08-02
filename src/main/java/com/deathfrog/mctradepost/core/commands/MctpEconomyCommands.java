@@ -4,8 +4,11 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator;
 import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator.Options;
 import com.deathfrog.mctradepost.core.economy.DerivedItemValueGenerator.Report;
+import com.deathfrog.mctradepost.core.economy.ExistingItemValueLoader;
 import com.deathfrog.mctradepost.core.economy.GeneratedValuePackWriter;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader;
+import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader.SeedData;
+import com.deathfrog.mctradepost.core.rarefinds.generation.RareFindGenerationCommand;
 import com.mojang.brigadier.CommandDispatcher;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -42,6 +45,7 @@ public final class MctpEconomyCommands
                         .executes(ctx -> run(ctx.getSource(), false))
                         .then(Commands.literal("dryRun").executes(ctx -> run(ctx.getSource(), true)))
                 )
+                .then(RareFindGenerationCommand.command())
         );
     }
 
@@ -57,15 +61,18 @@ public final class MctpEconomyCommands
 
         try
         {
-            // 1) Load seed values (and optionally base item_values.json if you want).
-            final Map<?, Integer> seeds = ItemValueSeedLoader.loadSeeds(server);
+            // 1) Load authoritative datapack values and generator-specific seeds separately.
+            final Map<?, Integer> authoritativeValues = ExistingItemValueLoader.load(server);
+            final SeedData seedData = ItemValueSeedLoader.loadSeedData(server);
+            final Map<?, Integer> seeds = seedData.values();
 
             // 2) Derive values via fixpoint recipe propagation.
             final Options options = new DerivedItemValueGenerator.Options()
                 .setApplyCookingPremium(false) // recommended default
-                .setMaxIterations(50);
+                .setMaxIterations(50)
+                .setNamespaceExclusions(seedData.namespaceExclusions());
 
-            final Report report = DerivedItemValueGenerator.generate(server, seeds, options);
+            final Report report = DerivedItemValueGenerator.generate(server, authoritativeValues, seeds, options);
 
             // 3) Write datapack JSON (unless dryRun).
             if (!dryRun)
@@ -77,8 +84,9 @@ public final class MctpEconomyCommands
 
             source.sendSuccess(() -> Component.literal(
                 "Seeds: " + seeds.size()
+                    + ", Authoritative inputs: " + authoritativeValues.size()
                     + ", Derived: " + report.derivedCount()
-                    + ", Total Known: " + report.values().size()
+                    + ", Values to write: " + report.values().size()
                     + ", Iterations: " + report.iterations()
                     + ", Recipes Considered: " + report.recipesConsidered()
                     + ", Recipes Applied: " + report.recipesApplied()

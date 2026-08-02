@@ -448,7 +448,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             List<MarketOffer> subscriptionOffers = sourcing.subscriptionOffers();
             offers.removeIf(offer -> subscriptionOffers.stream()
                 .anyMatch(subscription -> ItemStack.isSameItemSameComponents(subscription.stack(), offer.stack())));
-            offers.addAll(subscriptionOffers);
+            offers.addAll(0, subscriptionOffers);
         }
 
 
@@ -557,8 +557,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         if (sourcing == null) return;
         MarketOffer offer = offers.stream().filter(candidate -> ItemStack.isSameItemSameComponents(candidate.stack(), stack)).findFirst().orElse(null);
         if (offer == null) return;
-        MarketTier taggedTier = MarketTierSources.taggedTier(offer.stack());
-        if (taggedTier == null || taggedTier != offer.tier())
+        if (!MarketTierSources.matchesOfferTier(offer.stack(), offer.tier()))
         {
             MessageUtils.format("mctradepost.subscription.ineligible").sendTo(player);
             return;

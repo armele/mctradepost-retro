@@ -370,6 +370,9 @@ public final class MarketTierSources
         boolean in3 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG);
         boolean in4 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG);
 
+        // Tier zero is explicitly searchable but never belongs to a random roll pool.
+        if (!in1 && !in2 && !in3 && !in4 && stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG)) return false;
+
         // Ownership: highest tier tag wins.
         int ownedTier = tierIndex(in1, in2, in3, in4);
 
@@ -397,6 +400,44 @@ public final class MarketTierSources
         if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)) return MarketTier.TIER2_UNCOMMON;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)) return MarketTier.TIER1_COMMON;
         return null;
+    }
+
+    /**
+     * Returns whether an item is effectively classified as search-only tier zero.
+     * Higher definitive tier tags win if a datapack accidentally assigns both.
+     *
+     * @param stack item to inspect
+     * @return whether tier zero owns the item
+     */
+    public static boolean isTierZero(ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
+        return taggedTier(stack) == null && stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG);
+    }
+
+    /**
+     * Resolves the market slot used by a retained-search item. Tier zero deliberately
+     * maps to a tier-one replacement slot and never becomes a random roll tier.
+     *
+     * @param stack retained-search candidate
+     * @return ordinary tagged tier, tier one for tier zero, or {@code null}
+     */
+    public static MarketTier retainedSearchTier(ItemStack stack)
+    {
+        final MarketTier tier = taggedTier(stack);
+        return tier != null ? tier : isTierZero(stack) ? MarketTier.TIER1_COMMON : null;
+    }
+
+    /**
+     * Checks whether an offer's stack classification matches its runtime market slot.
+     *
+     * @param stack offered item
+     * @param tier runtime offer tier
+     * @return whether the offer may become a subscription
+     */
+    public static boolean matchesOfferTier(ItemStack stack, MarketTier tier)
+    {
+        return taggedTier(stack) == tier || (tier == MarketTier.TIER1_COMMON && isTierZero(stack));
     }
 
     /**

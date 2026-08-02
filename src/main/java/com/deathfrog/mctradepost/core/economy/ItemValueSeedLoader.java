@@ -19,8 +19,10 @@ import net.minecraft.world.item.Item;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
@@ -34,6 +36,7 @@ public final class ItemValueSeedLoader
     private static final @Nonnull String SETTING_TAG_OVERRIDES_ITEMS = "tag_overrides_items";
     private static final @Nonnull String SECTION_TAG_VALUES = "tag_values";
     private static final @Nonnull String SECTION_VALUES = "values";
+    private static final @Nonnull String SECTION_NAMESPACE_EXCLUSIONS = "namespace_exclusions";
     private static final @Nonnull String TAG_PREFIX = "#";
 
     private static final ResourceLocation SEED_PATH = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, SEED_FILE_NAME);
@@ -52,12 +55,15 @@ public final class ItemValueSeedLoader
 
     private ItemValueSeedLoader() { }
 
+    public record SeedData(Map<Item, Integer> values, Set<String> namespaceExclusions) { }
+
     /**
      * Loads item values from the data pack resource file {@link #SEED_FILE_NAME}.
      * This file should contain a JSON object with the following structure:
      * <pre>
      * {
      *     "replace": boolean, // if true, previous item values will be cleared
+     *     "namespace_exclusions": ["modid"], // namespaces omitted from generated values
      *     "tag_policy": string, // one of "MIN", "MAX", "FIRST"
      *     "tag_overrides_items": boolean, // if true, tag values can override explicit item values
      *     "tag_values": {
@@ -73,12 +79,21 @@ public final class ItemValueSeedLoader
      *
      * @return a map containing the loaded item values
      */
-    @SuppressWarnings("null")
     public static Map<Item, Integer> loadSeeds(final MinecraftServer server)
+    {
+        return loadSeedData(server).values();
+    }
+
+    /**
+     * Loads seed values together with namespaces that must be omitted from generation.
+     */
+    @SuppressWarnings("null")
+    public static SeedData loadSeedData(final MinecraftServer server)
     {
         final ResourceManager rm = server.getResourceManager();
 
         final Map<Item, Integer> out = new HashMap<>();
+        final Set<String> namespaceExclusions = new HashSet<>();
 
         // We need RegistryAccess to resolve tags reliably
         final Registry<Item> itemRegistry = server.registryAccess().registryOrThrow(Registries.ITEM);
@@ -87,7 +102,7 @@ public final class ItemValueSeedLoader
         if (resources.isEmpty())
         {
             MCTradePostMod.LOGGER.warn("No seed file found at resource id {}", SEED_PATH);
-            return out;
+            return new SeedData(out, namespaceExclusions);
         }
 
         for (final Resource res : resources)
@@ -105,6 +120,27 @@ public final class ItemValueSeedLoader
                 if (replace)
                 {
                     out.clear();
+                    namespaceExclusions.clear();
+                }
+
+                if (obj.has(SECTION_NAMESPACE_EXCLUSIONS) && obj.get(SECTION_NAMESPACE_EXCLUSIONS).isJsonArray())
+                {
+                    for (final JsonElement namespaceElement : obj.getAsJsonArray(SECTION_NAMESPACE_EXCLUSIONS))
+                    {
+                        if (!namespaceElement.isJsonPrimitive() || !namespaceElement.getAsJsonPrimitive().isString())
+                        {
+                            MCTradePostMod.LOGGER.warn("Seed file {}: namespace_exclusions entries must be strings.", SEED_PATH);
+                            continue;
+                        }
+
+                        final String namespace = namespaceElement.getAsString().trim().toLowerCase(java.util.Locale.ROOT);
+                        if (ResourceLocation.tryBuild(namespace, "validation") == null)
+                        {
+                            MCTradePostMod.LOGGER.warn("Seed file {}: invalid namespace exclusion: {}", SEED_PATH, namespace);
+                            continue;
+                        }
+                        namespaceExclusions.add(namespace);
+                    }
                 }
 
                 final TagPolicy policy = parseTagPolicy(obj);
@@ -192,7 +228,9 @@ public final class ItemValueSeedLoader
         }
 
         MCTradePostMod.LOGGER.info("Loaded {} seed item values (including tag expansion) from {}", out.size(), SEED_PATH);
-        return out;
+        out.entrySet().removeIf(entry -> namespaceExclusions.contains(ITEM.getKey(entry.getKey()).getNamespace()));
+        MCTradePostMod.LOGGER.info("Loaded {} item-value namespace exclusions from {}", namespaceExclusions.size(), SEED_PATH);
+        return new SeedData(Map.copyOf(out), Set.copyOf(namespaceExclusions));
     }
 
     /**

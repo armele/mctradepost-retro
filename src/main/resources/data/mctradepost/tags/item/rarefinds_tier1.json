@@ -1,17 +1,10 @@
 {
   "replace": false,
   "values": [
-    "#c:strings",
-    "#c:mushrooms",
-    {"id": "#c:fruits", "required": false},
-    {"id": "#c:vegetables", "required": false},
-    "#minecraft:saplings",
-    "#minecraft:pig_food",
-    "#minecraft:sheep_food",
-    "#minecraft:rabbit_food",
-    "#minecraft:cow_food",
-    "#minecraft:chicken_food",
-    "#mctradepost:vegetable",
+    {
+      "id": "#mctradepost:rarefinds_generated_tier1",
+      "required": false
+    },
     "minecraft:bread",
     "minecraft:torch",
     "minecraft:bone",
@@ -24,7 +17,7 @@
     "minecraft:clay_ball",
     "minecraft:flint",
     "minecraft:sand",
-    "minecraft:rotten_flesh", 
+    "minecraft:rotten_flesh",
     "minecraft:rooted_dirt",
     "minecraft:gravel",
     "minecraft:coarse_dirt",
@@ -39,10 +32,9 @@
     "minecraft:sugar_cane",
     "minecraft:cartography_table",
     "minecraft:fletching_table",
-    "minecraft:brown_mushroom",
-    "minecraft:red_mushroom",
     "minecraft:lily_pad",
     "minecolonies:composted_dirt",
+    "minecolonies:durum",
     "minecraft:smooth_stone",
     "minecraft:smooth_stone_slab",
     "minecraft:smooth_sandstone",
@@ -52,11 +44,187 @@
     "minecraft:paper",
     "minecraft:campfire",
     "minecraft:coal_ore",
-    "minecraft:ice"
+    "minecraft:ice",
+    "mctradepost:mixed_stone",
+    "mctradepost:mixed_stone_slab",
+    "mctradepost:mixed_stone_stairs",
+    "mctradepost:mixed_stone_wall",
+    "mctradepost:mixed_stone_brick",
+    "mctradepost:mixed_stone_brick_slab",
+    "mctradepost:mixed_stone_brick_stairs",
+    "mctradepost:mixed_stone_brick_wall",
+    "mctradepost:plaster",
+    "mctradepost:plaster_slab",
+    "mctradepost:plaster_stairs",
+    "mctradepost:plaster_wall",
+    "mctradepost:reinforced_leather",
+    "mctradepost:rough_brick",
+    "mctradepost:rough_brick_slab",
+    "mctradepost:rough_brick_stairs",
+    "mctradepost:rough_brick_wall",
+    "mctradepost:rough_stone",
+    "mctradepost:rough_stone_slab",
+    "mctradepost:rough_stone_stairs",
+    "mctradepost:rough_stone_wall",
+    "mctradepost:stew_seasoning",
+    "mctradepost:thatch",
+    "mctradepost:thatch_slab",
+    "mctradepost:thatch_stairs",
+    "mctradepost:thatch_wall",
+    "mctradepost:woven_kelp",
+    "mctradepost:woven_kelp_slab",
+    "mctradepost:woven_kelp_stairs",
+    "mctradepost:woven_kelp_wall",
+    "minecolonies:barrel_block",
+    "domum_ornamentum:architectscutter",
+    "domum_ornamentum:beige_stone_bricks",
+    "domum_ornamentum:cream_bricks",
+    "domum_ornamentum:cream_stone_bricks",
+    "domum_ornamentum:brown_bricks",
+    "domum_ornamentum:brown_stone_bricks",
+    "domum_ornamentum:black_brick_extra",
+    "domum_ornamentum:blue_brick_extra",
+    "domum_ornamentum:brown_brick_extra",
+    "domum_ornamentum:cyan_brick_extra",
+    "domum_ornamentum:gray_brick_extra",
+    "domum_ornamentum:green_brick_extra",
+    "domum_ornamentum:lime_brick_extra",
+    "domum_ornamentum:yellow_brick_extra",
+    "domum_ornamentum:orange_brick_extra",
+    "domum_ornamentum:magenta_brick_extra",
+    "domum_ornamentum:pink_brick_extra",
+    "domum_ornamentum:light_blue_brick_extra",
+    "domum_ornamentum:light_gray_brick_extra",
+    "domum_ornamentum:purple_brick_extra",
+    "domum_ornamentum:red_brick_extra",
+    "domum_ornamentum:white_brick_extra",
+    "domum_ornamentum:blue_cobblestone_extra",
+    "domum_ornamentum:green_cobblestone_extra",
+    "domum_ornamentum:mossy_cobblestone_extra",
+    "domum_ornamentum:purple_cobblestone_extra",
+    "domum_ornamentum:black_floating_carpet",
+    "domum_ornamentum:blue_floating_carpet",
+    "domum_ornamentum:cyan_floating_carpet",
+    "domum_ornamentum:brown_floating_carpet",
+    "domum_ornamentum:gray_floating_carpet",
+    "domum_ornamentum:yellow_floating_carpet",
+    "domum_ornamentum:green_floating_carpet",
+    "domum_ornamentum:lime_floating_carpet",
+    "domum_ornamentum:orange_floating_carpet",
+    "domum_ornamentum:pink_floating_carpet",
+    "domum_ornamentum:white_floating_carpet",
+    "domum_ornamentum:red_floating_carpet",
+    "domum_ornamentum:purple_floating_carpet",
+    "domum_ornamentum:light_blue_floating_carpet",
+    "domum_ornamentum:light_gray_floating_carpet",
+    "domum_ornamentum:magenta_floating_carpet",
+    "domum_ornamentum:blockbarreldeco_onside",
+    "domum_ornamentum:blockbarreldeco_standing",
+    "domum_ornamentum:brick_extra",
+    "domum_ornamentum:cactus_extra",
+    "domum_ornamentum:green_cactus_extra",
+    "domum_ornamentum:cobblestone_extra",
+    "domum_ornamentum:paper_extra",
+    "domum_ornamentum:white_paper_extra",
+    "domum_ornamentum:roan_bricks",
+    "domum_ornamentum:roan_stone_bricks",
+    "domum_ornamentum:sand_bricks",
+    "domum_ornamentum:sand_stone_bricks",
+    "domum_ornamentum:wheat_extra",
+    "domum_ornamentum:beige_bricks",
+    {
+      "id": "mekanism:nugget_refined_obsidian",
+      "required": false
+    },
+    {
+      "id": "mekanism:nugget_refined_glowstone",
+      "required": false
+    },
+    {
+      "id": "mekanism:basic_logistical_transporter",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:basic_tier_upgrade",
+      "required": false
+    },
+    {
+      "id": "mekanism:configuration_card",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_bronze",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_osmium",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_lead",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_tin",
+      "required": false
+    },
+    {
+      "id": "mekanism:ingot_steel",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_copper",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_iron",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_gold",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_osmium",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_tin",
+      "required": false
+    },
+    {
+      "id": "mekanism:dirty_dust_lead",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:copper_shulker_box",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:basic_to_copper_tier_upgrade",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:pump_upgrade",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:xp_pump_upgrade",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:barrel",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:chest",
+      "required": false
+    }
   ],
   "remove": [
     "minecraft:flowering_azalea",
     "minecraft:mangrove_propagule",
-    "minecraft:golden_carrot"
+    "minecraft:golden_carrot",
+    "minecraft:warped_planks"
   ]
 }

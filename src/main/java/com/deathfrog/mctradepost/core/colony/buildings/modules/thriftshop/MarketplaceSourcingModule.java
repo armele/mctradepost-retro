@@ -83,7 +83,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     }
 
     /**
-     * Adds an explicitly tier-tagged item to the retained-search list.
+     * Adds an explicitly tier-tagged item with a configured value to the retained-search list.
      *
      * @param stack selected item
      * @return whether the selection was accepted
@@ -91,10 +91,12 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     @SuppressWarnings("null")
     public boolean addSearch(ItemStack stack)
     {
-        MarketTier tier = MarketTierSources.taggedTier(stack);
+        MarketTier tier = MarketTierSources.retainedSearchTier(stack);
         int unlockedTier = (int) building.getColony().getResearchManager().getResearchEffects()
             .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER);
-        if (tier == null || tier.ordinal() + 1 > unlockedTier
+        boolean tierZero = MarketTierSources.isTierZero(stack);
+        if (tier == null || MarketplaceItemListModule.marketplaceValue(stack) <= 0
+            || (!tierZero && tier.ordinal() + 1 > unlockedTier)
             || searches.size() >= capacity(MCTPResearchConstants.RETAINED_SEARCH) || containsSearch(stack)) return false;
         searches.add(new RetainedSearch(stack.copyWithCount(1), tier, 0, 0L));
         markDirty();
@@ -321,11 +323,16 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
                 MarketOffer replaced = offers.get(i);
                 if (replaced.tier() == search.tier())
                 {
-                    ItemStack promoted = search.stack().copyWithCount(replaced.stack().getCount());
+                    final boolean tierZero = MarketTierSources.isTierZero(search.stack());
+                    ItemStack promoted = search.stack().copyWithCount(tierZero
+                        ? search.stack().getMaxStackSize()
+                        : replaced.stack().getCount());
 
                     if (promoted == null) continue;
 
-                    int promotedPrice = (int) Math.min(Integer.MAX_VALUE, (long) replaced.price() * 2L);
+                    int promotedPrice = tierZero
+                        ? tierZeroPrice(promoted)
+                        : (int) Math.min(Integer.MAX_VALUE, (long) replaced.price() * 2L);
                     offers.set(i, new MarketOffer(promoted, search.tier(), promotedPrice));
                     promotedTiers.add(search.tier());
                     break;
@@ -343,7 +350,9 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
      */
     public static int subscriptionPrice(ItemStack stack, MarketTier tier)
     {
-        int itemValue = MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
+        long itemValue = (long) MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
+        if (MarketTierSources.isTierZero(stack))
+            return boundedPrice(itemValue * MCTPConfig.subscriptionPriceMultiplier.get());
         int coin = MCTPConfig.tradeCoinValue.get();
         int floor = switch (tier)
         {
@@ -352,7 +361,20 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
             case TIER3_RARE -> coin * CoinItem.GOLD_MULTIPLIER;
             case TIER4_EPIC -> coin * CoinItem.DIAMOND_MULTIPLIER;
         };
-        return Math.max(1, (int) Math.ceil(Math.max(itemValue, floor) * MCTPConfig.subscriptionPriceMultiplier.get()));
+        return boundedPrice(Math.max(itemValue, floor) * MCTPConfig.subscriptionPriceMultiplier.get());
+    }
+
+    /** Computes a tier-zero retained offer from configured unit value, full stack size, and the search premium. */
+    private static int tierZeroPrice(ItemStack stack)
+    {
+        final long base = (long) MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, base * 2L));
+    }
+
+    /** Converts a calculated economic price to the positive integer range accepted by offers. */
+    private static int boundedPrice(double price)
+    {
+        return (int) Math.max(1.0D, Math.min(Integer.MAX_VALUE, Math.ceil(price)));
     }
 
     /** Returns the configured bonus for an investment that is active on the supplied day. */
