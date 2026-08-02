@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.api.entity.pets;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -955,7 +956,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         String pathStr = "<null>";
         try
         {
-            final var path = animal.getNavigation().getPath();
+            final Path path = animal.getNavigation().getPath();
             if (path != null)
             {
                 pathStr = "done=" + path.isDone()
@@ -1061,7 +1062,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         try
         {
             // GoalSelector internals vary by mappings, so we do best-effort reflection.
-            var sel = getAnimal().goalSelector;
+            GoalSelector sel = getAnimal().goalSelector;
 
             String disabled = "<unknown>";
             String locked = "<unknown>";
@@ -1069,7 +1070,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
             try
             {
-                var f = sel.getClass().getDeclaredField("disabledFlags");
+                Field f = sel.getClass().getDeclaredField("disabledFlags");
                 f.setAccessible(true);
                 disabled = String.valueOf(f.get(sel));
             }
@@ -1078,7 +1079,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             try
             {
                 // Often a Map<Goal.Flag, WrappedGoal> or similar
-                var f = sel.getClass().getDeclaredField("lockedFlags");
+                Field f = sel.getClass().getDeclaredField("lockedFlags");
                 f.setAccessible(true);
                 locked = String.valueOf(f.get(sel));
             }
@@ -1087,7 +1088,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             try
             {
                 // Often a Set<WrappedGoal>
-                var f = sel.getClass().getDeclaredField("runningGoals");
+                Field f = sel.getClass().getDeclaredField("runningGoals");
                 f.setAccessible(true);
                 running = String.valueOf(f.get(sel));
             }
@@ -1114,7 +1115,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     private void dumpMoveLockOwner()
     {
-        final var animal = getAnimal();
+        final P animal = getAnimal();
         if (animal == null) return;
 
         try
@@ -1157,7 +1158,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             try
             {
                 // Prefer method if present
-                var m = wrapped.getClass().getMethod("getGoal");
+                Method m = wrapped.getClass().getMethod("getGoal");
                 goal = (Goal) m.invoke(wrapped);
             }
             catch (Throwable ignored)

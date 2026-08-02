@@ -1,0 +1,36 @@
+{
+  "subtitle": "com.mctradepost.research.economic.marketplace_subscriptions.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/thriftshop",
+  "researchLevel": 2,
+  "sortOrder": 3,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:marketplace",
+      "level": 3
+    }
+  ],
+  "costs": [
+    {
+      "count": 8,
+      "item": "mctradepost:mctp_coin_gold"
+    },
+    {
+      "count": 1,
+      "item": "minecraft:writable_book"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/marketplace_subscriptions",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:writable_book"
+}

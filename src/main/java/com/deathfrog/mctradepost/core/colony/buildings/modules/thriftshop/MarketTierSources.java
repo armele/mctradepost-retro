@@ -107,6 +107,8 @@ public final class MarketTierSources
         List<MarketOffer> offers = new ArrayList<>();
         for (ItemStack s : stacks)
         {
+            if (s == null) continue;
+
             offers.add(new MarketOffer(s, tier, MarketDailyRoller.priceForTier(tier, rand)));
         }
         return offers;
@@ -358,7 +360,7 @@ public final class MarketTierSources
      * @param tier the market tier to check against
      * @return true if the stack is sellable, false otherwise
      */
-    private static boolean isSellable(ItemStack stack, MarketTier rollingTier)
+    public static boolean isSellable(ItemStack stack, MarketTier rollingTier)
     {
         if (stack.isEmpty()) return false;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
@@ -379,6 +381,22 @@ public final class MarketTierSources
 
         // Untagged: allowed (subject to other rules)
         return true;
+    }
+
+    /**
+     * Finds the highest Rare Finds tier explicitly assigned to an item.
+     *
+     * @param stack item to inspect
+     * @return the owned tier, or {@code null} when the item is untagged or blacklisted
+     */
+    public static MarketTier taggedTier(ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return null;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)) return MarketTier.TIER4_EPIC;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)) return MarketTier.TIER3_RARE;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)) return MarketTier.TIER2_UNCOMMON;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)) return MarketTier.TIER1_COMMON;
+        return null;
     }
 
     /**

@@ -1,0 +1,36 @@
+{
+  "subtitle": "com.mctradepost.research.economic.retained_search.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/thriftshop",
+  "researchLevel": 2,
+  "sortOrder": 2,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:marketplace",
+      "level": 3
+    }
+  ],
+  "costs": [
+    {
+      "count": 8,
+      "item": "mctradepost:mctp_coin_gold"
+    },
+    {
+      "count": 1,
+      "item": "minecraft:spyglass"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/retained_search",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:spyglass"
+}

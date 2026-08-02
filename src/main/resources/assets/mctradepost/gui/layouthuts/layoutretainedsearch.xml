@@ -1,0 +1,19 @@
+<window xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/ldtteam/BlockUI/version/main/src/main/resources/assets/blockui/gui/block_ui.xsd" size="190 244">
+    <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+    <text size="150 11" pos="20 13" textalign="MIDDLE" color="black" label="$(mctradepost.retained_search.title)"/>
+    <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="166 13" visible="true"/>
+    <button id="addSearch" size="70 17" pos="18 30" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" label="$(mctradepost.retained_search.add)"/>
+    <text id="capacity" size="60 12" pos="110 33" color="black"/>
+    <list id="searchlist" size="170 137" pos="12 52" emptytext="$(mctradepost.retained_search.empty)" emptycolor="black">
+        <box size="100% 44" linewidth="1">
+            <itemicon id="searchIcon" size="17 17" pos="2 1"/>
+            <text id="searchName" size="120 12" pos="21 2" color="black"/>
+            <dropdown id="investmentLevel" size="92 15" pos="2 17" maxContentHeight="48" dropDownSize="104 48" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black">
+                <button id="button" size="92 15" pos="0 0" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black"/>
+            </dropdown>
+            <button label="$(mctradepost.retained_search.start)" id="invest" pos="96 17" size="66 15" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black"/>
+            <text id="investment" size="135 11" pos="27 32" textalign="MIDDLE_RIGHT" color="black"/>
+            <button label="X" id="removeSearch" pos="145 1" size="17 15" source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="red"/>
+        </box>
+    </list>
+</window>

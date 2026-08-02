@@ -11,6 +11,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -47,7 +48,7 @@ public final class MctpEconomyCommands
     @SuppressWarnings("null")
     private static int run(final CommandSourceStack source, final boolean dryRun)
     {
-        final var server = source.getServer();
+        final MinecraftServer server = source.getServer();
         if (server == null)
         {
             source.sendFailure(Component.literal("No server available."));

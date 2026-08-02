@@ -18,8 +18,10 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ResortGuestLis
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StewmelierIngredientModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
+import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceSourcingModuleView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.SortSetting;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.ThriftShopOffersModule;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingRecycling;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
@@ -120,6 +122,11 @@ public class MCTPBuildingModules
       new BuildingEntry.ModuleProducer<>("thriftshop_module", 
         () -> new ThriftShopOffersModule(),
         () -> ThriftShopOffersModuleView::new);
+
+    public static final BuildingEntry.ModuleProducer<MarketplaceSourcingModule, MarketplaceSourcingModuleView> MARKETPLACE_SOURCING =
+      new BuildingEntry.ModuleProducer<>("marketplace_sourcing",
+        MarketplaceSourcingModule::new,
+        () -> MarketplaceSourcingModuleView::new);
 
     public static final BuildingEntry.ModuleProducer<ItemListModule,ItemListModuleView> ITEMLIST_SELLABLE =
       new BuildingEntry.ModuleProducer<>("itemlist_sellable", () -> new MarketplaceItemListModule(EntityAIWorkShopkeeper.SELLABLE_LIST),

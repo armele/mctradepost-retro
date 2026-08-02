@@ -2,9 +2,13 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketTier;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketTierSources;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
@@ -37,6 +41,8 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
     private static final String OFFER_NAME  = "offerName";
     private static final String OFFER_TAKE  = "offerTake";
     private static final String OFFER_PRICE = "offerPrice";
+    private static final String OFFER_SUBSCRIBE = "offerSubscribe";
+    private static final String OFFER_SUBSCRIPTION_STATUS = "offerSubscriptionStatus";
     private static final String REROLL_OFFERS  = "rerollOffers";
     private static final String REROLL_PRICE  = "rerollPrice";
 
@@ -62,6 +68,7 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
         this.buildingView = buildingView;
         offerList = this.window.findPaneOfTypeByID("offerlist", ScrollingList.class);
         registerButton(OFFER_TAKE, this::takeOffer);
+        registerButton(OFFER_SUBSCRIBE, this::subscribe);
         registerButton(REROLL_OFFERS, this::rerollOffers);
 
         updateRerollPrice();
@@ -121,13 +128,32 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
     }
 
     /**
+     * Requests activation of a recurring subscription for the selected live offer.
+     *
+     * @param button clicked subscription control
+     */
+    private void subscribe(final Button button)
+    {
+        final int row = offerList.getListElementIndexByPane(button);
+        final MarketOffer offer = moduleView.getOffers().get(row);
+        if (moduleView.isSubscribed(offer.stack()))
+        {
+            new MarketplaceSourcingMessage(buildingView, Action.CANCEL_SUBSCRIPTION, offer.stack(), 0).sendToServer();
+        }
+        else
+        {
+            new ThriftShopMessage(buildingView, ThriftShopMessage.ThriftAction.SUBSCRIBE, offer.stack(), offer.price()).sendToServer();
+        }
+    }
+
+    /**
      * Called when the reroll button is clicked.
      * 
      * @param button the button that was clicked.
      */
     private void rerollOffers(final Button button)
     {   
-        new ThriftShopMessage(buildingView,ThriftShopMessage.ThriftAction.REROLL, ItemStack.EMPTY, -1).sendToServer();
+        new ThriftShopMessage(buildingView,ThriftShopMessage.ThriftAction.REROLL, NullnessBridge.assumeNonnull(ItemStack.EMPTY), -1).sendToServer();
     }
 
     /**
@@ -206,6 +232,43 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
                         .build();
 
                 rowPane.findPaneOfTypeByID(OFFER_ICON, ItemIcon.class).setItem(resource);
+
+                Button subscribeButton = rowPane.findPaneOfTypeByID(OFFER_SUBSCRIBE, Button.class);
+                Button buyButton = rowPane.findPaneOfTypeByID(OFFER_TAKE, Button.class);
+                Text subscriptionStatus = rowPane.findPaneOfTypeByID(OFFER_SUBSCRIPTION_STATUS, Text.class);
+                boolean subscribed = moduleView.isSubscribed(resource);
+                subscribeButton.enable();
+                buyButton.enable();
+                subscribeButton.setText(Component.translatable(subscribed
+                    ? "mctradepost.subscription.cancel"
+                    : "mctradepost.subscription.subscribe"));
+                subscriptionStatus.setText(subscribed
+                    ? Component.translatable("mctradepost.subscription.status")
+                    : Component.empty());
+                PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build().setText(Component.empty());
+                if (subscribed)
+                {
+                    buyButton.disable();
+                    PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
+                        .setText(Component.translatable("mctradepost.subscription.cancel.tooltip"));
+                }
+                else if (moduleView.getSubscriptionCapacity() == 0)
+                {
+                    subscribeButton.disable();
+                    PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
+                        .setText(Component.translatable("mctradepost.research.unlock_tooltip"));
+                }
+                else if (MarketTierSources.taggedTier(resource) != offer.tier())
+                {
+                    subscribeButton.disable();
+                    PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
+                        .setText(Component.translatable("mctradepost.subscription.ineligible.tooltip"));
+                }
+                else
+                {
+                    PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
+                        .setText(Component.translatable("mctradepost.subscription.create.tooltip"));
+                }
             }
         });
         

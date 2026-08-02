@@ -19,6 +19,7 @@ import net.minecraft.world.item.Item;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -82,7 +83,7 @@ public final class ItemValueSeedLoader
         // We need RegistryAccess to resolve tags reliably
         final Registry<Item> itemRegistry = server.registryAccess().registryOrThrow(Registries.ITEM);
 
-        final var resources = rm.getResourceStack(SEED_PATH);
+        final List<Resource> resources = rm.getResourceStack(SEED_PATH);
         if (resources.isEmpty())
         {
             MCTradePostMod.LOGGER.warn("No seed file found at resource id {}", SEED_PATH);
@@ -91,7 +92,7 @@ public final class ItemValueSeedLoader
 
         for (final Resource res : resources)
         {
-            try (var reader = new InputStreamReader(res.open(), StandardCharsets.UTF_8))
+            try (InputStreamReader reader = new InputStreamReader(res.open(), StandardCharsets.UTF_8))
             {
                 final JsonElement elem = JsonParser.parseReader(reader);
                 if (!elem.isJsonObject())
@@ -113,7 +114,7 @@ public final class ItemValueSeedLoader
                 if (obj.has(SECTION_VALUES) && obj.get(SECTION_VALUES).isJsonObject())
                 {
                     final JsonObject values = obj.getAsJsonObject(SECTION_VALUES);
-                    for (final var entry : values.entrySet())
+                    for (final Map.Entry<String,JsonElement> entry : values.entrySet())
                     {
                         final String itemId = entry.getKey();
                         final int value = entry.getValue().getAsInt();
@@ -140,7 +141,7 @@ public final class ItemValueSeedLoader
                 if (obj.has(SECTION_TAG_VALUES) && obj.get(SECTION_TAG_VALUES).isJsonObject())
                 {
                     final JsonObject tagValues = obj.getAsJsonObject(SECTION_TAG_VALUES);
-                    for (final var entry : tagValues.entrySet())
+                    for (final Map.Entry<String,JsonElement> entry : tagValues.entrySet())
                     {
                         final String tagKeyStr = entry.getKey();
                         final int value = entry.getValue().getAsInt();

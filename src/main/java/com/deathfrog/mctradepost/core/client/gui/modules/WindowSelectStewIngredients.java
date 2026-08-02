@@ -63,6 +63,7 @@ public class WindowSelectStewIngredients extends AbstractWindowSkeleton
      * The consumer that receives the block quantity.
      */
     private final BiConsumer<ItemStack, Integer> consumer;
+    private final boolean simpleSelection;
 
     /**
      * The filter string.
@@ -82,6 +83,20 @@ public class WindowSelectStewIngredients extends AbstractWindowSkeleton
      */
     public WindowSelectStewIngredients(final BOWindow origin, final Predicate<ItemStack> test, final BiConsumer<ItemStack, Integer> consumer)
     {
+        this(origin, test, consumer, false);
+    }
+
+    /**
+     * Creates an item selection window which can omit the stew-specific quantity control.
+     *
+     * @param origin originating window
+     * @param test item eligibility predicate
+     * @param consumer selected-item consumer
+     * @param simpleSelection whether quantity controls should be hidden and a quantity of one returned
+     */
+    public WindowSelectStewIngredients(final BOWindow origin, final Predicate<ItemStack> test,
+        final BiConsumer<ItemStack, Integer> consumer, final boolean simpleSelection)
+    {
         super(origin, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/windowselectstewingredients.xml"));
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
         registerButton(BUTTON_DONE, this::doneClicked);
@@ -96,6 +111,12 @@ public class WindowSelectStewIngredients extends AbstractWindowSkeleton
         this.findPaneOfTypeByID("resourceName", Text.class).setText(ItemStack.EMPTY.getHoverName());
         this.test = test;
         this.consumer = consumer;
+        this.simpleSelection = simpleSelection;
+        if (simpleSelection)
+        {
+            quantityInput.hide();
+            this.findPaneByID("quantitylabel").hide();
+        }
 
         window.findPaneOfTypeByID(NAME_LABEL, TextField.class).setHandler(input -> {
             final String newFilter = input.getText();
@@ -135,14 +156,17 @@ public class WindowSelectStewIngredients extends AbstractWindowSkeleton
     {
         final ItemStack to = this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).getItem();
 
-        int quantity = 5;
-        try
+        int quantity = simpleSelection ? 1 : 5;
+        if (!simpleSelection)
         {
-            quantity = Integer.parseInt(this.findPaneOfTypeByID("quantity", TextField.class).getText());
-        }
-        catch (final NumberFormatException ex)
-        {
-            Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 5 stacks!");
+            try
+            {
+                quantity = Integer.parseInt(this.findPaneOfTypeByID("quantity", TextField.class).getText());
+            }
+            catch (final NumberFormatException ex)
+            {
+                Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 5 stacks!");
+            }
         }
 
         this.consumer.accept(to, quantity);

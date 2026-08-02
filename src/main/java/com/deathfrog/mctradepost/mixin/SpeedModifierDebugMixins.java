@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -107,7 +108,7 @@ public final class SpeedModifierDebugMixins
             try
             {
                 // Common in Mojmap/Yarn: "mob"
-                final var f = nav.getClass().getDeclaredField("mob");
+                final Field f = nav.getClass().getDeclaredField("mob");
                 f.setAccessible(true);
                 final Object o = f.get(nav);
                 return (o instanceof Entity e) ? e : null;
@@ -119,10 +120,10 @@ public final class SpeedModifierDebugMixins
 
             try
             {
-                final var c = nav.getClass().getSuperclass();
+                final Class<?> c = nav.getClass().getSuperclass();
                 if (c != null)
                 {
-                    final var f2 = c.getDeclaredField("mob");
+                    final Field f2 = c.getDeclaredField("mob");
                     f2.setAccessible(true);
                     final Object o2 = f2.get(nav);
                     return (o2 instanceof Entity e2) ? e2 : null;
@@ -247,7 +248,7 @@ public final class SpeedModifierDebugMixins
         {
             try
             {
-                final var f = nav.getClass().getDeclaredField("ourEntity");
+                final Field f = nav.getClass().getDeclaredField("ourEntity");
                 f.setAccessible(true);
                 final Object o = f.get(nav);
                 return (o instanceof Entity e) ? e : null;
@@ -258,7 +259,7 @@ public final class SpeedModifierDebugMixins
 
             try
             {
-                final var f = nav.getClass().getDeclaredField("mob");
+                final Field f = nav.getClass().getDeclaredField("mob");
                 f.setAccessible(true);
                 final Object o = f.get(nav);
                 return (o instanceof Entity e) ? e : null;

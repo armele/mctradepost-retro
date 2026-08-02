@@ -48,7 +48,7 @@ public final class GeneratedValuePackWriter
 
         // Stable ordering for diffs
         final Map<String, Integer> sorted = new TreeMap<>();
-        for (final var e : values.entrySet())
+        for (final Map.Entry<Item,Integer> e : values.entrySet())
         {
             final Item item = e.getKey();
             final Integer v = e.getValue();
@@ -62,7 +62,7 @@ public final class GeneratedValuePackWriter
         root.addProperty("replace", replace);
 
         final JsonObject vals = new JsonObject();
-        for (final var e : sorted.entrySet())
+        for (final Map.Entry<String,Integer> e : sorted.entrySet())
         {
             vals.addProperty(e.getKey(), e.getValue());
         }

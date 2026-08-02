@@ -5,6 +5,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -51,7 +52,7 @@ public final class FrameLikeAccess
         // 1) UUID -> entity
         if (expectedFrameId != null && level instanceof ServerLevel sl)
         {
-            var e = sl.getEntity(expectedFrameId);
+            Entity e = sl.getEntity(expectedFrameId);
             if (e instanceof ItemFrame frame)
             {
                 return new Vanilla(frame);
