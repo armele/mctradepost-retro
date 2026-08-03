@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.core.economy.ExistingItemValueLoader;
 import com.deathfrog.mctradepost.core.economy.GeneratedValuePackWriter;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader.SeedData;
+import com.deathfrog.mctradepost.core.economy.TierDerivedItemValueProvider;
 import com.deathfrog.mctradepost.core.rarefinds.generation.RareFindGenerationCommand;
 import com.mojang.brigadier.CommandDispatcher;
 
@@ -15,6 +16,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -42,15 +44,22 @@ public final class MctpEconomyCommands
                 .requires(src -> src.hasPermission(2) && src.getServer() != null)
                 .then(
                     Commands.literal("generateItemValues")
-                        .executes(ctx -> run(ctx.getSource(), false))
-                        .then(Commands.literal("dryRun").executes(ctx -> run(ctx.getSource(), true)))
+                        .executes(ctx -> run(ctx.getSource(), false, false))
+                        .then(Commands.literal("dryRun")
+                            .executes(ctx -> run(ctx.getSource(), true, false))
+                            .then(Commands.literal("deriveFromTier")
+                                .executes(ctx -> run(ctx.getSource(), true, true))))
+                        .then(Commands.literal("deriveFromTier")
+                            .executes(ctx -> run(ctx.getSource(), false, true))
+                            .then(Commands.literal("dryRun")
+                                .executes(ctx -> run(ctx.getSource(), true, true))))
                 )
                 .then(RareFindGenerationCommand.command())
         );
     }
 
     @SuppressWarnings("null")
-    private static int run(final CommandSourceStack source, final boolean dryRun)
+    private static int run(final CommandSourceStack source, final boolean dryRun, final boolean deriveFromTier)
     {
         final MinecraftServer server = source.getServer();
         if (server == null)
@@ -62,9 +71,9 @@ public final class MctpEconomyCommands
         try
         {
             // 1) Load authoritative datapack values and generator-specific seeds separately.
-            final Map<?, Integer> authoritativeValues = ExistingItemValueLoader.load(server);
+            final Map<Item, Integer> authoritativeValues = ExistingItemValueLoader.load(server);
             final SeedData seedData = ItemValueSeedLoader.loadSeedData(server);
-            final Map<?, Integer> seeds = seedData.values();
+            final Map<Item, Integer> explicitSeeds = seedData.values();
 
             // 2) Derive values via fixpoint recipe propagation.
             final Options options = new DerivedItemValueGenerator.Options()
@@ -72,7 +81,25 @@ public final class MctpEconomyCommands
                 .setMaxIterations(50)
                 .setNamespaceExclusions(seedData.namespaceExclusions());
 
-            final Report report = DerivedItemValueGenerator.generate(server, authoritativeValues, seeds, options);
+            final Report firstPass = DerivedItemValueGenerator.generate(
+                server, authoritativeValues, explicitSeeds, options);
+            final Map<Item, Integer> tierValues;
+            final Report report;
+            if (deriveFromTier)
+            {
+                // Only items unresolved after ordinary recipe propagation receive a tier fallback.
+                tierValues = TierDerivedItemValueProvider.derive(
+                    server, authoritativeValues, firstPass.values());
+                final Map<Item, Integer> secondPassSeeds =
+                    TierDerivedItemValueProvider.mergeWithFallbacks(firstPass.values(), tierValues);
+                report = DerivedItemValueGenerator.generate(
+                    server, authoritativeValues, secondPassSeeds, options);
+            }
+            else
+            {
+                tierValues = Map.of();
+                report = firstPass;
+            }
 
             // 3) Write datapack JSON (unless dryRun).
             if (!dryRun)
@@ -83,9 +110,11 @@ public final class MctpEconomyCommands
             }
 
             source.sendSuccess(() -> Component.literal(
-                "Seeds: " + seeds.size()
+                "Seeds: " + explicitSeeds.size()
+                    + ", Tier-derived inputs: " + tierValues.size()
                     + ", Authoritative inputs: " + authoritativeValues.size()
-                    + ", Derived: " + report.derivedCount()
+                    + ", Recipe-derived: " + firstPass.derivedCount()
+                    + (deriveFromTier ? ", Newly unlocked recipes: " + report.derivedCount() : "")
                     + ", Values to write: " + report.values().size()
                     + ", Iterations: " + report.iterations()
                     + ", Recipes Considered: " + report.recipesConsidered()

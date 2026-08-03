@@ -3,13 +3,14 @@
      <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
             <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
                    label="$(com.minecolonies.coremod.gui.thriftshop.offers)"/>
+            <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
             <list id="offerlist" size="165 190" pos="13 28" emptytext="$(com.minecolonies.coremod.gui.thriftshop.empty)" emptycolor="black">
                 <box size="100% 32" linewidth="1">
                 <gradient id="gradient" size="157 30" pos="1 1"/>
-                    <itemicon id="offerIcon" size="17 17" pos="0 0"/>
-                    <text id="offerName" size="100 12" pos="18 2" color="black"/>
+                    <itemicon id="offerIcon" size="17 17" pos="1 0"/>
+                    <text id="offerName" size="99 12" pos="19 2" color="black"/>
                     <text id="offerPrice" size="38 12" pos="118 2" textalign="MIDDLE_RIGHT" color="black"/>
-                    <text id="offerSubscriptionStatus" size="67 12" pos="0 17" textalign="MIDDLE_LEFT" color="green"/>
+                    <text id="offerSubscriptionStatus" size="66 12" pos="1 17" textalign="MIDDLE_LEFT" color="green"/>
                     <button label="Buy" id="offerTake" pos="70 15" size="28 15"
                                  source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
                     <button label="$(mctradepost.subscription.subscribe)" id="offerSubscribe" pos="101 15" size="56 15"

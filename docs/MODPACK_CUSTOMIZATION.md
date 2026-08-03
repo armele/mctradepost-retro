@@ -99,6 +99,8 @@ This is not the live value table. It is a seed file for the built-in generator c
 ```text
 /mctp generateItemValues
 /mctp generateItemValues dryRun
+/mctp generateItemValues deriveFromTier
+/mctp generateItemValues deriveFromTier dryRun
 ```
 
 Format:
@@ -131,6 +133,8 @@ Behavior:
 - Generation merges loaded `data/mctradepost/item_values.json` files in normal datapack priority order and honors `replace`. These authoritative values are protected from recipe-derived replacement and remain available as recipe inputs.
 - The existing `mctp_generated` datapack is excluded from that merge, so stale generated values cannot feed back into later runs.
 - Output contains only values originating in `item_value_seeds.json` (including tag expansion and intentional overrides) plus newly derived items that have no authoritative value.
+- The optional `deriveFromTier` pass reads the currently loaded effective Rare Finds tags and supplies otherwise-unpriced Tier 2-4 items with deterministic fallback values ranging from 90% through 150% of their tier's configured value threshold. Tier 0 and Tier 1 have no configured cutoff and are not assigned fallback values.
+- Authoritative values, explicit seeds, and values established by the initial recipe pass take precedence over tier-derived values. With `deriveFromTier`, the generator runs recipe propagation once, adds fallbacks only for items still unresolved, and runs propagation a second time so those fallbacks can unlock values for dependent crafted items.
 
 Recommended workflow:
 
@@ -504,6 +508,26 @@ standard spawn-egg item class.
 
 The `rarefinds_generated_tier_without_value` tag records classified items with no positive entry in `item_values.json`. Such items
 cannot be selected for Retained Search until a value is assigned, and the tag can be used as input to later economy tuning.
+
+#### Recommended Full-Pack Generation Workflow
+
+For a new modpack, generate recipe values first, use those values while classifying Rare Finds, and then fill the remaining
+Tier 2-4 pricing gaps from the generated tiers:
+
+```text
+/mctp generateItemValues
+/reload
+/mctp generateRareFindTiers
+/reload
+/mctp generateItemValues deriveFromTier
+/reload
+```
+
+Each reload makes the files written by the preceding command available through Minecraft's active datapack resources and tags.
+The final value pass references the loaded manual and generated Rare Finds tags directly, merges its tier-derived inputs into the
+normal generated `item_values.json`, and reruns recipe propagation. If `generateRareFindTiers` has not been run for the pack, the
+option sees only built-in and other already-loaded datapack tiers; an unpriced item with no loaded Tier 2-4 assignment remains
+unpriced. Either `dryRun deriveFromTier` or `deriveFromTier dryRun` can preview the final pass without writing files.
 
 Positive values below the Tier 2 threshold generate Tier 0. Food items also generate Tier 0 regardless of automated evidence or
 namespace floors; a definitive manual Tier 1-4 assignment still wins. A successful Tier 0 search replaces a Tier 1 roll, supplies

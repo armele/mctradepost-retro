@@ -66,6 +66,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
     private static final String TAG_OFFER_STACK = "stack";
     private static final String TAG_OFFER_PRICE = "price";
     private static final String TAG_OFFER_TIER = "tier"; // store enum name or ordinal
+    private static final String TAG_RETAINED_SEARCH_RESULT = "retainedSearchResult";
 
     List<MarketOffer> offers = new ArrayList<>();
     long lastRollDay = 0L;
@@ -160,7 +161,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
             if (!stack.isEmpty() && price > 0)
             {
-                loaded.add(new MarketOffer(stack, tier, price));
+                loaded.add(new MarketOffer(stack, tier, price, offerTag.getBoolean(TAG_RETAINED_SEARCH_RESULT)));
             }
         }
 
@@ -220,6 +221,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             offerTag.put(TAG_OFFER_STACK, NullnessBridge.assumeNonnull(stack.save(provider)));
 
             offerTag.putInt(TAG_OFFER_PRICE, price);
+            offerTag.putBoolean(TAG_RETAINED_SEARCH_RESULT, offer.retainedSearchResult());
 
             // LOGGER.info("Colony {} - Offer saved: {} at {}", building.getColony().getID(), stack.getHoverName(), price);
 
@@ -269,6 +271,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             // Tier: write enum ordinal (smaller), or name (more stable).
             // For view packets, ordinal is fine as long as you control both ends.
             buf.writeVarInt(tier.ordinal());
+            buf.writeBoolean(offer != null && offer.retainedSearchResult());
         }
     }
 
@@ -441,10 +444,11 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
         lastRollDay = currentDay;
         offers = MarketDailyRoller.rollDailyOffers((ServerLevel) level, (BuildingMarketplace) building, rerollIndex, offerAmounts[0], offerAmounts[1], offerAmounts[2], offerAmounts[3]);
+        boolean retainedSearchLocated = false;
         if (sourcing != null)
         {
             long seed = ((ServerLevel) level).getSeed() ^ building.getColony().getID() ^ currentDay ^ ((long) rerollIndex << 32);
-            sourcing.promoteRetainedSearches(offers, currentDay, RandomSource.create(seed));
+            retainedSearchLocated = sourcing.promoteRetainedSearches(offers, currentDay, RandomSource.create(seed));
             List<MarketOffer> subscriptionOffers = sourcing.subscriptionOffers();
             offers.removeIf(offer -> subscriptionOffers.stream()
                 .anyMatch(subscription -> ItemStack.isSameItemSameComponents(subscription.stack(), offer.stack())));
@@ -453,6 +457,10 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
 
         MessageUtils.format("mctradepost.thriftshop.reroll.success").sendTo(building.getColony()).forAllPlayers();
+        if (retainedSearchLocated)
+        {
+            MessageUtils.format("mctradepost.retained_search.located").sendTo(building.getColony()).forAllPlayers();
+        }
 
         markDirty();
     }
@@ -596,7 +604,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         BuildingUtil.bringThisToTheWarehouse(building, offer.stack().copy());
         StatsUtil.trackStatByName(building, MarketplaceSourcingModule.SUBSCRIPTIONS_FILLED, offer.stack().getHoverName(), 1);
         int offerIndex = offers.indexOf(offer);
-        offers.set(offerIndex, new MarketOffer(offer.stack(), offer.tier(), subscriptionPrice));
+        offers.set(offerIndex, new MarketOffer(offer.stack(), offer.tier(), subscriptionPrice, offer.retainedSearchResult()));
         markDirty();
     }
 

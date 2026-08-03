@@ -7,7 +7,9 @@
     <list id="searchlist" size="170 137" pos="12 52" emptytext="$(mctradepost.retained_search.empty)" emptycolor="black">
         <box size="100% 44" linewidth="1">
             <itemicon id="searchIcon" size="17 17" pos="2 1"/>
-            <text id="searchName" size="120 12" pos="21 2" color="black"/>
+            <text id="searchName" size="105 12" pos="21 2" color="black"/>
+            <gradient size="24 12" pos="122 2" gradientstart="rgb(112,112,112)" gradientend="rgb(112,112,112)"/>
+            <text id="tierBadge" size="24 12" pos="122 2" textalign="MIDDLE" color="black"/>
             <dropdown id="investmentLevel" size="92 15" pos="2 17" maxContentHeight="48" dropDownSize="104 48" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black">
                 <button id="button" size="92 15" pos="0 0" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black"/>
             </dropdown>

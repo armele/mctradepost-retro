@@ -13,6 +13,7 @@ import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
 import com.ldtteam.blockui.controls.Gradient;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -84,6 +85,9 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
     public void onOpened()
     {
         super.onOpened();
+        final Image help = findPaneOfTypeByID("help", Image.class);
+        PaneBuilders.tooltipBuilder().hoverPane(help).build()
+            .setText(Component.translatable("mctradepost.thriftshop.help.tooltip"));
         updateOfferList();
     }
 
@@ -244,7 +248,9 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
                     : "mctradepost.subscription.subscribe"));
                 subscriptionStatus.setText(subscribed
                     ? Component.translatable("mctradepost.subscription.status")
-                    : Component.empty());
+                    : offer.retainedSearchResult()
+                        ? Component.translatable("mctradepost.retained_search.found")
+                        : Component.empty());
                 PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build().setText(Component.empty());
                 if (subscribed)
                 {

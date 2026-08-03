@@ -19,6 +19,8 @@
     {"id": "twilightforest:firefly_particle_spawner", "required": false},
     {"id": "theurgy:alchemical_sulfur_unobtainium", "required": false},
     {"id": "pipez:infinity_upgrade", "required": false},
+    {"id": "dndesires:creative_gear_motor", "required": false},
+    {"id": "moonlight:spawn_box", "required": false},
     "#mctradepost:spawn_eggs",
     "minecraft:ominous_trial_key",
     "minecraft:dragon_head",

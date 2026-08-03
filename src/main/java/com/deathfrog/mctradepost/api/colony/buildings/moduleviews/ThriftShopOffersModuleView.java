@@ -55,12 +55,13 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
 
             int price = buf.readVarInt();
             int tierOrd = buf.readVarInt();
+            boolean retainedSearchResult = buf.readBoolean();
 
             MarketTier tier = MarketTier.TIER1_COMMON;
             MarketTier[] values = MarketTier.values();
             if (tierOrd >= 0 && tierOrd < values.length) tier = values[tierOrd];
 
-            offers.add(new MarketOffer(stack, tier, price));
+            offers.add(new MarketOffer(stack, tier, price, retainedSearchResult));
         }
 
         // Keep active subscriptions at the top, including offers loaded from saves

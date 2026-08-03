@@ -1,13 +1,14 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceSourcingModuleView;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule.RetainedSearch;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketTierSources;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
@@ -20,6 +21,7 @@ import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -58,21 +60,26 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     /** Opens the item picker for explicitly tagged Rare Finds. */
     private void addSearch()
     {
-        new WindowSelectStewIngredients(this,
-            stack -> !stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)
-                && MarketplaceItemListModule.marketplaceValue(stack) > 0
-                && (stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG)
-                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)
-                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)
-                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)
-                    || stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)),
-            (stack, ignored) -> new MarketplaceSourcingMessage(buildingView, Action.ADD_SEARCH, stack, 0).sendToServer(), true).open();
+        new WindowSelectItems(this,
+            this::isRetainedSearchCandidate,
+            (stack, ignored) -> new MarketplaceSourcingMessage(buildingView, Action.ADD_SEARCH, stack, 0).sendToServer(),
+            true,
+            this::selectionDisabledReason,
+            this::tierBadge,
+            this::tierTooltip).open();
     }
 
     /** Removes the retained-search row containing the clicked button. */
     private void removeSearch(Button button)
     {
-        sendRowAction(button, Action.REMOVE_SEARCH, 0);
+        int row = searchList.getListElementIndexByPane(button);
+        if (row < 0 || row >= moduleView.getSearches().size()) return;
+
+        ItemStack stack = moduleView.getSearches().get(row).stack();
+        new MarketplaceSourcingMessage(buildingView, Action.REMOVE_SEARCH, stack, 0).sendToServer();
+        moduleView.removeSearch(stack);
+        updateSearchCapacityControls();
+        searchList.refreshElementPanes();
     }
 
     /** Starts the selected investment or stops the active retained search. */
@@ -117,6 +124,7 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
             || displayedSearchCapacity != moduleView.getSearchCapacity())
         {
             updateSearchCapacityControls();
+            searchList.refreshElementPanes();
         }
     }
 
@@ -135,12 +143,18 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
                 ItemStack display = search.stack().copy();
                 row.findPaneOfTypeByID("searchIcon", ItemIcon.class).setItem(display);
                 row.findPaneOfTypeByID("searchName", Text.class).setText(display.getHoverName());
+                Text tierBadge = row.findPaneOfTypeByID("tierBadge", Text.class);
+                tierBadge.setText(tierBadge(display));
+                PaneBuilders.tooltipBuilder().hoverPane(tierBadge).build().setText(tierTooltip(display));
                 long days = Math.max(0L, search.investmentUntil() - moduleView.getCurrentDay());
                 boolean active = days > 0;
-                row.findPaneOfTypeByID("investment", Text.class).setText(Component.literal(active
-                    ? "L" + search.investmentLevel() + " - " + investmentChanceLabel(search.investmentLevel())
-                        + " (" + days + " " + (days == 1 ? "Day" : "Days") + ")"
-                    : ""));
+                row.findPaneOfTypeByID("investment", Text.class).setText(active
+                    ? Component.translatable("mctradepost.retained_search.days_remaining", days)
+                    : Component.empty());
+
+                Button remove = row.findPaneOfTypeByID("removeSearch", Button.class);
+                PaneBuilders.tooltipBuilder().hoverPane(remove).build()
+                    .setText(Component.translatable("mctradepost.retained_search.remove.tooltip"));
 
                 DropDownList investmentLevel = row.findPaneOfTypeByID("investmentLevel", DropDownList.class);
                 investmentLevel.setDataProvider(new DropDownList.DataProvider()
@@ -151,7 +165,8 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
                     public MutableComponent getLabel(int option)
                     {
                         int level = option + 1;
-                        return Component.literal("Level " + level + " - " + investmentChanceLabel(level));
+                        return Component.literal("L" + level + " · " + investmentChanceLabel(display, level)
+                            + " · " + MarketplaceSourcingModule.investmentCost(display, level) + " XP");
                     }
                 });
                 int selectedLevel = active ? search.investmentLevel() : selectedInvestmentLevels.getOrDefault(index, 1);
@@ -206,15 +221,72 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
      * @param level investment level from one through three
      * @return rounded percentage label
      */
-    private @Nonnull String investmentChanceLabel(int level)
+    private @Nonnull String investmentChanceLabel(ItemStack stack, int level)
     {
-        double bonus = switch (level)
+        return Math.round(MarketplaceSourcingModule.investmentChance(stack, level) * 100.0D) + "%";
+    }
+
+    /** Returns whether an item belongs in the retained-search picker, including locked tiers. */
+    private boolean isRetainedSearchCandidate(ItemStack stack)
+    {
+        return !stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)
+            && MarketplaceItemListModule.marketplaceValue(stack) > 0
+            && MarketTierSources.retainedSearchTierLevel(stack) >= 0;
+    }
+
+    /** Explains why a visible retained-search candidate cannot currently be selected. */
+    private Component selectionDisabledReason(@Nonnull ItemStack stack)
+    {
+        if (moduleView.getSearches().stream()
+            .anyMatch(search -> ItemStack.isSameItemSameComponents(search.stack(), stack)))
         {
-            case 1 -> MCTPConfig.retainedSearchInvestmentLevelOneBonus.get();
-            case 2 -> MCTPConfig.retainedSearchInvestmentLevelTwoBonus.get();
-            case 3 -> MCTPConfig.retainedSearchInvestmentLevelThreeBonus.get();
-            default -> 0.0D;
+            return Component.translatable("mctradepost.retained_search.already_selected");
+        }
+        if (!MarketplaceSourcingModule.isTierUnlocked(stack, moduleView.getUnlockedOfferTier()))
+        {
+            return Component.translatable("mctradepost.retained_search.tier_locked",
+                Math.max(1, MarketTierSources.retainedSearchTierLevel(stack)));
+        }
+        return null;
+    }
+
+    private @Nonnull String tierLabel(ItemStack stack)
+    {
+        return "T" + MarketTierSources.retainedSearchTierLevel(stack);
+    }
+
+    private Component tierTooltip(@Nonnull ItemStack stack)
+    {
+        int tier = MarketTierSources.retainedSearchTierLevel(stack);
+        int chanceAdjustment = 10 - (tier * 10);
+        String adjustment = chanceAdjustment > 0 ? "+" + chanceAdjustment + "%" : chanceAdjustment + "%";
+        MutableComponent tooltip = Component.translatable("mctradepost.retained_search.tier.tooltip", tier,
+            xpMultiplierLabel(tier), adjustment);
+        Component reason = selectionDisabledReason(stack);
+        return reason == null ? tooltip : tooltip.append("\n\n").append(reason);
+    }
+
+    private Component tierBadge(@Nonnull ItemStack stack)
+    {
+        return Component.literal(tierLabel(stack)).withStyle(switch (MarketTierSources.retainedSearchTierLevel(stack))
+        {
+            case 0 -> ChatFormatting.DARK_GRAY;
+            case 2 -> ChatFormatting.YELLOW;
+            case 3 -> ChatFormatting.AQUA;
+            case 4 -> ChatFormatting.LIGHT_PURPLE;
+            default -> ChatFormatting.WHITE;
+        });
+    }
+
+    private String xpMultiplierLabel(int tier)
+    {
+        return switch (tier)
+        {
+            case 0 -> "0.5×";
+            case 2 -> "1.5×";
+            case 3 -> "2×";
+            case 4 -> "3×";
+            default -> "1×";
         };
-        return Math.round((MCTPConfig.retainedSearchBaseChance.get() + bonus) * 100.0D) + "%";
     }
 }

@@ -25,8 +25,14 @@ public final class MarketDailyRoller
     public record MarketOffer(
         @Nonnull ItemStack stack,
         @Nonnull MarketTier tier,
-        int price)
+        int price,
+        boolean retainedSearchResult)
     {
+        public MarketOffer(@Nonnull ItemStack stack, @Nonnull MarketTier tier, int price)
+        {
+            this(stack, tier, price, false);
+        }
+
         public MarketOffer
         {
             Objects.requireNonNull(stack, "stack");

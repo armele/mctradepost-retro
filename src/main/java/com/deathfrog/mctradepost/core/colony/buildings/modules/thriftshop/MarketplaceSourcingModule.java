@@ -40,6 +40,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     public static final String SUBSCRIPTIONS_FILLED = "subscriptions_filled";
     public static final String SUBSCRIPTIONS_CANCELLED_NSF = "subscriptions_cancelled_nsf";
     public static final String SUBSCRIPTIONS_MISSED_INVENTORY = "subscriptions_missed_inventory";
+    public static final String RETAINED_SEARCHES_SUCCESSFUL = "retained_searches_successful";
 
     private static final String TAG_SEARCHES = "retainedSearches";
     private static final String TAG_SUBSCRIPTIONS = "subscriptions";
@@ -94,9 +95,8 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         MarketTier tier = MarketTierSources.retainedSearchTier(stack);
         int unlockedTier = (int) building.getColony().getResearchManager().getResearchEffects()
             .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER);
-        boolean tierZero = MarketTierSources.isTierZero(stack);
         if (tier == null || MarketplaceItemListModule.marketplaceValue(stack) <= 0
-            || (!tierZero && tier.ordinal() + 1 > unlockedTier)
+            || !isTierUnlocked(stack, unlockedTier)
             || searches.size() >= capacity(MCTPResearchConstants.RETAINED_SEARCH) || containsSearch(stack)) return false;
         searches.add(new RetainedSearch(stack.copyWithCount(1), tier, 0, 0L));
         markDirty();
@@ -126,13 +126,16 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     public boolean invest(@Nonnull ItemStack stack, int level, ServerPlayer player, long currentDay)
     {
         if (level < 1 || level > 3) return false;
+        int unlockedTier = (int) building.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER);
+        if (!isTierUnlocked(stack, unlockedTier)) return false;
         for (int i = 0; i < searches.size(); i++)
         {
             RetainedSearch search = searches.get(i);
             if (!ItemStack.isSameItemSameComponents(search.stack(), stack)) continue;
             boolean active = search.investmentUntil() > currentDay;
             if (active && search.investmentLevel() != level) return false;
-            int cost = MCTPConfig.retainedSearchInvestmentBaseXp.get() * level;
+            int cost = investmentCost(search.stack(), level);
             if (player.totalExperience < cost) return false;
             player.giveExperiencePoints(-cost);
             player.playNotifySound(NullnessBridge.assumeNonnull(SoundEvents.ENCHANTMENT_TABLE_USE), SoundSource.PLAYERS, 0.8F, 1.0F);
@@ -215,6 +218,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
      *
      * @return subscription offers priced at their current recurring cost
      */
+    @SuppressWarnings("null")
     public List<MarketOffer> subscriptionOffers()
     {
         int limit = Math.min(capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS), subscriptions.size());
@@ -304,10 +308,11 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
      * @param offers rolled offers
      * @param day current MineColonies day
      * @param random deterministic roll source
+     * @return whether at least one retained search replaced an offer
      */
-    public void promoteRetainedSearches(List<MarketOffer> offers, long day, RandomSource random)
+    public boolean promoteRetainedSearches(List<MarketOffer> offers, long day, RandomSource random)
     {
-        if (capacity(MCTPResearchConstants.RETAINED_SEARCH) == 0) return;
+        if (capacity(MCTPResearchConstants.RETAINED_SEARCH) == 0) return false;
         List<RetainedSearch> candidates = new ArrayList<>(searches.subList(0, Math.min(searches.size(), capacity(MCTPResearchConstants.RETAINED_SEARCH))));
         java.util.Collections.shuffle(candidates, new java.util.Random(random.nextLong()));
         java.util.EnumSet<MarketTier> promotedTiers = java.util.EnumSet.noneOf(MarketTier.class);
@@ -316,7 +321,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
             if (search.investmentLevel() == 0 || search.investmentUntil() <= day) continue;
             if (promotedTiers.contains(search.tier())) continue;
             if (containsSubscription(search.stack()) || offers.stream().anyMatch(o -> ItemStack.isSameItemSameComponents(o.stack(), search.stack()))) continue;
-            double chance = MCTPConfig.retainedSearchBaseChance.get() + investmentBonus(search, day);
+            double chance = investmentChance(search.stack(), search.investmentLevel());
             if (random.nextDouble() >= Math.min(1.0D, chance)) continue;
             for (int i = 0; i < offers.size(); i++)
             {
@@ -333,10 +338,28 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
                     int promotedPrice = tierZero
                         ? tierZeroPrice(promoted)
                         : (int) Math.min(Integer.MAX_VALUE, (long) replaced.price() * 2L);
-                    offers.set(i, new MarketOffer(promoted, search.tier(), promotedPrice));
+                    offers.set(i, new MarketOffer(promoted, search.tier(), promotedPrice, true));
                     promotedTiers.add(search.tier());
+                    completeRetainedSearch(search);
                     break;
                 }
+            }
+        }
+        return !promotedTiers.isEmpty();
+    }
+
+    /** Stops a successful retained search and records the located offer. */
+    private void completeRetainedSearch(RetainedSearch completed)
+    {
+        for (int i = 0; i < searches.size(); i++)
+        {
+            RetainedSearch configured = searches.get(i);
+            if (ItemStack.isSameItemSameComponents(configured.stack(), completed.stack()))
+            {
+                searches.set(i, new RetainedSearch(configured.stack(), configured.tier(), 0, 0L));
+                StatsUtil.trackStat(building, RETAINED_SEARCHES_SUCCESSFUL, 1);
+                markDirty();
+                return;
             }
         }
     }
@@ -377,11 +400,41 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         return (int) Math.max(1.0D, Math.min(Integer.MAX_VALUE, Math.ceil(price)));
     }
 
-    /** Returns the configured bonus for an investment that is active on the supplied day. */
-    private double investmentBonus(RetainedSearch search, long day)
+    /** Returns whether the Marketplace's unlocked offer tiers can satisfy this retained search. */
+    public static boolean isTierUnlocked(ItemStack stack, int unlockedTier)
     {
-        if (search.investmentUntil() <= day) return 0.0D;
-        return switch (search.investmentLevel())
+        final int tier = MarketTierSources.retainedSearchTierLevel(stack);
+        return tier >= 0 && Math.max(1, tier) <= unlockedTier;
+    }
+
+    /** Calculates the raw XP charged for one retained-search investment. */
+    public static int investmentCost(ItemStack stack, int level)
+    {
+        if (level < 1 || level > 3) return 0;
+        final double multiplier = switch (MarketTierSources.retainedSearchTierLevel(stack))
+        {
+            case 0 -> 0.5D;
+            case 1 -> 1.0D;
+            case 2 -> 1.5D;
+            case 3 -> 2.0D;
+            case 4 -> 3.0D;
+            default -> 1.0D;
+        };
+        return (int) Math.ceil(MCTPConfig.retainedSearchInvestmentBaseXp.get() * level * multiplier);
+    }
+
+    /** Calculates the tier-adjusted success chance for one investment level. */
+    public static double investmentChance(ItemStack stack, int level)
+    {
+        final int tier = MarketTierSources.retainedSearchTierLevel(stack);
+        final double tierAdjustment = tier < 0 ? 0.0D : 0.10D - (0.10D * tier);
+        return Math.max(0.0D, Math.min(1.0D,
+            MCTPConfig.retainedSearchBaseChance.get() + investmentBonus(level) + tierAdjustment));
+    }
+
+    private static double investmentBonus(int level)
+    {
+        return switch (level)
         {
             case 1 -> MCTPConfig.retainedSearchInvestmentLevelOneBonus.get();
             case 2 -> MCTPConfig.retainedSearchInvestmentLevelTwoBonus.get();
@@ -454,6 +507,8 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     {
         buf.writeVarInt(capacity(MCTPResearchConstants.RETAINED_SEARCH));
         buf.writeVarInt(capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS));
+        buf.writeVarInt((int) building.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER));
         buf.writeLong(building.getColony().getWorld().getDayTime() / MarketDailyRoller.TICKS_PER_DAY);
         buf.writeVarInt(searches.size());
         for (RetainedSearch search : searches)

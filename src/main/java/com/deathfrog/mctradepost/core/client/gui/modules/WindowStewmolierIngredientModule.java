@@ -89,7 +89,7 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
 
         // LOGGER.info("Adding Ingredient");
 
-        new WindowSelectStewIngredients(this,
+        new WindowSelectItems(this,
             (stack) -> stack.is(ModTags.ITEMS.STEW_INGREDIENTS_TAG),
             (stack, quantity) -> new StewIngredientMessage(buildingView, StewIngredientMessage.IngredientAction.ADD, stack, quantity).sendToServer()).open();
         

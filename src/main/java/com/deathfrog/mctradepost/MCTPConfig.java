@@ -92,17 +92,17 @@ public class MCTPConfig
             .define("tradeCurrency", "mctradepost:mctp_coin");
 
         retainedSearchBaseChance = BUILDER.comment("Base daily chance for each retained search to occupy an available offer slot.")
-            .defineInRange("retainedSearchBaseChance", 0.20D, 0.0D, 1.0D);
+            .defineInRange("retainedSearchBaseChance", 0.05D, 0.0D, 1.0D);
         retainedSearchInvestmentLevelOneBonus = BUILDER.comment("Chance added by retained-search investment level one.")
-            .defineInRange("retainedSearchInvestmentLevelOneBonus", 0.15D, 0.0D, 1.0D);
+            .defineInRange("retainedSearchInvestmentLevelOneBonus", 0.05D, 0.0D, 1.0D);
         retainedSearchInvestmentLevelTwoBonus = BUILDER.comment("Chance added by retained-search investment level two.")
-            .defineInRange("retainedSearchInvestmentLevelTwoBonus", 0.30D, 0.0D, 1.0D);
+            .defineInRange("retainedSearchInvestmentLevelTwoBonus", 0.10D, 0.0D, 1.0D);
         retainedSearchInvestmentLevelThreeBonus = BUILDER.comment("Chance added by retained-search investment level three.")
-            .defineInRange("retainedSearchInvestmentLevelThreeBonus", 0.45D, 0.0D, 1.0D);
+            .defineInRange("retainedSearchInvestmentLevelThreeBonus", 0.15D, 0.0D, 1.0D);
         retainedSearchInvestmentBaseXp = BUILDER.comment("Raw player XP charged per investment level for one retained-search extension.")
             .defineInRange("retainedSearchInvestmentBaseXp", 55, 0, Integer.MAX_VALUE);
         retainedSearchInvestmentDays = BUILDER.comment("MineColonies days added by each retained-search investment purchase.")
-            .defineInRange("retainedSearchInvestmentDays", 10, 1, 1000);
+            .defineInRange("retainedSearchInvestmentDays", 5, 1, 99);
         subscriptionPriceMultiplier = BUILDER.comment("Multiplier applied to the greater of an item's economic value and tier price floor for subscriptions.")
             .defineInRange("subscriptionPriceMultiplier", 2.0D, 1.0D, 100.0D);
 

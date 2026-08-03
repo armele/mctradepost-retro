@@ -17,6 +17,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
+
 /** Client-side snapshot of Marketplace retained searches and subscriptions. */
 public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
 {
@@ -24,6 +26,7 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
     private final List<Subscription> subscriptions = new ArrayList<>();
     private int searchCapacity;
     private int subscriptionCapacity;
+    private int unlockedOfferTier;
     private long currentDay;
 
     /** {@inheritDoc} */
@@ -33,6 +36,7 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
     {
         searchCapacity = buf.readVarInt();
         subscriptionCapacity = buf.readVarInt();
+        unlockedOfferTier = buf.readVarInt();
         currentDay = buf.readLong();
         searches.clear();
         int searchCount = buf.readVarInt();
@@ -56,6 +60,12 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
         return searches;
     }
 
+    /** Optimistically removes a retained search while the server processes the request. */
+    public void removeSearch(@Nonnull ItemStack stack)
+    {
+        searches.removeIf(search -> ItemStack.isSameItemSameComponents(search.stack(), stack));
+    }
+
     /** @return subscription entries received from the server. */
     public List<Subscription> getSubscriptions()
     {
@@ -72,6 +82,12 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
     public int getSubscriptionCapacity()
     {
         return subscriptionCapacity;
+    }
+
+    /** @return highest Rare Finds offer tier structurally unlocked by research. */
+    public int getUnlockedOfferTier()
+    {
+        return unlockedOfferTier;
     }
 
     /** @return server day used to calculate remaining investment time. */

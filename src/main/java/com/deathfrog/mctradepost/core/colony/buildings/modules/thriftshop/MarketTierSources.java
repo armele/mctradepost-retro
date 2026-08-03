@@ -78,7 +78,7 @@ public final class MarketTierSources
     private static final @Nonnull ResourceLocation FISHING_JUNK = NullnessBridge.requireNonnull(rl("minecraft:gameplay/fishing/junk"), "minecraft:gameplay/fishing/junk loot table is null");
     private static final @Nonnull ResourceLocation FISHING_TREASURE = NullnessBridge.requireNonnull(rl("minecraft:gameplay/fishing/treasure"), "minecraft:gameplay/fishing/treasure loot table is null");
 
-    public static List<MarketOffer> rollTier(@Nonnull ServerLevel level, BuildingMarketplace marketplace, RandomSource rand, MarketTier tier, int count)
+    public static List<MarketOffer> rollTier(@Nonnull ServerLevel level, BuildingMarketplace marketplace, RandomSource rand, @Nonnull MarketTier tier, int count)
     {
         List<ItemStack> stacks = new ArrayList<>();
 
@@ -426,6 +426,14 @@ public final class MarketTierSources
     {
         final MarketTier tier = taggedTier(stack);
         return tier != null ? tier : isTierZero(stack) ? MarketTier.TIER1_COMMON : null;
+    }
+
+    /** Returns the displayed Rare Finds tier for a retained-search item, or {@code -1} when ineligible. */
+    public static int retainedSearchTierLevel(ItemStack stack)
+    {
+        if (isTierZero(stack)) return 0;
+        final MarketTier tier = taggedTier(stack);
+        return tier == null ? -1 : tier.ordinal() + 1;
     }
 
     /**
