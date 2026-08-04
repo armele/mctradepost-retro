@@ -86,6 +86,18 @@ public final class ItemValueManager extends SimplePreparableReloadListener<Map<R
         VALUES = prepared;
     }
 
+    /** Returns the immutable, unscaled value snapshot currently loaded on this side. */
+    public static Map<ResourceLocation, Integer> getBaseValues()
+    {
+        return VALUES;
+    }
+
+    /** Atomically installs a complete server-authoritative value snapshot on the client. */
+    public static void replaceFromServer(Map<ResourceLocation, Integer> values)
+    {
+        VALUES = Map.copyOf(values);
+    }
+
 
     /**
      * Returns the value of an item.

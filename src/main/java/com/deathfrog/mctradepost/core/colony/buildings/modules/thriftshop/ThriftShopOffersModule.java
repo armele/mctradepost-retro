@@ -565,6 +565,11 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         if (sourcing == null) return;
         MarketOffer offer = offers.stream().filter(candidate -> ItemStack.isSameItemSameComponents(candidate.stack(), stack)).findFirst().orElse(null);
         if (offer == null) return;
+        if (MarketTierSources.isUniquePurchase(offer.stack()))
+        {
+            MessageUtils.format("mctradepost.subscription.unique_purchase").sendTo(player);
+            return;
+        }
         if (!MarketTierSources.matchesOfferTier(offer.stack(), offer.tier()))
         {
             MessageUtils.format("mctradepost.subscription.ineligible").sendTo(player);
@@ -651,7 +656,8 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         econ.deposit(-offer.price());
 
         // Remove the offer from the list if the bottomless research has not been done, or the tier is too high for it to apply.
-        if (bottomlessOffers < 1 || offer.tier() == MarketTier.TIER3_RARE || offer.tier() == MarketTier.TIER4_EPIC)
+        if (bottomlessOffers < 1 || MarketTierSources.isUniquePurchase(offer.stack())
+            || offer.tier() == MarketTier.TIER3_RARE || offer.tier() == MarketTier.TIER4_EPIC)
         {
             offers.remove(offer);
             markDirty();

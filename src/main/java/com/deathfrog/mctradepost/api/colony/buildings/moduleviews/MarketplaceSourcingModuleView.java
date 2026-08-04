@@ -27,6 +27,7 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
     private int searchCapacity;
     private int subscriptionCapacity;
     private int unlockedOfferTier;
+    private int shopkeeperPrimarySkill;
     private long currentDay;
 
     /** {@inheritDoc} */
@@ -37,6 +38,7 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
         searchCapacity = buf.readVarInt();
         subscriptionCapacity = buf.readVarInt();
         unlockedOfferTier = buf.readVarInt();
+        shopkeeperPrimarySkill = buf.readVarInt();
         currentDay = buf.readLong();
         searches.clear();
         int searchCount = buf.readVarInt();
@@ -88,6 +90,12 @@ public class MarketplaceSourcingModuleView extends AbstractBuildingModuleView
     public int getUnlockedOfferTier()
     {
         return unlockedOfferTier;
+    }
+
+    /** @return synchronized primary skill of the assigned Shopkeeper. */
+    public int getShopkeeperPrimarySkill()
+    {
+        return shopkeeperPrimarySkill;
     }
 
     /** @return server day used to calculate remaining investment time. */

@@ -416,6 +416,20 @@ public final class MarketTierSources
     }
 
     /**
+     * Returns whether an offer must be consumed after purchase and may not be subscribed to.
+     * Tagged items and stacks carrying active enchantments qualify. This restriction is
+     * independent of Rare Finds tier and retained-search eligibility.
+     *
+     * @param stack item to inspect
+     * @return whether the item is restricted to unique purchases
+     */
+    public static boolean isUniquePurchase(ItemStack stack)
+    {
+        return stack != null && !stack.isEmpty()
+            && (stack.is(ModTags.ITEMS.RARE_FINDS_UNIQUE_PURCHASE_TAG) || stack.isEnchanted());
+    }
+
+    /**
      * Resolves the market slot used by a retained-search item. Tier zero deliberately
      * maps to a tier-one replacement slot and never becomes a random roll tier.
      *

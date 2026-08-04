@@ -258,6 +258,12 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
                     PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
                         .setText(Component.translatable("mctradepost.subscription.cancel.tooltip"));
                 }
+                else if (MarketTierSources.isUniquePurchase(resource))
+                {
+                    subscribeButton.disable();
+                    PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
+                        .setText(Component.translatable("mctradepost.subscription.unique_purchase.tooltip"));
+                }
                 else if (moduleView.getSubscriptionCapacity() == 0)
                 {
                     subscribeButton.disable();

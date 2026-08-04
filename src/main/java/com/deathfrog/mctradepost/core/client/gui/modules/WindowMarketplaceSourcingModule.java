@@ -1,10 +1,11 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceSourcingModuleView;
+import com.deathfrog.mctradepost.api.util.ItemValueManager;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
-import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule.RetainedSearch;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketTierSources;
@@ -39,6 +40,7 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     private final ScrollingList searchList;
     private int displayedSearchCount = -1;
     private int displayedSearchCapacity = -1;
+    private int displayedShopkeeperPrimarySkill = -1;
     private final Map<Integer, Integer> selectedInvestmentLevels = new HashMap<>();
 
     /**
@@ -121,7 +123,8 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     {
         super.onUpdate();
         if (displayedSearchCount != moduleView.getSearches().size()
-            || displayedSearchCapacity != moduleView.getSearchCapacity())
+            || displayedSearchCapacity != moduleView.getSearchCapacity()
+            || displayedShopkeeperPrimarySkill != moduleView.getShopkeeperPrimarySkill())
         {
             updateSearchCapacityControls();
             searchList.refreshElementPanes();
@@ -198,6 +201,7 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
         }
         displayedSearchCount = moduleView.getSearches().size();
         displayedSearchCapacity = moduleView.getSearchCapacity();
+        displayedShopkeeperPrimarySkill = moduleView.getShopkeeperPrimarySkill();
         window.findPaneOfTypeByID("capacity", Text.class).setText(Component.literal(
             displayedSearchCount + " / " + displayedSearchCapacity));
 
@@ -223,14 +227,15 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
      */
     private @Nonnull String investmentChanceLabel(ItemStack stack, int level)
     {
-        return Math.round(MarketplaceSourcingModule.investmentChance(stack, level) * 100.0D) + "%";
+        return Math.round(MarketplaceSourcingModule.investmentChance(
+            stack, level, moduleView.getShopkeeperPrimarySkill()) * 100.0D) + "%";
     }
 
     /** Returns whether an item belongs in the retained-search picker, including locked tiers. */
     private boolean isRetainedSearchCandidate(ItemStack stack)
     {
         return !stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)
-            && MarketplaceItemListModule.marketplaceValue(stack) > 0
+            && ItemValueManager.get(stack.getItem()) > 0
             && MarketTierSources.retainedSearchTierLevel(stack) >= 0;
     }
 
@@ -258,7 +263,8 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     private Component tierTooltip(@Nonnull ItemStack stack)
     {
         int tier = MarketTierSources.retainedSearchTierLevel(stack);
-        int chanceAdjustment = 10 - (tier * 10);
+        int chanceAdjustment = (int) Math.round(
+            -Math.max(0, tier - 1) * MCTPConfig.retainedSearchTierDifficulty.get() * 100.0D);
         String adjustment = chanceAdjustment > 0 ? "+" + chanceAdjustment + "%" : chanceAdjustment + "%";
         MutableComponent tooltip = Component.translatable("mctradepost.retained_search.tier.tooltip", tier,
             xpMultiplierLabel(tier), adjustment);

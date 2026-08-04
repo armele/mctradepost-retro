@@ -44314,7 +44314,7 @@
         "minecraft:mutton": 80,
         "minecraft:mycelium": 94,
         "minecraft:name_tag": 5000,
-        "minecraft:nautilus_shell": 313,
+        "minecraft:nautilus_shell": 1313,
         "minecraft:nether_brick": 80,
         "minecraft:nether_brick_fence": 187,
         "minecraft:nether_brick_slab": 120,
@@ -44633,7 +44633,7 @@
         "minecraft:spider_spawn_egg": 50,
         "minecraft:spire_armor_trim_smithing_template": 68450,
         "minecraft:splash_potion": 30,
-        "minecraft:sponge": 938,
+        "minecraft:sponge": 12938,
         "minecraft:spore_blossom": 10,
         "minecraft:spruce_boat": 1565,
         "minecraft:spruce_button": 313,
@@ -64314,7 +64314,8 @@
         "#minecraft:saplings": 313,
         "#minecraft:planks": 313,
         "#c:bread_slice": 19,
-        "#minecraft:logs": 16
+        "#minecraft:logs": 16,
+        "#minecraft:flowers": 100
     },
     "tag_policy": "MIN",
     "tag_overrides_items": false

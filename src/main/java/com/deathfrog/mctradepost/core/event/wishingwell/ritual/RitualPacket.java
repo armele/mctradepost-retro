@@ -60,7 +60,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
     }
 
     /**
-     * Sends all sellable item values to the given player.
+     * Sends all ritual definitions to the given player.
      * 
      * @param player the player to send the packets to
      */
@@ -79,7 +79,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
         {
             MCTradePostMod.LOGGER.error("Failed to send RitualPacket to player: {}", player.getName().getString(), e);
         }
-        MCTradePostMod.LOGGER.info("Item values sent to player: {}", player.getName().getString());
+        MCTradePostMod.LOGGER.info("Ritual Definitions sent to player: {}", player.getName().getString());
     }
 
 }

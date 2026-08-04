@@ -30,10 +30,8 @@ public class MCTPConfig
     public static final ConfigValue<Double> registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
     public static final ConfigValue<String> tradeCurrency;
-    public static final ConfigValue<Double> retainedSearchBaseChance;
-    public static final ConfigValue<Double> retainedSearchInvestmentLevelOneBonus;
-    public static final ConfigValue<Double> retainedSearchInvestmentLevelTwoBonus;
-    public static final ConfigValue<Double> retainedSearchInvestmentLevelThreeBonus;
+    public static final ConfigValue<Double> retainedSearchInvestmentLevelBonus;
+    public static final ConfigValue<Double> retainedSearchTierDifficulty;
     public static final ConfigValue<Integer> retainedSearchInvestmentBaseXp;
     public static final ConfigValue<Integer> retainedSearchInvestmentDays;
     public static final ConfigValue<Double> subscriptionPriceMultiplier;
@@ -91,14 +89,10 @@ public class MCTPConfig
             "What currency is used to facilitate trades, and will be extracted from the marketplace? (Restart required if changed.)")
             .define("tradeCurrency", "mctradepost:mctp_coin");
 
-        retainedSearchBaseChance = BUILDER.comment("Base daily chance for each retained search to occupy an available offer slot.")
-            .defineInRange("retainedSearchBaseChance", 0.05D, 0.0D, 1.0D);
-        retainedSearchInvestmentLevelOneBonus = BUILDER.comment("Chance added by retained-search investment level one.")
-            .defineInRange("retainedSearchInvestmentLevelOneBonus", 0.05D, 0.0D, 1.0D);
-        retainedSearchInvestmentLevelTwoBonus = BUILDER.comment("Chance added by retained-search investment level two.")
-            .defineInRange("retainedSearchInvestmentLevelTwoBonus", 0.10D, 0.0D, 1.0D);
-        retainedSearchInvestmentLevelThreeBonus = BUILDER.comment("Chance added by retained-search investment level three.")
-            .defineInRange("retainedSearchInvestmentLevelThreeBonus", 0.15D, 0.0D, 1.0D);
+        retainedSearchInvestmentLevelBonus = BUILDER.comment("Chance added per retained-search investment level.")
+            .defineInRange("retainedSearchInvestmentLevelBonus", 0.05D, 0.0D, 1.0D);
+        retainedSearchTierDifficulty = BUILDER.comment("Chance subtracted for each Rare Finds tier above Tier 1.")
+            .defineInRange("retainedSearchTierDifficulty", 0.10D, 0.0D, 1.0D);
         retainedSearchInvestmentBaseXp = BUILDER.comment("Raw player XP charged per investment level for one retained-search extension.")
             .defineInRange("retainedSearchInvestmentBaseXp", 55, 0, Integer.MAX_VALUE);
         retainedSearchInvestmentDays = BUILDER.comment("MineColonies days added by each retained-search investment purchase.")

@@ -110,8 +110,8 @@
         "minecraft:slime_ball": 938,
         "minecraft:sea_pickle": 313,
         "minecraft:seagrass": 313,
-        "minecraft:nautilus_shell": 313,
-        "minecraft:sponge": 938,
+        "minecraft:nautilus_shell": 1313,
+        "minecraft:sponge": 12938,
         "minecraft:heart_of_the_sea": 10000,
         "minecraft:conduit": 25000,
         "minecraft:dried_kelp_block": 938,
@@ -342,7 +342,8 @@
         "#minecraft:saplings": 313,
         "#minecraft:planks": 313,
         "#c:bread_slice": 19,
-        "#minecraft:logs": 16
+        "#minecraft:logs": 16,
+        "#minecraft:flowers": 100
     },
     "tag_policy": "MIN",
     "tag_overrides_items": false

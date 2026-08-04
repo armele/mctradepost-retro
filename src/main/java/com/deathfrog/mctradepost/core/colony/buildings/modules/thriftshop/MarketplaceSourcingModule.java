@@ -7,11 +7,15 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketTier;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.api.util.StatsUtil;
 import net.minecraft.core.HolderLookup;
@@ -29,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -41,6 +46,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     public static final String SUBSCRIPTIONS_CANCELLED_NSF = "subscriptions_cancelled_nsf";
     public static final String SUBSCRIPTIONS_MISSED_INVENTORY = "subscriptions_missed_inventory";
     public static final String RETAINED_SEARCHES_SUCCESSFUL = "retained_searches_successful";
+    private static final double RETAINED_SEARCH_XP = 1.0D;
 
     private static final String TAG_SEARCHES = "retainedSearches";
     private static final String TAG_SUBSCRIPTIONS = "subscriptions";
@@ -177,7 +183,9 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     @SuppressWarnings("null")
     public boolean activateSubscription(@Nonnull MarketOffer offer, long currentDay)
     {
-        if (subscriptions.size() >= capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS) || containsSubscription(offer.stack())) return false;
+        if (MarketTierSources.isUniquePurchase(offer.stack())
+            || subscriptions.size() >= capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS)
+            || containsSubscription(offer.stack())) return false;
         subscriptions.add(new Subscription(offer.stack().copy(), offer.tier(), currentDay));
         markDirty();
         return true;
@@ -261,6 +269,13 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         while (index < subscriptions.size() && index < capacity)
         {
             Subscription subscription = subscriptions.get(index);
+            if (MarketTierSources.isUniquePurchase(subscription.stack()))
+            {
+                subscriptions.remove(index);
+                MessageUtils.format("mctradepost.subscription.cancelled.unique_purchase", subscription.stack().getHoverName())
+                    .sendTo(building.getColony()).forAllPlayers();
+                continue;
+            }
             if (subscription.lastProcessedDay() >= currentDay)
             {
                 index++;
@@ -321,7 +336,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
             if (search.investmentLevel() == 0 || search.investmentUntil() <= day) continue;
             if (promotedTiers.contains(search.tier())) continue;
             if (containsSubscription(search.stack()) || offers.stream().anyMatch(o -> ItemStack.isSameItemSameComponents(o.stack(), search.stack()))) continue;
-            double chance = investmentChance(search.stack(), search.investmentLevel());
+            double chance = investmentChance(search.stack(), search.investmentLevel(), shopkeeperPrimarySkill());
             if (random.nextDouble() >= Math.min(1.0D, chance)) continue;
             for (int i = 0; i < offers.size(); i++)
             {
@@ -340,6 +355,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
                         : (int) Math.min(Integer.MAX_VALUE, (long) replaced.price() * 2L);
                     offers.set(i, new MarketOffer(promoted, search.tier(), promotedPrice, true));
                     promotedTiers.add(search.tier());
+                    awardShopkeeperExperience();
                     completeRetainedSearch(search);
                     break;
                 }
@@ -423,24 +439,45 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         return (int) Math.ceil(MCTPConfig.retainedSearchInvestmentBaseXp.get() * level * multiplier);
     }
 
-    /** Calculates the tier-adjusted success chance for one investment level. */
-    public static double investmentChance(ItemStack stack, int level)
+    /** Calculates the skill-, tier-, and investment-adjusted success chance. */
+    public static double investmentChance(ItemStack stack, int level, int shopkeeperPrimarySkill)
     {
+        double tierDifficultyRating = MCTPConfig.retainedSearchTierDifficulty.get();
+        double skillChance = Math.max(0, Math.min(100, shopkeeperPrimarySkill)) / 1000.0D;
+
         final int tier = MarketTierSources.retainedSearchTierLevel(stack);
-        final double tierAdjustment = tier < 0 ? 0.0D : 0.10D - (0.10D * tier);
+        final double tierAdjustment = tier < 0 ? 0.0D
+            : -Math.max(0, tier - 1) * tierDifficultyRating;
         return Math.max(0.0D, Math.min(1.0D,
-            MCTPConfig.retainedSearchBaseChance.get() + investmentBonus(level) + tierAdjustment));
+            skillChance + investmentBonus(level) + tierAdjustment));
+    }
+
+    /** Returns the assigned Shopkeeper's primary skill, or zero when no Shopkeeper is available. */
+    private int shopkeeperPrimarySkill()
+    {
+        return building instanceof BuildingMarketplace marketplace ? marketplace.shopkeeperPrimarySkill() : 0;
+    }
+
+    /** Awards the employed Shopkeeper for successfully locating a retained-search item. */
+    private void awardShopkeeperExperience()
+    {
+        if (!(building instanceof BuildingMarketplace marketplace)) return;
+
+        ICitizenData shopkeeper = marketplace.shopkeeper();
+        if (shopkeeper == null
+            || shopkeeper.getWorkBuilding() != marketplace
+            || !(shopkeeper.getJob() instanceof JobShopkeeper)) return;
+
+        Optional<AbstractEntityCitizen> entity = shopkeeper.getEntity();
+        if (entity == null || entity.isEmpty() || !entity.get().isAlive()) return;
+
+        entity.get().getCitizenExperienceHandler().addExperience(RETAINED_SEARCH_XP);
     }
 
     private static double investmentBonus(int level)
     {
-        return switch (level)
-        {
-            case 1 -> MCTPConfig.retainedSearchInvestmentLevelOneBonus.get();
-            case 2 -> MCTPConfig.retainedSearchInvestmentLevelTwoBonus.get();
-            case 3 -> MCTPConfig.retainedSearchInvestmentLevelThreeBonus.get();
-            default -> 0.0D;
-        };
+        if (level < 1 || level > 3) return 0.0D;
+        return level * MCTPConfig.retainedSearchInvestmentLevelBonus.get();
     }
 
     /** Returns whether an equivalent retained-search item is already stored. */
@@ -509,6 +546,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         buf.writeVarInt(capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS));
         buf.writeVarInt((int) building.getColony().getResearchManager().getResearchEffects()
             .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER));
+        buf.writeVarInt(shopkeeperPrimarySkill());
         buf.writeLong(building.getColony().getWorld().getDayTime() / MarketDailyRoller.TICKS_PER_DAY);
         buf.writeVarInt(searches.size());
         for (RetainedSearch search : searches)

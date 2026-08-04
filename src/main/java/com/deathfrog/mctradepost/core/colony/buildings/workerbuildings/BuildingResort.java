@@ -570,7 +570,17 @@ public class BuildingResort extends AbstractBuilding
             return false;
         }
 
-        if (vacationFile.getState() != VacationState.CHECKED_OUT && citizen.getStatus() == EntityAIBurnoutTask.VACATION_STATUS) 
+        boolean expectsService = vacationFile.getState() == VacationState.RESERVED
+            || vacationFile.getState() == VacationState.CHECKED_IN
+            || vacationFile.getState() == VacationState.PENDING
+            || vacationFile.getState() == VacationState.REQUESTED;
+
+        long currentGameTime = citizen.getEntity().get().level().getGameTime();
+
+        if (expectsService
+            && vacationFile.isServiceGracePeriodComplete(currentGameTime)
+            && citizen.getStatus() == EntityAIBurnoutTask.VACATION_STATUS
+            && resortCandidate.isInBuilding(citizen.getLastPosition()))
         {
             return true;
         }
