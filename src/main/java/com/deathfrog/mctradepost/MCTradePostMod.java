@@ -70,6 +70,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessag
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.settings.MCTPSettingsFactory;
@@ -107,6 +108,7 @@ import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
+import com.deathfrog.mctradepost.network.ItemValueSyncPacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
 import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
 import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
@@ -1418,6 +1420,12 @@ public class MCTradePostMod
             );  
 
             registrar.playToClient(
+                ItemValueSyncPacket.TYPE,
+                ItemValueSyncPacket.STREAM_CODEC,
+                (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
+            );
+
+            registrar.playToClient(
                 PetForagingJeiSyncPacket.TYPE,
                 PetForagingJeiSyncPacket.STREAM_CODEC,
                 (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
@@ -1432,6 +1440,7 @@ public class MCTradePostMod
             OutpostAssignMessage.TYPE.register(registrar);
             StewIngredientMessage.TYPE.register(registrar);
             ThriftShopMessage.TYPE.register(registrar);
+            MarketplaceSourcingMessage.TYPE.register(registrar);
 
         }
 
@@ -1441,9 +1450,10 @@ public class MCTradePostMod
             @SubscribeEvent
             public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
                 if (event.getEntity() instanceof ServerPlayer player) {
-                    MCTradePostMod.LOGGER.debug("Synchronizing information to new player: {} ", player);
+                    MCTradePostMod.LOGGER.debug("Synchronizing Trade Post information to new player: {} ", player);
                     ConfigurationPacket.sendPacketsToPlayer(player);
                     RitualPacket.sendPacketsToPlayer(player);
+                    ItemValueSyncPacket.sendPacketsToPlayer(player);
                     PetForagingJeiSyncPacket.sendPacketsToPlayer(player);
                 }
             }
@@ -1452,12 +1462,16 @@ public class MCTradePostMod
             public static void onDatapackSync(OnDatapackSyncEvent event)
             {
                 FocusedForagingIndex.rebuild(event.getPlayerList().getServer());
-                if (event.getPlayer() != null)
+                ServerPlayer localPlayer = event.getPlayer();
+
+                if (localPlayer != null)
                 {
-                    PetForagingJeiSyncPacket.sendPacketsToPlayer(event.getPlayer());
+                    ItemValueSyncPacket.sendPacketsToPlayer(localPlayer);
+                    PetForagingJeiSyncPacket.sendPacketsToPlayer(localPlayer);
                     return;
                 }
 
+                ItemValueSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
                 PetForagingJeiSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
             }
         }   

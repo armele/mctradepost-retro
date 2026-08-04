@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTPConfig;
@@ -10,16 +11,34 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.item.CoinItem;
 
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
+import javax.annotation.Nonnull;
+
 public final class MarketDailyRoller
 {
-    public record MarketOffer(ItemStack stack, MarketTier tier, int price)
-    {}
+    public record MarketOffer(
+        @Nonnull ItemStack stack,
+        @Nonnull MarketTier tier,
+        int price,
+        boolean retainedSearchResult)
+    {
+        public MarketOffer(@Nonnull ItemStack stack, @Nonnull MarketTier tier, int price)
+        {
+            this(stack, tier, price, false);
+        }
+
+        public MarketOffer
+        {
+            Objects.requireNonNull(stack, "stack");
+            Objects.requireNonNull(tier, "tier");
+        }
+    }
 
     public enum MarketTier
     {
@@ -113,7 +132,7 @@ public final class MarketDailyRoller
     private static List<MarketOffer> dedupePreserveOrder(Level level, List<MarketOffer> offers)
     {
         // If we can’t get a provider, skip dedupe rather than returning empty market.
-        var ra = level.registryAccess();
+        RegistryAccess ra = level.registryAccess();
         if (!(ra instanceof HolderLookup.Provider provider))
         {
             return offers;
@@ -124,8 +143,10 @@ public final class MarketDailyRoller
 
         for (MarketOffer o : offers)
         {
-            if (o == null || o.stack() == null || o.stack().isEmpty())
+            if (o == null || o.stack().isEmpty())
+            {
                 continue;
+            }
 
             try
             {
@@ -137,6 +158,10 @@ public final class MarketDailyRoller
                 {
                     // copy() so we don’t mutate anything reused internally
                     net.minecraft.nbt.CompoundTag norm = ct.copy();
+                    // ItemStack's codec uses lowercase "count" in 1.21. Remove the
+                    // legacy spelling too so the identity remains count-independent
+                    // if an older serialized stack reaches this path.
+                    norm.remove("count");
                     norm.remove("Count");
 
                     key = norm.toString();

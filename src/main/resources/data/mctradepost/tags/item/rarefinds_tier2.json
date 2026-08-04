@@ -1,12 +1,17 @@
 {
   "replace": false,
   "values": [
+    {
+      "id": "#mctradepost:rarefinds_generated_tier2",
+      "required": false
+    },
     "#c:gunpowders",
     "#c:dyes",
     "#minecraft:flowers",
     "minecraft:ender_pearl",
     "minecraft:experience_bottle",
     "minecraft:golden_carrot",
+    "minecraft:golden_apple",
     "minecraft:firework_rocket",
     "minecraft:name_tag",
     "minecraft:saddle",
@@ -15,10 +20,182 @@
     "minecraft:compass",
     "minecraft:clock",
     "minecraft:red_sand",
-    "minecraft:bundle"
+    "minecraft:bundle",
+    "minecraft:stripped_warped_stem",
+    "minecraft:stripped_warped_hyphae",
+    "minecraft:warped_button",
+    "minecraft:warped_door",
+    "minecraft:warped_fence",
+    "minecraft:warped_fence_gate",
+    "minecraft:warped_fungus",
+    "minecraft:warped_hanging_sign",
+    "minecraft:warped_hyphae",
+    "minecraft:warped_nylium",
+    "minecraft:warped_planks",
+    "minecraft:warped_pressure_plate",
+    "minecraft:warped_roots",
+    "minecraft:warped_sign",
+    "minecraft:warped_slab",
+    "minecraft:warped_stairs",
+    "minecraft:warped_stem",
+    "minecraft:warped_trapdoor",
+    "minecraft:warped_wart_block",
+    "mctradepost:wish_plenty",
+    "mctradepost:wish_shelter",
+    "mctradepost:wish_health",
+    "mctradepost:wish_gathering_chicken",
+    "mctradepost:wish_gathering_cow",
+    "mctradepost:wish_gathering_pig",
+    "mctradepost:wish_gathering_sheep",
+    "mctradepost:quartz_mortar",
+    "mctradepost:weathered_rough_stone",
+    "mctradepost:weathered_rough_stone_slab",
+    "mctradepost:weathered_rough_stone_stairs",
+    "mctradepost:weathered_rough_stone_wall",
+    "mctradepost:quartz_plaster",
+    "mctradepost:quartz_plaster_slab",
+    "mctradepost:quartz_plaster_stairs",
+    "mctradepost:quartz_plaster_wall",
+    {
+      "id": "mekanism:elite_mechanical_pipe",
+      "required": false
+    },
+    {
+      "id": "mekanism:fluidic_plenisher",
+      "required": false
+    },
+    {
+      "id": "mekanism:hazmat_mask",
+      "required": false
+    },
+    {
+      "id": "mekanism:elite_tier_installer",
+      "required": false
+    },
+    {
+      "id": "mekanism:module_farming_unit",
+      "required": false
+    },
+    {
+      "id": "mekanism:elite_thermodynamic_conductor",
+      "required": false
+    },
+    {
+      "id": "mekanism:elite_universal_cable",
+      "required": false
+    },
+    {
+      "id": "immersiveengineering:tesla_coil",
+      "required": false
+    },
+    {
+      "id": "create:steam_engine",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:inferium_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:prosperity_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:prosperity_shard",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:soulium_dust",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:soulium_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:marble_seeds",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:menril_seeds",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:nature_seeds",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:mining_aoe_i_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:mining_aoe_ii_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:mining_aoe_iii_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:mining_aoe_iv_augment",
+      "required": false
+    },
+    {
+      "id": "mekanism:advanced_logistical_transporter",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:imperium_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:tertium_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:tertium_gemstone",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:soulium_gemstone",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:soul_jar",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:air_agglomeratio",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:speed_i_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:fire_resistance_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:night_vision_augment",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:no_fall_damage_augment",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:copper_barrel",
+      "required": false
+    },
+    {
+      "id": "sophisticatedstorage:copper_chest",
+      "required": false
+    }
   ],
   "remove": [
     "minecraft:dandelion",
-    "minecraft:chorus_flower"
+    "minecraft:chorus_flower",
+    "minecraft:wither_rose"
   ]
 }

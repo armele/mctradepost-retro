@@ -475,13 +475,14 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     /**
      * Called when the ghost cart stops rolling. Plays a cash register sound effect and spawns happy villager particles.
      */
+    @SuppressWarnings("null")
     private void endingEffects()
     {
         level().playSound(null,
             getX(),
             getY(),
             getZ(),
-            NullnessBridge.assumeNonnull(MCTPModSoundEvents.CASH_REGISTER),
+            MCTPModSoundEvents.CASH_REGISTER.get(),
             net.minecraft.sounds.SoundSource.NEUTRAL,
             0.3F,
             1.0F);

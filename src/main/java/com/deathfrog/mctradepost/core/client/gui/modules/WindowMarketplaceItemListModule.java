@@ -4,10 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
-import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.CompactNumberFormatter;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -30,6 +31,32 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
     public WindowMarketplaceItemListModule(IItemListModuleView moduleView, ResourceLocation res)
     {
         super(moduleView, res);
+        registerButton(BUTTON_SWITCH, this::removeItem);
+    }
+
+    /** Removes the selected sellable locally and sends the module update to the server. */
+    private void removeItem(@NotNull final Button button)
+    {
+        final int row = resourceList.getListElementIndexByPane(button);
+        if (row < 0 || row >= currentDisplayedList.size())
+        {
+            return;
+        }
+
+        final ItemStorage item = currentDisplayedList.get(row);
+        moduleView.removeItem(item);
+        currentDisplayedList.remove(item);
+        groupedItemList.remove(item);
+        resourceList.refreshElementPanes();
+    }
+
+    @Override
+    public void onOpened()
+    {
+        super.onOpened();
+        final Image help = findPaneOfTypeByID("help", Image.class);
+        PaneBuilders.tooltipBuilder().hoverPane(help).build()
+            .setText(Component.translatable("mctradepost.marketplace.sellables.help.tooltip"));
     }
 
     /**
@@ -87,32 +114,14 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                     value = marketplaceView.getMarketplaceValue(resource);
                 }
 
-                String valueString = Integer.toString(value);
-                if (value > 1000)
-                {
-                    double k = value / 1000.0;
-                    valueString = (k == Math.floor(k)) 
-                            ? String.format("%.0fK", k) 
-                            : String.format("%.1fK", k);
-                }
-
-                resourceValue.setText(Component.literal(valueString + ""));
-                PaneBuilders.tooltipBuilder().hoverPane(resourceValue).build().setText(Component.literal(NullnessBridge.assumeNonnull(Integer.toString(value))));
+                resourceValue.setText(Component.literal(CompactNumberFormatter.format(value)));
+                PaneBuilders.tooltipBuilder().hoverPane(resourceValue).build().setText(Component.literal(Integer.toString(value) + "‡"));
 
                 resourceValue.setColors(WHITE);
 
                 rowPane.findPaneOfTypeByID(RESOURCE_ICON, ItemIcon.class).setItem(resource);
-                final boolean isAllowedItem  = moduleView.isAllowedItem(new ItemStorage(resource));
                 final Button switchButton = rowPane.findPaneOfTypeByID(BUTTON_SWITCH, Button.class);
-
-                if ((isInverted && !isAllowedItem) || (!isInverted && isAllowedItem))
-                {
-                    switchButton.setText(Component.translatableEscape(ON));
-                }
-                else
-                {
-                    switchButton.setText(Component.translatableEscape(OFF));
-                }
+                switchButton.setText(Component.literal("X"));
             }
         });
     }

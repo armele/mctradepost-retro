@@ -6,10 +6,16 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.inventory.PetWorkingMenu;
+import com.deathfrog.mctradepost.core.client.render.ForageAreaOverlay;
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -23,6 +29,11 @@ public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
         ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final ResourceLocation FOCUS_SLOT_TEXTURE =
         ResourceLocation.fromNamespaceAndPath("mctradepost", "textures/gui/sniff.png");
+    private static final ResourceLocation HIGHLIGHT_OFF_TEXTURE =
+        ResourceLocation.fromNamespaceAndPath("mctradepost", "textures/gui/highlight_off.png");
+    private static final ResourceLocation HIGHLIGHT_ON_TEXTURE =
+        ResourceLocation.fromNamespaceAndPath("mctradepost", "textures/gui/highlight_on.png");
+    private ForageAreaCheckbox forageAreaCheckbox;
 
     /**
      * Creates a working-block screen.
@@ -37,6 +48,37 @@ public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
         imageWidth = 212;
         imageHeight = 168;
         inventoryLabelY = 74;
+    }
+
+    @Override
+    protected void init()
+    {
+        super.init();
+        final BlockPos pos = menu.workingPosition();
+
+        Minecraft localMc = minecraft;
+        
+        if (pos != null && localMc != null)
+        {
+            forageAreaCheckbox = addRenderableWidget(new ForageAreaCheckbox(leftPos + 184, topPos + 43,
+                ForageAreaOverlay.isEnabled(localMc.level, pos)));
+        }
+    }
+
+    @Override
+    protected void containerTick()
+    {
+        super.containerTick();
+
+        Minecraft localMinecraft = minecraft;
+
+        if (localMinecraft == null) return;
+
+        if (forageAreaCheckbox != null && forageAreaCheckbox.selected
+            && !ForageAreaOverlay.validateFocus(localMinecraft.level, menu.workingPosition(), menu.focusStack()))
+        {
+            forageAreaCheckbox.selected = false;
+        }
     }
 
     /**
@@ -149,6 +191,51 @@ public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
                 tooltip = List.of(Component.translatable("gui.mctradepost.focused_foraging.research_required"));
             }
             graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+        }
+    }
+
+    /** Compact image toggle sized for the working block's narrow focus side panel. */
+    private final class ForageAreaCheckbox extends AbstractButton
+    {
+        private boolean selected;
+
+        private ForageAreaCheckbox(int x, int y, boolean selected)
+        {
+            super(x, y, 18, 18, Component.translatable("gui.mctradepost.forage_area"));
+            this.selected = selected;
+        }
+
+        @Override
+        public void onPress()
+        {
+            Minecraft localMc = minecraft;
+            
+            if (localMc != null)
+            {
+                selected = !selected;
+                ForageAreaOverlay.setEnabled(localMc.level, menu.workingPosition(), menu.focusStack(), selected);
+            }
+        }
+
+        @SuppressWarnings("null")
+        @Override
+        protected void renderWidget(@Nonnull GuiGraphics graphics, int mouseX, int mouseY, float partialTick)
+        {
+            graphics.blit(selected ? HIGHLIGHT_ON_TEXTURE : HIGHLIGHT_OFF_TEXTURE,
+                getX(), getY(), width, height, 0.0F, 0.0F, 18, 18, 18, 18);
+            if (isHovered())
+            {
+                graphics.renderTooltip(font, Component.translatable("gui.mctradepost.forage_area.tooltip"), mouseX, mouseY);
+            }
+        }
+
+        @SuppressWarnings("null")
+        @Override
+        protected void updateWidgetNarration(@Nonnull NarrationElementOutput output)
+        {
+            output.add(NarratedElementType.TITLE, createNarrationMessage());
+            output.add(NarratedElementType.USAGE,
+                Component.translatable("gui.mctradepost.forage_area.tooltip"));
         }
     }
 }

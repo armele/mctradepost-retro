@@ -99,6 +99,8 @@ This is not the live value table. It is a seed file for the built-in generator c
 ```text
 /mctp generateItemValues
 /mctp generateItemValues dryRun
+/mctp generateItemValues deriveFromTier
+/mctp generateItemValues deriveFromTier dryRun
 ```
 
 Format:
@@ -106,6 +108,9 @@ Format:
 ```json
 {
   "replace": false,
+  "namespace_exclusions": [
+    "allthecompressed"
+  ],
   "tag_policy": "MIN",
   "tag_overrides_items": false,
   "tag_values": {
@@ -123,7 +128,13 @@ Behavior:
 
 - `tag_policy` may be `MIN`, `MAX`, or `FIRST`
 - `tag_overrides_items: false` means explicit item entries win over tag expansion
+- `namespace_exclusions` omits every item in the listed namespaces from seeds, recipe-derived values, and generated output
 - The generator writes a datapack to `<world>/datapacks/mctp_generated/data/mctradepost/item_values.json`
+- Generation merges loaded `data/mctradepost/item_values.json` files in normal datapack priority order and honors `replace`. These authoritative values are protected from recipe-derived replacement and remain available as recipe inputs.
+- The existing `mctp_generated` datapack is excluded from that merge, so stale generated values cannot feed back into later runs.
+- Output contains only values originating in `item_value_seeds.json` (including tag expansion and intentional overrides) plus newly derived items that have no authoritative value.
+- The optional `deriveFromTier` pass reads the currently loaded effective Rare Finds tags and supplies otherwise-unpriced Tier 2-4 items with deterministic fallback values ranging from 90% through 150% of their tier's configured value threshold. Tier 0 and Tier 1 have no configured cutoff and are not assigned fallback values.
+- Authoritative values, explicit seeds, and values established by the initial recipe pass take precedence over tier-derived values. With `deriveFromTier`, the generator runs recipe propagation once, adds fallbacks only for items still unresolved, and runs propagation a second time so those fallbacks can unlock values for dependent crafted items.
 
 Recommended workflow:
 
@@ -443,17 +454,162 @@ Tags are the most important integration layer for modpacks.
 
 - `data/mctradepost/tags/item/base_currency.json`
   - valid trade currencies for `tradeCurrency`
+- `data/mctradepost/tags/item/rarefinds_tier0.json`
 - `data/mctradepost/tags/item/rarefinds_tier1.json`
 - `data/mctradepost/tags/item/rarefinds_tier2.json`
 - `data/mctradepost/tags/item/rarefinds_tier3.json`
 - `data/mctradepost/tags/item/rarefinds_tier4.json`
 - `data/mctradepost/tags/item/rarefinds_blacklist.json`
+- `data/mctradepost/tags/item/rarefinds_unique_purchase.json`
 
 Rare Finds notes:
 
+- Tier 0 is eligible only for Retained Search and subscriptions created from a successful search; it never enters random Rare Finds rolls
 - Each tier has a 20% chance to roll directly from its tag before falling back to chest/fishing/wandering-trader sources
 - If an item appears in multiple rarefinds tiers, the mod treats the highest tier as owner and logs a warning
 - `rarefinds_blacklist` blocks an item from appearing even if other sources would roll it
+- `rarefinds_unique_purchase` allows an item to appear normally, including through Retained Search, but prevents subscriptions
+  and causes each purchase to consume the offer even when Bottomless Inventory research would normally preserve it
+- The effective tier tags include optional generator-owned companions named `rarefinds_generated_tier0` through
+  `rarefinds_generated_tier4`. Direct/manual membership remains definitive; generated membership only fills unclassified items.
+
+#### Unique Purchases
+
+Use `#mctradepost:rarefinds_unique_purchase` for Rare Finds that should remain occasional purchases rather than renewable
+supplies. The tag is independent of tier classification: an item still needs membership in `rarefinds_tier0` through
+`rarefinds_tier4` to qualify for Retained Search and subscriptions under the normal Rare Finds rules. Adding it to the unique
+purchase tag then removes only the subscription option and the Bottomless Inventory benefit.
+
+Stacks carrying active enchantments are also treated as unique purchases automatically, without requiring tag membership. This
+covers enchanted armor, weapons, tools, bows, fishing rods, and modded equipment that uses Minecraft's standard enchantment
+component. The restriction applies when the offered stack is enchanted; an unenchanted stack of the same registry item remains
+eligible under the normal subscription rules. Curses count as enchantments.
+
+To extend the tag from a modpack datapack:
+
+```json
+{
+  "replace": false,
+  "values": [
+    "othermod:exceptional_artifact"
+  ]
+}
+```
+
+Place that file at `data/mctradepost/tags/item/rarefinds_unique_purchase.json`. The built-in tag initially contains
+`minecraft:enchanted_book`, so every enchanted book is a unique purchase. Enchanted books store their enchantments separately
+from the active enchantments used by equipment, which is why the built-in tag remains necessary. Minecraft item tags match
+registry items rather than individual data-component variants; they cannot distinguish a Mending book from an enchanted book
+carrying another enchantment.
+
+The restriction is enforced by the server as well as the Marketplace interface. If a datapack reload adds an item that already
+has an active subscription, the subscription is removed during the next natural daily subscription-processing pass and the
+colony is notified. Removing an item from this tag permits new subscriptions again, but does not recreate a subscription that was
+previously canceled.
+
+### Generated Rare Finds Tiers
+
+The pack-level analyzer can propose tiers for modded items without consulting chunks, players, colonies, or other world state:
+
+```text
+/mctp generateRareFindTiers dryRun
+/mctp generateRareFindTiers
+```
+
+The generator uses definitive manual Rare Finds tags, the blacklist, explicit generator rules, item values, food properties, non-common item rarity,
+MineColonies block tiers, recipe ingredient progression, structure-template NBT loot-table references, and statically discoverable
+loot-table outputs. It is conservative and leaves items without positive evidence unclassified. Tier 4 requires an authoritative
+signal or corroborating independent evidence.
+
+Generation writes only generator-owned files beneath `<world>/datapacks/mctp_generated`:
+
+```text
+data/mctradepost/tags/item/rarefinds_generated_tier0.json
+data/mctradepost/tags/item/rarefinds_generated_tier1.json
+data/mctradepost/tags/item/rarefinds_generated_tier2.json
+data/mctradepost/tags/item/rarefinds_generated_tier3.json
+data/mctradepost/tags/item/rarefinds_generated_tier4.json
+data/mctradepost/tags/item/rarefinds_generated_blacklist.json
+data/mctradepost/tags/item/spawn_eggs.json
+data/mctradepost/tags/item/rarefinds_generated_tier_without_value.json
+data/mctradepost/reports/rare_find_generation.json
+```
+
+Every item in a generated tag is written with `"required": false`. If that datapack is later used without one of the mods that
+contributed items, Minecraft skips each missing item individually instead of dropping the entire generated companion tag.
+
+The built-in `#mctradepost:spawn_eggs` tag is always present and is referenced by `rarefinds_blacklist`. During generation, every
+loaded item implemented as a Minecraft `SpawnEggItem` is excluded immediately and written as an optional entry to the generated
+`spawn_eggs.json`. Explicit blacklist entries remain appropriate for custom mod items that behave like eggs without extending the
+standard spawn-egg item class.
+
+The `rarefinds_generated_tier_without_value` tag records classified items with no positive entry in `item_values.json`. Such items
+cannot be selected for Retained Search until a value is assigned, and the tag can be used as input to later economy tuning.
+
+#### Recommended Full-Pack Generation Workflow
+
+For a new modpack, generate recipe values first, use those values while classifying Rare Finds, and then fill the remaining
+Tier 2-4 pricing gaps from the generated tiers:
+
+```text
+/mctp generateItemValues
+/reload
+/mctp generateRareFindTiers
+/reload
+/mctp generateItemValues deriveFromTier
+/reload
+```
+
+Each reload makes the files written by the preceding command available through Minecraft's active datapack resources and tags.
+The final value pass references the loaded manual and generated Rare Finds tags directly, merges its tier-derived inputs into the
+normal generated `item_values.json`, and reruns recipe propagation. If `generateRareFindTiers` has not been run for the pack, the
+option sees only built-in and other already-loaded datapack tiers; an unpriced item with no loaded Tier 2-4 assignment remains
+unpriced. Either `dryRun deriveFromTier` or `deriveFromTier dryRun` can preview the final pass without writing files.
+
+Positive values below the Tier 2 threshold generate Tier 0. Food items also generate Tier 0 regardless of automated evidence or
+namespace floors; a definitive manual Tier 1-4 assignment still wins. A successful Tier 0 search replaces a Tier 1 roll, supplies
+the item's maximum stack size, and costs twice the configured value of that stack. Tier 0 subscriptions retain that stack size and
+use the configured subscription multiplier without a Tier 1 price floor.
+
+Generator configuration is loaded from `data/mctradepost/rare_find_generation_rules.json`. Files merge in datapack order;
+`replace: true` clears earlier structure and item rules. Default value thresholds follow Trade Post coin denominations:
+
+```json
+{
+  "replace": false,
+  "value_thresholds": {
+    "tier2": 1000,
+    "tier3": 8000,
+    "tier4": 64000
+  },
+  "blacklisted_namespaces": [
+    "allthecompressed"
+  ],
+  "namespace_tier_floors": {
+    "apothic_enchanting": 2
+  },
+  "structure_tiers": {
+    "othermod:sky_temple/*": 4
+  },
+  "item_tiers": {
+    "othermod:known_relic": 3
+  }
+}
+```
+
+`blacklisted_namespaces` expands every currently loaded item whose registry namespace matches into the optional
+`rarefinds_generated_blacklist` companion tag. A namespace whose mod is absent simply contributes no items. This avoids relying
+on a non-standard per-mod "all items" tag and safely adapts when a mod adds or removes items between pack versions.
+
+`namespace_tier_floors` assigns a minimum generated tier to every non-blacklisted item in a loaded registry namespace. It promotes
+unclassified items and derived classifications below the floor, but never lowers a higher derived tier. Definitive manual tier
+tags remain absolute and are not promoted. Floors apply only to items in the named namespace and do not propagate through recipes
+to outputs in other namespaces. An absent namespace matches nothing and does not cause a loading error.
+
+Structure rules accept exact IDs or trailing-`*` prefix matches. The report includes unmatched structure templates, the
+structure-to-loot-table reverse map, manual/derived disagreements, multiple-manual-tier conflicts, evidence for every classified
+item, and summary counts. Direct NBT scanning does not discover loot assigned by procedural Java structure pieces; cover those
+cases with explicit rules.
 
 ### Crafting And Food Categories
 
@@ -550,7 +706,8 @@ These are worth overriding if your pack changes building material progression or
 
 1. Put your desired items in the `rarefinds_tier*` tags
 2. Remove unsuitable results through `rarefinds_blacklist`
-3. Avoid tagging the same item in more than one tier
+3. Put occasional, non-renewable finds in `rarefinds_unique_purchase`
+4. Avoid tagging the same item in more than one tier
 
 ### If You Want Pack-Specific Pet Scavenging
 
@@ -574,6 +731,8 @@ These are worth overriding if your pack changes building material progression or
 - Test one resort burnout cure per skill you changed
 - Test recycler blacklist allow/deny precedence
 - Test one rarefinds roll from each tier
+- For tagged or enchanted unique-purchase Rare Finds, verify the subscription control is disabled and a purchase consumes the offer with Bottomless Inventory unlocked
+- If changing the unique-purchase tag in an existing world, verify affected active subscriptions are canceled on the next natural daily pass
 - Test one station route if you changed `#mctradepost:track`
 - Test one pet scavenge target for every new block tag you added
 - Test both an existing mushroom target and an empty, dim mushroom forage location if you changed mushroom scavenging

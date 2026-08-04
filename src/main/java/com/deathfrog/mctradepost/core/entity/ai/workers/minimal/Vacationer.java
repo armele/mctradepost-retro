@@ -22,12 +22,15 @@ import java.util.function.Predicate;
  */
 public class Vacationer 
 {
+    public static final long SERVICE_GRACE_DURATION_TICKS = 600L;
+
     private final int civilianId;
     private VacationState state;
     public static final String BURNOUT_NAME = "com.mctradepost.resort.burnout";
     protected Skill burntSkill;
     protected int targetLevel = -1;
     protected BuildingResort resort =  null;
+    private long serviceGraceEndsAt = -1L;
     boolean currentlyAtResort = false;
     List<ItemStorage> storedRemedyItems = null;
 
@@ -67,6 +70,10 @@ public class Vacationer
       this.burntSkill = skillname.length() == 0 ? null : Skill.valueOf(skillname);
       this.targetLevel = vacationCompound.getInt("targetLevel");
       this.currentlyAtResort = vacationCompound.getBoolean("currentlyAtResort");
+      // Vacation records written before the grace period was introduced remain immediately eligible.
+      this.serviceGraceEndsAt = vacationCompound.contains("serviceGraceEndsAt")
+          ? vacationCompound.getLong("serviceGraceEndsAt")
+          : 0L;
    }
 
    public int getCivilianId() 
@@ -96,7 +103,33 @@ public class Vacationer
       compoundNBT.putString("skill", burntSkill == null ? "" : burntSkill.name() + "");
       compoundNBT.putInt("targetLevel", targetLevel);
       compoundNBT.putBoolean("currentlyAtResort", currentlyAtResort);
+      compoundNBT.putLong("serviceGraceEndsAt", serviceGraceEndsAt);
    }
+
+    /**
+     * Starts the initial delay before an unserved guest's interaction may be shown.
+     *
+     * @param currentGameTime current server game time
+     */
+    public void startServiceGracePeriodIfNeeded(long currentGameTime)
+    {
+        if (serviceGraceEndsAt < 0L)
+        {
+            serviceGraceEndsAt = currentGameTime + SERVICE_GRACE_DURATION_TICKS;
+        }
+    }
+
+    /**
+     * Returns whether guest services has had its initial opportunity to serve this guest.
+     * A zero deadline preserves immediate eligibility for vacation records from older saves.
+     *
+     * @param currentGameTime current server game time
+     * @return true when the grace period has elapsed
+     */
+    public boolean isServiceGracePeriodComplete(long currentGameTime)
+    {
+        return serviceGraceEndsAt >= 0L && currentGameTime >= serviceGraceEndsAt;
+    }
 
     public Skill getBurntSkill() 
     {

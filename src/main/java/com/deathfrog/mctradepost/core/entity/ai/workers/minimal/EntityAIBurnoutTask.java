@@ -624,6 +624,7 @@ public class EntityAIBurnoutTask
 
         if (EntityNavigationUtils.walkToPos(citizen, bestResortLocation, MIN_DIST_TO_RESORT, true))
         {
+            vacationTracker.startServiceGracePeriodIfNeeded(citizen.level().getGameTime());
             TraceUtils.dynamicTrace(TRACE_BURNOUT,
                 () -> LOGGER.info("Vacationer {} has arrived at the resort and will be receiving a seat assignment.",
                     citizen.getName()));
@@ -646,6 +647,8 @@ public class EntityAIBurnoutTask
             reset();
             return AIWorkerState.START_WORKING;
         }
+
+        startServiceGracePeriodIfAtResort();
 
         citizenData.triggerInteraction(
             new StandardInteraction(Component.translatable(GREAT_VACATION, vacationTracker.name(), vacationTracker.getRemedyString()),
@@ -901,6 +904,8 @@ public class EntityAIBurnoutTask
             return AIWorkerState.START_WORKING;
         }
 
+        startServiceGracePeriodIfAtResort();
+
         BlockPos bestResortLocation = getBestResortPosition();
 
         if (bestResortLocation != null)
@@ -950,6 +955,20 @@ public class EntityAIBurnoutTask
         }
 
         return VacationAIState.WAIT_FOR_CURE;
+    }
+
+    /**
+     * Starts the interaction grace period when a resumed or interrupted vacation reaches
+     * an in-resort AI path without passing through the normal arrival transition.
+     */
+    private void startServiceGracePeriodIfAtResort()
+    {
+        if (vacationTracker != null
+            && vacationTracker.getResort() != null
+            && vacationTracker.getResort().isInBuilding(citizen.blockPosition()))
+        {
+            vacationTracker.startServiceGracePeriodIfNeeded(citizen.level().getGameTime());
+        }
     }
 
     /**

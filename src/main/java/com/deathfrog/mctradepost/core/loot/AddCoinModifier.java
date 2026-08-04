@@ -42,6 +42,7 @@ public class AddCoinModifier extends LootModifier
         this.baseChance = chance;
     }
 
+    @SuppressWarnings("null")
     @Override
     protected ObjectArrayList<ItemStack> doApply(@Nonnull ObjectArrayList<ItemStack> generatedLoot, @Nonnull LootContext ctx)
     {
@@ -88,7 +89,7 @@ public class AddCoinModifier extends LootModifier
             {
                 ctx.getLevel().playSound(null,
                     pos,
-                    MCTPModSoundEvents.CASH_REGISTER,
+                    MCTPModSoundEvents.CASH_REGISTER.get(),
                     SoundSource.NEUTRAL,
                     (float) .8,
                     (float) 1.0f);

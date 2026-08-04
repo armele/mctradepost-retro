@@ -46,6 +46,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.util.RandomSource;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 
 public class ThriftShopOffersModule extends AbstractBuildingModule implements IPersistentModule 
 {
@@ -63,6 +66,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
     private static final String TAG_OFFER_STACK = "stack";
     private static final String TAG_OFFER_PRICE = "price";
     private static final String TAG_OFFER_TIER = "tier"; // store enum name or ordinal
+    private static final String TAG_RETAINED_SEARCH_RESULT = "retainedSearchResult";
 
     List<MarketOffer> offers = new ArrayList<>();
     long lastRollDay = 0L;
@@ -157,7 +161,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
             if (!stack.isEmpty() && price > 0)
             {
-                loaded.add(new MarketOffer(stack, tier, price));
+                loaded.add(new MarketOffer(stack, tier, price, offerTag.getBoolean(TAG_RETAINED_SEARCH_RESULT)));
             }
         }
 
@@ -195,7 +199,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
         for (final MarketOffer offer : offers)
         {
-            if (offer == null || offer.stack() == null || offer.price() <= 0)
+            if (offer == null || offer.price() <= 0)
             {
                 continue;
             }
@@ -217,6 +221,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             offerTag.put(TAG_OFFER_STACK, NullnessBridge.assumeNonnull(stack.save(provider)));
 
             offerTag.putInt(TAG_OFFER_PRICE, price);
+            offerTag.putBoolean(TAG_RETAINED_SEARCH_RESULT, offer.retainedSearchResult());
 
             // LOGGER.info("Colony {} - Offer saved: {} at {}", building.getColony().getID(), stack.getHoverName(), price);
 
@@ -240,6 +245,14 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         // Always write lastRoll first so client can show “last refreshed”
         buf.writeLong(lastRollDay);
         buf.writeInt(rerollCost);
+        MarketplaceSourcingModule sourcing = building.getModule(MCTPBuildingModules.MARKETPLACE_SOURCING);
+        buf.writeVarInt(sourcing == null ? 0 : sourcing.capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS));
+        List<MarketOffer> subscriptionOffers = sourcing == null ? List.of() : sourcing.subscriptionOffers();
+        buf.writeVarInt(subscriptionOffers.size());
+        for (MarketOffer subscription : subscriptionOffers)
+        {
+            Utils.serializeCodecMess(buf, subscription.stack());
+        }
 
         // Write offers count + each offer
         buf.writeVarInt(offers.size());
@@ -258,6 +271,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             // Tier: write enum ordinal (smaller), or name (more stable).
             // For view packets, ordinal is fine as long as you control both ends.
             buf.writeVarInt(tier.ordinal());
+            buf.writeBoolean(offer != null && offer.retainedSearchResult());
         }
     }
 
@@ -412,15 +426,41 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         }
 
         final int[] offerAmounts = determineOffers(thriftShopResearchTier);
+        MarketplaceSourcingModule sourcing = building.getModule(MCTPBuildingModules.MARKETPLACE_SOURCING);
+        if (!reroll && sourcing != null)
+        {
+            sourcing.processSubscriptions(currentDay);
+        }
+        if (sourcing != null)
+        {
+            offerAmounts[0] = Math.max(0, offerAmounts[0] - sourcing.subscriptionCount(MarketTier.TIER1_COMMON));
+            offerAmounts[1] = Math.max(0, offerAmounts[1] - sourcing.subscriptionCount(MarketTier.TIER2_UNCOMMON));
+            offerAmounts[2] = Math.max(0, offerAmounts[2] - sourcing.subscriptionCount(MarketTier.TIER3_RARE));
+            offerAmounts[3] = Math.max(0, offerAmounts[3] - sourcing.subscriptionCount(MarketTier.TIER4_EPIC));
+        }
 
         TraceUtils.dynamicTrace(TRACE_RAREFINDS, () -> LOGGER.info("Colony {}: Rare Finds - rolling daily offers for day: {} at research tier {} with offers {} common, {} uncommon, {} rare, {} epic", 
             building.getColony().getID(), currentDay, thriftShopResearchTier, offerAmounts[0], offerAmounts[1], offerAmounts[2], offerAmounts[3]));
 
         lastRollDay = currentDay;
         offers = MarketDailyRoller.rollDailyOffers((ServerLevel) level, (BuildingMarketplace) building, rerollIndex, offerAmounts[0], offerAmounts[1], offerAmounts[2], offerAmounts[3]);
+        boolean retainedSearchLocated = false;
+        if (sourcing != null)
+        {
+            long seed = ((ServerLevel) level).getSeed() ^ building.getColony().getID() ^ currentDay ^ ((long) rerollIndex << 32);
+            retainedSearchLocated = sourcing.promoteRetainedSearches(offers, currentDay, RandomSource.create(seed));
+            List<MarketOffer> subscriptionOffers = sourcing.subscriptionOffers();
+            offers.removeIf(offer -> subscriptionOffers.stream()
+                .anyMatch(subscription -> ItemStack.isSameItemSameComponents(subscription.stack(), offer.stack())));
+            offers.addAll(0, subscriptionOffers);
+        }
 
 
         MessageUtils.format("mctradepost.thriftshop.reroll.success").sendTo(building.getColony()).forAllPlayers();
+        if (retainedSearchLocated)
+        {
+            MessageUtils.format("mctradepost.retained_search.located").sendTo(building.getColony()).forAllPlayers();
+        }
 
         markDirty();
     }
@@ -490,6 +530,12 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
                 continue;
             }
 
+            MarketplaceSourcingModule sourcing = building.getModule(MCTPBuildingModules.MARKETPLACE_SOURCING);
+            if (sourcing != null && sourcing.isSubscribed(offer.stack()))
+            {
+                return;
+            }
+
             found = true;
 
             processPurchase(offer, player);
@@ -504,6 +550,67 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
         building.markDirty();
         return;
+    }
+
+    /**
+     * Activates a subscription from a live offer and completes its first delivery immediately.
+     *
+     * @param stack offered item
+     * @param player subscribing player
+     */
+    @SuppressWarnings("null")
+    public void subscribe(@Nonnull ItemStack stack, Player player)
+    {
+        MarketplaceSourcingModule sourcing = building.getModule(MCTPBuildingModules.MARKETPLACE_SOURCING);
+        if (sourcing == null) return;
+        MarketOffer offer = offers.stream().filter(candidate -> ItemStack.isSameItemSameComponents(candidate.stack(), stack)).findFirst().orElse(null);
+        if (offer == null) return;
+        if (MarketTierSources.isUniquePurchase(offer.stack()))
+        {
+            MessageUtils.format("mctradepost.subscription.unique_purchase").sendTo(player);
+            return;
+        }
+        if (!MarketTierSources.matchesOfferTier(offer.stack(), offer.tier()))
+        {
+            MessageUtils.format("mctradepost.subscription.ineligible").sendTo(player);
+            return;
+        }
+
+        int[] tierSlots = determineOffers((int) building.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER));
+        int tierIndex = offer.tier().ordinal();
+        int totalSlots = tierSlots[0] + tierSlots[1] + tierSlots[2] + tierSlots[3];
+        if (sourcing.getSubscriptions().size() >= Math.min(sourcing.capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS), totalSlots)
+            || sourcing.subscriptionCount(offer.tier()) >= tierSlots[tierIndex]) return;
+
+        int subscriptionPrice = MarketplaceSourcingModule.subscriptionPrice(offer.stack(), offer.tier());
+        BuildingEconModule econ = building.getModule(MCTPBuildingModules.ECON_MODULE);
+        if (econ.getTotalBalance() < subscriptionPrice)
+        {
+            MessageUtils.format("mctradepost.thriftshop.nsf").sendTo(player);
+            return;
+        }
+        ItemStack simulated = ItemHandlerHelper.insertItemStacked(building.getItemHandlerCap(), offer.stack().copy(), true);
+        if (!simulated.isEmpty())
+        {
+            MessageUtils.format("mctradepost.subscription.inventory_full").sendTo(player);
+            return;
+        }
+        long currentDay = building.getColony().getWorld().getDayTime() / MarketDailyRoller.TICKS_PER_DAY;
+        if (!sourcing.activateSubscription(offer, currentDay)) return;
+        econ.deposit(-subscriptionPrice);
+        ItemStack remainder = ItemHandlerHelper.insertItemStacked(building.getItemHandlerCap(), offer.stack().copy(), false);
+        if (!remainder.isEmpty())
+        {
+            econ.deposit(subscriptionPrice);
+            sourcing.cancelSubscription(offer.stack());
+            return;
+        }
+        BuildingUtil.bringThisToTheWarehouse(building, offer.stack().copy());
+        StatsUtil.trackStatByName(building, MarketplaceSourcingModule.SUBSCRIPTIONS_FILLED, offer.stack().getHoverName(), 1);
+        int offerIndex = offers.indexOf(offer);
+        offers.set(offerIndex, new MarketOffer(offer.stack(), offer.tier(), subscriptionPrice, offer.retainedSearchResult()));
+        markDirty();
     }
 
     /**
@@ -549,7 +656,8 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         econ.deposit(-offer.price());
 
         // Remove the offer from the list if the bottomless research has not been done, or the tier is too high for it to apply.
-        if (bottomlessOffers < 1 || offer.tier() == MarketTier.TIER3_RARE || offer.tier() == MarketTier.TIER4_EPIC)
+        if (bottomlessOffers < 1 || MarketTierSources.isUniquePurchase(offer.stack())
+            || offer.tier() == MarketTier.TIER3_RARE || offer.tier() == MarketTier.TIER4_EPIC)
         {
             offers.remove(offer);
             markDirty();
@@ -575,13 +683,14 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
      * The sound is a cash register sound and the particles are the happy villager particles.
      * @param marketplace the marketplace building
      */
+    @SuppressWarnings("null")
     protected void withdrawEffects(IBuilding marketplace)
     {
         BlockPos pos = marketplace.getPosition();
         marketplace.getColony().getWorld().playSound(
                 null,                         // null = all players tracking this entity
                 pos.getX(), pos.getY(), pos.getZ(),
-                MCTPModSoundEvents.CASH_REGISTER,
+                MCTPModSoundEvents.CASH_REGISTER.get(),
                 net.minecraft.sounds.SoundSource.NEUTRAL,
                 0.3F,                         // volume
                 1.0F);                        // pitch

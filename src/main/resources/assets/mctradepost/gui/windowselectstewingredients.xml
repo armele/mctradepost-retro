@@ -15,8 +15,9 @@
     <list id="resources" size="300 120" pos="60 65">
         <box size="100% 17" linewidth="1">
             <itemicon id="resourceIcon" size="17 17" pos="1 1"/>
-            <text id="resourceName" size="140 12" pos="30 1" color="white"/>
-            <button label="$(com.minecolonies.coremod.gui.scantool.select)" id="select" pos="160 1" size="86 17"
+            <text id="resourceName" size="112 12" pos="30 1" color="white"/>
+            <text id="tierBadge" size="28 12" pos="143 1" textalign="MIDDLE" color="white"/>
+            <button label="$(com.minecolonies.coremod.gui.scantool.select)" id="select" pos="174 1" size="72 17"
                          source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black"/>
         </box>
     </list>

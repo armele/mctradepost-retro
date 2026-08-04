@@ -16,6 +16,8 @@ public class MCTPResearchConstants {
     public static final ResourceLocation THRIFTSHOP_MORE            = getResearchEffectID("thriftshop_more");
     public static final ResourceLocation THRIFTSHOP_REROLL          = getResearchEffectID("thriftshop_reroll");
     public static final ResourceLocation THRIFTSHOP_BOTTOMLESS      = getResearchEffectID("thriftshop_bottomless");
+    public static final ResourceLocation RETAINED_SEARCH            = getResearchEffectID("retained_search");
+    public static final ResourceLocation MARKETPLACE_SUBSCRIPTIONS  = getResearchEffectID("marketplace_subscriptions");
     public static final ResourceLocation HUSBANDRY                  = getResearchEffectID("husbandry");
     public static final ResourceLocation EXOTIC                     = getResearchEffectID("exotic");
     public static final ResourceLocation VET                        = getResearchEffectID("vet");

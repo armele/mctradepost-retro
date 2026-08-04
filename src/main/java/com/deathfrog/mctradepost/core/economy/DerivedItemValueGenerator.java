@@ -30,14 +30,21 @@ public final class DerivedItemValueGenerator
         private boolean applyCookingPremium = false;
         private int maxIterations = 50;
         private double cookingPremiumPer1200Ticks = 0.10; // 10% per 60s (1200 ticks)
+        private Set<String> namespaceExclusions = Set.of();
 
         public boolean applyCookingPremium() { return applyCookingPremium; }
         public int maxIterations() { return maxIterations; }
         public double cookingPremiumPer1200Ticks() { return cookingPremiumPer1200Ticks; }
+        public Set<String> namespaceExclusions() { return namespaceExclusions; }
 
         public Options setApplyCookingPremium(final boolean v) { this.applyCookingPremium = v; return this; }
         public Options setMaxIterations(final int v) { this.maxIterations = Math.max(1, v); return this; }
         public Options setCookingPremiumPer1200Ticks(final double v) { this.cookingPremiumPer1200Ticks = Math.max(0, v); return this; }
+        public Options setNamespaceExclusions(final Collection<String> namespaces)
+        {
+            this.namespaceExclusions = namespaces == null ? Set.of() : Set.copyOf(namespaces);
+            return this;
+        }
     }
 
     public record Report(
@@ -56,7 +63,7 @@ public final class DerivedItemValueGenerator
                 + ", recipesConsidered=" + recipesConsidered
                 + ", recipesApplied=" + recipesApplied
                 + ", derivedCount=" + derivedCount
-                + ", totalKnown=" + values.size()
+                + ", emittedValues=" + values.size()
                 + ", unknownOutputs=" + unknownOutputs.size()
                 + ", unknownIngredients=" + unknownIngredientCounts.size();
         }
@@ -77,6 +84,27 @@ public final class DerivedItemValueGenerator
                                   final Map<?, Integer> seedValuesRaw,
                                   final Options options)
     {
+        return generate(server, Map.of(), seedValuesRaw, options);
+    }
+
+    /**
+     * Propagates recipes from authoritative values and generator seeds while retaining their provenance.
+     * Both input sets are protected from recipe replacement; generator seeds intentionally take precedence
+     * over authoritative values. The returned value map contains only generator seeds and newly derived items,
+     * making it safe to write as an overlay datapack.
+     *
+     * @param server Minecraft server supplying recipes and registries
+     * @param authoritativeValuesRaw merged values supplied by ordinary datapacks
+     * @param seedValuesRaw generator-specific seeds and explicit overrides
+     * @param options generation options
+     * @return generation report whose values are safe to emit
+     */
+    @SuppressWarnings("null")
+    public static Report generate(final MinecraftServer server,
+                                  final Map<?, Integer> authoritativeValuesRaw,
+                                  final Map<?, Integer> seedValuesRaw,
+                                  final Options options)
+    {
         final RegistryAccess ra = server.registryAccess();
         final RecipeManager rm = server.getRecipeManager();
 
@@ -88,21 +116,18 @@ public final class DerivedItemValueGenerator
 
         final Map<Item, Integer> unknownIngredientCounts = new HashMap<>();
 
-        // Copy seeds into typed map.
-        final Map<Item, Integer> values = new HashMap<>();
+        // Authoritative values are protected inputs but are not generator output.
+        final Map<Item, Integer> authoritativeValues = typedValues(authoritativeValuesRaw, options);
+        final Set<Item> authoritativeItems = authoritativeValues.keySet();
 
-        int seedCount = 0;
-        for (final Map.Entry<?, ?> e : seedValuesRaw.entrySet())
-        {
-            if (e.getKey() instanceof Item it && e.getValue() instanceof Integer v)
-            {
-                values.put(it, v);
-                seedCount++;
-            }
-        }
+        // Seeds are explicit overrides and therefore load after authoritative values.
+        final Map<Item, Integer> seedValues = typedValues(seedValuesRaw, options);
+        final Set<Item> seedItems = seedValues.keySet();
+        final Map<Item, Integer> values = combineInputs(authoritativeValues, seedValues);
+        final int seedCount = seedItems.size();
 
-        // After loading up the values from the seeds, keep track of which items we have seeds for, to prevent overwriting them during generation
-        Set<Item> seedItems = new HashSet<>(values.keySet());
+        final Set<Item> protectedItems = new HashSet<>(authoritativeItems);
+        protectedItems.addAll(seedItems);
 
         final Predicate<RecipeType<?>> allowedTypes = t ->
             t == RecipeType.CRAFTING
@@ -117,8 +142,9 @@ public final class DerivedItemValueGenerator
         for (final RecipeHolder<?> holder : rm.getRecipes())
         {
             final Recipe<?> recipe = holder.value();
+            final ItemStack output = recipe.getResultItem(ra);
 
-            if (allowedTypes.test(recipe.getType()))
+            if (allowedTypes.test(recipe.getType()) && !output.isEmpty() && !isNamespaceExcluded(output.getItem(), options))
             {
                 all.add(holder);
             }
@@ -167,7 +193,7 @@ public final class DerivedItemValueGenerator
                 // cost is per 1 output item already
                 final int unitCost = Math.max(0, cost);
 
-                if (!seedItems.contains(outItem))
+                if (!protectedItems.contains(outItem))
                 {
                     // Keep minimum cost among multiple recipes, if not a seeded item
                     if (existing == null || unitCost < existing)
@@ -216,7 +242,43 @@ public final class DerivedItemValueGenerator
             }
         );
 
-        return new Report(Collections.unmodifiableMap(values), iterations, recipesConsidered, recipesApplied, derivedCount, unknown,  Collections.unmodifiableMap(unknownCountsSorted));
+        final Map<Item, Integer> emittedValues = selectEmittedValues(values, authoritativeItems, seedItems);
+        return new Report(Collections.unmodifiableMap(emittedValues), iterations, recipesConsidered, recipesApplied, derivedCount, unknown, Collections.unmodifiableMap(unknownCountsSorted));
+    }
+
+    private static Map<Item, Integer> typedValues(final Map<?, Integer> source, final Options options)
+    {
+        final Map<Item, Integer> copied = new HashMap<>();
+        for (final Map.Entry<?, ?> entry : source.entrySet())
+        {
+            if (entry.getKey() instanceof Item item && entry.getValue() instanceof Integer value
+                && !isNamespaceExcluded(item, options))
+            {
+                copied.put(item, value);
+            }
+        }
+        return copied;
+    }
+
+    /** Combines protected inputs with explicit generator seeds taking precedence. */
+    static <T> Map<T, Integer> combineInputs(final Map<T, Integer> authoritative, final Map<T, Integer> seeds)
+    {
+        final Map<T, Integer> combined = new HashMap<>(authoritative);
+        combined.putAll(seeds);
+        return combined;
+    }
+
+    /** Selects generator-owned seeds and derivations while omitting untouched authoritative entries. */
+    static <T> Map<T, Integer> selectEmittedValues(final Map<T, Integer> known,
+                                                   final Set<T> authoritative,
+                                                   final Set<T> seeds)
+    {
+        final Map<T, Integer> emitted = new HashMap<>();
+        known.forEach((item, value) ->
+        {
+            if (seeds.contains(item) || !authoritative.contains(item)) emitted.put(item, value);
+        });
+        return emitted;
     }
 
     /**
@@ -398,5 +460,11 @@ public final class DerivedItemValueGenerator
         }
 
         return any ? best : null;
+    }
+
+    private static boolean isNamespaceExcluded(final @Nonnull Item item, final Options options)
+    {
+        final ResourceLocation id = ITEM.getKey(item);
+        return id != null && options.namespaceExclusions().contains(id.getNamespace());
     }
 }

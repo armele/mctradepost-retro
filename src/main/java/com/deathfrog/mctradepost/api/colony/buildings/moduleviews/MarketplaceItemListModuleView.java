@@ -78,6 +78,22 @@ public class MarketplaceItemListModuleView extends ItemListModuleViewExt
         return marketplaceValues.getOrDefault(stack.getItem(), 0);
     }
 
+    @Override
+    public void removeItem(final ItemStorage item)
+    {
+        super.removeItem(item);
+        itemOptionSet.remove(item);
+        marketplaceValues.remove(item.getItemStack().getItem());
+    }
+
+    @Override
+    public void clearItems()
+    {
+        super.clearItems();
+        itemOptionSet.clear();
+        marketplaceValues.clear();
+    }
+
     @OnlyIn(Dist.CLIENT)
     public BOWindow getWindow()
     {

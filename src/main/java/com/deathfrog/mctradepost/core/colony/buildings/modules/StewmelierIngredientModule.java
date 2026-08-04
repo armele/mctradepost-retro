@@ -86,9 +86,14 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         markDirty();
     }
 
-    public float getStewQuantity() 
+    public float getStewQuantityFractional() 
     {
         return stewQuantity;
+    }
+
+    public int getStewQuantityBowlsWorth() 
+    {
+        return (int) stewQuantity;
     }
 
     public void setStewQuantity(float quantity) 

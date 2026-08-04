@@ -1,0 +1,64 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "#mctradepost:rarefinds_generated_tier0",
+      "required": false
+    },
+    "#c:strings",
+    "#c:mushrooms",
+    {
+      "id": "#c:fruits",
+      "required": false
+    },
+    {
+      "id": "#c:vegetables",
+      "required": false
+    },
+    "#minecraft:saplings",
+    "#minecraft:logs",
+    "#minecraft:pig_food",
+    "#minecraft:sheep_food",
+    "#minecraft:rabbit_food",
+    "#minecraft:cow_food",
+    "#minecraft:chicken_food",
+    "#minecraft:planks",
+    "#mctradepost:vegetable",
+    {"id": "mekanism:block_salt", "required": false},
+    {"id": "mekanism:bio_fuel", "required": false},
+    {"id": "mekanism:structural_glass", "required": false},
+    {"id": "mekanism:basic_pressurized_tube", "required": false},
+    {"id": "mekanism:basic_universal_cable", "required": false},
+    {"id": "mekanism:basic_thermodynamic_conductor", "required": false},
+    {"id": "mekanism:dye_base", "required": false},
+    {"id": "mysticalagriculture:soulstone_cobble", "required": false},
+    {"id": "mysticalagriculture:soulstone_cobble_slab", "required": false},
+    {"id": "mysticalagriculture:soulstone_cobble_wall", "required": false},
+    {"id": "mysticalagriculture:soulstone_slab", "required": false},
+    {"id": "mysticalagriculture:soulstone_bricks_slab", "required": false},
+    {"id": "mysticalagriculture:soulstone_smooth_slab", "required": false},
+    {"id": "sophisticatedstorage:paintbrush", "required": false},
+    {"id": "sophisticatedstorage:oak_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:spruce_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:birch_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:acacia_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:jungle_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:dark_oak_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:mangrove_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:cherry_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:bamboo_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:crimson_storage_connector", "required": false},
+    {"id": "sophisticatedstorage:warped_storage_connector", "required": false}
+  ],
+  "remove": [
+    "minecraft:golden_carrot",
+    "minecraft:golden_apple",
+    "minecraft:flowering_azalea",
+    "minecraft:mangrove_propagule",
+    "minecraft:warped_planks",
+    "minecraft:warped_stem",
+    "minecraft:stripped_warped_stem",
+    "minecraft:stripped_warped_hyphae",
+    "minecraft:warped_hyphae"
+  ]
+}

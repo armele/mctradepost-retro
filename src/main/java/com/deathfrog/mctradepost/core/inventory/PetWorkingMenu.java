@@ -114,6 +114,12 @@ public class PetWorkingMenu extends AbstractContainerMenu
         return focusInventory.getItem(0);
     }
 
+    /** Returns the position whose forage search volume is represented by this menu. */
+    public BlockPos workingPosition()
+    {
+        return working == null ? null : working.getBlockPos();
+    }
+
     /**
      * Checks whether the viewing player may continue using the working block.
      *

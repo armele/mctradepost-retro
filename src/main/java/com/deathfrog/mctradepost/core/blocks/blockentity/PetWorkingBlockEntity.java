@@ -66,12 +66,14 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     private static final int MAX_FOCUSED_TARGETS = 64;
     private NonNullList<ItemStack> items = NonNullList.withSize(SLOT_COUNT, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
     private final Deque<BlockPos> focusedTargets = new ArrayDeque<>();
+    private long nextFocusedFullScanTime;
     private final SimpleContainer focusContainer = new SimpleContainer(1)
     {
         @Override
         public void setChanged()
         {
             focusedTargets.clear();
+            nextFocusedFullScanTime = 0L;
             PetWorkingBlockEntity.this.setChanged();
         }
 
@@ -196,6 +198,7 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
         }
         focusContainer.setItem(0, focusItems.get(0));
         focusedTargets.clear();
+        nextFocusedFullScanTime = 0L;
 
         if (tag.contains(TAG_PWB_CUSTOM_NAME))
         {
@@ -325,6 +328,41 @@ public class PetWorkingBlockEntity extends RandomizableContainerBlockEntity
     public @Nullable BlockPos pollFocusedTarget()
     {
         return focusedTargets.pollFirst();
+    }
+
+    /** Returns the number of compatible source positions currently cached. */
+    public int focusedTargetCount()
+    {
+        return focusedTargets.size();
+    }
+
+    /** Clears cached compatible sources before rebuilding them from the world. */
+    public void clearFocusedTargets()
+    {
+        focusedTargets.clear();
+    }
+
+    /**
+     * Checks whether the bounded full-volume focused scan may run now.
+     *
+     * @param gameTime current server-level game time
+     * @return {@code true} when the rescan throttle has elapsed
+     */
+    public boolean mayRunFocusedFullScan(final long gameTime)
+    {
+        return gameTime >= nextFocusedFullScanTime;
+    }
+
+    /**
+     * Delays the next full focused scan while cached compatible sources remain
+     * available for inexpensive maturity checks.
+     *
+     * @param gameTime current server-level game time
+     * @param delayTicks minimum delay before another full scan
+     */
+    public void deferFocusedFullScan(final long gameTime, final int delayTicks)
+    {
+        nextFocusedFullScanTime = gameTime + Math.max(1, delayTicks);
     }
 
     @Override

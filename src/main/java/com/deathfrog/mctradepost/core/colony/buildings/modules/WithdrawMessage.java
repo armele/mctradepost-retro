@@ -101,13 +101,14 @@ public class WithdrawMessage extends AbstractBuildingServerMessage<IBuilding>
      * The sound is a cash register sound and the particles are the happy villager particles.
      * @param marketplace the marketplace building
      */
+    @SuppressWarnings("null")
     protected void withdrawEffects(IBuilding marketplace)
     {
         BlockPos pos = marketplace.getPosition();
         marketplace.getColony().getWorld().playSound(
                 null,                         // null = all players tracking this entity
                 pos.getX(), pos.getY(), pos.getZ(),
-                MCTPModSoundEvents.CASH_REGISTER,
+                MCTPModSoundEvents.CASH_REGISTER.get(),
                 net.minecraft.sounds.SoundSource.NEUTRAL,
                 0.3F,                         // volume
                 1.0F);                        // pitch

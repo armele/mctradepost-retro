@@ -6,7 +6,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.SharedConstants;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.LevelResource;
 
@@ -48,7 +50,7 @@ public final class GeneratedValuePackWriter
 
         // Stable ordering for diffs
         final Map<String, Integer> sorted = new TreeMap<>();
-        for (final var e : values.entrySet())
+        for (final Map.Entry<Item,Integer> e : values.entrySet())
         {
             final Item item = e.getKey();
             final Integer v = e.getValue();
@@ -62,7 +64,7 @@ public final class GeneratedValuePackWriter
         root.addProperty("replace", replace);
 
         final JsonObject vals = new JsonObject();
-        for (final var e : sorted.entrySet())
+        for (final Map.Entry<String,Integer> e : sorted.entrySet())
         {
             vals.addProperty(e.getKey(), e.getValue());
         }
@@ -75,20 +77,15 @@ public final class GeneratedValuePackWriter
 
         // Minimal pack.mcmeta (required by datapack system)
         final Path mcmeta = packRoot.resolve("pack.mcmeta");
-        if (!Files.exists(mcmeta))
-        {
-            final JsonObject pack = new JsonObject();
-            final JsonObject packInner = new JsonObject();
-            // pack_format changes between MC versions; 1.21.1 uses a newer value.
-            // The game will warn if this is off, but will still load. You can adjust as needed.
-            packInner.addProperty("pack_format", 26);
-            packInner.addProperty("description", "MC Trade Post - Generated Item Values");
-            pack.add("pack", packInner);
+        final JsonObject pack = new JsonObject();
+        final JsonObject packInner = new JsonObject();
+        packInner.addProperty("pack_format", SharedConstants.getCurrentVersion().getPackVersion(PackType.SERVER_DATA));
+        packInner.addProperty("description", "MC Trade Post - Generated Data");
+        pack.add("pack", packInner);
 
-            try (BufferedWriter w = Files.newBufferedWriter(mcmeta, StandardCharsets.UTF_8))
-            {
-                GSON.toJson(pack, w);
-            }
+        try (BufferedWriter w = Files.newBufferedWriter(mcmeta, StandardCharsets.UTF_8))
+        {
+            GSON.toJson(pack, w);
         }
 
         MCTradePostMod.LOGGER.info("Wrote generated item values to {}", outFile);

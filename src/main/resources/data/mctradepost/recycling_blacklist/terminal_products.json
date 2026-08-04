@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "deny": [
+    {
+      "type": "item",
+      "id": "minecraft:stick"
+    }
+  ]
+}

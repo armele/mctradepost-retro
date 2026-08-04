@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -143,7 +144,7 @@ public abstract class MoveControlWantedPositionDebugMixin
         // Vanilla (Mojang mappings) uses "mob" as the field name. If it changes, add more fallbacks.
         try
         {
-            final var f = MoveControl.class.getDeclaredField("mob");
+            final Field f = MoveControl.class.getDeclaredField("mob");
             f.setAccessible(true);
             final Object o = f.get(moveControl);
             return (o instanceof Mob m) ? m : null;

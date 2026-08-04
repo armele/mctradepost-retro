@@ -78,7 +78,7 @@ public final class MarketTierSources
     private static final @Nonnull ResourceLocation FISHING_JUNK = NullnessBridge.requireNonnull(rl("minecraft:gameplay/fishing/junk"), "minecraft:gameplay/fishing/junk loot table is null");
     private static final @Nonnull ResourceLocation FISHING_TREASURE = NullnessBridge.requireNonnull(rl("minecraft:gameplay/fishing/treasure"), "minecraft:gameplay/fishing/treasure loot table is null");
 
-    public static List<MarketOffer> rollTier(@Nonnull ServerLevel level, BuildingMarketplace marketplace, RandomSource rand, MarketTier tier, int count)
+    public static List<MarketOffer> rollTier(@Nonnull ServerLevel level, BuildingMarketplace marketplace, RandomSource rand, @Nonnull MarketTier tier, int count)
     {
         List<ItemStack> stacks = new ArrayList<>();
 
@@ -107,6 +107,8 @@ public final class MarketTierSources
         List<MarketOffer> offers = new ArrayList<>();
         for (ItemStack s : stacks)
         {
+            if (s == null) continue;
+
             offers.add(new MarketOffer(s, tier, MarketDailyRoller.priceForTier(tier, rand)));
         }
         return offers;
@@ -358,7 +360,7 @@ public final class MarketTierSources
      * @param tier the market tier to check against
      * @return true if the stack is sellable, false otherwise
      */
-    private static boolean isSellable(ItemStack stack, MarketTier rollingTier)
+    public static boolean isSellable(ItemStack stack, MarketTier rollingTier)
     {
         if (stack.isEmpty()) return false;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
@@ -367,6 +369,9 @@ public final class MarketTierSources
         boolean in2 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG);
         boolean in3 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG);
         boolean in4 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG);
+
+        // Tier zero is explicitly searchable but never belongs to a random roll pool.
+        if (!in1 && !in2 && !in3 && !in4 && stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG)) return false;
 
         // Ownership: highest tier tag wins.
         int ownedTier = tierIndex(in1, in2, in3, in4);
@@ -379,6 +384,82 @@ public final class MarketTierSources
 
         // Untagged: allowed (subject to other rules)
         return true;
+    }
+
+    /**
+     * Finds the highest Rare Finds tier explicitly assigned to an item.
+     *
+     * @param stack item to inspect
+     * @return the owned tier, or {@code null} when the item is untagged or blacklisted
+     */
+    public static MarketTier taggedTier(ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return null;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)) return MarketTier.TIER4_EPIC;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)) return MarketTier.TIER3_RARE;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)) return MarketTier.TIER2_UNCOMMON;
+        if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG)) return MarketTier.TIER1_COMMON;
+        return null;
+    }
+
+    /**
+     * Returns whether an item is effectively classified as search-only tier zero.
+     * Higher definitive tier tags win if a datapack accidentally assigns both.
+     *
+     * @param stack item to inspect
+     * @return whether tier zero owns the item
+     */
+    public static boolean isTierZero(ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
+        return taggedTier(stack) == null && stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG);
+    }
+
+    /**
+     * Returns whether an offer must be consumed after purchase and may not be subscribed to.
+     * Tagged items and stacks carrying active enchantments qualify. This restriction is
+     * independent of Rare Finds tier and retained-search eligibility.
+     *
+     * @param stack item to inspect
+     * @return whether the item is restricted to unique purchases
+     */
+    public static boolean isUniquePurchase(ItemStack stack)
+    {
+        return stack != null && !stack.isEmpty()
+            && (stack.is(ModTags.ITEMS.RARE_FINDS_UNIQUE_PURCHASE_TAG) || stack.isEnchanted());
+    }
+
+    /**
+     * Resolves the market slot used by a retained-search item. Tier zero deliberately
+     * maps to a tier-one replacement slot and never becomes a random roll tier.
+     *
+     * @param stack retained-search candidate
+     * @return ordinary tagged tier, tier one for tier zero, or {@code null}
+     */
+    public static MarketTier retainedSearchTier(ItemStack stack)
+    {
+        final MarketTier tier = taggedTier(stack);
+        return tier != null ? tier : isTierZero(stack) ? MarketTier.TIER1_COMMON : null;
+    }
+
+    /** Returns the displayed Rare Finds tier for a retained-search item, or {@code -1} when ineligible. */
+    public static int retainedSearchTierLevel(ItemStack stack)
+    {
+        if (isTierZero(stack)) return 0;
+        final MarketTier tier = taggedTier(stack);
+        return tier == null ? -1 : tier.ordinal() + 1;
+    }
+
+    /**
+     * Checks whether an offer's stack classification matches its runtime market slot.
+     *
+     * @param stack offered item
+     * @param tier runtime offer tier
+     * @return whether the offer may become a subscription
+     */
+    public static boolean matchesOfferTier(ItemStack stack, MarketTier tier)
+    {
+        return taggedTier(stack) == tier || (tier == MarketTier.TIER1_COMMON && isTierZero(stack));
     }
 
     /**

@@ -9,7 +9,6 @@ import com.deathfrog.mctradepost.core.entity.pets.scavenge.FocusedForagingIndex;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.item.ItemStack;
@@ -20,8 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Shared focused-target selection for vegetation and water profiles. */
 public final class FocusedForaging
 {
-    private static final int CACHE_ATTEMPTS = 12;
-    private static final int FOCUSED_SAMPLES = 180;
+    private static final int FULL_SCAN_COOLDOWN_TICKS = 100;
 
     /**
      * Prevents instantiation of this utility class.
@@ -32,9 +30,11 @@ public final class FocusedForaging
      * Finds a currently harvestable source capable of producing the working
      * block's configured focus item.
      * <p>
-     * Cached positions are checked first. If none are ready, the method samples
-     * loaded positions around the pet's work location and remembers compatible
-     * sources for later attempts. No chunks are loaded by this search.
+     * Cached compatible positions, including immature sources, are checked
+     * first. When the full-scan throttle permits, every loaded position in the
+     * bounded forage volume is examined, compatible sources are cached, and a
+     * random currently harvestable source is selected. No chunks are loaded by
+     * this search.
      * </p>
      *
      * @param pet pet requesting a focused target
@@ -45,6 +45,7 @@ public final class FocusedForaging
      * @param <P> concrete trade-post pet type
      * @return a harvestable focused source, or {@code null} when none is found
      */
+    @SuppressWarnings("null")
     public static <P extends Animal & ITradePostPet> BlockPos findTarget(
         final P pet, final IScavengeProfile<P> profile, final int searchRadius, final int verticalDown, final int verticalUp)
     {
@@ -60,7 +61,8 @@ public final class FocusedForaging
         final Set<Block> sources = FocusedForagingIndex.sourcesFor(level.getServer(), role, focus.getItem());
         if (sources.isEmpty()) return null;
 
-        for (int i = 0; i < CACHE_ATTEMPTS; i++)
+        final int cachedCount = working.focusedTargetCount();
+        for (int i = 0; i < cachedCount; i++)
         {
             final BlockPos cached = working.pollFocusedTarget();
             if (cached == null) break;
@@ -75,26 +77,33 @@ public final class FocusedForaging
             if (profile.isHarvestable(level, cached, state)) return cached;
         }
 
+        final long gameTime = level.getGameTime();
+        if (!working.mayRunFocusedFullScan(gameTime)) return null;
+
         final int radius = Math.max(3, searchRadius);
         final RandomSource rnd = pet.getRandom();
-
         if (rnd == null) return null;
 
-        for (int i = 0; i < FOCUSED_SAMPLES; i++)
+        working.clearFocusedTargets();
+        BlockPos selected = null;
+        int readyCount = 0;
+        for (BlockPos pos : BlockPos.betweenClosed(
+            workPos.offset(-radius, verticalDown, -radius),
+            workPos.offset(radius, verticalUp, radius)))
         {
-            final BlockPos pos = workPos.offset(
-                Mth.nextInt(rnd, -radius, radius),
-                Mth.nextInt(rnd, verticalDown, verticalUp),
-                Mth.nextInt(rnd, -radius, radius));
-
             if (pos == null) continue;
 
             if (!level.isLoaded(pos)) continue;
             final BlockState state = level.getBlockState(pos);
+            if (state.isAir()) continue;
             if (!sources.contains(state.getBlock())) continue;
             working.rememberFocusedTarget(pos);
-            if (profile.isHarvestable(level, pos, state)) return pos;
+            if (!profile.isHarvestable(level, pos, state)) continue;
+
+            readyCount++;
+            if (rnd.nextInt(readyCount) == 0) selected = pos.immutable();
         }
-        return null;
+        working.deferFocusedFullScan(gameTime, FULL_SCAN_COOLDOWN_TICKS);
+        return selected;
     }
 }

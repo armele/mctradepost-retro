@@ -9,6 +9,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -55,7 +56,7 @@ public class SouvenirISTER extends BlockEntityWithoutLevelRenderer
         // boolean isBlock = original instanceof BlockItem;
 
         Minecraft mc = Minecraft.getInstance();
-        var level = mc.level != null ? mc.level : (mc.player != null ? mc.player.level() : null);
+        Level level = mc.level != null ? mc.level : (mc.player != null ? mc.player.level() : null);
         ItemRenderer itemRenderer = mc.getItemRenderer();
 
         // First, render a glass block as base "snow globe"

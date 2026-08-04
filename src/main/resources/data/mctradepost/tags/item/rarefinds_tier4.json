@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
+    {
+      "id": "#mctradepost:rarefinds_generated_tier4",
+      "required": false
+    },
     "minecraft:shulker_shell",
     "minecraft:chorus_flower",
     "minecraft:chorus_fruit",
@@ -9,15 +13,166 @@
     "minecraft:beacon",
     "minecraft:nether_star",
     "minecraft:totem_of_undying",
-    "minecraft:enchanted_golden_apple",
     "minecraft:music_disc_pigstep",
     "minecraft:diamond_sword",
     "minecraft:diamond_axe",
     "minecraft:diamond_pickaxe",
     "minecraft:diamond_leggings",
     "minecraft:diamond_chestplate",
-    {"id": "#mysticalagriculture:mysticalagriculture_seeds_tier4", "required": false}
+    "mctradepost:endethyst_brick",
+    "mctradepost:endethyst_brick_slab",
+    "mctradepost:endethyst_brick_stairs",
+    "mctradepost:endethyst_brick_wall",
+    "mctradepost:endethyst_slab",
+    "mctradepost:endethyst_stairs",
+    "mctradepost:endethyst_wall",
+    "mctradepost:endmarine_brick",
+    "mctradepost:endmarine_brick_slab",
+    "mctradepost:endmarine_brick_stairs",
+    "mctradepost:endmarine_brick_wall",
+    "mctradepost:endmarine_slab",
+    "mctradepost:endmarine_stairs",
+    "mctradepost:endmarine_wall",
+    "mctradepost:end_mortar",
+    "mctradepost:endethyst",
+    "mctradepost:endmarine",
+    "minecraft:black_shulker_box",
+    "minecraft:blue_shulker_box",
+    "minecraft:brown_shulker_box",
+    "minecraft:cyan_shulker_box",
+    "minecraft:gray_shulker_box",
+    "minecraft:green_shulker_box",
+    "minecraft:light_blue_shulker_box",
+    "minecraft:light_gray_shulker_box",
+    "minecraft:lime_shulker_box",
+    "minecraft:magenta_shulker_box",
+    "minecraft:orange_shulker_box",
+    "minecraft:pink_shulker_box",
+    "minecraft:purple_shulker_box",
+    "minecraft:red_shulker_box",
+    "minecraft:white_shulker_box",
+    "minecraft:yellow_shulker_box",
+    "minecraft:chorus_plant",
+    "minecraft:end_stone",
+    "minecraft:end_stone_brick_slab",
+    "minecraft:end_stone_brick_stairs",
+    "minecraft:end_stone_brick_wall",
+    "minecraft:end_stone_bricks",
+    "minecraft:netherite_block",
+    "minecraft:lodestone",
+    "minecraft:netherite_ingot",
+    "minecraft:netherite_upgrade_smithing_template",
+    "minecraft:ochre_froglight",
+    "minecraft:pearlescent_froglight",
+    "minecraft:purpur_pillar",
+    "minecraft:purpur_slab",
+    "minecraft:purpur_stairs",
+    "minecraft:verdant_froglight",
+    "minecraft:end_rod",
+    {
+      "id": "#mysticalagriculture:mysticalagriculture_seeds_tier4",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_axe",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_boots",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_bow",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_chestplate",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_crossbow",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_fishing_rod",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_gemstone_block",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_helmet",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_hoe",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_ingot_block",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_leggings",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_pickaxe",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_scythe",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_shears",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_shovel",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_sickle",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_sword",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_upgrade",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:supremium_watering_can",
+      "required": false
+    },
+    {
+      "id": "mekanism:pellet_antimatter",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:awakened_supremium_essence",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:awakened_supremium_gemstone",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:awakened_supremium_nugget",
+      "required": false
+    },
+    {
+      "id": "mysticalagriculture:flight_augment",
+      "required": false
+    },
+    {
+      "id": "mekanism:elite_induction_provider",
+      "required": false
+    }
   ],
-  "remove": [
-  ]
+  "remove": []
 }

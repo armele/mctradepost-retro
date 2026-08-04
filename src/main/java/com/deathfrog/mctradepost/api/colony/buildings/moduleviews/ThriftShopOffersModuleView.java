@@ -2,6 +2,9 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.deathfrog.mctradepost.MCTradePostMod;
@@ -21,6 +24,8 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     List<MarketOffer> offers = new ArrayList<>();
     protected long lastRoll = 0L;
     int rerollCost = -1;
+    int subscriptionCapacity = 0;
+    private final List<ItemStack> subscriptions = new ArrayList<>();
 
     /**
      * Read this view from a {@link RegistryFriendlyByteBuf}.
@@ -32,21 +37,36 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     {
         lastRoll = buf.readLong();
         rerollCost = buf.readInt();
+        subscriptionCapacity = buf.readVarInt();
+        subscriptions.clear();
+        int subscriptionCount = buf.readVarInt();
+        for (int i = 0; i < subscriptionCount; i++)
+        {
+            subscriptions.add(Utils.deserializeCodecMess(buf));
+        }
 
         offers.clear();
         int size = buf.readVarInt();
         for (int i = 0; i < size; i++)
         {
             ItemStack stack = Utils.deserializeCodecMess(buf);
+
+            if (stack == null) continue;
+
             int price = buf.readVarInt();
             int tierOrd = buf.readVarInt();
+            boolean retainedSearchResult = buf.readBoolean();
 
             MarketTier tier = MarketTier.TIER1_COMMON;
             MarketTier[] values = MarketTier.values();
             if (tierOrd >= 0 && tierOrd < values.length) tier = values[tierOrd];
 
-            offers.add(new MarketOffer(stack, tier, price));
+            offers.add(new MarketOffer(stack, tier, price, retainedSearchResult));
         }
+
+        // Keep active subscriptions at the top, including offers loaded from saves
+        // created before subscription rows were inserted first on the server.
+        offers.sort((left, right) -> Boolean.compare(isSubscribed(right.stack()), isSubscribed(left.stack())));
     }
 
     /**
@@ -100,5 +120,27 @@ public class ThriftShopOffersModuleView extends AbstractBuildingModuleView
     public int getRerollCost()
     {
         return rerollCost;
+    }
+
+    /**
+     * Gets the subscription capacity synchronized from the server.
+     *
+     * @return zero when subscription research is locked, otherwise the level-based capacity
+     */
+    public int getSubscriptionCapacity()
+    {
+        return subscriptionCapacity;
+    }
+
+    /**
+     * Checks whether an item has a synchronized active subscription.
+     *
+     * @param stack item to inspect
+     * @return whether an equivalent subscription exists
+     */
+    @SuppressWarnings("null")
+    public boolean isSubscribed(@Nonnull ItemStack stack)
+    {
+        return subscriptions.stream().anyMatch(subscription -> ItemStack.isSameItemSameComponents(subscription, stack));
     }
 }

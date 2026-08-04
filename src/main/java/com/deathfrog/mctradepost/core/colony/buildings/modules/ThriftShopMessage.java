@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.ldtteam.common.network.PlayMessageType;
 import com.minecolonies.api.colony.IColony;
@@ -22,6 +23,8 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_RAREFINDS;
 
+import javax.annotation.Nonnull;
+
 public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -30,7 +33,7 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
 
     public enum ThriftAction
     {
-        PURCHASE, REROLL
+        PURCHASE, REROLL, SUBSCRIBE
     }
 
     private static final String THRIFTSHOP_PURCHASE = "mctradepost.thriftshop.purchase";
@@ -43,7 +46,7 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
     /**
      * What item are we putting into the stew?
      */
-    private ItemStack itemStack;
+    private @Nonnull ItemStack itemStack;
 
     /**
      * What cost must we pay for this item?
@@ -57,7 +60,8 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
      * @param cost  coins being exchanged for
      * @param building  the building we're executing on.
      */
-    public ThriftShopMessage(final IBuildingView building, ThriftAction action, final ItemStack itemStack, final int cost)
+    @SuppressWarnings("null")
+    public ThriftShopMessage(final IBuildingView building, ThriftAction action, final @Nonnull ItemStack itemStack, final int cost)
     {
         super(TYPE, building);
         this.itemStack = itemStack.copy();
@@ -68,7 +72,7 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
     public ThriftShopMessage(final IBuildingView building, final ThriftAction action)
     {
         super(TYPE, building);
-        this.itemStack = ItemStack.EMPTY;
+        this.itemStack = NullnessBridge.assumeNonnull(ItemStack.EMPTY);
         this.thriftAction = action;
         this.cost = 0;
     }
@@ -76,7 +80,8 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
     protected ThriftShopMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
-        itemStack = Utils.deserializeCodecMess(buf);
+        ItemStack tempStack = Utils.deserializeCodecMess(buf);
+        itemStack = tempStack == null ? NullnessBridge.assumeNonnull(ItemStack.EMPTY) : tempStack;
         thriftAction = ThriftAction.values()[buf.readInt()];
         cost = buf.readInt();
     }
@@ -115,15 +120,20 @@ public class ThriftShopMessage extends AbstractBuildingServerMessage<IBuilding>
                 TraceUtils.dynamicTrace(TRACE_RAREFINDS, () -> LOGGER.info("Executing Rare Finds purchase for {}.", itemStack.getHoverName()));
 
                 ItemStack purchaseItem = itemStack.copy();
+
                 if (purchaseItem == null || purchaseItem.isEmpty()) return;
 
                 MessageUtils.format(THRIFTSHOP_PURCHASE).sendTo(player);
                 building.getModule(MCTPBuildingModules.THRIFTSHOP).purchaseItem(purchaseItem, cost, player);
             }
-            else
+            else if (thriftAction == ThriftAction.REROLL)
             {
                 TraceUtils.dynamicTrace(TRACE_RAREFINDS, () -> LOGGER.info("Executing Rare Finds reroll request."));
                 building.getModule(MCTPBuildingModules.THRIFTSHOP).rerollSelections(player);
+            }
+            else
+            {
+                building.getModule(MCTPBuildingModules.THRIFTSHOP).subscribe(itemStack, player);
             }
 
         }

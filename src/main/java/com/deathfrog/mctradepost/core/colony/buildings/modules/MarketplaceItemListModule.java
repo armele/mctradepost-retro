@@ -152,6 +152,8 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
       // LOGGER.info("Removing item {}", item);
 
       super.removeItem(item);
+      itemOptionSet.remove(item);
+      markDirty();
    }
 
    /**

@@ -30,6 +30,11 @@ public class MCTPConfig
     public static final ConfigValue<Double> registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
     public static final ConfigValue<String> tradeCurrency;
+    public static final ConfigValue<Double> retainedSearchInvestmentLevelBonus;
+    public static final ConfigValue<Double> retainedSearchTierDifficulty;
+    public static final ConfigValue<Integer> retainedSearchInvestmentBaseXp;
+    public static final ConfigValue<Integer> retainedSearchInvestmentDays;
+    public static final ConfigValue<Double> subscriptionPriceMultiplier;
 
     // Resort settings
     public static final ConfigValue<Double> vacationMaxChance;
@@ -83,6 +88,17 @@ public class MCTPConfig
         tradeCurrency = BUILDER.comment(
             "What currency is used to facilitate trades, and will be extracted from the marketplace? (Restart required if changed.)")
             .define("tradeCurrency", "mctradepost:mctp_coin");
+
+        retainedSearchInvestmentLevelBonus = BUILDER.comment("Chance added per retained-search investment level.")
+            .defineInRange("retainedSearchInvestmentLevelBonus", 0.11D, 0.0D, 1.0D);
+        retainedSearchTierDifficulty = BUILDER.comment("Additional difficulty for each Rare Find tier above Tier 1.")
+            .defineInRange("retainedSearchTierDifficulty", 0.10D, 0.0D, 1.0D);
+        retainedSearchInvestmentBaseXp = BUILDER.comment("Raw player XP charged per investment level for one retained search.")
+            .defineInRange("retainedSearchInvestmentBaseXp", 55, 0, Integer.MAX_VALUE);
+        retainedSearchInvestmentDays = BUILDER.comment("MineColonies days added by each retained-search investment purchase.")
+            .defineInRange("retainedSearchInvestmentDays", 5, 1, 99);
+        subscriptionPriceMultiplier = BUILDER.comment("Multiplier applied to the greater of an item's economic value and tier price floor for subscriptions.")
+            .defineInRange("subscriptionPriceMultiplier", 2.0D, 1.0D, 100.0D);
 
         BUILDER.pop();
 

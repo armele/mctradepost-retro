@@ -2,15 +2,16 @@
     size="190 244" >
     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
     <text id="desc" size="130 11" pos="30 14" color="black" textalign="MIDDLE"/>
+    <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
     <input id="input" size="150 18" pos="20 30" maxlength="25"/>
 
     <list id="resources" size="168 160" pos="13 50">
         <box size="100% 17" linewidth="1">
             <itemicon id="resourceIcon" size="16 16" pos="0 0"/>
-            <text id="resourceName" size="90 14" pos="18 1" color="white"/>
-            <text id="resourceValue" size="22 14" pos="119 1" color="white"/>
-            <button label="$(com.minecolonies.coremod.gui.workerhuts.retrieveOn)" id="switch" pos="139 1" size="20 15"
-                         source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
+            <text id="resourceName" size="98 14" pos="18 1" color="white"/>
+            <text id="resourceValue" size="26 14" pos="119 1" color="white"/>
+            <button label="X" id="switch" pos="145 1" size="14 15"
+                         source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="red"/>
         </box>
     </list>
     <button label ="$(com.mctradepost.coremod.gui.workerhuts.clearlist)" id="resetDefault" size="86 17" pos="55 215"

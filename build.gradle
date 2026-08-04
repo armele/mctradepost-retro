@@ -111,6 +111,8 @@ configurations.configureEach {
 }
 
 dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     // Specify the version of Minecraft to use.
     // Depending on the plugin applied there are several options. We will assume you applied the userdev plugin as shown above.
     // The group for userdev is net.neoforged, the module name is neoforge, and the version is the same as the neoforge version.
@@ -150,6 +152,10 @@ dependencies {
 
     // For modern mixin support
     implementation("org.spongepowered:mixin:0.8.7")
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
