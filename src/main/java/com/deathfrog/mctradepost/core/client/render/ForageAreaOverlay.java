@@ -107,8 +107,23 @@ public final class ForageAreaOverlay
     /** Focus item captured when the player enabled this snapshot. */
     private static Item snapshotFocusItem;
 
-    /** Harvestable focused-source positions captured when the overlay was enabled. */
-    private static List<BlockPos> focusedTargets = List.of();
+    /** Role used to interpret readiness for the captured focused sources. */
+    private static PetRoles snapshotRole;
+
+    /** Compatible block types capable of producing the captured focus item. */
+    private static Set<Block> snapshotSources = Set.of();
+
+    /** Compatible focused-source positions captured when the overlay was enabled. */
+    private static List<BlockPos> compatibleTargets = List.of();
+
+    /** Captured sources that are currently ready to harvest. */
+    private static List<BlockPos> readyTargets = List.of();
+
+    /** Captured compatible sources that are not currently ready to harvest. */
+    private static List<BlockPos> immatureTargets = List.of();
+
+    /** Next client game time at which captured source readiness is refreshed. */
+    private static long nextReadinessRefreshTime;
 
     /** Prevents instantiation of this event-driven utility class. */
     private ForageAreaOverlay() { }
@@ -155,7 +170,8 @@ public final class ForageAreaOverlay
 
         if (origin == null) return;
 
-        focusedTargets = captureFocusedTargets(level, origin, snapshotFocusItem);
+        compatibleTargets = captureFocusedTargets(level, origin, snapshotFocusItem);
+        refreshTargetReadiness(level);
     }
 
     /**
@@ -179,13 +195,20 @@ public final class ForageAreaOverlay
         dimension = null;
         origin = null;
         snapshotFocusItem = null;
-        focusedTargets = List.of();
+        snapshotRole = null;
+        snapshotSources = Set.of();
+        compatibleTargets = List.of();
+        readyTargets = List.of();
+        immatureTargets = List.of();
+        nextReadinessRefreshTime = 0L;
     }
 
     @SuppressWarnings("null")
     private static List<BlockPos> captureFocusedTargets(
         final Level level, final @Nonnull BlockPos workPos, @Nullable final Item focusItem)
     {
+        snapshotRole = null;
+        snapshotSources = Set.of();
         if (focusItem == null) return List.of();
         final BlockState workState = level.getBlockState(workPos);
         final PetRoles role;
@@ -217,6 +240,8 @@ public final class ForageAreaOverlay
             .filter(entry -> entry.role() == role)
             .filter(entry -> entry.outputs().stream().anyMatch(output -> output.getItem() == focusItem))
             .forEach(entry -> sources.add(BuiltInRegistries.BLOCK.get(entry.sourceBlock())));
+        snapshotRole = role;
+        snapshotSources = Set.copyOf(sources);
         if (sources.isEmpty()) return List.of();
 
         final List<BlockPos> matches = new ArrayList<>();
@@ -228,14 +253,32 @@ public final class ForageAreaOverlay
             if (!level.isLoaded(candidate)) continue;
             final BlockState state = level.getBlockState(candidate);
             if (!sources.contains(state.getBlock())) continue;
-            final boolean harvestable = role == PetRoles.SCAVENGE_VEGETATION
-                ? ScavengeHarvestability.isVegetationHarvestable(state)
-                : ScavengeHarvestability.isDredgerHarvestable(state);
-            if (!harvestable) continue;
             matches.add(candidate.immutable());
             if (matches.size() >= MAX_TARGET_HIGHLIGHTS) break;
         }
         return List.copyOf(matches);
+    }
+
+    /** Reclassifies only the compatible positions captured in the snapshot. */
+    private static void refreshTargetReadiness(final Level level)
+    {
+        final List<BlockPos> ready = new ArrayList<>();
+        final List<BlockPos> immature = new ArrayList<>();
+        for (BlockPos target : compatibleTargets)
+        {
+            if (target == null) continue;
+
+            if (!level.isLoaded(target)) continue;
+            final BlockState state = level.getBlockState(target);
+            if (!snapshotSources.contains(state.getBlock())) continue;
+            final boolean harvestable = snapshotRole == PetRoles.SCAVENGE_VEGETATION
+                ? ScavengeHarvestability.isVegetationHarvestable(state)
+                : ScavengeHarvestability.isDredgerHarvestable(state);
+            (harvestable ? ready : immature).add(target);
+        }
+        readyTargets = List.copyOf(ready);
+        immatureTargets = List.copyOf(immature);
+        nextReadinessRefreshTime = level.getGameTime() + 10L;
     }
 
     /**
@@ -262,6 +305,7 @@ public final class ForageAreaOverlay
         final Minecraft minecraft = Minecraft.getInstance();
         final Level level = minecraft.level;
         if (level == null || !level.dimension().equals(dimension) || !level.isLoaded(localOrigin)) return;
+        if (level.getGameTime() >= nextReadinessRefreshTime) refreshTargetReadiness(level);
 
         final BlockState state = level.getBlockState(localOrigin);
         final int radius;
@@ -303,13 +347,26 @@ public final class ForageAreaOverlay
             0.2F, 1.0F, 0.25F, 0.9F);
         buffers.endBatch(VISIBLE_LINES);
 
-        for (BlockPos target : focusedTargets)
+        for (BlockPos target : immatureTargets)
+        {
+            LevelRenderer.renderLineBox(pose, buffers.getBuffer(OBSCURED_LINES),
+                new AABB(target).inflate(0.003D), 0.24F, 0.035F, 0.012F, 0.68F);
+        }
+        buffers.endBatch(OBSCURED_LINES);
+        for (BlockPos target : immatureTargets)
+        {
+            LevelRenderer.renderLineBox(pose, buffers.getBuffer(VISIBLE_LINES),
+                new AABB(target).inflate(0.003D), 0.78F, 0.16F, 0.045F, 0.92F);
+        }
+        buffers.endBatch(VISIBLE_LINES);
+
+        for (BlockPos target : readyTargets)
         {
             LevelRenderer.renderLineBox(pose, buffers.getBuffer(OBSCURED_LINES),
                 new AABB(target).inflate(0.003D), 0.32F, 0.16F, 0.02F, 0.7F);
         }
         buffers.endBatch(OBSCURED_LINES);
-        for (BlockPos target : focusedTargets)
+        for (BlockPos target : readyTargets)
         {
             LevelRenderer.renderLineBox(pose, buffers.getBuffer(VISIBLE_LINES),
                 new AABB(target).inflate(0.003D), 1.0F, 0.62F, 0.08F, 0.95F);

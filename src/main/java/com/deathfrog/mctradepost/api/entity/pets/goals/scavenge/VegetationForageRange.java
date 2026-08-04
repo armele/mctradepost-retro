@@ -7,7 +7,7 @@ package com.deathfrog.mctradepost.api.entity.pets.goals.scavenge;
  */
 public final class VegetationForageRange
 {
-    public static final int HORIZONTAL_RADIUS = 12;
+    public static final int HORIZONTAL_RADIUS = 10;
     public static final int MIN_VERTICAL_OFFSET = -2;
     public static final int GROUND_FEEDER_MAX_VERTICAL_OFFSET = 3;
     public static final int HANGING_FEEDER_MAX_VERTICAL_OFFSET = 10;

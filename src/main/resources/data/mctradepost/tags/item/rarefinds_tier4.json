@@ -168,6 +168,10 @@
     {
       "id": "mysticalagriculture:flight_augment",
       "required": false
+    },
+    {
+      "id": "mekanism:elite_induction_provider",
+      "required": false
     }
   ],
   "remove": []
