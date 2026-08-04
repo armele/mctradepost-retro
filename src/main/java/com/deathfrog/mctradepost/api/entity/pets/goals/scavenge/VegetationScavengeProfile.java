@@ -42,7 +42,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
 
     public VegetationScavengeProfile()
     {
-        this(10, 14, 140);
+        this(VegetationForageRange.HANGING_FEEDER_MAX_VERTICAL_OFFSET, 14, 140);
     }
 
     public VegetationScavengeProfile(final int maxVerticalSearch, final int downSearchForGroundAnchor, final int samples)
@@ -69,14 +69,15 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
     {
         if (!(pet.level() instanceof ServerLevel level)) return null;
 
-        final BlockPos focused = FocusedForaging.findTarget(pet, this, searchRadius, -2, this.maxVerticalSearch);
+        final BlockPos focused = FocusedForaging.findTarget(
+            pet, this, searchRadius, VegetationForageRange.MIN_VERTICAL_OFFSET, this.maxVerticalSearch);
         if (focused != null) return focused;
 
         final BlockPos origin = pet.getWorkLocation() == null ? pet.blockPosition() : pet.getWorkLocation();
         final @Nonnull RandomSource rng = NullnessBridge.assumeNonnull(pet.getRandom());
 
         final int r = Math.max(3, searchRadius);
-        final int yMin = origin.getY() - 2;
+        final int yMin = origin.getY() + VegetationForageRange.MIN_VERTICAL_OFFSET;
         final int yMax = origin.getY() + this.maxVerticalSearch;
 
         final List<BlockPos> candidates = new ArrayList<>(24);
@@ -85,7 +86,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
         {
             final int dx = Mth.nextInt(rng, -r, r);
             final int dz = Mth.nextInt(rng, -r, r);
-            final int dy = Mth.nextInt(rng, -2, this.maxVerticalSearch);
+            final int dy = Mth.nextInt(rng, VegetationForageRange.MIN_VERTICAL_OFFSET, this.maxVerticalSearch);
 
             final BlockPos pos = origin.offset(dx, dy, dz);
             if (pos.getY() < yMin || pos.getY() > yMax) continue;
@@ -144,19 +145,7 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
     @Override
     public boolean isHarvestable(final ServerLevel level, final BlockPos pos, final BlockState state)
     {
-        // Tag-driven selection
-        if (state.is(ModTags.BLOCKS.TAG_FRUIT))
-        {
-            // "Smart" maturity: only gate when a known property exists.
-            return passesGenericMaturityGate(state);
-        }
-
-        if (state.is(ModTags.BLOCKS.TAG_SCAVENGE_LEAVES) || state.is(ModTags.BLOCKS.TAG_GROUNDCOVER))
-        {
-            return true;
-        }
-
-        return false;
+        return ScavengeHarvestability.isVegetationHarvestable(state);
     }
 
     /**
@@ -315,26 +304,6 @@ public class VegetationScavengeProfile<P extends Animal & ITradePostPet> impleme
      * - Else if a 'berries' BooleanProperty exists -> require true.
      * - Else -> no gating.
      */
-    private static boolean passesGenericMaturityGate(final BlockState state)
-    {
-        IntegerProperty age = findIntProp(state, ScavengePropertyNames.AGE);
-        if (age != null)
-        {
-            int cur = state.getValue(age);
-            @SuppressWarnings("null")
-            int max = age.getPossibleValues().stream().max(Integer::compareTo).orElse(cur);
-            return cur >= max;
-        }
-
-        BooleanProperty berries = findBoolProp(state, ScavengePropertyNames.BERRIES);
-        if (berries != null)
-        {
-            return state.getValue(berries);
-        }
-
-        return true;
-    }
-
     private static @Nullable IntegerProperty findIntProp(final BlockState state, final String name)
     {
         for (Property<?> prop : state.getProperties())

@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -49,7 +50,8 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
     @Nullable
     public BlockPos findTarget(P pet, int searchRadius)
     {
-        final BlockPos focused = FocusedForaging.findTarget(pet, this, searchRadius, -3, 3);
+        final BlockPos focused = FocusedForaging.findTarget(pet, this, searchRadius,
+            DredgerForageRange.MIN_VERTICAL_OFFSET, DredgerForageRange.MAX_VERTICAL_OFFSET);
         if (focused != null) return focused;
 
         final Level level = pet.level();
@@ -63,9 +65,10 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
 
         for (int tries = 0; tries < 20; tries++)
         {
-            final BlockPos candidate = origin.offset(pet.getRandom().nextInt(searchRadius * 2) - searchRadius,
-                pet.getRandom().nextInt(3) - 2,
-                pet.getRandom().nextInt(searchRadius * 2) - searchRadius);
+            final BlockPos candidate = origin.offset(
+                Mth.nextInt(pet.getRandom(), -searchRadius, searchRadius),
+                Mth.nextInt(pet.getRandom(), DredgerForageRange.MIN_VERTICAL_OFFSET, DredgerForageRange.MAX_VERTICAL_OFFSET),
+                Mth.nextInt(pet.getRandom(), -searchRadius, searchRadius));
 
             if (candidate == null) continue;
 
@@ -163,7 +166,7 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
     @Override
     public boolean isHarvestable(ServerLevel level, BlockPos pos, BlockState state)
     {
-        return state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.WATER_SCAVENGE_BLOCK_TAG));
+        return ScavengeHarvestability.isDredgerHarvestable(state);
     }
 
     @Override

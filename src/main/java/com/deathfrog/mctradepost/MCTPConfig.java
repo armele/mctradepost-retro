@@ -90,10 +90,10 @@ public class MCTPConfig
             .define("tradeCurrency", "mctradepost:mctp_coin");
 
         retainedSearchInvestmentLevelBonus = BUILDER.comment("Chance added per retained-search investment level.")
-            .defineInRange("retainedSearchInvestmentLevelBonus", 0.05D, 0.0D, 1.0D);
-        retainedSearchTierDifficulty = BUILDER.comment("Chance subtracted for each Rare Finds tier above Tier 1.")
+            .defineInRange("retainedSearchInvestmentLevelBonus", 0.11D, 0.0D, 1.0D);
+        retainedSearchTierDifficulty = BUILDER.comment("Additional difficulty for each Rare Find tier above Tier 1.")
             .defineInRange("retainedSearchTierDifficulty", 0.10D, 0.0D, 1.0D);
-        retainedSearchInvestmentBaseXp = BUILDER.comment("Raw player XP charged per investment level for one retained-search extension.")
+        retainedSearchInvestmentBaseXp = BUILDER.comment("Raw player XP charged per investment level for one retained search.")
             .defineInRange("retainedSearchInvestmentBaseXp", 55, 0, Integer.MAX_VALUE);
         retainedSearchInvestmentDays = BUILDER.comment("MineColonies days added by each retained-search investment purchase.")
             .defineInRange("retainedSearchInvestmentDays", 5, 1, 99);

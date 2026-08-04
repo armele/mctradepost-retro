@@ -26,6 +26,8 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.WalkToWorkPositionGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.MushroomScavengeProfile;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.ScavengeResourceGoal;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.VegetationScavengeProfile;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.VegetationForageRange;
+import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.DredgerForageRange;
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengeProfile;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
@@ -562,7 +564,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
                     localAnimal, 
                     new WaterScavengeProfile<>(),
-                    8,
+                    DredgerForageRange.HORIZONTAL_RADIUS,
                     0.08f,          // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
                     200            // cooldown (10 seconds)
@@ -586,11 +588,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
                 localAnimal.goalSelector.addGoal(JOB_GOAL_PRIORITY, new ScavengeResourceGoal<>(
                     localAnimal, 
-                    localHanging ? new VegetationScavengeProfile<>() : new VegetationScavengeProfile<>(3, 2, 140),
-                    12,
+                    localHanging
+                        ? new VegetationScavengeProfile<>()
+                        : new VegetationScavengeProfile<>(VegetationForageRange.GROUND_FEEDER_MAX_VERTICAL_OFFSET, 2, 140),
+                    VegetationForageRange.HORIZONTAL_RADIUS,
                     localHanging ? 0.08f : 0.12f, // Chance per try; there are 10 tries per cooldown cycle.
                     this.getTrainerBuilding(),
-                    200             // cooldown (10 seconds)
+                    160             // cooldown
                 ));
                 break;
 

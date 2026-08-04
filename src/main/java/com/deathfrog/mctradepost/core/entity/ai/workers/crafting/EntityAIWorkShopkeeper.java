@@ -813,6 +813,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      * 
      * @param pos the position of the effect
      */
+    @SuppressWarnings("null")
     private void triggerEffect(BlockPos pos)
     {
         ServerLevel level = (ServerLevel) building.getColony().getWorld();
@@ -824,7 +825,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         SoundUtils.playSoundWithChance(level,
             null,
             pos,
-            MCTPModSoundEvents.CASH_REGISTER,
+            MCTPModSoundEvents.CASH_REGISTER.get(),
             SoundSource.NEUTRAL,
             chanceOfChaChing,
             0.8f,
