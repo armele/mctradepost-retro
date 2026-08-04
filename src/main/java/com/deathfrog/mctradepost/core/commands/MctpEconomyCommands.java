@@ -9,53 +9,37 @@ import com.deathfrog.mctradepost.core.economy.GeneratedValuePackWriter;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader;
 import com.deathfrog.mctradepost.core.economy.ItemValueSeedLoader.SeedData;
 import com.deathfrog.mctradepost.core.economy.TierDerivedItemValueProvider;
-import com.deathfrog.mctradepost.core.rarefinds.generation.RareFindGenerationCommand;
-import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-@EventBusSubscriber(modid = MCTradePostMod.MODID)
 public final class MctpEconomyCommands
 {
     private MctpEconomyCommands() { }
 
-    @SubscribeEvent
-    public static void onRegisterCommands(final RegisterCommandsEvent event)
+    /** Builds the operator-only item-value generation command branch. */
+    public static LiteralArgumentBuilder<CommandSourceStack> generateItemValuesCommand()
     {
-        register(event.getDispatcher());
-    }
-
-    public static void register(final CommandDispatcher<CommandSourceStack> dispatcher)
-    {
-        dispatcher.register(
-            Commands.literal("mctp")
-                .requires(src -> src.hasPermission(2) && src.getServer() != null)
-                .then(
-                    Commands.literal("generateItemValues")
-                        .executes(ctx -> run(ctx.getSource(), false, false))
-                        .then(Commands.literal("dryRun")
-                            .executes(ctx -> run(ctx.getSource(), true, false))
-                            .then(Commands.literal("deriveFromTier")
-                                .executes(ctx -> run(ctx.getSource(), true, true))))
-                        .then(Commands.literal("deriveFromTier")
-                            .executes(ctx -> run(ctx.getSource(), false, true))
-                            .then(Commands.literal("dryRun")
-                                .executes(ctx -> run(ctx.getSource(), true, true))))
-                )
-                .then(RareFindGenerationCommand.command())
-        );
+        return Commands.literal("generateItemValues")
+            .requires(src -> src.hasPermission(2) && src.getServer() != null)
+            .executes(ctx -> run(ctx.getSource(), false, false))
+            .then(Commands.literal("dryRun")
+                .executes(ctx -> run(ctx.getSource(), true, false))
+                .then(Commands.literal("deriveFromTier")
+                    .executes(ctx -> run(ctx.getSource(), true, true))))
+            .then(Commands.literal("deriveFromTier")
+                .executes(ctx -> run(ctx.getSource(), false, true))
+                .then(Commands.literal("dryRun")
+                    .executes(ctx -> run(ctx.getSource(), true, true))));
     }
 
     @SuppressWarnings("null")

@@ -5,6 +5,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import com.deathfrog.mctradepost.core.commands.CommandTree;
+import com.deathfrog.mctradepost.core.commands.MctpEconomyCommands;
 import com.deathfrog.mctradepost.core.commands.CommandVacationClear;
 import com.deathfrog.mctradepost.core.commands.CommandVacationStatus;
 import com.deathfrog.mctradepost.core.commands.CommandFrameStatus;
@@ -14,6 +15,7 @@ import com.deathfrog.mctradepost.core.commands.CommandPetshopDismiss;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopStatus;
 import com.deathfrog.mctradepost.core.commands.CommandPetshopWorkLocations;
 import com.deathfrog.mctradepost.core.commands.CommandSetTrace;
+import com.deathfrog.mctradepost.core.rarefinds.generation.RareFindGenerationCommand;
 import com.deathfrog.mctradepost.core.commands.CommandStationExports;
 import com.deathfrog.mctradepost.core.commands.CommandStationLinkages;
 import com.deathfrog.mctradepost.core.commands.CommandStationRoutes;
@@ -85,6 +87,8 @@ public class MCTPCommands
             .addNode(mctpRecyclingCommands)
             .addNode(mctpStationCommands)
             .addNode(mctpAnimalTrainerCommands)
+            .addNode(MctpEconomyCommands.generateItemValuesCommand())
+            .addNode(RareFindGenerationCommand.command())
             .addNode(new CommandSetTrace(CMD_DYNTRACE_SETTRACE).build());
 
         // Adds all command trees to the dispatcher to register the commands.
