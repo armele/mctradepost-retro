@@ -704,6 +704,8 @@
     "entity.stewmelier.noingredients": "Tell me what ingredients I am allowed to use for my delicious perpetual stew!",
     "entity.stewmelier.nobowls": "I need some bowls to serve my delicious perpetual stew! I don't want to order new ones since I prefer to recycle.",
     "entity.stewmelier.onmenu": "You'll have to add the Perpetual Stew to the menu in the closest dining hall to your hungry people so they know it is delicious!",
+    "entity.stewmelier.nsf_ingredients": "I didn't find enough ingredients in the warehouse to make stew. Lower your protected stack settings, resupply ingredients, or set up some new ones.",
+    "mctradepost.stewmelier.ingredients.help.tooltip": "Designate what ingredients can be used for stew.\n\nThe stewmelier will fetch these from the warehouse themeselves.\n\n'Protected Stacks' indicates how many of each ingredient will be left in the warehouse to remain available for other uses.",
     "com.mctradepost.job.stewmelier": "Stewmelier",
     "mctradepost:stewmelier.job.desc": "Expertly takes excess foodstuffs and makes a delicious perpetual stew to feed the hungry.",
     "mctradepost:stewmelier.skills.desc": "Improves stewmaking efficiency and delivery speed.",

@@ -1463,7 +1463,17 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
         if (gotIngredients)
         {
+            job.resetIngredientsAvailableCounter();
             return StewmelierState.MAKE_STEW;
+        }
+        else
+        {
+            job.tickNoIngredientsAvailable();
+
+            if (job.checkForIngredientsAvailableInteraction())
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NSF_INGREDIENTS), ChatPriority.BLOCKING));
+            }
         }
 
         return DECIDE;

@@ -29,6 +29,7 @@ public class MCTPInteractionInitializer
     public static final String NO_INGREDIENTS               = "entity.stewmelier.noingredients";
     public static final String NO_BOWLS                     = "entity.stewmelier.nobowls";
     public static final String NOT_ON_MENU                  = "entity.stewmelier.onmenu";
+    public static final String NSF_INGREDIENTS              = "entity.stewmelier.nsf_ingredients";
     public static final String NO_SHOP_INVENTORY            = "entity.shopkeeper.noinventory";
     public static final String NO_SALE_ITEMS                = "entity.shopkeeper.noitems";
     public static final String MISSING_FRAME                = "entity.shopkeeper.missingframe";
@@ -75,6 +76,9 @@ public class MCTPInteractionInitializer
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NOT_ON_MENU),
           citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForMenuInteraction());
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NSF_INGREDIENTS),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingKitchen && citizen.getJob(JobStewmelier.class).checkForIngredientsAvailableInteraction());
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_SHOP_INVENTORY),
           citizen -> citizen.getWorkBuilding() instanceof BuildingMarketplace && citizen.getJob(JobShopkeeper.class).checkForInventoryManagementInteraction());

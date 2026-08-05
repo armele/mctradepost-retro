@@ -5,7 +5,9 @@ import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StewmelierIngr
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.ldtteam.blockui.Pane;
+import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.ScrollingList;
@@ -107,6 +109,9 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
     public void onOpened()
     {
         super.onOpened();
+        final Image help = findPaneOfTypeByID("help", Image.class);
+        PaneBuilders.tooltipBuilder().hoverPane(help).build()
+            .setText(Component.translatable("mctradepost.stewmelier.ingredients.help.tooltip"));
         updateIngredientList();
     }
 
