@@ -55,6 +55,7 @@ public class MCTPConfig
     // Station Settings
     public static final ConfigValue<Integer> trackValidationFrequency;
     public static final ConfigValue<Integer> baseTradeSpeed;
+    public static final ConfigValue<Integer> maximumWaterRouteDistance;
     public static final ConfigValue<Integer> importsPerLevel;
 
     // Animal Trainer Settings
@@ -149,6 +150,8 @@ public class MCTPConfig
             .define("trackValidationFrequency", 6000);
 
         baseTradeSpeed = BUILDER.comment("Base trade speed per building level.").define("baseTradeSpeed", 4);
+        maximumWaterRouteDistance = BUILDER.comment("Maximum navigable block distance for one dock-to-dock water leg.")
+            .defineInRange("maximumWaterRouteDistance", 1000, 1, 10000);
 
         importsPerLevel = BUILDER.comment("Number of imports allowed per Station level.").define("importsPerLevel", 5);
 

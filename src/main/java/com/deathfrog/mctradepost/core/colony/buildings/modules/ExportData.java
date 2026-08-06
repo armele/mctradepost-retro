@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
 
 import java.util.List;
@@ -11,6 +13,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
+import com.deathfrog.mctradepost.api.entity.WagonEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
@@ -147,6 +151,11 @@ public class ExportData
 
     public @Nullable GhostCartEntity spawnCartForTrade(ServerLevel level, List<BlockPos> path)
     {
+        return spawnVehicleForTrade(level, path, TrackRoute.SegmentType.RAIL, isReverse());
+    }
+
+    private @Nullable GhostCartEntity spawnVehicleForTrade(ServerLevel level, List<BlockPos> path, TrackRoute.SegmentType mode, boolean reverse)
+    {
         if (path == null || path.isEmpty()) 
         {
             TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null or empty path while spawning cart: {}", this));
@@ -169,8 +178,13 @@ public class ExportData
 
         ChunkUtil.ensureChunkLoadedByTicket(level, startPos, TrackPathConnection.RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
 
-        GhostCartEntity newCart =
-            GhostCartEntity.spawn(level, NullnessBridge.assumeNonnull(ImmutableList.copyOf(path)), isReverse());
+        List<BlockPos> immutablePath = NullnessBridge.assumeNonnull(ImmutableList.copyOf(path));
+        GhostCartEntity newCart = switch (mode)
+        {
+            case WATER -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.GHOST_BOAT.get());
+            case ROAD -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.WAGON.get());
+            default -> GhostCartEntity.spawn(level, immutablePath, reverse);
+        };
 
         if (newCart == null)
         {
@@ -329,7 +343,8 @@ public class ExportData
                 continue;
             }
 
-            if (segment.type() == TrackRoute.SegmentType.TRANSFER)
+            if (segment.type() == TrackRoute.SegmentType.TRANSFER || segment.type() == TrackRoute.SegmentType.DOCK ||
+                segment.type() == TrackRoute.SegmentType.INTERCHANGE)
             {
                 if (cart != null)
                 {
@@ -365,7 +380,7 @@ public class ExportData
             if (cart == null || !cart.hasPath() || activeRouteSegmentIndex != i)
             {
                 discardCart();
-                cart = spawnCartForTrade(level, segment.path());
+                cart = spawnVehicleForTrade(level, segment.path(), segment.type(), false);
                 activeRouteSegmentIndex = i;
             }
 

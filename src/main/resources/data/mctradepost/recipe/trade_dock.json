@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["P P", "PPP"],
+  "key": {
+    "P": { "tag": "minecraft:planks" }
+  },
+  "result": { "id": "mctradepost:trade_dock", "count": 1 }
+}

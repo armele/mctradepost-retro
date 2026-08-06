@@ -27,6 +27,14 @@ public class TrackRoute
          * A normal contiguous rail path in one dimension.
          */
         RAIL,
+        /** A contiguous tagged trade-road path. */
+        ROAD,
+        /** A contiguous navigable surface-water path between docks. */
+        WATER,
+        /** A zero-distance vehicle handoff at a trade dock. */
+        DOCK,
+        /** A zero-distance rail/road vehicle handoff. */
+        INTERCHANGE,
         /**
          * A one-step transition between paired dimensional linkage endpoints.
          */
@@ -54,7 +62,26 @@ public class TrackRoute
         @SuppressWarnings("null")
         public static Segment rail(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
         {
-            return new Segment(SegmentType.RAIL, dimension, Collections.unmodifiableList(new ArrayList<>(path)), null, null);
+            return traversable(SegmentType.RAIL, dimension, path);
+        }
+
+        public static Segment road(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            return traversable(SegmentType.ROAD, dimension, path);
+        }
+
+        public static Segment water(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            return traversable(SegmentType.WATER, dimension, path);
+        }
+
+        public static Segment traversable(@Nonnull SegmentType type, @Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            if (type == SegmentType.TRANSFER || type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            {
+                throw new IllegalArgumentException("Transfer segments require endpoints");
+            }
+            return new Segment(type, dimension, Collections.unmodifiableList(new ArrayList<>(path)), null, null);
         }
 
         /**
@@ -70,6 +97,16 @@ public class TrackRoute
             return new Segment(SegmentType.TRANSFER, from.dimension(), List.of(from.pos(), to.pos()), from, to);
         }
 
+        public static Segment dock(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos position)
+        {
+            return new Segment(SegmentType.DOCK, dimension, List.of(position), null, null);
+        }
+
+        public static Segment interchange(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos position)
+        {
+            return new Segment(SegmentType.INTERCHANGE, dimension, List.of(position), null, null);
+        }
+
         /**
          * @return travel distance represented by this segment
          */
@@ -78,6 +115,10 @@ public class TrackRoute
             if (type == SegmentType.TRANSFER)
             {
                 return 1;
+            }
+            if (type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            {
+                return 0;
             }
             return path == null ? 0 : Math.max(0, path.size() - 1);
         }
@@ -143,6 +184,16 @@ public class TrackRoute
         return List.of();
     }
 
+    public List<BlockPos> firstPath()
+    {
+        for (Segment segment : segments)
+        {
+            if (segment.type() != SegmentType.TRANSFER && segment.type() != SegmentType.DOCK &&
+                segment.type() != SegmentType.INTERCHANGE && segment.path() != null && !segment.path().isEmpty()) return segment.path();
+        }
+        return List.of();
+    }
+
     /**
      * Creates a route suitable for return shipments by reversing segment order and transfer direction.
      *
@@ -159,11 +210,19 @@ public class TrackRoute
             {
                 reversed.add(Segment.transfer(segment.transferTo(), segment.transferFrom()));
             }
+            else if (segment.type() == SegmentType.DOCK)
+            {
+                reversed.add(Segment.dock(segment.dimension(), segment.path().getFirst()));
+            }
+            else if (segment.type() == SegmentType.INTERCHANGE)
+            {
+                reversed.add(Segment.interchange(segment.dimension(), segment.path().getFirst()));
+            }
             else
             {
                 List<BlockPos> path = new ArrayList<>(segment.path());
                 Collections.reverse(path);
-                reversed.add(Segment.rail(segment.dimension(), path));
+                reversed.add(Segment.traversable(segment.type(), segment.dimension(), path));
             }
         }
         return new TrackRoute(reversed);

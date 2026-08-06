@@ -178,6 +178,13 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
      */
     public static GhostCartEntity spawn(@Nonnull ServerLevel level, @Nonnull List<BlockPos> path, boolean reverse)
     {
+        return spawnTyped(level, path, reverse, MCTradePostMod.GHOST_CART.get());
+    }
+
+    /** Shared visual-vehicle spawn path used by rail carts, boats, and wagons. */
+    public static <T extends GhostCartEntity> T spawnTyped(@Nonnull ServerLevel level, @Nonnull List<BlockPos> path, boolean reverse,
+        @Nonnull EntityType<T> entityType)
+    {
         if (path == null || path.isEmpty())
         {
             LOGGER.error("Invalid path for GhostCartEntity - no path or empty path provided.");
@@ -192,7 +199,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             return null;
         }
         
-        GhostCartEntity e = MCTradePostMod.GHOST_CART.get().create(level, null, start, MobSpawnType.EVENT, false, false);
+        T e = entityType.create(level, null, start, MobSpawnType.EVENT, false, false);
         if (e == null)
         {
             LOGGER.error("Failed to spawn GhostCartEntity.");
@@ -299,7 +306,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
 
         BlockPos targetPos = path.get(targetIdx);
-        Vec3 centerTarget = Vec3.atCenterOf(targetPos);
+        Vec3 centerTarget = pathPosition(targetPos);
 
         if (strideLength <= 1e-9)
         {
@@ -323,8 +330,8 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         // distance from current fractional point to end of edge i -> i+1
         while (i < targetIdx)
         {
-            Vec3 pa = Vec3.atCenterOf(path.get(i));
-            Vec3 pb = Vec3.atCenterOf(path.get(i + 1));
+            Vec3 pa = pathPosition(path.get(i));
+            Vec3 pb = pathPosition(path.get(i + 1));
 
             Vec3 edgeStart = pa.lerp(pb, t);
             double edgeLen = edgeStart.distanceTo(pb);
@@ -403,8 +410,8 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
         // partial first edge: from lerp(a->a+1, tA) to (a+1)
         {
-            Vec3 pa = Vec3.atCenterOf(path.get(a));
-            Vec3 pb = Vec3.atCenterOf(path.get(a + 1));
+            Vec3 pa = pathPosition(path.get(a));
+            Vec3 pb = pathPosition(path.get(a + 1));
             Vec3 p0 = pa.lerp(pb, Mth.clamp(tA, 0.0, 1.0));
             sum += p0.distanceTo(pb);
         }
@@ -412,8 +419,8 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         // full edges in between
         for (int i = a + 1; i < b; i++)
         {
-            Vec3 p = Vec3.atCenterOf(path.get(i));
-            Vec3 q = Vec3.atCenterOf(path.get(i + 1));
+            Vec3 p = pathPosition(path.get(i));
+            Vec3 q = pathPosition(path.get(i + 1));
             sum += p.distanceTo(q);
         }
 
@@ -424,7 +431,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
      * Spawns a single campfire smoke particle at the position of the cart minus a small offset in the direction of
      * travel. This is used to create a trail of smoke particles when the cart is rolling.
      */
-    private void spawnTrailParticle()
+    protected void spawnTrailParticle()
     {
         if (level() == null) return;
 
@@ -438,7 +445,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
      * Play a rolling sound effect at the position of the cart.
      * This is used to create the sound of the cart rolling along the path.
      */
-    private void playRollingSound()
+    protected void playRollingSound()
     {
         level().playSound(null,
             getX(),
@@ -683,7 +690,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
                 if (startPos != null)
                 {
-                    Vec3 startVec = Vec3.atCenterOf(startPos);
+                    Vec3 startVec = pathPosition(startPos);
 
                     setPos(NullnessBridge.assumeNonnull(startVec));
                     setRot(0, 0);
@@ -705,6 +712,12 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
             this.xRotO = getXRot();
             this.yRotO = getYRot();
         }
+    }
+
+    /** Visual center for a route node; subclasses offset road and water vehicles. */
+    protected Vec3 pathPosition(BlockPos pos)
+    {
+        return Vec3.atCenterOf(pos);
     }
 
 

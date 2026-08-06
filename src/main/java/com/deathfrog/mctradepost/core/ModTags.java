@@ -22,6 +22,10 @@ public class ModTags
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Block> TRACK_TAG = BlockTags.create(TRACK_TAG_KEY);
 
+        public static final ResourceLocation TRADE_ROADS_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "trade_roads");
+        @SuppressWarnings("null")
+        public @Nonnull static final TagKey<Block> TRADE_ROADS_TAG = BlockTags.create(TRADE_ROADS_TAG_KEY);
+
         public static final ResourceLocation FRUIT_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "scavenge_fruit");
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Block> TAG_FRUIT = BlockTags.create(FRUIT_TAG_KEY);

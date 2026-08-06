@@ -77,6 +77,27 @@ public class TrackRouteConnection
                 continue;
             }
 
+            if (segment.type() == TrackRoute.SegmentType.DOCK)
+            {
+                if (segment.path().isEmpty() || !level.getBlockState(segment.path().getFirst()).is(MCTradePostMod.TRADE_DOCK.get())) return false;
+                continue;
+            }
+
+            if (segment.type() == TrackRoute.SegmentType.INTERCHANGE)
+            {
+                if (segment.path().isEmpty() || !level.getBlockState(segment.path().getFirst()).is(MCTradePostMod.TRADE_INTERCHANGE.get())) return false;
+                continue;
+            }
+
+            if (segment.type() != TrackRoute.SegmentType.RAIL)
+            {
+                if (!ModalPathConnection.validate(level, segment))
+                {
+                    return false;
+                }
+                continue;
+            }
+
             if (!validateRailSegment(level, segment.path()))
             {
                 return false;
@@ -129,7 +150,7 @@ public class TrackRouteConnection
             new TrackPathConnection.TrackConnectionResult(false, sourceRail, List.of(), source.getColony().getWorld().getGameTime());
         if (sourceLevel.dimension().equals(destinationLevel.dimension()))
         {
-            direct = context.tryRailSegment(sourceLevel, sourceRail, destinationRail);
+            direct = MultimodalRouteConnection.findRoute(sourceLevel, sourceRail, destinationRail, loadChunks);
         }
 
         if (direct.isConnected())
@@ -282,26 +303,25 @@ public class TrackRouteConnection
                 }
 
                 TrackPathConnection.TrackConnectionResult startToEntry =
-                    context.tryRailSegment(overworld, sourceRail, entry.overworldEndpoint().get().pos());
+                    context.tryModalSegment(overworld, sourceRail, entry.overworldEndpoint().get().pos());
                 if (!startToEntry.isConnected()) continue;
 
                 TrackPathConnection.TrackConnectionResult netherSegment =
-                    context.tryRailSegment(nether, entry.netherEndpoint().get().pos(), exit.netherEndpoint().get().pos());
+                    context.tryModalSegment(nether, entry.netherEndpoint().get().pos(), exit.netherEndpoint().get().pos());
                 if (!netherSegment.isConnected()) continue;
 
                 TrackPathConnection.TrackConnectionResult exitToDestination =
-                    context.tryRailSegment(overworld, exit.overworldEndpoint().get().pos(), destinationRail);
+                    context.tryModalSegment(overworld, exit.overworldEndpoint().get().pos(), destinationRail);
                 if (!exitToDestination.isConnected()) continue;
 
                 @SuppressWarnings("null")
-                TrackRoute route = new TrackRoute(List.of(
-                    TrackRoute.Segment.rail(Level.OVERWORLD, startToEntry.path),
+                TrackRoute route = joinedRoute(startToEntry,
                     TrackRoute.Segment.transfer(entry.overworldEndpoint().get(), entry.netherEndpoint().get()),
-                    TrackRoute.Segment.rail(Level.NETHER, netherSegment.path),
+                    netherSegment,
                     TrackRoute.Segment.transfer(exit.netherEndpoint().get(), exit.overworldEndpoint().get()),
-                    TrackRoute.Segment.rail(Level.OVERWORLD, exitToDestination.path)));
+                    exitToDestination);
 
-                return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstRailPath(), overworld.getGameTime(), route);
+                return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstPath(), overworld.getGameTime(), route);
             }
         }
 
@@ -369,20 +389,43 @@ public class TrackRouteConnection
         RouteSearchContext context)
     {
         TrackPathConnection.TrackConnectionResult startToTransfer =
-            context.tryRailSegment(sourceLevel, sourceRail, transferFrom.pos());
+            context.tryModalSegment(sourceLevel, sourceRail, transferFrom.pos());
         if (!startToTransfer.isConnected()) return null;
 
         TrackPathConnection.TrackConnectionResult transferToDestination =
-            context.tryRailSegment(destinationLevel, transferTo.pos(), destinationRail);
+            context.tryModalSegment(destinationLevel, transferTo.pos(), destinationRail);
         if (!transferToDestination.isConnected()) return null;
 
         @SuppressWarnings("null")
-        TrackRoute route = new TrackRoute(List.of(
-            TrackRoute.Segment.rail(sourceLevel.dimension(), startToTransfer.path),
-            TrackRoute.Segment.transfer(transferFrom, transferTo),
-            TrackRoute.Segment.rail(destinationLevel.dimension(), transferToDestination.path)));
+        TrackRoute route = joinedRoute(startToTransfer, TrackRoute.Segment.transfer(transferFrom, transferTo), transferToDestination);
 
-        return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstRailPath(), sourceLevel.getGameTime(), route);
+        return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstPath(), sourceLevel.getGameTime(), route);
+    }
+
+    private static TrackRoute joinedRoute(TrackPathConnection.TrackConnectionResult first, TrackRoute.Segment transfer,
+        TrackPathConnection.TrackConnectionResult second)
+    {
+        List<TrackRoute.Segment> segments = new ArrayList<>(routeSegments(first));
+        segments.add(transfer);
+        segments.addAll(routeSegments(second));
+        return new TrackRoute(segments);
+    }
+
+    private static TrackRoute joinedRoute(TrackPathConnection.TrackConnectionResult first, TrackRoute.Segment firstTransfer,
+        TrackPathConnection.TrackConnectionResult middle, TrackRoute.Segment secondTransfer,
+        TrackPathConnection.TrackConnectionResult last)
+    {
+        List<TrackRoute.Segment> segments = new ArrayList<>(routeSegments(first));
+        segments.add(firstTransfer);
+        segments.addAll(routeSegments(middle));
+        segments.add(secondTransfer);
+        segments.addAll(routeSegments(last));
+        return new TrackRoute(segments);
+    }
+
+    private static List<TrackRoute.Segment> routeSegments(TrackPathConnection.TrackConnectionResult result)
+    {
+        return result != null && result.route != null ? result.route.segments() : List.of();
     }
 
     /**
@@ -402,12 +445,12 @@ public class TrackRouteConnection
         long elapsedNanos = System.nanoTime() - context.startNanos;
         if (elapsedNanos >= ROUTE_SEARCH_LOG_NANOS || context.pairLimitReached)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route search {} -> {} connected={} loadChunks={} railSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route search {} -> {} connected={} loadChunks={} segmentSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
                 source.getRailStartPosition(),
                 destination.getRailStartPosition(),
                 result != null && result.isConnected(),
                 context.loadChunks,
-                context.railSearchCount,
+                context.segmentSearchCount,
                 context.cacheHitCount,
                 context.pairAttempts,
                 context.pairLimitReached,
@@ -424,7 +467,7 @@ public class TrackRouteConnection
      * @param start segment start position
      * @param end segment end position
      */
-    private record RailSegmentKey(ResourceKey<Level> dimension, BlockPos start, BlockPos end) { }
+    private record ModalSegmentKey(ResourceKey<Level> dimension, BlockPos start, BlockPos end) { }
 
     /**
      * Stores per-route-search counters and caches repeated rail segment checks.
@@ -434,8 +477,8 @@ public class TrackRouteConnection
         private final long routeSearchId = ROUTE_SEARCH_SEQUENCE.incrementAndGet();
         private final boolean loadChunks;
         private final long startNanos = System.nanoTime();
-        private final Map<RailSegmentKey, TrackPathConnection.TrackConnectionResult> segmentCache = new LinkedHashMap<>();
-        private int railSearchCount = 0;
+        private final Map<ModalSegmentKey, TrackPathConnection.TrackConnectionResult> segmentCache = new LinkedHashMap<>();
+        private int segmentSearchCount = 0;
         private int cacheHitCount = 0;
         private int pairAttempts = 0;
         private boolean pairLimitReached = false;
@@ -499,11 +542,11 @@ public class TrackRouteConnection
          */
         private void logRouteFinished(TrackPathConnection.TrackConnectionResult result, long elapsedNanos)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} END connected={} loadChunks={} railSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} END connected={} loadChunks={} segmentSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
                 routeSearchId,
                 result != null && result.isConnected(),
                 loadChunks,
-                railSearchCount,
+                segmentSearchCount,
                 cacheHitCount,
                 pairAttempts,
                 pairLimitReached,
@@ -542,9 +585,9 @@ public class TrackRouteConnection
          * @param end segment end position
          * @return track connection result for this segment
          */
-        private TrackPathConnection.TrackConnectionResult tryRailSegment(ServerLevel level, BlockPos start, BlockPos end)
+        private TrackPathConnection.TrackConnectionResult tryModalSegment(ServerLevel level, BlockPos start, BlockPos end)
         {
-            RailSegmentKey key = new RailSegmentKey(level.dimension(), start, end);
+            ModalSegmentKey key = new ModalSegmentKey(level.dimension(), start, end);
             TrackPathConnection.TrackConnectionResult cached = segmentCache.get(key);
             if (cached != null)
             {
@@ -558,8 +601,8 @@ public class TrackRouteConnection
                 return cached;
             }
 
-            railSearchCount++;
-            int segmentIndex = railSearchCount;
+            segmentSearchCount++;
+            int segmentIndex = segmentSearchCount;
             long segmentStartNanos = System.nanoTime();
             TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} SEGMENT_BEGIN index={} dim={} start={} end={} loadChunks={}",
                 routeSearchId,
@@ -568,7 +611,7 @@ public class TrackRouteConnection
                 start,
                 end,
                 loadChunks));
-            TrackPathConnection.TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks(level, start, end, loadChunks);
+            TrackPathConnection.TrackConnectionResult result = MultimodalRouteConnection.findRoute(level, start, end, loadChunks);
             TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} SEGMENT_END index={} dim={} start={} end={} connected={} pathSize={} elapsedMs={}",
                 routeSearchId,
                 segmentIndex,
@@ -624,7 +667,7 @@ public class TrackRouteConnection
         {
             return true;
         }
-        return DimensionalLinkageItem.isTrackBlock(level, endpoint.pos()) &&
+        return DimensionalLinkageItem.isValidTransportAnchor(level, endpoint.pos()) &&
             DimensionalLinkageItem.isAdjacentToActivePortal(level, endpoint.pos());
     }
 
@@ -720,7 +763,7 @@ public class TrackRouteConnection
             return true;
         }
 
-        return DimensionalLinkageItem.isTrackBlock(level, endpoint.pos()) &&
+        return DimensionalLinkageItem.isValidTransportAnchor(level, endpoint.pos()) &&
             DimensionalLinkageItem.isAdjacentToActivePortal(level, endpoint.pos());
     }
 }

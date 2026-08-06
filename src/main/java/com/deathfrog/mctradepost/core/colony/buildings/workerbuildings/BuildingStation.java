@@ -832,7 +832,16 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         for (int i = 0; i < segmentList.size(); i++)
         {
             CompoundTag segmentTag = segmentList.getCompound(i);
-            TrackRoute.SegmentType type = TrackRoute.SegmentType.valueOf(segmentTag.getString(TAG_ROUTE_SEGMENT_TYPE));
+            TrackRoute.SegmentType type;
+            try
+            {
+                type = TrackRoute.SegmentType.valueOf(segmentTag.getString(TAG_ROUTE_SEGMENT_TYPE));
+            }
+            catch (IllegalArgumentException exception)
+            {
+                LOGGER.warn("Skipping unknown route segment type '{}'.", segmentTag.getString(TAG_ROUTE_SEGMENT_TYPE));
+                continue;
+            }
             if (type == TrackRoute.SegmentType.TRANSFER)
             {
                 DimPos from = readDimPos(segmentTag.getCompound(TAG_ROUTE_SEGMENT_TRANSFER_FROM));
@@ -842,13 +851,25 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                     segments.add(TrackRoute.Segment.transfer(from, to));
                 }
             }
+            else if (type == TrackRoute.SegmentType.DOCK)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.dock(dimension, path.getFirst()));
+            }
+            else if (type == TrackRoute.SegmentType.INTERCHANGE)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.interchange(dimension, path.getFirst()));
+            }
             else
             {
                 ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty())
                 {
-                    segments.add(TrackRoute.Segment.rail(dimension, path));
+                    segments.add(TrackRoute.Segment.traversable(type, dimension, path));
                 }
             }
         }

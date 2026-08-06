@@ -36,9 +36,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Item used to record and install a paired Overworld/Nether rail transfer.
+ * Item used to record and install a paired Overworld/Nether transport transfer.
  * <p>
- * Right-clicking a valid track next to an active Nether portal records the track position for that dimension. Right-clicking a
+ * Right-clicking a valid transport anchor next to an active Nether portal records the position for that dimension. Right-clicking a
  * completed item on an exact station building position installs it into the station connection module.
  */
 public class DimensionalLinkageItem extends Item
@@ -89,9 +89,9 @@ public class DimensionalLinkageItem extends Item
             return InteractionResult.FAIL;
         }
 
-        if (!isTrackBlock(level, clicked))
+        if (!isValidTransportAnchor(level, clicked))
         {
-            player.displayClientMessage(Component.translatable("item.mctradepost.dimensional_linkage.not_track"), true);
+            player.displayClientMessage(Component.translatable("item.mctradepost.dimensional_linkage.not_transport_anchor"), true);
             return InteractionResult.FAIL;
         }
 
@@ -231,7 +231,20 @@ public class DimensionalLinkageItem extends Item
     }
 
     /**
-     * Checks whether a track position is adjacent to an active Nether portal block.
+     * Tests whether a physical block can anchor a dimensional transport linkage.
+     * Raw water is deliberately excluded; water networks connect through a Trade Dock.
+     */
+    public static boolean isValidTransportAnchor(@Nonnull Level level, @Nonnull BlockPos pos)
+    {
+        BlockState state = level.getBlockState(pos);
+        return isTrackBlock(level, pos)
+            || state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRADE_ROADS_TAG))
+            || state.is(MCTradePostMod.TRADE_DOCK.get())
+            || state.is(MCTradePostMod.TRADE_INTERCHANGE.get());
+    }
+
+    /**
+     * Checks whether a transport anchor is adjacent to an active Nether portal block.
      *
      * @param level level containing the track
      * @param pos track position to test

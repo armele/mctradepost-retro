@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
+import com.deathfrog.mctradepost.api.entity.WagonEntity;
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.deathfrog.mctradepost.api.entity.pets.PetCat;
@@ -49,6 +51,8 @@ import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
 import com.deathfrog.mctradepost.core.blocks.BlockStackedSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockTrough;
+import com.deathfrog.mctradepost.core.blocks.BlockTradeDock;
+import com.deathfrog.mctradepost.core.blocks.BlockTradeInterchange;
 import com.deathfrog.mctradepost.core.blocks.StewpotBlock;
 import com.deathfrog.mctradepost.core.blocks.BlockScavenge;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutMarketplace;
@@ -60,6 +64,8 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutOutpost;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
+import com.deathfrog.mctradepost.core.client.render.GhostBoatRenderer;
+import com.deathfrog.mctradepost.core.client.render.WagonRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
@@ -177,6 +183,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -503,6 +510,16 @@ public class MCTradePostMod
             .updateInterval(1)            // send pos every tick
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "ghost_cart").toString()));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<GhostBoatEntity>> GHOST_BOAT = ENTITIES.register("ghost_boat",
+        () -> EntityType.Builder.<GhostBoatEntity>of(GhostBoatEntity::new, MobCategory.MISC)
+            .sized(1.375F, 0.7F).clientTrackingRange(128).updateInterval(1)
+            .build(ResourceLocation.fromNamespaceAndPath(MODID, "ghost_boat").toString()));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<WagonEntity>> WAGON = ENTITIES.register("wagon",
+        () -> EntityType.Builder.<WagonEntity>of(WagonEntity::new, MobCategory.MISC)
+            .sized(1.2F, 1.0F).clientTrackingRange(128).updateInterval(1)
+            .build(ResourceLocation.fromNamespaceAndPath(MODID, "wagon").toString()));
+
     @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
         () -> EntityType.Builder.of(PetWolf::new, MobCategory.CREATURE)
@@ -554,6 +571,12 @@ public class MCTradePostMod
             .mapColor(NullnessBridge.assumeNonnull(MapColor.STONE))
             .strength(2.0f, 6.0f)
             .sound(NullnessBridge.assumeNonnull(SoundType.STONE))));
+
+    public static final DeferredBlock<BlockTradeDock> TRADE_DOCK = BLOCKS.register(BlockTradeDock.ID,
+        () -> new BlockTradeDock(Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)));
+
+    public static final DeferredBlock<BlockTradeInterchange> TRADE_INTERCHANGE = BLOCKS.register(BlockTradeInterchange.ID,
+        () -> new BlockTradeInterchange(Properties.of().mapColor(MapColor.STONE).strength(2.0F, 6.0F).sound(SoundType.STONE)));
             
     @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -695,6 +718,12 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> TRADE_DOCK_ITEM =
+        ITEMS.register(BlockTradeDock.ID, () -> new BlockItem(TRADE_DOCK.get(), new Item.Properties()));
+
+    public static final DeferredItem<Item> TRADE_INTERCHANGE_ITEM =
+        ITEMS.register(BlockTradeInterchange.ID, () -> new BlockItem(TRADE_INTERCHANGE.get(), new Item.Properties()));
     
     @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_STAIRS_ITEM =
@@ -1431,6 +1460,12 @@ public class MCTradePostMod
                 (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
             );
 
+            registrar.playToClient(
+                com.deathfrog.mctradepost.network.TradePathDebugPacket.TYPE,
+                com.deathfrog.mctradepost.network.TradePathDebugPacket.STREAM_CODEC,
+                (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
+            );
+
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
@@ -1638,7 +1673,10 @@ public class MCTradePostMod
                 }
             }
 
-            if (state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)))
+            if (state.getBlock() instanceof BaseRailBlock ||
+                state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)) ||
+                state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRADE_ROADS_TAG)) ||
+                state.is(TRADE_DOCK.get()) || state.is(TRADE_INTERCHANGE.get()))
             {
                 invalidateTrackCachesForBrokenTrack(level, pos);
             }
@@ -1831,6 +1869,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutStation.get());
                     event.accept(MCTradePostMod.blockHutPetShop.get());
                     event.accept(MCTradePostMod.blockHutOutpost.get());
+                    event.accept(MCTradePostMod.TRADE_DOCK.get());
+                    event.accept(MCTradePostMod.TRADE_INTERCHANGE.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
@@ -1969,6 +2009,8 @@ public class MCTradePostMod
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerEntityRenderer(MCTradePostMod.COIN_ENTITY_TYPE.get(), CoinRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.GHOST_BOAT.get(), GhostBoatRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.WAGON.get(), WagonRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);
