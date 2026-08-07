@@ -510,11 +510,13 @@ public class MCTradePostMod
             .updateInterval(1)            // send pos every tick
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "ghost_cart").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<GhostBoatEntity>> GHOST_BOAT = ENTITIES.register("ghost_boat",
         () -> EntityType.Builder.<GhostBoatEntity>of(GhostBoatEntity::new, MobCategory.MISC)
             .sized(1.375F, 0.7F).clientTrackingRange(128).updateInterval(1)
             .build(ResourceLocation.fromNamespaceAndPath(MODID, "ghost_boat").toString()));
 
+    @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<WagonEntity>> WAGON = ENTITIES.register("wagon",
         () -> EntityType.Builder.<WagonEntity>of(WagonEntity::new, MobCategory.MISC)
             .sized(1.2F, 1.0F).clientTrackingRange(128).updateInterval(1)
@@ -572,9 +574,11 @@ public class MCTradePostMod
             .strength(2.0f, 6.0f)
             .sound(NullnessBridge.assumeNonnull(SoundType.STONE))));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockTradeDock> TRADE_DOCK = BLOCKS.register(BlockTradeDock.ID,
         () -> new BlockTradeDock(Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)));
 
+    @SuppressWarnings("null")
     public static final DeferredBlock<BlockTradeInterchange> TRADE_INTERCHANGE = BLOCKS.register(BlockTradeInterchange.ID,
         () -> new BlockTradeInterchange(Properties.of().mapColor(MapColor.STONE).strength(2.0F, 6.0F).sound(SoundType.STONE)));
             
@@ -719,9 +723,11 @@ public class MCTradePostMod
     public static final DeferredItem<Item> MIXED_STONE_ITEM =
         ITEMS.register(BlockMixedStone.MIXED_STONE_ID, () -> new BlockItem(MIXED_STONE.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> TRADE_DOCK_ITEM =
         ITEMS.register(BlockTradeDock.ID, () -> new BlockItem(TRADE_DOCK.get(), new Item.Properties()));
 
+    @SuppressWarnings("null")
     public static final DeferredItem<Item> TRADE_INTERCHANGE_ITEM =
         ITEMS.register(BlockTradeInterchange.ID, () -> new BlockItem(TRADE_INTERCHANGE.get(), new Item.Properties()));
     
@@ -1658,6 +1664,7 @@ public class MCTradePostMod
          *
          * @param event block break event
          */
+        @SuppressWarnings("null")
         @SubscribeEvent
         public static void onBlockBroken(final BlockEvent.BreakEvent event) {
             if (!(event.getLevel() instanceof ServerLevel level)) return;

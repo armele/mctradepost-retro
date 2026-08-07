@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
@@ -18,16 +19,37 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-/** Temporary, player-local visualization of a production trade route. */
+/**
+ * Renders a temporary, player-local visualization of a production trade route.
+ * <p>
+ * Route snapshots are supplied by {@link com.deathfrog.mctradepost.network.TradePathDebugPacket}
+ * and remain visible for thirty seconds of client game time. Each route segment
+ * is drawn in a color associated with its transport type, while the first and
+ * last non-empty path positions receive white endpoint markers. Segments in
+ * dimensions other than the client's current dimension are ignored.
+ * </p>
+ */
 @EventBusSubscriber(modid = MCTradePostMod.MODID, value = Dist.CLIENT)
 public final class TradePathDebugOverlay
 {
+    /** Number of client game ticks for which a received route remains visible. */
     private static final long DURATION_TICKS = 20L * 30L;
+
+    /** Immutable snapshot of the route segments currently being displayed. */
     private static List<VisualSegment> segments = List.of();
+
+    /** Client game time at which the current route snapshot expires. */
     private static long expiresAt;
 
+    /** Prevents instantiation of this event-driven utility class. */
     private TradePathDebugOverlay() { }
 
+    /**
+     * Replaces the current route snapshot and restarts its display duration.
+     *
+     * @param newSegments route segments to display; the list is defensively
+     *        copied, although the contained segment records are not copied
+     */
     public static void show(List<VisualSegment> newSegments)
     {
         Minecraft minecraft = Minecraft.getInstance();
@@ -35,12 +57,24 @@ public final class TradePathDebugOverlay
         expiresAt = minecraft.level == null ? DURATION_TICKS : minecraft.level.getGameTime() + DURATION_TICKS;
     }
 
+    /** Clears the current route snapshot and its expiration time. */
     public static void clear()
     {
         segments = List.of();
         expiresAt = 0;
     }
 
+    /**
+     * Draws the active route snapshot after block entities have been rendered.
+     * <p>
+     * Nodes outside the client's effective render distance and segments from
+     * other dimensions are skipped. An expired snapshot is cleared on the next
+     * applicable render event.
+     * </p>
+     *
+     * @param event level-render event providing the camera and pose stack
+     */
+    @SuppressWarnings("null")
     @SubscribeEvent
     public static void render(RenderLevelStageEvent event)
     {
@@ -63,7 +97,11 @@ public final class TradePathDebugOverlay
 
         for (VisualSegment segment : segments)
         {
-            if (!minecraft.level.dimension().location().equals(segment.dimension())) continue;
+            ClientLevel localLevel = minecraft.level;
+
+            if (localLevel == null) continue;
+
+            if (!localLevel.dimension().location().equals(segment.dimension())) continue;
             float[] color = color(segment.type());
             List<BlockPos> path = segment.path();
             for (int index = 0; index < path.size(); index++)
@@ -83,6 +121,16 @@ public final class TradePathDebugOverlay
         pose.popPose();
     }
 
+    /**
+     * Draws a line between the centers of two consecutive route nodes.
+     *
+     * @param pose pose stack translated into world coordinates
+     * @param lines vertex consumer for the line render type
+     * @param from starting route node
+     * @param to ending route node
+     * @param color RGB components used for both line vertices
+     */
+    @SuppressWarnings("null")
     private static void drawConnection(PoseStack pose, VertexConsumer lines, BlockPos from, BlockPos to, float[] color)
     {
         float x1 = from.getX() + 0.5F;
@@ -100,6 +148,13 @@ public final class TradePathDebugOverlay
         lines.addVertex(pose.last().pose(), x2, y2, z2).setColor(color[0], color[1], color[2], 1).setNormal(pose.last(), dx / length, dy / length, dz / length);
     }
 
+    /**
+     * Finds the first or last node among the non-empty displayed segments.
+     *
+     * @param first {@code true} to search from the beginning of the route;
+     *        {@code false} to search from the end
+     * @return the requested endpoint, or {@code null} when every path is empty
+     */
     private static BlockPos endpoint(boolean first)
     {
         for (int i = first ? 0 : segments.size() - 1; first ? i < segments.size() : i >= 0; i += first ? 1 : -1)
@@ -110,6 +165,12 @@ public final class TradePathDebugOverlay
         return null;
     }
 
+    /**
+     * Selects the overlay color associated with a route segment type.
+     *
+     * @param type transport or transition type represented by the segment
+     * @return a newly allocated array containing red, green, and blue values
+     */
     private static float[] color(com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute.SegmentType type)
     {
         return switch (type)

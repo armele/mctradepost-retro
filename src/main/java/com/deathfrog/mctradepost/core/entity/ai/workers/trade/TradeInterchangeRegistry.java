@@ -22,8 +22,8 @@ public final class TradeInterchangeRegistry extends SavedData
     private static final String DATA_NAME = MCTradePostMod.MODID + "_trade_interchanges";
     private static final String TAG_INTERCHANGES = "interchanges";
     private final Set<BlockPos> interchanges = new HashSet<>();
-    private static final Factory<TradeInterchangeRegistry> FACTORY =
-        new Factory<>(TradeInterchangeRegistry::new, TradeInterchangeRegistry::load, null);
+    private static final @Nonnull Factory<TradeInterchangeRegistry> FACTORY =
+        new Factory<>(TradeInterchangeRegistry::new, TradeInterchangeRegistry::load);
 
     public static TradeInterchangeRegistry get(ServerLevel level)
     {

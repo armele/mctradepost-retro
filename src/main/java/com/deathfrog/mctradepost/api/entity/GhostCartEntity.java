@@ -177,6 +177,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
      * @param reverse whether the path should be followed in reverse order
      * @return the spawned entity, or null if spawning failed
      */
+    @SuppressWarnings("null")
     public static GhostCartEntity spawn(@Nonnull ServerLevel level, @Nonnull List<BlockPos> path, boolean reverse)
     {
         return spawnTyped(level, path, reverse, MCTradePostMod.GHOST_CART.get());
@@ -723,7 +724,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     }
 
     /** Visual center for a route node; subclasses offset road and water vehicles. */
-    protected Vec3 pathPosition(BlockPos pos)
+    protected Vec3 pathPosition(@Nonnull BlockPos pos)
     {
         return Vec3.atCenterOf(pos);
     }

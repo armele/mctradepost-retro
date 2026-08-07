@@ -23,7 +23,7 @@ public final class TradeDockRegistry extends SavedData
     private static final String TAG_DOCKS = "docks";
     private final Set<BlockPos> docks = new HashSet<>();
 
-    private static final Factory<TradeDockRegistry> FACTORY = new Factory<>(TradeDockRegistry::new, TradeDockRegistry::load, null);
+    private static final @Nonnull Factory<TradeDockRegistry> FACTORY = new Factory<>(TradeDockRegistry::new, TradeDockRegistry::load);
 
     public static TradeDockRegistry get(ServerLevel level)
     {

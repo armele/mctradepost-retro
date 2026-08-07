@@ -44,6 +44,7 @@ public class BlockTradeInterchange extends Block
         if (level instanceof ServerLevel serverLevel) TradeInterchangeRegistry.get(serverLevel).add(pos);
     }
 
+    @SuppressWarnings("null")
     @Override
     protected void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean movedByPiston)
     {

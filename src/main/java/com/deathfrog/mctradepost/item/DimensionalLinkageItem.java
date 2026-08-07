@@ -234,6 +234,7 @@ public class DimensionalLinkageItem extends Item
      * Tests whether a physical block can anchor a dimensional transport linkage.
      * Raw water is deliberately excluded; water networks connect through a Trade Dock.
      */
+    @SuppressWarnings("null")
     public static boolean isValidTransportAnchor(@Nonnull Level level, @Nonnull BlockPos pos)
     {
         BlockState state = level.getBlockState(pos);

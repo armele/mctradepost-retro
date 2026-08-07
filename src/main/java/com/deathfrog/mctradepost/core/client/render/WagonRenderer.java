@@ -21,10 +21,12 @@ import net.minecraft.world.item.ItemDisplayContext;
 
 public class WagonRenderer extends EntityRenderer<WagonEntity>
 {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/entity/tradecart.png");
+    @SuppressWarnings("null")
+    private static final @Nonnull ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/entity/tradecart.png");
     private final TradeCartModel model;
     private final ItemRenderer itemRenderer;
 
+    @SuppressWarnings("null")
     public WagonRenderer(EntityRendererProvider.Context context)
     {
         super(context);
@@ -33,6 +35,7 @@ public class WagonRenderer extends EntityRenderer<WagonEntity>
         shadowRadius = 0.75F;
     }
 
+    @SuppressWarnings("null")
     @Override
     public void render(@Nonnull WagonEntity wagon, float yaw, float partialTick, @Nonnull PoseStack pose,
         @Nonnull MultiBufferSource buffers, int light)
@@ -49,8 +52,9 @@ public class WagonRenderer extends EntityRenderer<WagonEntity>
         if (!wagon.getTradeItem().isEmpty())
         {
             pose.pushPose();
-            pose.translate(0.0D, 0.9D, 0.0D);
+            pose.translate(0.0D, 0.72D, 0.0D);
             pose.scale(1.1F, 1.1F, 1.1F);
+            pose.mulPose(Axis.YP.rotationDegrees((wagon.tickCount + partialTick) * 4.0F));
             itemRenderer.renderStatic(wagon.getTradeItem(), ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
                 pose, buffers, wagon.level(), wagon.getId());
             pose.popPose();

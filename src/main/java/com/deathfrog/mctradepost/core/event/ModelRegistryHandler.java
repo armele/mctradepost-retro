@@ -16,10 +16,11 @@ import net.neoforged.api.distmarker.Dist;
 @OnlyIn(Dist.CLIENT)
 public class ModelRegistryHandler
 {
+    @SuppressWarnings("null")
     public static final ModelLayerLocation TRADE_CART = new ModelLayerLocation(
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "trade_cart"), "main");
     /**
-     * These are currently unused until usable citizen skins can be designed.
+     * Most of these are currently unused until usable citizen skins can be designed.
      * Note that MineColonies citizens use custom models and the skins need to be designed around those models.
     */
 

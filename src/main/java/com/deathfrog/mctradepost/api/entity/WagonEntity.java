@@ -2,6 +2,9 @@ package com.deathfrog.mctradepost.api.entity;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.Level;
+
+import javax.annotation.Nonnull;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 
@@ -39,8 +42,10 @@ public class WagonEntity extends GhostCartEntity
     }
 
     @Override
-    protected Vec3 pathPosition(BlockPos pos)
+    protected Vec3 pathPosition(@Nonnull BlockPos pos)
     {
-        return Vec3.atCenterOf(pos).add(0.0D, 1.0D, 0.0D);
+        // Road nodes identify the supporting block. The model's wheel bottoms
+        // sit at the entity origin, so place that origin on the block surface.
+        return Vec3.atCenterOf(pos).add(0.0D, 0.5D, 0.0D);
     }
 }

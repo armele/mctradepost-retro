@@ -22,9 +22,11 @@ public record TradePathDebugPacket(boolean clear, List<VisualSegment> segments) 
 {
     private static final int MAX_SEGMENTS = 256;
     private static final int MAX_NODES = 200_000;
+    @SuppressWarnings("null")
     public static final Type<TradePathDebugPacket> TYPE = new Type<>(
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "trade_path_debug"));
-    public static final StreamCodec<ByteBuf, TradePathDebugPacket> STREAM_CODEC = StreamCodec.of(
+    
+        public static final StreamCodec<ByteBuf, TradePathDebugPacket> STREAM_CODEC = StreamCodec.of(
         TradePathDebugPacket::encode, TradePathDebugPacket::decode);
 
     public static TradePathDebugPacket show(TrackRoute route)
@@ -47,7 +49,7 @@ public record TradePathDebugPacket(boolean clear, List<VisualSegment> segments) 
         for (VisualSegment segment : packet.segments)
         {
             ByteBufCodecs.VAR_INT.encode(buf, segment.type.ordinal());
-            ByteBufCodecs.STRING_UTF8.encode(buf, segment.dimension.toString());
+            ByteBufCodecs.STRING_UTF8.encode(buf, segment.dimension.toString() + "");
             ByteBufCodecs.VAR_INT.encode(buf, segment.path.size());
             for (BlockPos pos : segment.path) buf.writeLong(pos.asLong());
         }
@@ -64,7 +66,7 @@ public record TradePathDebugPacket(boolean clear, List<VisualSegment> segments) 
         {
             int ordinal = ByteBufCodecs.VAR_INT.decode(buf);
             if (ordinal < 0 || ordinal >= TrackRoute.SegmentType.values().length) throw new IllegalArgumentException("Invalid trade-path segment type");
-            ResourceLocation dimension = ResourceLocation.parse(ByteBufCodecs.STRING_UTF8.decode(buf));
+            ResourceLocation dimension = ResourceLocation.parse(ByteBufCodecs.STRING_UTF8.decode(buf) + "");
             int nodes = ByteBufCodecs.VAR_INT.decode(buf);
             totalNodes += nodes;
             if (nodes < 0 || totalNodes > MAX_NODES) throw new IllegalArgumentException("Trade-path overlay is too large");

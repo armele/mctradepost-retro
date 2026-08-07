@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 
 class TrackRouteTest
 {
+    @SuppressWarnings("null")
     @Test
     void computesUniformDistanceAndZeroCostDockHandoffs()
     {
@@ -24,6 +25,7 @@ class TrackRouteTest
         assertEquals(TrackRoute.SegmentType.ROAD, route.firstPath().isEmpty() ? null : route.segments().getFirst().type());
     }
 
+    @SuppressWarnings("null")
     @Test
     void reversalPreservesModesAndReversesTheirPaths()
     {

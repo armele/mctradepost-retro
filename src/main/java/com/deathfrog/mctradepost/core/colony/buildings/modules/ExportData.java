@@ -162,6 +162,7 @@ public class ExportData
         return spawnVehicleForTrade(level, path, TrackRoute.SegmentType.RAIL, isReverse());
     }
 
+    @SuppressWarnings("null")
     private @Nullable GhostCartEntity spawnVehicleForTrade(ServerLevel level, List<BlockPos> path, TrackRoute.SegmentType mode, boolean reverse)
     {
         if (path == null || path.isEmpty()) 
@@ -385,9 +386,13 @@ public class ExportData
             return;
         }
 
+        ITradeCapable localSourceStation = sourceStation;
+
         TrackRoute.Segment segment = leg.segment();
-        MinecraftServer server = sourceStation == null || sourceStation.getColony() == null || sourceStation.getColony().getWorld() == null
-            ? null : sourceStation.getColony().getWorld().getServer();
+        
+        MinecraftServer server = localSourceStation == null || localSourceStation.getColony() == null || localSourceStation.getColony().getWorld() == null
+            ? null : localSourceStation.getColony().getWorld().getServer();
+
         if (server == null) return;
 
         TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
@@ -418,6 +423,7 @@ public class ExportData
     }
 
     /** Emits one restrained, mode-aware particle burst at a dock or interchange vehicle handoff. */
+    @SuppressWarnings("null")
     private void emitVehicleHandoff(ServerLevel level, int previousIndex, int nextIndex, TrackRoute.SegmentType nextType)
     {
         if (activeRoute == null || previousIndex < 0 || previousIndex >= activeRoute.segments().size() || previousIndex == nextIndex)
@@ -479,8 +485,12 @@ public class ExportData
     boolean tickRouteVisualization()
     {
         if (pendingVisualLegs.isEmpty()) return false;
-        MinecraftServer server = sourceStation == null || sourceStation.getColony() == null || sourceStation.getColony().getWorld() == null
-            ? null : sourceStation.getColony().getWorld().getServer();
+
+        ITradeCapable localSourceStation = sourceStation;
+
+        MinecraftServer server = localSourceStation == null || localSourceStation.getColony() == null || localSourceStation.getColony().getWorld() == null
+            ? null : localSourceStation.getColony().getWorld().getServer();
+            
         if (server == null) return false;
         if (server.overworld().getGameTime() >= nextVisualTransitionTick) startNextVisualLeg();
         return !pendingVisualLegs.isEmpty();

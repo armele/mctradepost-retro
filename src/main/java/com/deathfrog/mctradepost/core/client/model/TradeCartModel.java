@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.client.model;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.api.entity.WagonEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -27,6 +29,7 @@ public class TradeCartModel extends EntityModel<WagonEntity>
         };
     }
 
+    @SuppressWarnings("null")
     public static LayerDefinition createBodyLayer()
     {
         MeshDefinition mesh = new MeshDefinition();
@@ -69,12 +72,13 @@ public class TradeCartModel extends EntityModel<WagonEntity>
         return CubeListBuilder.create().texOffs(u, v).addBox(x, y, z, dx, dy, dz);
     }
 
-    private static void add(PartDefinition parent, String name, float x, float y, float z, CubeListBuilder cubes)
+    @SuppressWarnings("null")
+    private static void add(PartDefinition parent, @Nonnull String name, float x, float y, float z, @Nonnull CubeListBuilder cubes)
     {
         parent.addOrReplaceChild(name, cubes, PartPose.offset(x, 24 - y, z));
     }
 
-    private static void addWheel(PartDefinition root, String name, float ox, float oy, float oz, boolean left, boolean front)
+    private static void addWheel(PartDefinition root, @Nonnull String name, float ox, float oy, float oz, boolean left, boolean front)
     {
         float x = left ? -0.58333F : -0.41667F;
         float z = front ? -3 : -3;
@@ -91,14 +95,14 @@ public class TradeCartModel extends EntityModel<WagonEntity>
     }
 
     @Override
-    public void setupAnim(WagonEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch)
+    public void setupAnim(@Nonnull WagonEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch)
     {
         float rotation = entity.getWheelRotation();
         for (ModelPart wheel : wheels) wheel.xRot = rotation;
     }
 
     @Override
-    public void renderToBuffer(PoseStack pose, VertexConsumer consumer, int light, int overlay, int color)
+    public void renderToBuffer(@Nonnull PoseStack pose, @Nonnull VertexConsumer consumer, int light, int overlay, int color)
     {
         root.render(pose, consumer, light, overlay, color);
     }

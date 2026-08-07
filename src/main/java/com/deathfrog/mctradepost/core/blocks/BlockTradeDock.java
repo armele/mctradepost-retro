@@ -19,6 +19,8 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.tags.FluidTags;
+
+import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TradeDockRegistry;
 import com.mojang.serialization.MapCodec;
 
@@ -34,6 +36,7 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
     /** Full footprint matching the model's approximately 2.4-pixel maximum height. */
     private static final VoxelShape SHAPE = Shapes.box(0.0D, 0.0D, 0.0D, 1.0D, 2.5D / 16.0D, 1.0D);
 
+    @SuppressWarnings("null")
     public BlockTradeDock(@Nonnull Properties properties)
     {
         super(properties);
@@ -62,6 +65,7 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
      * Resolves the navigable water beside the dock. A dock may sit level with
      * the water or, more commonly, one block above it.
      */
+    @SuppressWarnings("null")
     public static BlockPos waterEndpoint(LevelReader level, BlockState state, BlockPos dock)
     {
         BlockPos facing = dock.relative(state.getValue(FACING));
@@ -75,35 +79,40 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
         return facing;
     }
 
-    private static boolean isNavigableWater(LevelReader level, BlockPos pos)
+    @SuppressWarnings("null")
+    private static boolean isNavigableWater(LevelReader level, @Nonnull BlockPos pos)
     {
-        return level.getFluidState(pos).is(FluidTags.WATER)
+        return level.getFluidState(pos).is(NullnessBridge.assumeNonnull(FluidTags.WATER))
             && level.getBlockState(pos.above()).getCollisionShape(level, pos.above()).isEmpty();
     }
 
+    @SuppressWarnings("null")
     public static BlockPos landEndpoint(BlockState state, BlockPos dock)
     {
         return dock.relative(state.getValue(FACING).getOpposite());
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
+    protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder)
     {
         builder.add(FACING);
     }
 
+    @SuppressWarnings("null")
     @Override
     public BlockState getStateForPlacement(@Nonnull BlockPlaceContext context)
     {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection());
     }
 
+    @SuppressWarnings("null")
     @Override
     protected BlockState rotate(@Nonnull BlockState state, @Nonnull Rotation rotation)
     {
         return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
     }
 
+    @SuppressWarnings("null")
     @Override
     protected BlockState mirror(@Nonnull BlockState state, @Nonnull Mirror mirror)
     {
@@ -117,6 +126,7 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
         if (level instanceof ServerLevel serverLevel) TradeDockRegistry.get(serverLevel).add(pos);
     }
 
+    @SuppressWarnings("null")
     @Override
     protected void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean movedByPiston)
     {

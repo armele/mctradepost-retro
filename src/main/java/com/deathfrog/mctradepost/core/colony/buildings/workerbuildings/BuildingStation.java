@@ -825,6 +825,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * @param routeTag serialized route tag
      * @return restored route, or null when no valid segments were found
      */
+    @SuppressWarnings("null")
     private static TrackRoute readRoute(CompoundTag routeTag)
     {
         List<TrackRoute.Segment> segments = new ArrayList<>();

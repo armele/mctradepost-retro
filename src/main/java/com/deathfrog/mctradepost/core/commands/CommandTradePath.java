@@ -35,6 +35,7 @@ public class CommandTradePath extends AbstractCommands
                     .executes(this::checkPreConditionAndExecute)));
     }
 
+    @SuppressWarnings("null")
     @Override
     public int onExecute(CommandContext<CommandSourceStack> context)
     {
@@ -58,6 +59,7 @@ public class CommandTradePath extends AbstractCommands
         return 1;
     }
 
+    @SuppressWarnings("null")
     private int clear(CommandContext<CommandSourceStack> context)
     {
         if (!checkPreCondition(context)) return 0;
