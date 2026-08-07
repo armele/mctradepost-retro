@@ -96,8 +96,8 @@ public final class MultimodalRouteConnection
         if (from.isDock() && to.isDock())
         {
             int limit = MCTPConfig.maximumWaterRouteDistance.get();
-            BlockPos waterFrom = from.water();
-            BlockPos waterTo = to.water();
+            BlockPos waterFrom = from.water(level);
+            BlockPos waterTo = to.water(level);
             if (waterFrom.distSqr(waterTo) > (double) limit * limit) return null;
             List<BlockPos> water = ModalPathConnection.water(level, waterFrom, waterTo, limit);
             return water.isEmpty() ? null : TrackRoute.Segment.water(level.dimension(), water);
@@ -136,7 +136,7 @@ public final class MultimodalRouteConnection
             if (isInterchange()) return position;
             return position;
         }
-        BlockPos water() { return isDock() ? BlockTradeDock.waterEndpoint(state, position) : position; }
+        BlockPos water(ServerLevel level) { return isDock() ? BlockTradeDock.waterEndpoint(level, state, position) : position; }
     }
     private record QueueEntry(int index, int distance) { }
     private record Previous(int node, TrackRoute.Segment segment) { }

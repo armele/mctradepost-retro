@@ -17,6 +17,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.tags.FluidTags;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TradeDockRegistry;
 import com.mojang.serialization.MapCodec;
 
@@ -56,9 +58,27 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
         return CODEC;
     }
 
-    public static BlockPos waterEndpoint(BlockState state, BlockPos dock)
+    /**
+     * Resolves the navigable water beside the dock. A dock may sit level with
+     * the water or, more commonly, one block above it.
+     */
+    public static BlockPos waterEndpoint(LevelReader level, BlockState state, BlockPos dock)
     {
-        return dock.relative(state.getValue(FACING));
+        BlockPos facing = dock.relative(state.getValue(FACING));
+        if (isNavigableWater(level, facing)) return facing;
+
+        BlockPos below = facing.below();
+        if (isNavigableWater(level, below)) return below;
+
+        // Retain the deterministic facing endpoint when neither candidate is
+        // currently valid so route discovery can report a normal failure.
+        return facing;
+    }
+
+    private static boolean isNavigableWater(LevelReader level, BlockPos pos)
+    {
+        return level.getFluidState(pos).is(FluidTags.WATER)
+            && level.getBlockState(pos.above()).getCollisionShape(level, pos.above()).isEmpty();
     }
 
     public static BlockPos landEndpoint(BlockState state, BlockPos dock)

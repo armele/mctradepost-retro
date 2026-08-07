@@ -66,7 +66,8 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     private int desiredIdx = 0;     // latest segment requested by the driver
     private long strideStartTick;       // gameTime when current stride began
     private double strideLength;         // total polyline length for this stride (blocks)
-    private final int COLONY_T = TickRateConstants.MAX_TICKRATE; // e.g. 500 ticks
+    public static final int DEFAULT_STRIDE_TICKS = TickRateConstants.MAX_TICKRATE; // e.g. 500 ticks
+    private int strideDurationTicks = DEFAULT_STRIDE_TICKS;
     protected boolean reversed = false;
 
     // --- NEW: fractional start support (smooth mid-stride retiming) ---
@@ -224,6 +225,12 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
      */
     public void setSegment(int segment)
     {
+        setSegment(segment, DEFAULT_STRIDE_TICKS);
+    }
+
+    /** Requests movement with an explicit duration, used when one trade stride crosses modal boundaries. */
+    public void setSegment(int segment, int durationTicks)
+    {
         if (path == null || path.isEmpty()) return;
 
         int clamped = Mth.clamp(segment, 0, path.size() - 1);
@@ -233,6 +240,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         }
 
         desiredIdx = clamped;
+        strideDurationTicks = Math.max(1, durationTicks);
 
         // --- Rebase the stride to our *current* fractional position ---
         // If we have a valid last-edge cache (from tick), start from there.
@@ -320,7 +328,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
         // --- Smooth pacing: always COLONY_T ticks per stride ---
         long dt = level().getGameTime() - strideStartTick;
-        double u = Mth.clamp(dt / (double) COLONY_T, 0.0, 1.0);
+        double u = Mth.clamp(dt / (double) strideDurationTicks, 0.0, 1.0);
         double travelled = u * strideLength;
 
         // Walk along the polyline from (startIdx + startT) toward targetIdx
@@ -357,7 +365,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
                 Vec3 dir = pb.subtract(pa).normalize();
                 setYRot((float) (Math.atan2(dir.z, dir.x) * 180 / Math.PI) - 90);
-                setDeltaMovement(dir.scale(strideLength / Math.max(1.0, COLONY_T))); // interpolation hint
+                setDeltaMovement(dir.scale(strideLength / Math.max(1.0, strideDurationTicks))); // interpolation hint
 
                 // cache fractional edge for mid-stride rebasing
                 lastEdgeA = i;

@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
     "mctradepost:mixed_stone",
-    "mctradepost:mixed_stone_slab"
+    "mctradepost:mixed_stone_slab",
+    {
+      "id": "#via_romana:path_block",
+      "required": false
+    }
   ]
 }
