@@ -47,12 +47,7 @@ public record RitualPacket(Map<ResourceLocation, RitualDefinition> rituals) impl
     @OnlyIn(net.neoforged.api.distmarker.Dist.CLIENT)
     public void handleDataInClientOnMain(IPayloadContext ctx)
     {
-        rituals.forEach((id, def) -> {
-                if (def != null)    
-                {
-                    RitualManager.putRitual(id, new RitualDefinitionHelper(id, def));
-                }
-            });
+        RitualManager.replaceRituals(rituals);
 
         MCTradePostMod.LOGGER.info("Received {} rituals on client", rituals.size());
 

@@ -84,6 +84,22 @@ public class RitualManager extends SimpleJsonResourceReloadListener
     }
 
     /**
+     * Replaces the complete ritual set with an authoritative synchronized copy.
+     *
+     * @param definitions ritual definitions keyed by their resource location
+     */
+    public static void replaceRituals(Map<ResourceLocation, RitualDefinition> definitions)
+    {
+        rituals.clear();
+        definitions.forEach((id, definition) -> {
+            if (definition != null)
+            {
+                rituals.put(id, new RitualDefinitionHelper(id, definition));
+            }
+        });
+    }
+
+    /**
      * Retrieves all the ritual definitions that have been loaded.
      *
      * @return a map of resource locations to their corresponding ritual definition helpers.

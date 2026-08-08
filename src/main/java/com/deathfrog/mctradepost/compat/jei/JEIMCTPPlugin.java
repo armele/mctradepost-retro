@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiCache;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiEntry;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
@@ -21,6 +22,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nonnull;
 
 @mezz.jei.api.JeiPlugin
@@ -33,6 +35,10 @@ public class JEIMCTPPlugin implements IModPlugin
         new RecipeType<>(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_foraging"), PetForagingJeiEntry.class);
 
     public static IRecipeManager RECIPE_MANAGER = null;
+    @SuppressWarnings("null")
+    private static @Nonnull List<RitualDefinitionHelper> registeredRitualEntries = List.of();
+    @SuppressWarnings("null")
+    private static @Nonnull Map<ResourceLocation, RitualDefinition> registeredRitualDefinitions = Map.of();
     @SuppressWarnings("null")
     private static @Nonnull List<PetForagingJeiEntry> registeredPetForagingEntries = List.of();
 
@@ -78,6 +84,8 @@ public class JEIMCTPPlugin implements IModPlugin
         else
         {
             registration.addRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), allRituals);
+            registeredRitualEntries = List.copyOf(allRituals);
+            registeredRitualDefinitions = Map.copyOf(RitualManager.getUnwrappedRituals());
         }
 
 
@@ -116,6 +124,7 @@ public class JEIMCTPPlugin implements IModPlugin
      * This can be used to refresh the list of rituals after a change to the data files.
      * If the JEI runtime is not yet available, this method does nothing.
      */
+    @SuppressWarnings("null")
     public static void refreshRitualRecipes()
     {
         if (RECIPE_MANAGER == null)
@@ -125,14 +134,26 @@ public class JEIMCTPPlugin implements IModPlugin
         }
 
         List<RitualDefinitionHelper> allRituals = RitualManager.getAllRituals().values().stream().toList();
+        Map<ResourceLocation, RitualDefinition> ritualDefinitions = RitualManager.getUnwrappedRituals();
 
-        if (allRituals == null || allRituals.isEmpty())
+        if (ritualDefinitions.equals(registeredRitualDefinitions))
         {
-            MCTradePostMod.LOGGER.info("No rituals found; skipping JEI registration");
+            MCTradePostMod.LOGGER.info("JEI ritual list is already current");
             return;
         }
 
-        RECIPE_MANAGER.addRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), allRituals);
+        if (!registeredRitualEntries.isEmpty())
+        {
+            RECIPE_MANAGER.hideRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), registeredRitualEntries);
+        }
+
+        if (!allRituals.isEmpty())
+        {
+            RECIPE_MANAGER.addRecipes(NullnessBridge.assumeNonnull(RITUAL_TYPE), allRituals);
+        }
+
+        registeredRitualEntries = List.copyOf(allRituals);
+        registeredRitualDefinitions = Map.copyOf(ritualDefinitions);
 
         MCTradePostMod.LOGGER.info("JEI ritual list reloaded");
     }

@@ -1507,11 +1507,16 @@ public class MCTradePostMod
 
                 if (localPlayer != null)
                 {
+                    RitualPacket.sendPacketsToPlayer(localPlayer);
                     ItemValueSyncPacket.sendPacketsToPlayer(localPlayer);
                     PetForagingJeiSyncPacket.sendPacketsToPlayer(localPlayer);
                     return;
                 }
 
+                for (ServerPlayer player : event.getPlayerList().getPlayers())
+                {
+                    RitualPacket.sendPacketsToPlayer(player);
+                }
                 ItemValueSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
                 PetForagingJeiSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
             }

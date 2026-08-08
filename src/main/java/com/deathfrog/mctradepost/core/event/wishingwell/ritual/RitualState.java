@@ -63,15 +63,15 @@ public class RitualState
 
         if (requirementStack.getItemStack().is(coinItem))
         {
-            return entityCount(baseCoins) >= requirementStack.getItemStack().getCount();
+            return entityCount(baseCoins) >= requirementStack.getAmount();
         }
         else if (requirementStack.getItemStack().is(goldCoin))
         {
-            return entityCount(goldCoins) >= requirementStack.getItemStack().getCount();
+            return entityCount(goldCoins) >= requirementStack.getAmount();
         }
         else if (requirementStack.getItemStack().is(diamondCoin))
         {
-            return entityCount(diamondCoins) >= requirementStack.getItemStack().getCount();
+            return entityCount(diamondCoins) >= requirementStack.getAmount();
         }
         else
         {
@@ -86,7 +86,7 @@ public class RitualState
      */
     public void burnCoins(ItemStorage requirementStack)
     {
-        int toBurn = requirementStack.getItemStack().getCount();
+        int toBurn = requirementStack.getAmount();
         if (toBurn <= 0) return;
 
         // Select the correct coin pool based on item type
@@ -127,7 +127,7 @@ public class RitualState
                 // Burn the whole stack
                 toBurn -= inStack;
                 entity.discard();   // remove from world
-                it.remove();        // keep your cached list in sync
+                it.remove();        // keep cached list in sync
             }
         }
     }
