@@ -21,6 +21,14 @@
             "item": "minecraft:rail"        
         },
         {
+            "count": 16,
+            "tag": "mctradepost:trade_roads"        
+        },
+        {
+            "count": 1,
+            "item": "mctradepost:trade_interchange"        
+        },
+        {
             "count": 1,
             "item": "mctradepost:mctp_coin"        
         }

@@ -1,8 +1,13 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import com.deathfrog.mctradepost.MCTradePostMod;
+
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
 
 import java.util.List;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -11,6 +16,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
+import com.deathfrog.mctradepost.api.entity.WagonEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
@@ -29,6 +36,7 @@ import com.minecolonies.core.util.DomumOrnamentumUtils;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -60,6 +68,10 @@ public class ExportData
     private GhostCartEntity cart = null;
     private TrackRoute activeRoute = null;
     private int activeRouteSegmentIndex = -1;
+    private final Deque<VisualLeg> pendingVisualLegs = new ArrayDeque<>();
+    private long nextVisualTransitionTick = Long.MAX_VALUE;
+
+    private record VisualLeg(int segmentIndex, TrackRoute.Segment segment, int targetIndex, int durationTicks) { }
 
 
 
@@ -147,6 +159,12 @@ public class ExportData
 
     public @Nullable GhostCartEntity spawnCartForTrade(ServerLevel level, List<BlockPos> path)
     {
+        return spawnVehicleForTrade(level, path, TrackRoute.SegmentType.RAIL, isReverse());
+    }
+
+    @SuppressWarnings("null")
+    private @Nullable GhostCartEntity spawnVehicleForTrade(ServerLevel level, List<BlockPos> path, TrackRoute.SegmentType mode, boolean reverse)
+    {
         if (path == null || path.isEmpty()) 
         {
             TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn("Null or empty path while spawning cart: {}", this));
@@ -169,8 +187,13 @@ public class ExportData
 
         ChunkUtil.ensureChunkLoadedByTicket(level, startPos, TrackPathConnection.RAIL_CHUNK_RADIUS, ChunkUtil.RAIL_TICKET);
 
-        GhostCartEntity newCart =
-            GhostCartEntity.spawn(level, NullnessBridge.assumeNonnull(ImmutableList.copyOf(path)), isReverse());
+        List<BlockPos> immutablePath = NullnessBridge.assumeNonnull(ImmutableList.copyOf(path));
+        GhostCartEntity newCart = switch (mode)
+        {
+            case WATER -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.GHOST_BOAT.get());
+            case ROAD -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.WAGON.get());
+            default -> GhostCartEntity.spawn(level, immutablePath, reverse);
+        };
 
         if (newCart == null)
         {
@@ -278,6 +301,7 @@ public class ExportData
      */
     public void setShipDistance(int shipDistance)
     {
+        int previousDistance = this.shipDistance;
         this.shipDistance = shipDistance;
 
         if (shipDistance < 0)
@@ -285,12 +309,21 @@ public class ExportData
             discardCart();
             activeRoute = null;
             activeRouteSegmentIndex = -1;
+            pendingVisualLegs.clear();
+            TradeRouteVisualTicker.deactivate(this);
             return;
         }
 
         if (activeRoute != null)
         {
-            updateCartForRouteDistance(shipDistance);
+            if (previousDistance >= 0 && shipDistance > previousDistance)
+            {
+                beginVisualStride(previousDistance, shipDistance);
+            }
+            else
+            {
+                updateCartForRouteDistance(shipDistance);
+            }
             return;
         }
 
@@ -298,6 +331,169 @@ public class ExportData
         {
             cart.setSegment(shipDistance);
         }
+    }
+
+    /** Splits one colony-tick movement request across every modal segment it crosses. */
+    private void beginVisualStride(int fromDistance, int toDistance)
+    {
+        pendingVisualLegs.clear();
+        int target = Math.min(toDistance, activeRoute.totalDistance());
+        int travelled = Math.max(1, target - fromDistance);
+        int cursor = 0;
+        List<VisualLegDraft> drafts = new ArrayList<>();
+        List<TrackRoute.Segment> routeSegments = activeRoute.segments();
+        for (int segmentIndex = 0; segmentIndex < routeSegments.size(); segmentIndex++)
+        {
+            TrackRoute.Segment segment = routeSegments.get(segmentIndex);
+            int distance = segment.distance();
+            if (distance == 0) continue;
+            int overlapStart = Math.max(fromDistance, cursor);
+            int overlapEnd = Math.min(target, cursor + distance);
+            if (overlapEnd > overlapStart)
+            {
+                int amount = overlapEnd - overlapStart;
+                int localTarget = segment.type() == TrackRoute.SegmentType.TRANSFER
+                    ? 0 : Math.min(segment.path().size() - 1, overlapEnd - cursor);
+                drafts.add(new VisualLegDraft(segmentIndex, segment, localTarget, amount));
+            }
+            cursor += distance;
+        }
+
+        int assignedTicks = 0;
+        for (int i = 0; i < drafts.size(); i++)
+        {
+            VisualLegDraft draft = drafts.get(i);
+            int duration = i == drafts.size() - 1
+                ? Math.max(1, GhostCartEntity.DEFAULT_STRIDE_TICKS - assignedTicks)
+                : Math.max(1, Math.round(GhostCartEntity.DEFAULT_STRIDE_TICKS * draft.distance() / (float) travelled));
+            assignedTicks += duration;
+            pendingVisualLegs.addLast(new VisualLeg(draft.segmentIndex(), draft.segment(), draft.targetIndex(), duration));
+        }
+
+        startNextVisualLeg();
+        if (!pendingVisualLegs.isEmpty()) TradeRouteVisualTicker.activate(this);
+    }
+
+    private record VisualLegDraft(int segmentIndex, TrackRoute.Segment segment, int targetIndex, int distance) { }
+
+    /** Starts the next timed modal leg; zero-distance handoffs are implicit between consecutive legs. */
+    private void startNextVisualLeg()
+    {
+        VisualLeg leg = pendingVisualLegs.pollFirst();
+        if (leg == null)
+        {
+            nextVisualTransitionTick = Long.MAX_VALUE;
+            return;
+        }
+
+        ITradeCapable localSourceStation = sourceStation;
+
+        TrackRoute.Segment segment = leg.segment();
+        
+        MinecraftServer server = localSourceStation == null || localSourceStation.getColony() == null || localSourceStation.getColony().getWorld() == null
+            ? null : localSourceStation.getColony().getWorld().getServer();
+
+        if (server == null) return;
+
+        TraceUtils.dynamicTrace(TRACE_CART, () -> LOGGER.warn(
+            "Starting trade visual leg index={} mode={} target={} durationTicks={} remainingLegs={}",
+            leg.segmentIndex(), segment.type(), leg.targetIndex(), leg.durationTicks(), pendingVisualLegs.size()));
+
+        if (segment.type() == TrackRoute.SegmentType.TRANSFER)
+        {
+            if (cart != null) cart.playTransferEffects();
+            discardCart();
+            activeRouteSegmentIndex = leg.segmentIndex();
+        }
+        else
+        {
+            ServerLevel level = server.getLevel(segment.dimension());
+            if (level == null) return;
+            int segmentIndex = leg.segmentIndex();
+            if (cart == null || !cart.hasPath() || activeRouteSegmentIndex != segmentIndex || !vehicleMatches(segment.type()))
+            {
+                emitVehicleHandoff(level, activeRouteSegmentIndex, segmentIndex, segment.type());
+                discardCart();
+                cart = spawnVehicleForTrade(level, segment.path(), segment.type(), false);
+                activeRouteSegmentIndex = segmentIndex;
+            }
+            if (cart != null) cart.setSegment(leg.targetIndex(), leg.durationTicks());
+        }
+        nextVisualTransitionTick = server.overworld().getGameTime() + leg.durationTicks();
+    }
+
+    /** Emits one restrained, mode-aware particle burst at a dock or interchange vehicle handoff. */
+    @SuppressWarnings("null")
+    private void emitVehicleHandoff(ServerLevel level, int previousIndex, int nextIndex, TrackRoute.SegmentType nextType)
+    {
+        if (activeRoute == null || previousIndex < 0 || previousIndex >= activeRoute.segments().size() || previousIndex == nextIndex)
+        {
+            return;
+        }
+
+        TrackRoute.SegmentType previousType = activeRoute.segments().get(previousIndex).type();
+        if (!isVehicleMode(previousType) || !isVehicleMode(nextType) || previousType == nextType)
+        {
+            return;
+        }
+
+        BlockPos handoff = null;
+        int step = previousIndex < nextIndex ? 1 : -1;
+        for (int index = previousIndex + step; index != nextIndex; index += step)
+        {
+            TrackRoute.Segment between = activeRoute.segments().get(index);
+            if ((between.type() == TrackRoute.SegmentType.DOCK || between.type() == TrackRoute.SegmentType.INTERCHANGE)
+                && between.dimension().equals(level.dimension()) && !between.path().isEmpty())
+            {
+                handoff = between.path().getFirst();
+                break;
+            }
+        }
+        if (handoff == null)
+        {
+            TrackRoute.Segment arriving = activeRoute.segments().get(nextIndex);
+            if (arriving.path().isEmpty()) return;
+            handoff = arriving.path().getFirst();
+        }
+
+        double x = handoff.getX() + 0.5D;
+        double y = handoff.getY() + 0.55D;
+        double z = handoff.getZ() + 0.5D;
+        boolean waterHandoff = previousType == TrackRoute.SegmentType.WATER || nextType == TrackRoute.SegmentType.WATER;
+        level.sendParticles(waterHandoff ? ParticleTypes.SPLASH : ParticleTypes.POOF,
+            x, y, z, waterHandoff ? 6 : 7, 0.28D, 0.2D, 0.28D, 0.025D);
+        level.sendParticles(ParticleTypes.WAX_ON, x, y + 0.1D, z, 4, 0.24D, 0.22D, 0.24D, 0.015D);
+    }
+
+    private static boolean isVehicleMode(TrackRoute.SegmentType type)
+    {
+        return type == TrackRoute.SegmentType.RAIL || type == TrackRoute.SegmentType.ROAD || type == TrackRoute.SegmentType.WATER;
+    }
+
+    private boolean vehicleMatches(TrackRoute.SegmentType type)
+    {
+        return switch (type)
+        {
+            case ROAD -> cart instanceof WagonEntity;
+            case WATER -> cart instanceof GhostBoatEntity;
+            case RAIL -> !(cart instanceof WagonEntity) && !(cart instanceof GhostBoatEntity);
+            default -> true;
+        };
+    }
+
+    /** @return true while another server tick is needed for this visual stride */
+    boolean tickRouteVisualization()
+    {
+        if (pendingVisualLegs.isEmpty()) return false;
+
+        ITradeCapable localSourceStation = sourceStation;
+
+        MinecraftServer server = localSourceStation == null || localSourceStation.getColony() == null || localSourceStation.getColony().getWorld() == null
+            ? null : localSourceStation.getColony().getWorld().getServer();
+            
+        if (server == null) return false;
+        if (server.overworld().getGameTime() >= nextVisualTransitionTick) startNextVisualLeg();
+        return !pendingVisualLegs.isEmpty();
     }
 
     /**
@@ -321,8 +517,9 @@ public class ExportData
         for (int i = 0; i < segments.size(); i++)
         {
             TrackRoute.Segment segment = segments.get(i);
-            int segmentDistance = Math.max(1, segment.distance());
-            boolean inSegment = routeDistance <= cursor + segmentDistance || i == segments.size() - 1;
+            int segmentDistance = segment.distance();
+            if (segmentDistance == 0) continue;
+            boolean inSegment = routeDistance < cursor + segmentDistance || i == segments.size() - 1;
             if (!inSegment)
             {
                 cursor += segmentDistance;
@@ -365,7 +562,7 @@ public class ExportData
             if (cart == null || !cart.hasPath() || activeRouteSegmentIndex != i)
             {
                 discardCart();
-                cart = spawnCartForTrade(level, segment.path());
+                cart = spawnVehicleForTrade(level, segment.path(), segment.type(), false);
                 activeRouteSegmentIndex = i;
             }
 

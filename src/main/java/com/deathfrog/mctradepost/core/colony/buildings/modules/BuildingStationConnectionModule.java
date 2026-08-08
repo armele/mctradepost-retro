@@ -219,7 +219,7 @@ public class BuildingStationConnectionModule extends AbstractBuildingModule impl
             return LinkageStatus.UNLOADED;
         }
 
-        if (!DimensionalLinkageItem.isTrackBlock(level, endpoint.pos()))
+        if (!DimensionalLinkageItem.isValidTransportAnchor(level, endpoint.pos()))
         {
             return LinkageStatus.MISSING_TRACK;
         }

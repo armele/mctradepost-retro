@@ -11,10 +11,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
 /**
- * Dimension-aware route made of rail segments and dimensional transfer hops.
+ * Dimension-aware route made of traversable segments, modal handoffs, and dimensional transfer hops.
  * <p>
- * A route is intentionally segmented so shipment progress and ghost-cart rendering can move along normal rails, disappear during a
- * dimensional transfer, and reappear in the next dimension with the correct local path.
+ * A route is intentionally segmented so shipment progress and vehicle rendering can follow rail, road, or water paths, change
+ * transport mode at docks and interchanges, disappear during a dimensional transfer, and reappear in the destination dimension with
+ * the correct local path.
  */
 public class TrackRoute
 {
@@ -27,6 +28,14 @@ public class TrackRoute
          * A normal contiguous rail path in one dimension.
          */
         RAIL,
+        /** A contiguous tagged trade-road path. */
+        ROAD,
+        /** A contiguous navigable surface-water path between docks. */
+        WATER,
+        /** A zero-distance vehicle handoff at a trade dock. */
+        DOCK,
+        /** A zero-distance rail/road vehicle handoff. */
+        INTERCHANGE,
         /**
          * A one-step transition between paired dimensional linkage endpoints.
          */
@@ -38,7 +47,7 @@ public class TrackRoute
      *
      * @param type segment type
      * @param dimension dimension used for rail traversal or transfer origin
-     * @param path rail positions for rail segments, or the two endpoint positions for transfer segments
+     * @param path ordered traversal positions, a handoff position, or the two endpoint positions of a transfer
      * @param transferFrom origin endpoint for transfer segments
      * @param transferTo destination endpoint for transfer segments
      */
@@ -51,10 +60,52 @@ public class TrackRoute
          * @param path ordered rail path
          * @return immutable rail segment
          */
-        @SuppressWarnings("null")
         public static Segment rail(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
         {
-            return new Segment(SegmentType.RAIL, dimension, Collections.unmodifiableList(new ArrayList<>(path)), null, null);
+            return traversable(SegmentType.RAIL, dimension, path);
+        }
+
+        /**
+         * Creates a road segment in one dimension.
+         *
+         * @param dimension dimension containing the road path
+         * @param path ordered tagged trade-road path
+         * @return immutable road segment
+         */
+        public static Segment road(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            return traversable(SegmentType.ROAD, dimension, path);
+        }
+
+        /**
+         * Creates a water segment in one dimension.
+         *
+         * @param dimension dimension containing the water path
+         * @param path ordered navigable surface-water path
+         * @return immutable water segment
+         */
+        public static Segment water(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            return traversable(SegmentType.WATER, dimension, path);
+        }
+
+        /**
+         * Creates an immutable rail, road, or water segment.
+         *
+         * @param type traversable segment type
+         * @param dimension dimension containing the path
+         * @param path ordered positions along the path
+         * @return immutable traversable segment containing a defensive copy of the path
+         * @throws IllegalArgumentException when {@code type} represents a transfer or modal handoff
+         */
+        @SuppressWarnings("null")
+        public static Segment traversable(@Nonnull SegmentType type, @Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            if (type == SegmentType.TRANSFER || type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            {
+                throw new IllegalArgumentException("Transfer segments require endpoints");
+            }
+            return new Segment(type, dimension, Collections.unmodifiableList(new ArrayList<>(path)), null, null);
         }
 
         /**
@@ -71,6 +122,32 @@ public class TrackRoute
         }
 
         /**
+         * Creates a zero-distance modal handoff at a trade dock.
+         *
+         * @param dimension dimension containing the dock
+         * @param position position of the dock
+         * @return dock handoff segment
+         */
+        @SuppressWarnings("null")
+        public static Segment dock(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos position)
+        {
+            return new Segment(SegmentType.DOCK, dimension, List.of(position), null, null);
+        }
+
+        /**
+         * Creates a zero-distance rail/road handoff at a trade interchange.
+         *
+         * @param dimension dimension containing the interchange
+         * @param position position of the interchange
+         * @return interchange handoff segment
+         */
+        @SuppressWarnings("null")
+        public static Segment interchange(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos position)
+        {
+            return new Segment(SegmentType.INTERCHANGE, dimension, List.of(position), null, null);
+        }
+
+        /**
          * @return travel distance represented by this segment
          */
         public int distance()
@@ -78,6 +155,10 @@ public class TrackRoute
             if (type == SegmentType.TRANSFER)
             {
                 return 1;
+            }
+            if (type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            {
+                return 0;
             }
             return path == null ? 0 : Math.max(0, path.size() - 1);
         }
@@ -144,6 +225,21 @@ public class TrackRoute
     }
 
     /**
+     * Returns the first non-handoff traversal path for connection-result compatibility.
+     *
+     * @return first non-empty rail, road, or water path, or an empty list when the route has no traversable segment
+     */
+    public List<BlockPos> firstPath()
+    {
+        for (Segment segment : segments)
+        {
+            if (segment.type() != SegmentType.TRANSFER && segment.type() != SegmentType.DOCK &&
+                segment.type() != SegmentType.INTERCHANGE && segment.path() != null && !segment.path().isEmpty()) return segment.path();
+        }
+        return List.of();
+    }
+
+    /**
      * Creates a route suitable for return shipments by reversing segment order and transfer direction.
      *
      * @return reversed route
@@ -159,11 +255,19 @@ public class TrackRoute
             {
                 reversed.add(Segment.transfer(segment.transferTo(), segment.transferFrom()));
             }
+            else if (segment.type() == SegmentType.DOCK)
+            {
+                reversed.add(Segment.dock(segment.dimension(), segment.path().getFirst()));
+            }
+            else if (segment.type() == SegmentType.INTERCHANGE)
+            {
+                reversed.add(Segment.interchange(segment.dimension(), segment.path().getFirst()));
+            }
             else
             {
                 List<BlockPos> path = new ArrayList<>(segment.path());
                 Collections.reverse(path);
-                reversed.add(Segment.rail(segment.dimension(), path));
+                reversed.add(Segment.traversable(segment.type(), segment.dimension(), path));
             }
         }
         return new TrackRoute(reversed);

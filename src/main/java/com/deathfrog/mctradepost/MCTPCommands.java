@@ -21,6 +21,7 @@ import com.deathfrog.mctradepost.core.commands.CommandStationLinkages;
 import com.deathfrog.mctradepost.core.commands.CommandStationRoutes;
 import com.deathfrog.mctradepost.core.commands.CommandStationStatus;
 import com.deathfrog.mctradepost.core.commands.CommandStationsClear;
+import com.deathfrog.mctradepost.core.commands.CommandTradePath;
 
 @EventBusSubscriber(modid = MCTradePostMod.MODID)
 public class MCTPCommands 
@@ -43,6 +44,7 @@ public class MCTPCommands
     public static final String CMD_RESORT_CLEARVACATION = "clearvacations";
     public static final String CMD_DYNTRACE_SETTRACE = "trace";
     public static final String CMD_OUTPOST_INIT = "init";
+    public static final String CMD_TRADE_PATH = "tradepath";
 
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) 
@@ -89,6 +91,7 @@ public class MCTPCommands
             .addNode(mctpAnimalTrainerCommands)
             .addNode(MctpEconomyCommands.generateItemValuesCommand())
             .addNode(RareFindGenerationCommand.command())
+            .addNode(new CommandTradePath(CMD_TRADE_PATH).build())
             .addNode(new CommandSetTrace(CMD_DYNTRACE_SETTRACE).build());
 
         // Adds all command trees to the dispatcher to register the commands.

@@ -118,9 +118,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
             CompoundTag storedItem = compoundNBT.getCompound(NbtTagConstants.STACK);
 
-            ItemStorage itemStorage = new ItemStorage(ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), NullnessBridge.assumeNonnull(storedItem)));
+            ItemStack itemStack = ItemStack.parseOptional(NullnessBridge.assumeNonnull(provider), NullnessBridge.assumeNonnull(storedItem));
+            int quantity = compoundNBT.contains(ExportData.TAG_QUANTITY)
+                ? compoundNBT.getInt(ExportData.TAG_QUANTITY)
+                : itemStack.getCount();
+            ItemStorage itemStorage = new ItemStorage(itemStack, quantity);
             int cost = compoundNBT.getInt(TAG_COST);
-            // int quantity = compoundNBT.getInt(TAG_QUANTITY);
             int shipDistance = compoundNBT.getInt(TAG_SHIP_DISTANCE);
             int trackDistance = compoundNBT.getInt(TAG_TRACK_DISTANCE);
             int lastShipDay = compoundNBT.getInt(TAG_LAST_SHIP_DAY);
@@ -179,7 +182,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             }
 
             compoundNBT.putInt(TAG_COST, exportData.getCost());
-            // compoundNBT.putInt(TAG_QUANTITY, exportData.getQuantity());
+            compoundNBT.putInt(ExportData.TAG_QUANTITY, exportData.getQuantity());
             compoundNBT.putInt(TAG_SHIP_DISTANCE, exportData.getShipDistance());
             compoundNBT.putInt(TAG_TRACK_DISTANCE, exportData.getTrackDistance());
             compoundNBT.putInt(TAG_LAST_SHIP_DAY, exportData.getLastShipDay());

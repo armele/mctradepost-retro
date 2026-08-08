@@ -9,8 +9,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
@@ -28,7 +31,10 @@ import net.minecraft.world.level.Level;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_TRACKPATH;
 
 /**
- * Finds and validates station routes that may span multiple dimensions through installed dimensional linkages.
+ * Finds and validates multimodal station routes that may span multiple dimensions through installed dimensional linkages.
+ * <p>
+ * Same-dimension legs are delegated to {@link MultimodalRouteConnection}. This class selects usable linkage endpoints, composes local
+ * legs with dimensional transfer segments, bounds repeated linkage-pair attempts, and validates cached segmented routes.
  */
 public class TrackRouteConnection
 {
@@ -39,13 +45,14 @@ public class TrackRouteConnection
     /**
      * Validates an existing cached route without doing a full BFS search.
      * <p>
-     * Loaded rail positions must still be valid track blocks. Unloaded rail positions are treated optimistically, matching the
-     * existing track validation behavior.
+     * Loaded traversal and handoff positions must still support their segment type. Unloaded traversal and transfer positions are
+     * treated optimistically so validation does not force chunk loading.
      *
      * @param server active Minecraft server
      * @param result cached connection result to validate
      * @return true when the cached route can still be considered connected
      */
+    @SuppressWarnings("null")
     public static boolean validateExistingRoute(MinecraftServer server, TrackPathConnection.TrackConnectionResult result)
     {
         if (server == null || result == null)
@@ -77,6 +84,27 @@ public class TrackRouteConnection
                 continue;
             }
 
+            if (segment.type() == TrackRoute.SegmentType.DOCK)
+            {
+                if (segment.path().isEmpty() || !level.getBlockState(segment.path().getFirst()).is(MCTradePostMod.TRADE_DOCK.get())) return false;
+                continue;
+            }
+
+            if (segment.type() == TrackRoute.SegmentType.INTERCHANGE)
+            {
+                if (segment.path().isEmpty() || !level.getBlockState(segment.path().getFirst()).is(MCTradePostMod.TRADE_INTERCHANGE.get())) return false;
+                continue;
+            }
+
+            if (segment.type() != TrackRoute.SegmentType.RAIL)
+            {
+                if (!ModalPathConnection.validate(level, segment))
+                {
+                    return false;
+                }
+                continue;
+            }
+
             if (!validateRailSegment(level, segment.path()))
             {
                 return false;
@@ -89,8 +117,8 @@ public class TrackRouteConnection
     /**
      * Finds a route from a source trade-capable building to a destination station.
      * <p>
-     * Same-dimension rail paths are attempted first. If no direct path exists, installed valid dimensional linkages on both endpoint
-     * buildings are used to build one-transfer or Overworld-Nether-Overworld segmented routes.
+     * A direct same-dimension multimodal path is attempted first. If no direct path exists, installed valid dimensional linkages on
+     * both endpoint buildings are used to build one-transfer or Overworld-Nether-Overworld segmented routes.
      *
      * @param source source station or outpost
      * @param destination destination station data
@@ -122,14 +150,16 @@ public class TrackRouteConnection
 
         BlockPos sourceRail = source.getRailStartPosition();
         BlockPos destinationRail = destination.getRailStartPosition();
-        RouteSearchContext context = new RouteSearchContext(loadChunks);
+        boolean allowWater = source.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.MARITIME_TRADE) > 0;
+        RouteSearchContext context = new RouteSearchContext(loadChunks, allowWater);
         context.logRouteStart(source, destination, sourceLevel, destinationLevel);
 
         TrackPathConnection.TrackConnectionResult direct =
             new TrackPathConnection.TrackConnectionResult(false, sourceRail, List.of(), source.getColony().getWorld().getGameTime());
         if (sourceLevel.dimension().equals(destinationLevel.dimension()))
         {
-            direct = context.tryRailSegment(sourceLevel, sourceRail, destinationRail);
+            direct = MultimodalRouteConnection.findRoute(sourceLevel, sourceRail, destinationRail, loadChunks, allowWater);
         }
 
         if (direct.isConnected())
@@ -158,6 +188,19 @@ public class TrackRouteConnection
         return finishRouteSearch(context, direct, source, destination);
     }
 
+    /**
+     * Selects the supported dimensional route shape and tries the available linkage candidates.
+     *
+     * @param sourceLevel level containing the source endpoint
+     * @param sourceRail source route position
+     * @param destinationLevel level containing the destination endpoint
+     * @param destinationRail destination route position
+     * @param sourceLinkages valid linkages installed at the source
+     * @param destinationLinkages valid linkages installed at the destination
+     * @param combinedLinkages unique linkage candidates from both endpoints
+     * @param context per-search cache, limits, and diagnostics
+     * @return a connected segmented result, or {@code null} when no supported linked route is found
+     */
     private static TrackPathConnection.TrackConnectionResult findLinkedRoute(ServerLevel sourceLevel,
         BlockPos sourceRail,
         ServerLevel destinationLevel,
@@ -217,6 +260,21 @@ public class TrackRouteConnection
         return null;
     }
 
+    /**
+     * Tries to connect two Overworld endpoints through distinct entry and exit linkages in the Nether.
+     * <p>
+     * Linkages installed at the respective endpoints are preferred. If those candidates fail, the combined linkage set is used as a
+     * fallback unless it is identical to both preferred sets.
+     *
+     * @param overworld level containing both route endpoints
+     * @param sourceRail source route position
+     * @param destinationRail destination route position
+     * @param sourceLinkages preferred entry linkages installed at the source
+     * @param destinationLinkages preferred exit linkages installed at the destination
+     * @param combinedLinkages unique fallback linkages from both endpoints
+     * @param context per-search cache, limits, and diagnostics
+     * @return a connected Overworld-Nether-Overworld result, or {@code null} when no linkage pair connects
+     */
     private static TrackPathConnection.TrackConnectionResult findOverworldToOverworldRoute(ServerLevel overworld,
         BlockPos sourceRail,
         BlockPos destinationRail,
@@ -267,6 +325,8 @@ public class TrackRouteConnection
         List<DimensionalLinkageRecord> exitLinkages,
         RouteSearchContext context)
     {
+        if (sourceRail == null || destinationRail == null) return null;
+
         for (DimensionalLinkageRecord entry : entryLinkages)
         {
             for (DimensionalLinkageRecord exit : exitLinkages)
@@ -282,26 +342,25 @@ public class TrackRouteConnection
                 }
 
                 TrackPathConnection.TrackConnectionResult startToEntry =
-                    context.tryRailSegment(overworld, sourceRail, entry.overworldEndpoint().get().pos());
+                    context.tryModalSegment(overworld, sourceRail, entry.overworldEndpoint().get().pos());
                 if (!startToEntry.isConnected()) continue;
 
                 TrackPathConnection.TrackConnectionResult netherSegment =
-                    context.tryRailSegment(nether, entry.netherEndpoint().get().pos(), exit.netherEndpoint().get().pos());
+                    context.tryModalSegment(nether, entry.netherEndpoint().get().pos(), exit.netherEndpoint().get().pos());
                 if (!netherSegment.isConnected()) continue;
 
                 TrackPathConnection.TrackConnectionResult exitToDestination =
-                    context.tryRailSegment(overworld, exit.overworldEndpoint().get().pos(), destinationRail);
+                    context.tryModalSegment(overworld, exit.overworldEndpoint().get().pos(), destinationRail);
                 if (!exitToDestination.isConnected()) continue;
 
                 @SuppressWarnings("null")
-                TrackRoute route = new TrackRoute(List.of(
-                    TrackRoute.Segment.rail(Level.OVERWORLD, startToEntry.path),
+                TrackRoute route = joinedRoute(startToEntry,
                     TrackRoute.Segment.transfer(entry.overworldEndpoint().get(), entry.netherEndpoint().get()),
-                    TrackRoute.Segment.rail(Level.NETHER, netherSegment.path),
+                    netherSegment,
                     TrackRoute.Segment.transfer(exit.netherEndpoint().get(), exit.overworldEndpoint().get()),
-                    TrackRoute.Segment.rail(Level.OVERWORLD, exitToDestination.path)));
+                    exitToDestination);
 
-                return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstRailPath(), overworld.getGameTime(), route);
+                return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstPath(), overworld.getGameTime(), route);
             }
         }
 
@@ -360,6 +419,18 @@ public class TrackRouteConnection
         return List.copyOf(combined.values());
     }
 
+    /**
+     * Builds a route containing one dimensional transfer and a multimodal leg on each side.
+     *
+     * @param sourceLevel level containing the source and transfer origin
+     * @param sourceRail source route position
+     * @param transferFrom transfer endpoint in the source dimension
+     * @param transferTo paired transfer endpoint in the destination dimension
+     * @param destinationLevel level containing the transfer destination and final endpoint
+     * @param destinationRail final route position
+     * @param context per-search cache, limits, and diagnostics
+     * @return a connected composed result, or {@code null} when either local leg does not connect
+     */
     private static TrackPathConnection.TrackConnectionResult tryOneTransferRoute(ServerLevel sourceLevel,
         BlockPos sourceRail,
         DimPos transferFrom,
@@ -368,21 +439,69 @@ public class TrackRouteConnection
         BlockPos destinationRail,
         RouteSearchContext context)
     {
+        if (sourceRail == null || destinationRail == null) return null;
+
         TrackPathConnection.TrackConnectionResult startToTransfer =
-            context.tryRailSegment(sourceLevel, sourceRail, transferFrom.pos());
+            context.tryModalSegment(sourceLevel, sourceRail, transferFrom.pos());
         if (!startToTransfer.isConnected()) return null;
 
         TrackPathConnection.TrackConnectionResult transferToDestination =
-            context.tryRailSegment(destinationLevel, transferTo.pos(), destinationRail);
+            context.tryModalSegment(destinationLevel, transferTo.pos(), destinationRail);
         if (!transferToDestination.isConnected()) return null;
 
-        @SuppressWarnings("null")
-        TrackRoute route = new TrackRoute(List.of(
-            TrackRoute.Segment.rail(sourceLevel.dimension(), startToTransfer.path),
-            TrackRoute.Segment.transfer(transferFrom, transferTo),
-            TrackRoute.Segment.rail(destinationLevel.dimension(), transferToDestination.path)));
+        TrackRoute route = joinedRoute(startToTransfer, TrackRoute.Segment.transfer(transferFrom, transferTo), transferToDestination);
 
-        return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstRailPath(), sourceLevel.getGameTime(), route);
+        return new TrackPathConnection.TrackConnectionResult(true, destinationRail, route.firstPath(), sourceLevel.getGameTime(), route);
+    }
+
+    /**
+     * Joins two local route results around one dimensional transfer.
+     *
+     * @param first local route before the transfer
+     * @param transfer dimensional transfer segment
+     * @param second local route after the transfer
+     * @return combined segmented route
+     */
+    private static TrackRoute joinedRoute(TrackPathConnection.TrackConnectionResult first, TrackRoute.Segment transfer,
+        TrackPathConnection.TrackConnectionResult second)
+    {
+        List<TrackRoute.Segment> segments = new ArrayList<>(routeSegments(first));
+        segments.add(transfer);
+        segments.addAll(routeSegments(second));
+        return new TrackRoute(segments);
+    }
+
+    /**
+     * Joins three local route results around an outbound and return dimensional transfer.
+     *
+     * @param first local route before entering the intermediate dimension
+     * @param firstTransfer transfer into the intermediate dimension
+     * @param middle route across the intermediate dimension
+     * @param secondTransfer transfer back from the intermediate dimension
+     * @param last local route to the final endpoint
+     * @return combined segmented route
+     */
+    private static TrackRoute joinedRoute(TrackPathConnection.TrackConnectionResult first, TrackRoute.Segment firstTransfer,
+        TrackPathConnection.TrackConnectionResult middle, TrackRoute.Segment secondTransfer,
+        TrackPathConnection.TrackConnectionResult last)
+    {
+        List<TrackRoute.Segment> segments = new ArrayList<>(routeSegments(first));
+        segments.add(firstTransfer);
+        segments.addAll(routeSegments(middle));
+        segments.add(secondTransfer);
+        segments.addAll(routeSegments(last));
+        return new TrackRoute(segments);
+    }
+
+    /**
+     * Extracts the canonical segment list from a local connection result.
+     *
+     * @param result local connection result
+     * @return result route segments, or an empty list when the result has no segmented route
+     */
+    private static List<TrackRoute.Segment> routeSegments(TrackPathConnection.TrackConnectionResult result)
+    {
+        return result != null && result.route != null ? result.route.segments() : List.of();
     }
 
     /**
@@ -402,12 +521,12 @@ public class TrackRouteConnection
         long elapsedNanos = System.nanoTime() - context.startNanos;
         if (elapsedNanos >= ROUTE_SEARCH_LOG_NANOS || context.pairLimitReached)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route search {} -> {} connected={} loadChunks={} railSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route search {} -> {} connected={} loadChunks={} segmentSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
                 source.getRailStartPosition(),
                 destination.getRailStartPosition(),
                 result != null && result.isConnected(),
                 context.loadChunks,
-                context.railSearchCount,
+                context.segmentSearchCount,
                 context.cacheHitCount,
                 context.pairAttempts,
                 context.pairLimitReached,
@@ -418,24 +537,25 @@ public class TrackRouteConnection
     }
 
     /**
-     * Identifies a rail-segment BFS request within one route search.
+     * Identifies a same-dimension multimodal segment request within one route search.
      *
      * @param dimension dimension containing the rail segment
      * @param start segment start position
      * @param end segment end position
      */
-    private record RailSegmentKey(ResourceKey<Level> dimension, BlockPos start, BlockPos end) { }
+    private record ModalSegmentKey(ResourceKey<Level> dimension, BlockPos start, BlockPos end) { }
 
     /**
-     * Stores per-route-search counters and caches repeated rail segment checks.
+     * Stores per-route-search counters and caches repeated same-dimension multimodal searches.
      */
     private static class RouteSearchContext
     {
         private final long routeSearchId = ROUTE_SEARCH_SEQUENCE.incrementAndGet();
         private final boolean loadChunks;
+        private final boolean allowWater;
         private final long startNanos = System.nanoTime();
-        private final Map<RailSegmentKey, TrackPathConnection.TrackConnectionResult> segmentCache = new LinkedHashMap<>();
-        private int railSearchCount = 0;
+        private final Map<ModalSegmentKey, TrackPathConnection.TrackConnectionResult> segmentCache = new LinkedHashMap<>();
+        private int segmentSearchCount = 0;
         private int cacheHitCount = 0;
         private int pairAttempts = 0;
         private boolean pairLimitReached = false;
@@ -443,11 +563,12 @@ public class TrackRouteConnection
         /**
          * Creates a route search context for one call to {@link #findRoute(ITradeCapable, StationData, boolean)}.
          *
-         * @param loadChunks whether new rail searches may chunk-load while exploring
+         * @param loadChunks whether rail searches within new modal searches may chunk-load while exploring
          */
-        private RouteSearchContext(boolean loadChunks)
+        private RouteSearchContext(boolean loadChunks, boolean allowWater)
         {
             this.loadChunks = loadChunks;
+            this.allowWater = allowWater;
         }
 
         /**
@@ -460,13 +581,14 @@ public class TrackRouteConnection
          */
         private void logRouteStart(ITradeCapable source, StationData destination, ServerLevel sourceLevel, ServerLevel destinationLevel)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} START source={} sourceDim={} destination={} destinationDim={} loadChunks={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} START source={} sourceDim={} destination={} destinationDim={} loadChunks={} allowWater={}",
                 routeSearchId,
                 source.getRailStartPosition(),
                 sourceLevel.dimension().location(),
                 destination.getRailStartPosition(),
                 destinationLevel.dimension().location(),
-                loadChunks));
+                loadChunks,
+                allowWater));
         }
 
         /**
@@ -499,11 +621,11 @@ public class TrackRouteConnection
          */
         private void logRouteFinished(TrackPathConnection.TrackConnectionResult result, long elapsedNanos)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} END connected={} loadChunks={} railSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} END connected={} loadChunks={} segmentSearches={} cacheHits={} pairAttempts={} pairLimitReached={} elapsedMs={}",
                 routeSearchId,
                 result != null && result.isConnected(),
                 loadChunks,
-                railSearchCount,
+                segmentSearchCount,
                 cacheHitCount,
                 pairAttempts,
                 pairLimitReached,
@@ -535,16 +657,16 @@ public class TrackRouteConnection
         }
 
         /**
-         * Finds or reuses a rail segment connection for the current route search.
+         * Finds or reuses a same-dimension multimodal connection for the current route search.
          *
          * @param level level containing the segment
          * @param start segment start position
          * @param end segment end position
          * @return track connection result for this segment
          */
-        private TrackPathConnection.TrackConnectionResult tryRailSegment(ServerLevel level, BlockPos start, BlockPos end)
+        private TrackPathConnection.TrackConnectionResult tryModalSegment(ServerLevel level, @Nonnull BlockPos start, @Nonnull BlockPos end)
         {
-            RailSegmentKey key = new RailSegmentKey(level.dimension(), start, end);
+            ModalSegmentKey key = new ModalSegmentKey(level.dimension(), start, end);
             TrackPathConnection.TrackConnectionResult cached = segmentCache.get(key);
             if (cached != null)
             {
@@ -558,8 +680,8 @@ public class TrackRouteConnection
                 return cached;
             }
 
-            railSearchCount++;
-            int segmentIndex = railSearchCount;
+            segmentSearchCount++;
+            int segmentIndex = segmentSearchCount;
             long segmentStartNanos = System.nanoTime();
             TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} SEGMENT_BEGIN index={} dim={} start={} end={} loadChunks={}",
                 routeSearchId,
@@ -568,7 +690,7 @@ public class TrackRouteConnection
                 start,
                 end,
                 loadChunks));
-            TrackPathConnection.TrackConnectionResult result = TrackPathConnection.arePointsConnectedByTracks(level, start, end, loadChunks);
+            TrackPathConnection.TrackConnectionResult result = MultimodalRouteConnection.findRoute(level, start, end, loadChunks, allowWater);
             TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} SEGMENT_END index={} dim={} start={} end={} connected={} pathSize={} elapsedMs={}",
                 routeSearchId,
                 segmentIndex,
@@ -583,6 +705,16 @@ public class TrackRouteConnection
         }
     }
 
+    /**
+     * Validates the loaded interior positions of a cached rail segment.
+     * <p>
+     * Endpoint positions are excluded because they may be modal handoff or building connection blocks. Unloaded positions are
+     * accepted optimistically to avoid forcing chunk loads during cache validation.
+     *
+     * @param level level containing the segment
+     * @param path ordered endpoint-inclusive rail path
+     * @return {@code true} when the path is non-empty and every loaded interior position remains a track block
+     */
     private static boolean validateRailSegment(ServerLevel level, List<BlockPos> path)
     {
         if (path == null || path.isEmpty())
@@ -609,6 +741,13 @@ public class TrackRouteConnection
         return true;
     }
 
+    /**
+     * Validates one endpoint of a cached dimensional transfer.
+     *
+     * @param server active Minecraft server
+     * @param endpoint dimensional endpoint to validate
+     * @return {@code true} when the endpoint is unloaded or remains a valid transport anchor beside an active portal
+     */
     private static boolean validateTransferEndpoint(MinecraftServer server, DimPos endpoint)
     {
         if (endpoint == null)
@@ -624,7 +763,7 @@ public class TrackRouteConnection
         {
             return true;
         }
-        return DimensionalLinkageItem.isTrackBlock(level, endpoint.pos()) &&
+        return DimensionalLinkageItem.isValidTransportAnchor(level, endpoint.pos()) &&
             DimensionalLinkageItem.isAdjacentToActivePortal(level, endpoint.pos());
     }
 
@@ -720,7 +859,7 @@ public class TrackRouteConnection
             return true;
         }
 
-        return DimensionalLinkageItem.isTrackBlock(level, endpoint.pos()) &&
+        return DimensionalLinkageItem.isValidTransportAnchor(level, endpoint.pos()) &&
             DimensionalLinkageItem.isAdjacentToActivePortal(level, endpoint.pos());
     }
 }
