@@ -83,7 +83,8 @@ state before use, so stale saved-data entries do not become graph nodes.
 
 For each pair of nodes, the edge search behaves as follows:
 
-- Two docks may connect through `ModalPathConnection.water(...)`, subject to `maximumWaterRouteDistance`.
+- Two docks may connect through `ModalPathConnection.water(...)` when the exporting colony has Maritime Trade research, subject to
+  `maximumWaterRouteDistance`. The `tradepath` debugging command deliberately bypasses this research restriction.
 - Every node pair is tested for a rail path with `TrackPathConnection.arePointsConnectedByTracks(...)`.
 - Every node pair is also tested for a tagged-road path with `ModalPathConnection.road(...)`.
 - If both rail and road connect a pair, the shorter segment wins.

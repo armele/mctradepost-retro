@@ -1,0 +1,40 @@
+{
+    "subtitle": "com.mctradepost.research.economic.maritime_trade.subtitle",
+    "branch": "economic",
+    "researchLevel": 3,
+    "parentResearch": "mctradepost:economic/tourism",
+    "sortOrder": 0,
+    "exclusiveChildResearch": false,
+    "no-reset": false,
+    "hidden": false,
+    "autostart": false,
+    "instant": false,
+    "requirements": [
+        {
+            "type": "minecolonies:building",
+            "building": "mctradepost:station",
+            "level": 3
+        }
+    ],
+    "costs": [
+        {
+            "count": 1,
+            "item": "mctradepost:trade_dock"
+        },
+        {
+            "count": 2,
+            "item": "mctradepost:mctp_coin_gold"
+        },
+        {
+            "count": 1,
+            "item": "minecraft:heart_of_the_sea"
+        }
+    ],
+    "effects": [
+        {
+            "id": "mctradepost:effects/maritime_trade",
+            "level": 1
+        }
+    ],
+    "icon": "minecraft:oak_boat"
+}

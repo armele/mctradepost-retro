@@ -40,21 +40,35 @@ public final class MultimodalRouteConnection
      * @param loadChunks whether rail pathfinding may load chunks while searching
      * @return a connected result containing the segmented route, or a disconnected result when no route is available
      */
-    @SuppressWarnings("null")
     public static TrackConnectionResult findRoute(ServerLevel level, @Nonnull BlockPos start, @Nonnull BlockPos end, boolean loadChunks)
+    {
+        return findRoute(level, start, end, loadChunks, true);
+    }
+
+    /**
+     * Finds the shortest available multimodal route, optionally excluding water travel.
+     *
+     * @param allowWater whether dock-to-dock water edges may be considered
+     */
+    @SuppressWarnings("null")
+    public static TrackConnectionResult findRoute(ServerLevel level, @Nonnull BlockPos start, @Nonnull BlockPos end,
+        boolean loadChunks, boolean allowWater)
     {
         List<Node> nodes = new ArrayList<>();
         nodes.add(endpointNode(level, start));
+
         TradeDockRegistry.get(level).docks().stream()
             .filter(pos -> !pos.equals(start) && !pos.equals(end) && level.getBlockState(pos).is(MCTradePostMod.TRADE_DOCK.get()))
             .sorted(Comparator.comparingDouble(pos -> Math.min(pos.distSqr(start), pos.distSqr(end))))
             .limit(MAX_DOCK_CANDIDATES)
             .forEach(pos -> nodes.add(new Node(pos, level.getBlockState(pos), NodeType.DOCK)));
+
         TradeInterchangeRegistry.get(level).interchanges().stream()
             .filter(pos -> !pos.equals(start) && !pos.equals(end) && level.getBlockState(pos).is(MCTradePostMod.TRADE_INTERCHANGE.get()))
             .sorted(Comparator.comparingDouble(pos -> Math.min(pos.distSqr(start), pos.distSqr(end))))
             .limit(MAX_DOCK_CANDIDATES)
             .forEach(pos -> nodes.add(new Node(pos, level.getBlockState(pos), NodeType.INTERCHANGE)));
+            
         nodes.add(endpointNode(level, end));
 
         int destination = nodes.size() - 1;
@@ -63,17 +77,23 @@ public final class MultimodalRouteConnection
         PriorityQueue<QueueEntry> open = new PriorityQueue<>(Comparator.comparingInt(QueueEntry::distance));
         best.put(0, 0);
         open.add(new QueueEntry(0, 0));
+
         while (!open.isEmpty())
         {
             QueueEntry current = open.remove();
             if (current.distance() != best.getOrDefault(current.index(), Integer.MAX_VALUE)) continue;
             if (current.index() == destination) break;
+
             for (int next = 0; next < nodes.size(); next++)
             {
                 if (next == current.index()) continue;
-                TrackRoute.Segment edge = edge(level, nodes.get(current.index()), nodes.get(next), loadChunks);
+
+                TrackRoute.Segment edge = edge(level, nodes.get(current.index()), nodes.get(next), loadChunks, allowWater);
+
                 if (edge == null) continue;
+
                 int candidate = current.distance() + edge.distance();
+
                 if (candidate < best.getOrDefault(next, Integer.MAX_VALUE))
                 {
                     best.put(next, candidate);
@@ -82,10 +102,12 @@ public final class MultimodalRouteConnection
                 }
             }
         }
+
         if (!best.containsKey(destination)) return new TrackConnectionResult(false, start, List.of(), level.getGameTime());
         List<TrackRoute.Segment> segments = new ArrayList<>();
         List<Integer> routeNodes = new ArrayList<>();
         routeNodes.add(destination);
+
         for (int cursor = destination; cursor != 0; )
         {
             Previous step = previous.get(cursor);
@@ -94,6 +116,7 @@ public final class MultimodalRouteConnection
             cursor = step.node();
             routeNodes.add(0, cursor);
         }
+
         List<TrackRoute.Segment> withDocks = new ArrayList<>();
         for (int i = 0; i < segments.size(); i++)
         {
@@ -107,6 +130,7 @@ public final class MultimodalRouteConnection
             }
             withDocks.add(segments.get(i));
         }
+
         TrackRoute route = new TrackRoute(withDocks);
         return new TrackConnectionResult(true, end, route.firstPath(), level.getGameTime(), route);
     }
@@ -123,9 +147,9 @@ public final class MultimodalRouteConnection
      * @return the shortest connecting segment, or {@code null} when the nodes cannot be connected
      */
     @SuppressWarnings("null")
-    private static TrackRoute.Segment edge(ServerLevel level, Node from, Node to, boolean loadChunks)
+    private static TrackRoute.Segment edge(ServerLevel level, Node from, Node to, boolean loadChunks, boolean allowWater)
     {
-        if (from.isDock() && to.isDock())
+        if (allowWater && from.isDock() && to.isDock())
         {
             int limit = MCTPConfig.maximumWaterRouteDistance.get();
             BlockPos waterFrom = from.water(level);

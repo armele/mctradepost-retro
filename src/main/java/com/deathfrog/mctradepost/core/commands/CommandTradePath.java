@@ -44,6 +44,7 @@ public class CommandTradePath extends AbstractCommands
         BlockPos start = BlockPosArgument.getBlockPos(context, START);
         BlockPos end = BlockPosArgument.getBlockPos(context, END);
         TrackConnectionResult result = MultimodalRouteConnection.findRoute(player.serverLevel(), start, end, false);
+        context.getSource().sendSuccess(() -> Component.literal("Debug route search bypasses colony research restrictions."), false);
         TrackRoute route = result.getRoute();
         if (!result.isConnected() || route == null)
         {

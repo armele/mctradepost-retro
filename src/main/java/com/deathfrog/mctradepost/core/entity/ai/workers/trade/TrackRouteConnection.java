@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
@@ -149,14 +150,16 @@ public class TrackRouteConnection
 
         BlockPos sourceRail = source.getRailStartPosition();
         BlockPos destinationRail = destination.getRailStartPosition();
-        RouteSearchContext context = new RouteSearchContext(loadChunks);
+        boolean allowWater = source.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.MARITIME_TRADE) > 0;
+        RouteSearchContext context = new RouteSearchContext(loadChunks, allowWater);
         context.logRouteStart(source, destination, sourceLevel, destinationLevel);
 
         TrackPathConnection.TrackConnectionResult direct =
             new TrackPathConnection.TrackConnectionResult(false, sourceRail, List.of(), source.getColony().getWorld().getGameTime());
         if (sourceLevel.dimension().equals(destinationLevel.dimension()))
         {
-            direct = MultimodalRouteConnection.findRoute(sourceLevel, sourceRail, destinationRail, loadChunks);
+            direct = MultimodalRouteConnection.findRoute(sourceLevel, sourceRail, destinationRail, loadChunks, allowWater);
         }
 
         if (direct.isConnected())
@@ -549,6 +552,7 @@ public class TrackRouteConnection
     {
         private final long routeSearchId = ROUTE_SEARCH_SEQUENCE.incrementAndGet();
         private final boolean loadChunks;
+        private final boolean allowWater;
         private final long startNanos = System.nanoTime();
         private final Map<ModalSegmentKey, TrackPathConnection.TrackConnectionResult> segmentCache = new LinkedHashMap<>();
         private int segmentSearchCount = 0;
@@ -561,9 +565,10 @@ public class TrackRouteConnection
          *
          * @param loadChunks whether rail searches within new modal searches may chunk-load while exploring
          */
-        private RouteSearchContext(boolean loadChunks)
+        private RouteSearchContext(boolean loadChunks, boolean allowWater)
         {
             this.loadChunks = loadChunks;
+            this.allowWater = allowWater;
         }
 
         /**
@@ -576,13 +581,14 @@ public class TrackRouteConnection
          */
         private void logRouteStart(ITradeCapable source, StationData destination, ServerLevel sourceLevel, ServerLevel destinationLevel)
         {
-            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} START source={} sourceDim={} destination={} destinationDim={} loadChunks={}",
+            TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} START source={} sourceDim={} destination={} destinationDim={} loadChunks={} allowWater={}",
                 routeSearchId,
                 source.getRailStartPosition(),
                 sourceLevel.dimension().location(),
                 destination.getRailStartPosition(),
                 destinationLevel.dimension().location(),
-                loadChunks));
+                loadChunks,
+                allowWater));
         }
 
         /**
@@ -684,7 +690,7 @@ public class TrackRouteConnection
                 start,
                 end,
                 loadChunks));
-            TrackPathConnection.TrackConnectionResult result = MultimodalRouteConnection.findRoute(level, start, end, loadChunks);
+            TrackPathConnection.TrackConnectionResult result = MultimodalRouteConnection.findRoute(level, start, end, loadChunks, allowWater);
             TraceUtils.dynamicTrace(TRACE_TRACKPATH, () -> MCTradePostMod.LOGGER.warn("Track route #{} SEGMENT_END index={} dim={} start={} end={} connected={} pathSize={} elapsedMs={}",
                 routeSearchId,
                 segmentIndex,

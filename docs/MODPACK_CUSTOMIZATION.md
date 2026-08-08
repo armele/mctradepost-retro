@@ -57,6 +57,7 @@ Main categories:
 - `station`
   - `trackValidationFrequency`
   - `baseTradeSpeed`
+  - `maximumWaterRouteDistance`: maximum navigable distance for a single dock-to-dock water leg (default `1000`, range `1`-`10000`)
   - `importsPerLevel`
 - `petshop`
   - `petsPerLevel`
@@ -654,12 +655,64 @@ Use these together:
 - crafter recipes define specific worker recipes
 - crafter tags control what each worker is allowed to accept as inputs and outputs
 
+### Multimodal Trade Routes
+
+Station connections are no longer limited to a single continuous rail path. A route can combine:
+
+- rail on blocks in `#mctradepost:track`
+- roads on blocks in `#mctradepost:trade_roads`
+- navigable surface water between Trade Docks when the exporting colony has Maritime Trade research
+- Trade Interchanges for rail/road handoffs
+- dimensional linkage transfers, including Overworld-to-Overworld routes through the Nether
+
+For each same-dimension leg, the route finder tests rail and road connections and uses the shorter available path. It can route through
+registered Trade Docks and Trade Interchanges to change modes. Road paths allow one-block elevation changes, are bounded searches, and
+do not load unloaded chunks. Water paths require water with unobstructed space above it and are limited by the station
+`maximumWaterRouteDistance` config value.
+
+#### The `trade_roads` Tags
+
+The block and item tags have the same id but serve different registries and purposes:
+
+- `data/mctradepost/tags/block/trade_roads.json`
+  - defines blocks that road route discovery and cached-route validation may traverse
+  - is included by the shipped `#minecolonies:pathblocks` block tag, so the same blocks are also recognized as MineColonies paths
+- `data/mctradepost/tags/item/trade_roads.json`
+  - defines items accepted by the Expansion research cost (`16` items)
+  - should normally mirror the block tag for placeable road blocks, but it does not affect route pathfinding
+
+Both built-in tags contain Trade Post road blocks and optionally include `#via_romana:path_block` with `"required": false`. To add a
+modded road, extend both tags in your datapack if it should work as a route and satisfy the research cost:
+
+```text
+data/mctradepost/tags/block/trade_roads.json
+data/mctradepost/tags/item/trade_roads.json
+```
+
+```json
+{
+  "replace": false,
+  "values": [
+    "othermod:stone_road",
+    { "id": "#othermod:roads", "required": false }
+  ]
+}
+```
+
+Use the block version of the referenced tag in the block-tag file and the item version in the item-tag file. A block appearing only in
+`#minecolonies:pathblocks` is not automatically a Trade Post road: the inclusion runs from `#mctradepost:trade_roads` into
+`#minecolonies:pathblocks`, not the other way around.
+
+When replacing the block tag, keep every surface that should remain usable by existing station routes. Cached road segments validate
+their loaded interior blocks against the live tag, so a datapack reload that removes a road block can invalidate those routes when the
+affected chunks are loaded and the station next validates its connection.
+
 ### Outposts, Stations, Lamps, And Pets
 
 - `data/mctradepost/tags/item/outpost_crops.json`
   - the scout/outpost logic keeps one of each tagged crop behind so replanting still works
 - `data/mctradepost/tags/block/track.json`
-  - blocks counted as valid station track
+  - blocks counted as valid rail segments in station routes
 - `data/mctradepost/tags/block/lamp_bases.json`
   - extra support blocks that lamps may attach to
 - `data/mctradepost/tags/block/scavenge_fruit.json`
@@ -686,6 +739,8 @@ Examples:
 - `cropblocks`
 
 These are worth overriding if your pack changes building material progression or wants MineColonies to treat additional blocks as valid path or crop blocks.
+The shipped `pathblocks` tag includes `#mctradepost:trade_roads`; extending MineColonies `pathblocks` alone does not extend Trade Post
+road routing.
 
 ## Practical Modpack Strategies
 
@@ -718,6 +773,14 @@ These are worth overriding if your pack changes building material progression or
 5. Test harvest/reset behavior for fruit-bearing plants with unusual blockstate properties
 6. Check for block-path collisions when integrating similarly named blocks from multiple mods
 
+### If You Want Custom Trade Roads
+
+1. Extend `#mctradepost:trade_roads` in both the block and item registries
+2. Use the block tag to control traversable road surfaces and the item tag to control the Expansion research cost
+3. Build continuous routes using horizontal steps or one-block elevation changes; road searches stop at unloaded chunks
+4. Use Trade Interchanges where shipments should hand off between road and rail, and correctly oriented Trade Docks for land/water handoffs
+5. Tune `station.maximumWaterRouteDistance` carefully if the network uses long water legs, because water discovery may load chunks
+
 ### If You Want To Lock Down Recycler Abuse
 
 1. Add blacklist rules by item, tag, namespace, or `is_food`
@@ -733,7 +796,11 @@ These are worth overriding if your pack changes building material progression or
 - Test one rarefinds roll from each tier
 - For tagged or enchanted unique-purchase Rare Finds, verify the subscription control is disabled and a purchase consumes the offer with Bottomless Inventory unlocked
 - If changing the unique-purchase tag in an existing world, verify affected active subscriptions are canceled on the next natural daily pass
-- Test one station route if you changed `#mctradepost:track`
+- Test rail, road, and intended handoffs for station routes if you changed `#mctradepost:track`, either `#mctradepost:trade_roads` tag,
+  or `maximumWaterRouteDistance`
+- Use `/mctp tradepath <start> <end>` to display a fresh same-dimension route (this diagnostic bypasses colony research restrictions),
+  and `/mctp tradepath clear` to remove its overlay
+- Use `/mctp station routes` to inspect the segmented routes stations actually have cached
 - Test one pet scavenge target for every new block tag you added
 - Test both an existing mushroom target and an empty, dim mushroom forage location if you changed mushroom scavenging
 - Confirm custom mushroom forage results are awarded and that intended block results are planted

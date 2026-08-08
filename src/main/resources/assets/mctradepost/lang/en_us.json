@@ -321,7 +321,7 @@
     "com.minecolonies.coremod.gui.station.exports.empty" : "No connected colonies are currently importing goods.",
     "com.deathfrog.mctradepost.gui.workerhuts.station.funding" : "Trade Funding",
     "com.minecolonies.coremod.gui.station.connection.empty" : "Cannot find connected stations.",
-    "com.minecolonies.coremod.gui.station.connection.hover" : "Connect trade stations by rail, tagged trade road, or dock-to-dock water routes. Use a Trade Interchange to change between rail and road.\n\nRail can also connect through Nether portals using a Trans-Dimensional Track Linker.",
+    "com.minecolonies.coremod.gui.station.connection.hover" : "Connect trade stations by any combination of rail, trade road, or dock-to-dock water routes (once researched).\n\nUse a Trade Interchange to change between rail and road.\n\nUse a Trade Dock to transition into or out of water.\n\nRoad and rail can also connect through Nether portals using a Trans-Dimensional Trade Linker.",
 
     "com.mctradepost.building.petshop": "Pet Shop",
     "com.minecolonies.building.petshop": "Pet Shop",
@@ -484,6 +484,7 @@
     "com.mctradepost.research.effects.exotic.description": "Gives access to +%d level of exotic pets.",
     "com.mctradepost.research.effects.focused_foraging.description": "Pets can prioritize foraging for specific things.",
     "com.mctradepost.research.effects.enhanced_focused_foraging.description": "Foraging pets more effectively locate their target items.",
+    "com.mctradepost.research.effects.maritime_trade.description": "Allows exports to travel between Trade Docks by water.",
 
     "com.mctradepost.core.gui.modules.stationconnections": "Station Connections",
     "mctradepost.station.trades_updated": "Trade availability has changed in connected stations!",
@@ -785,6 +786,8 @@
     "com.mctradepost.research.economic.husbandry_specialist.subtitle": "I can find you a cow!",
     "com.mctradepost.research.economic.luxury_vacation.name": "Luxury Vacation",
     "com.mctradepost.research.economic.luxury_vacation.subtitle": "Ooooh, swanky!",
+    "com.mctradepost.research.economic.maritime_trade.name": "Maritime Trade",
+    "com.mctradepost.research.economic.maritime_trade.subtitle": "The sea is the road that builds itself.",
     "com.mctradepost.research.economic.meticulousdisassembly.name": "Meticulous Disassembly",
     "com.mctradepost.research.economic.meticulousdisassembly.subtitle": "Let me show you how to do that... better.",
     "com.mctradepost.research.economic.morebuyers.name": "More Buyers",
