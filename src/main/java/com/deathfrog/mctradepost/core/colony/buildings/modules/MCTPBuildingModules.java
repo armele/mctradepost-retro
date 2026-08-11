@@ -86,7 +86,7 @@ public class MCTPBuildingModules
     /**
      * Craftmanship
      */
-    public static final BuildingEntry.ModuleProducer<CraftingWorkerBuildingModule,WorkerBuildingModuleView> RECYCLINGENGINEER_WORK          =
+    public static final BuildingEntry.ModuleProducer<WorkerBuildingModule,WorkerBuildingModuleView> RECYCLINGENGINEER_WORK          =
       new BuildingEntry.ModuleProducer<>("recyclingengineer_work", () -> new CraftingWorkerBuildingModule(MCTPModJobs.recyclingengineer.get(), Skill.Strength, Skill.Focus, false, (b) -> 1),
         () -> WorkerBuildingModuleView::new);
 

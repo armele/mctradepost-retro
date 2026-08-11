@@ -913,14 +913,16 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
      *
      * @return the next IAIState after doing this
      */
+    @SuppressWarnings("null")
     private IAIState fillDisplays()
     {
         // Acquire an item in hand if empty.
-        if (worker.getItemInHand(InteractionHand.MAIN_HAND) == ItemStack.EMPTY)
+        if (worker.getItemInHand(InteractionHand.MAIN_HAND).isEmpty())
         {
             final int slot = MCTPInventoryUtils.findRandomSlotInItemHandlerWith(worker.getInventoryCitizen(),
-                stack -> building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
-                    .isItemInList(new ItemStorage(stack)));
+                stack -> stack != null && building.getModule(MarketplaceItemListModule.class, m -> m.getId().equals(SELLABLE_LIST))
+                    .getList().stream()
+                    .anyMatch(candidate -> ItemStack.isSameItem(stack, candidate.getItemStack())));
 
             if (slot >= 0)
             {
@@ -962,6 +964,13 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
         // Insert the item into the display, replacing what's there
         ItemStack heldItem = worker.getItemInHand(InteractionHand.MAIN_HAND);
+
+        // The hand may have been cleared while walking or by inventory synchronization.
+        // Re-enter material acquisition instead of repeatedly selecting the same empty frame.
+        if (heldItem.isEmpty())
+        {
+            return GET_MATERIALS;
+        }
 
         // Only fill if empty
         if (handle.getItem().isEmpty())
