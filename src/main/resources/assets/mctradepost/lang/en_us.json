@@ -741,7 +741,7 @@
     "gui.mctradepost.focused_foraging.item": "Item",
     "gui.mctradepost.focused_foraging.title": "Focus",
     "gui.mctradepost.forage_area": "Show forage area",
-    "gui.mctradepost.forage_area.tooltip": "Highlights the forage range and compatible focused sources. Darker amber sources are not ready to harvest.\nRe-enable after changing the focus or world.",
+    "gui.mctradepost.forage_area.tooltip": "Highlights the forage range and compatible focused sources (if a focus item is set). Darker amber sources are not ready to harvest. Re-enable after changing the focus or world.",
     "com.mctradepost.research.economic.antiqueshop.name": "Antique Shop",
     "com.mctradepost.research.economic.antiqueshop.subtitle": "My precious!",
     "com.mctradepost.research.economic.arcanedisassembly.name": "Arcane Disassembly",

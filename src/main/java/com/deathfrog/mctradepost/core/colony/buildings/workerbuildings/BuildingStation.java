@@ -1191,7 +1191,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             TrackConnectionResult connectionResult = connectionresults.get(stationData);
 
             if (connectionResult.isConnected() && stationData.getStation() instanceof BuildingOutpost outpost &&
-                this.getColony().getID() == outpost.getColony().getID())
+                this.getColony().getID() == outpost.getColony().getID() && outpost.getBuildingLevel() >= 1)
             {
                 outposts.add(outpost);
             }

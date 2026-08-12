@@ -677,7 +677,7 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
     /**
      * Iterates through all buildings in the colony and checks if any of them are
-     * BuildingStations that are connected to this outpost by tracks.
+     * BuildingStations that are connected to this outpost by a supported trade route.
      * 
      * If a connected station is found, it is stored in the connectedStation field.
      */
@@ -698,7 +698,9 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
 
                 StationData stationData = new StationData(station);
                 boolean hasNoCachedResult = connectionresults.get(stationData) == null;
-                TrackConnectionResult result = TrackRouteConnection.findRoute(station, new StationData(this), hasNoCachedResult);
+                // Search in the same direction this outpost's Scout ships products. The route finder supports rail, road,
+                // and (when researched) dock-to-dock water legs, so an outpost does not require a rail-only connection.
+                TrackConnectionResult result = TrackRouteConnection.findRoute(this, stationData, hasNoCachedResult);
                 connectionresults.put(stationData, result);
                 
                 if (result.isConnected())

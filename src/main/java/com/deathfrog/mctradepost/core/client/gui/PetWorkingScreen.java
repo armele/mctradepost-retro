@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.client.gui;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -18,6 +19,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
@@ -25,6 +27,7 @@ import net.minecraft.world.entity.player.Inventory;
  */
 public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
 {
+    private static final int TOOLTIP_MAX_WIDTH = 220;
     private static final ResourceLocation TEXTURE =
         ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final ResourceLocation FOCUS_SLOT_TEXTURE =
@@ -190,8 +193,17 @@ public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
             {
                 tooltip = List.of(Component.translatable("gui.mctradepost.focused_foraging.research_required"));
             }
-            graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);
+            graphics.renderTooltip(font, wrapTooltip(tooltip), mouseX, mouseY);
         }
+    }
+
+    /** Wraps tooltip components without discarding formatting or explicit line breaks. */
+    @SuppressWarnings("null")
+    private List<FormattedCharSequence> wrapTooltip(final List<Component> tooltip)
+    {
+        final List<FormattedCharSequence> wrapped = new ArrayList<>();
+        tooltip.forEach(line -> wrapped.addAll(font.split(line, TOOLTIP_MAX_WIDTH)));
+        return wrapped;
     }
 
     /** Compact image toggle sized for the working block's narrow focus side panel. */
@@ -225,7 +237,9 @@ public class PetWorkingScreen extends AbstractContainerScreen<PetWorkingMenu>
                 getX(), getY(), width, height, 0.0F, 0.0F, 18, 18, 18, 18);
             if (isHovered())
             {
-                graphics.renderTooltip(font, Component.translatable("gui.mctradepost.forage_area.tooltip"), mouseX, mouseY);
+                graphics.renderTooltip(font,
+                    wrapTooltip(List.of(Component.translatable("gui.mctradepost.forage_area.tooltip"))),
+                    mouseX, mouseY);
             }
         }
 

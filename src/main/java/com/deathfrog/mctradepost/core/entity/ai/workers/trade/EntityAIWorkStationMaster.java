@@ -61,13 +61,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
 
     protected static final int OUTPOST_COOLDOWN_TIMER = 10;
-    protected static int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
+    protected int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
 
     protected static final int VALIDATION_COOLDOWN_TIMER = 60;
-    protected static int validationCooldown = VALIDATION_COOLDOWN_TIMER;
+    protected int validationCooldown = VALIDATION_COOLDOWN_TIMER;
 
     protected static final int MATCHING_COOLDOWN_TIMER = 5;
-    protected static int matchingCooldown = MATCHING_COOLDOWN_TIMER;
+    protected int matchingCooldown = MATCHING_COOLDOWN_TIMER;
 
     public static final Map<StationData, Integer> remoteStationMessageCooldown = new HashMap<>();
 
@@ -128,7 +128,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if (outpostCooldown <= 0)
         {
             outpostCooldown = OUTPOST_COOLDOWN_TIMER;
-            return StationMasterStates.HANDLE_OUTPOST_REQUESTS;
+            if (!building.findConnectedOutposts().isEmpty())
+            {
+                return StationMasterStates.HANDLE_OUTPOST_REQUESTS;
+            }
         }
 
         currentFundRequest = building.removePaymentRequest();
@@ -169,7 +172,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     {
         if (!walkToBuilding())
         {
-            setDelay(2);
             return getState();
         }
 
