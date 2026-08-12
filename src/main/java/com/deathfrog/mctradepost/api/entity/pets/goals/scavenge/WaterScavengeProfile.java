@@ -36,12 +36,13 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
 
     /**
      * Finds a suitable location for the pet to scavenge for water resources within the given search radius.
-     * A suitable location is one that is either:
-     * 1) A solid non-water floor with a 1-2 deep column of water/ice above it.
-     * 2) A single ice block with open/air above it.
+     * A suitable source is a tagged block that is either:
+     * 1) A water-containing plant or waterlogged block.
+     * 2) A solid floor with a 1-2 deep column of water/ice above it.
+     * 3) A single ice block with open/air above it.
      * <p>
-     * The search is done by randomly offsetting from the pet's work location within the search radius,
-     * and checking if the resulting location satisfies the above conditions. This is done up to 20 times.
+     * The search randomly samples anchors around the pet's work location and checks each anchor plus its
+     * orthogonal neighbors. It returns the actual tagged source rather than the sampled anchor. This is done up to 20 times.
      * If no suitable location is found, null is returned.
      * @return a suitable location for scavenging water resources, or null if no suitable location is found.
      */
@@ -72,53 +73,44 @@ public class WaterScavengeProfile<P extends Animal & ITradePostPet> implements I
 
             if (candidate == null) continue;
 
-            BlockState state = level.getBlockState(candidate);
-            BlockState above = level.getBlockState(candidate.above());
-            BlockState twoAbove = level.getBlockState(candidate.above().above());
-            BlockState threeAbove = level.getBlockState(candidate.above().above().above());
-
-            // 1) Solid non-water (true floor): not water, not ice, not air
-            boolean floorIsSolidNonWater = !state.getFluidState().is(FluidTags.WATER) && !state.is(PathingUtil.ICY) && !state.isAir();
-
-            // 2) Single ice plate case: a single ice block with open/air above
-            boolean icePlateau = state.is(PathingUtil.ICY) && PathingUtil.isOpenOrIce(above);
-
-            // 3) Shallow columns of water/ice 1–2 deep above a solid floor
-            boolean depth1 = PathingUtil.isWaterOrIce(above) && PathingUtil.isOpenOrIce(twoAbove);
-
-            boolean depth2 = PathingUtil.isWaterOrIce(above) && PathingUtil.isWaterOrIce(twoAbove) && PathingUtil.isOpenOrIce(threeAbove);
-
-            // Final accept:
-            // - Either a solid non-water floor with a 1–2 deep column above,
-            // - OR a single ice block “plateau” with air/open above it.
-            boolean shallowWater =  (floorIsSolidNonWater && (depth1 || depth2)) || icePlateau;
-
-            BlockState[] neighborhood = new BlockState[] {
-                state,
-                level.getBlockState(candidate.below()),
-                level.getBlockState(candidate.north()),
-                level.getBlockState(candidate.south()),
-                level.getBlockState(candidate.east()),
-                level.getBlockState(candidate.west()),
-                level.getBlockState(candidate.above())
+            final BlockPos[] neighborhood = new BlockPos[] {
+                candidate,
+                candidate.below(),
+                candidate.north(),
+                candidate.south(),
+                candidate.east(),
+                candidate.west(),
+                candidate.above()
             };
 
-            boolean hasScavengeMaterials = false;
-            for (BlockState s : neighborhood) 
+            for (BlockPos source : neighborhood)
             {
-                if (s.is(ModTags.BLOCKS.WATER_SCAVENGE_BLOCK_TAG)) 
-                {
-                    hasScavengeMaterials = true;
-                    break;
-                }
+                if (isValidDredgingSource(level, source)) return source;
             }
 
-            if (shallowWater && hasScavengeMaterials) {
-                return candidate;
-            }
         }
 
         return null;
+    }
+
+    /** Returns whether a tagged block is in a configuration the dredger can work. */
+    @SuppressWarnings("null")
+    private boolean isValidDredgingSource(@Nonnull final Level level, @Nonnull final BlockPos source)
+    {
+        final BlockState state = level.getBlockState(source);
+        if (!state.is(ModTags.BLOCKS.WATER_SCAVENGE_BLOCK_TAG)) return false;
+        if (state.getFluidState().is(FluidTags.WATER)) return true;
+
+        final BlockState above = level.getBlockState(source.above());
+        if (state.is(PathingUtil.ICY)) return PathingUtil.isOpenOrIce(above);
+        if (state.isAir()) return false;
+
+        final BlockState twoAbove = level.getBlockState(source.above(2));
+        final BlockState threeAbove = level.getBlockState(source.above(3));
+        final boolean depth1 = PathingUtil.isWaterOrIce(above) && PathingUtil.isOpenOrIce(twoAbove);
+        final boolean depth2 = PathingUtil.isWaterOrIce(above)
+            && PathingUtil.isWaterOrIce(twoAbove) && PathingUtil.isOpenOrIce(threeAbove);
+        return depth1 || depth2;
     }
 
     /**
