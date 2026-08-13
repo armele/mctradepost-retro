@@ -19,6 +19,9 @@ public class ModelRegistryHandler
     @SuppressWarnings("null")
     public static final ModelLayerLocation TRADE_CART = new ModelLayerLocation(
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "trade_cart"), "main");
+    @SuppressWarnings("null")
+    public static final ModelLayerLocation PET_DRAGON = new ModelLayerLocation(
+        ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_dragon"), "main");
     /**
      * Most of these are currently unused until usable citizen skins can be designed.
      * Note that MineColonies citizens use custom models and the skins need to be designed around those models.
@@ -68,6 +71,7 @@ public class ModelRegistryHandler
     public static void registerModels(EntityRenderersEvent.RegisterLayerDefinitions event) 
     {
         event.registerLayerDefinition(TRADE_CART, com.deathfrog.mctradepost.core.client.model.TradeCartModel::createBodyLayer);
+        event.registerLayerDefinition(PET_DRAGON, com.deathfrog.mctradepost.core.client.model.PetDragonModel::createBodyLayer);
         event.registerLayerDefinition(MALE_SHOPKEEPER, MaleAlchemistModel::createMesh);
         event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleAlchemistModel::createMesh);
 

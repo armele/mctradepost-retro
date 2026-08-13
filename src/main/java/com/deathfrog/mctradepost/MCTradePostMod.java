@@ -18,6 +18,7 @@ import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetAxolotl;
 import com.deathfrog.mctradepost.api.entity.pets.PetCat;
 import com.deathfrog.mctradepost.api.entity.pets.PetFox;
+import com.deathfrog.mctradepost.api.entity.pets.PetDragon;
 import com.deathfrog.mctradepost.api.entity.pets.PetParrot;
 import com.deathfrog.mctradepost.api.entity.pets.PetPanda;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
@@ -65,6 +66,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.GhostBoatRenderer;
+import com.deathfrog.mctradepost.core.client.render.PetDragonRenderer;
 import com.deathfrog.mctradepost.core.client.render.WagonRenderer;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirItemExtension;
 import com.deathfrog.mctradepost.core.client.render.souvenir.SouvenirLoader;
@@ -557,6 +559,14 @@ public class MCTradePostMod
         () -> EntityType.Builder.of(PetPanda::new, MobCategory.CREATURE)
             .sized(0.9f, EntityType.PANDA.getDimensions().height())
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_panda").toString()));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<EntityType<?>, EntityType<PetDragon>> PET_DRAGON = ENTITIES.register("pet_dragon",
+        () -> EntityType.Builder.of(PetDragon::new, MobCategory.CREATURE)
+            .sized(0.9F, 1.8F)
+            .eyeHeight(1.62F)
+            .clientTrackingRange(10)
+            .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_dragon").toString()));
 
     /*
     * BLOCKS
@@ -1586,6 +1596,7 @@ public class MCTradePostMod
             event.put(MCTradePostMod.PET_PARROT.get(), Parrot.createAttributes().add(Attributes.ATTACK_DAMAGE, 1.0D).build());
             event.put(MCTradePostMod.PET_CAT.get(), Cat.createAttributes().build());
             event.put(MCTradePostMod.PET_PANDA.get(), Panda.createAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D).build());
+            event.put(MCTradePostMod.PET_DRAGON.get(), PetDragon.createAttributes().build());
         }
 
         /**
@@ -2029,6 +2040,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.PET_PARROT.get(), ParrotRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_CAT.get(), CatRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_PANDA.get(), PandaRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.PET_DRAGON.get(), PetDragonRenderer::new);
         }
 
         /**

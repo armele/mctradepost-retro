@@ -1,0 +1,40 @@
+{
+  "subtitle": "com.mctradepost.research.economic.mythical_companions.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/more_exotic_pets",
+  "researchLevel": 4,
+  "sortOrder": 0,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:petshop",
+      "level": 4
+    }
+  ],
+  "costs": [
+    {
+      "count": 1,
+      "item": "mctradepost:mctp_coin_gold"
+    },
+    {
+      "count": 32,
+      "item": "minecraft:chorus_fruit"
+    },
+    {
+      "count": 8,
+      "item": "minecraft:popped_chorus_fruit"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/exotic",
+      "level": 3
+    }
+  ],
+  "icon": "minecraft:chorus_fruit"
+}
