@@ -197,7 +197,8 @@ public class MarketplaceItemListModule extends ItemListModule implements IAlters
       {
          for (ItemStorage data : getList())
          {
-            int quantity = data.getItemStack().getMaxStackSize();
+            // Leave anything sellable behind.
+            int quantity = Integer.MAX_VALUE;
             consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, data.getItemStack(), false, true),
                quantity,
                false);
