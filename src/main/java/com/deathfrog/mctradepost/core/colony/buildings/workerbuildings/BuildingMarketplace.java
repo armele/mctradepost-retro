@@ -57,6 +57,7 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIShoppingTask;
 import com.deathfrog.mctradepost.core.event.wishingwell.WellLocations;
 import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -219,6 +220,32 @@ public class BuildingMarketplace extends AbstractBuilding
         }
 
         return result;
+    }
+
+    /**
+     * Repairs a display record whose physical frame contains shopkeeper merchandise but whose
+     * recorded state no longer advertises it.  This is intentionally limited to the neutral
+     * state so that an order already being processed is never reset behind a visitor's back.
+     *
+     * @param display the persisted display record
+     * @param physicalStack the item currently visible in the frame
+     * @return true when the record was repaired
+     */
+    public boolean reconcileDisplayCase(@Nonnull DisplayCase display, @Nonnull ItemStack physicalStack)
+    {
+        if (display.getSaleState() != SaleState.NONE
+            || physicalStack.isEmpty()
+            || !(physicalStack.getItem() instanceof SouvenirItem))
+        {
+            return false;
+        }
+
+        display.setStack(physicalStack.copy());
+        display.setTickcount(Math.max(0, display.getTickcount()));
+        display.setSaleState(SaleState.FOR_SALE);
+        TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
+            () -> LOGGER.info("Colony {}: Reconciled stocked display at {} as for sale.", getColony().getID(), display.getPos()));
+        return true;
     }
 
     /**
@@ -400,13 +427,13 @@ public class BuildingMarketplace extends AbstractBuilding
         {
             final ItemFrame frame = frames.get(0);
 
-            // Preserve whatever item we were tracking
-            displayShelfContents.put(pos, new DisplayCase(pos, frame.getUUID(), existing.getStack(), 0));
+            // Only the entity identity changed. Preserve merchandise and order state.
+            existing.setFrameId(frame.getUUID());
             return;
         }
 
-        // 4) Frame-like exists but no entity (Fast Item Frames case): keep the shelf, clear UUID
-        displayShelfContents.put(pos, new DisplayCase(pos, null, existing.getStack(), 0));
+        // 4) Frame-like exists but no entity (Fast Item Frames case): keep the shelf and its state, clear UUID.
+        existing.setFrameId(null);
 
         // update to reflect current items in the display shelf contents
         ItemStack stored = existing.getStack();

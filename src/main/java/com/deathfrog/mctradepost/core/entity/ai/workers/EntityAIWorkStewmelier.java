@@ -80,6 +80,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
     protected static final float PERFECT_STEW_SKILL = 50.0f;
     protected static final int FIND_HUNGRY_COOLDOWN = 10;
+    protected static final int FIND_STEWPOT_COOLDOWN_TICKS = 20 * 30;
     protected static final int SERVE_TRY_MAX = 100;
     protected static final double SERVE_TRY_DISTANCE = 500.0;
     protected static final float BASE_STEW_AMOUNT_PER_INGREDIENT = .25f;
@@ -87,6 +88,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     protected static final int KITCHEN_STEW_DELIVERY = 16;
 
     protected int findHungryCounter = 0;
+    protected long nextStewpotSearchTick = 0;
     protected int serveTryCounter = 0;
     protected IBuilding currentBowlPickupBuilding = null;
     protected ICitizenData currentHungryCitizen = null;
@@ -98,7 +100,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
     public enum StewmelierState implements IAIState
     {
-        FIND_POT, MAKE_STEW, FILL_STEW, GATHER_WH_INGREDIENTS, GATHER_BUILDING_INGREDIENTS, FIND_HUNGRY, SERVE_STEW, COLLECT_BOWLS, STOCK_DINING_HALL;
+        FIND_POT, MAKE_STEW, FILL_STEW, GATHER_WH_INGREDIENTS, GATHER_BUILDING_INGREDIENTS, FIND_HUNGRY, SERVE_STEW, COLLECT_BOWLS, STOCK_DINING_HALL, WAIT_FOR_STEWPOT;
 
         @Override
         public boolean isOkayToEat()
@@ -126,7 +128,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             new AITarget<IAIState>(StewmelierState.SERVE_STEW, this::serveStew, 50),
             new AITarget<IAIState>(StewmelierState.COLLECT_BOWLS, this::collectBowls, 50),
             new AITarget<IAIState>(StewmelierState.STOCK_DINING_HALL, this::stockDiningHall, 50),
-            new AITarget<IAIState>(WANDER, this::wander, 10),
+            new AITarget<IAIState>(StewmelierState.WAIT_FOR_STEWPOT, this::waitForStewpot, 50),
+            new AITarget<IAIState>(WANDER, this::wander, 20),
             new AITarget<IAIState>(StewmelierState.FILL_STEW, this::fillStew, 50)
         };
         super.registerTargets(targets);
@@ -151,9 +154,9 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         StewmelierIngredientModule stewModule = safeStewModule();
         BlockPos stewpotPos = stewModule.getStewpotLocation();
 
-        if (stewpotPos == null || stewpotPos == BlockPos.ZERO)
+        if (stewpotPos == null || BlockPos.ZERO.equals(stewpotPos))
         {
-            return StewmelierState.FIND_POT;
+            return findStewpotIfCooldownElapsed(world);
         }
 
         if (!walkToStewPot())
@@ -165,7 +168,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         if (!isCauldronCandidate(world, stewpotPos))
         {
             stewModule.setStewpotLocation(BlockPos.ZERO);
-            return StewmelierState.FIND_POT;
+            return findStewpotIfCooldownElapsed(world);
         }
 
         updateMissingMenuInteraction();
@@ -342,6 +345,24 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return WANDER;
         }
 
+    }
+
+    /**
+     * Starts a stewpot search when its cooldown has elapsed.
+     *
+     * @param world server world used for the stable game-time clock
+     * @return the stewpot search state when due, or DECIDE while cooling down
+     */
+    private IAIState findStewpotIfCooldownElapsed(final Level world)
+    {
+        final long gameTime = world.getGameTime();
+        if (gameTime < nextStewpotSearchTick)
+        {
+            return StewmelierState.WAIT_FOR_STEWPOT;
+        }
+
+        nextStewpotSearchTick = gameTime + FIND_STEWPOT_COOLDOWN_TICKS;
+        return StewmelierState.FIND_POT;
     }
 
     /**
@@ -1531,8 +1552,23 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
     }
 
     /**
-     * Finds a filled stewpot block within 30 blocks of the worker's position,
-     * 5 blocks above/below the worker's y-coordinate, and sets the location of the
+     * Waits for a stewpot, and fires a notification if necessary.
+     */
+    private IAIState waitForStewpot()
+    {
+        job.tickNoStewpot();
+
+        if (job.checkForStewpotInteraction())
+        {
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.NO_STEWPOT), ChatPriority.BLOCKING));
+        }
+
+        return DECIDE;
+    }
+
+    /**
+     * Finds a filled stewpot block within 30 blocks of the worker's workplace,
+     * 5 blocks above/below the workplace's y-coordinate, and sets the location of the
      * stewpot in the stewmelier ingredient module.
      *
      * If no filled stewpot block is found, sets the AI state to DECIDE.
@@ -1550,7 +1586,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return IDLE;
         }
 
-        BlockPos potPos = findCauldronOverCampfire(level, worker.blockPosition(), 30, 5, 5);
+        BlockPos potPos = findCauldronOverCampfire(level, building.getPosition(), 30, 5, 5);
 
         if (potPos == null || BlockPos.ZERO.equals(potPos))
         {
@@ -1670,7 +1706,7 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             return true;
         }
 
-        // Your filled stewpot, if provided
+        // The filled stewpot, if provided
         if (filledStewpotBlock != null && block == filledStewpotBlock)
         {
             return true;

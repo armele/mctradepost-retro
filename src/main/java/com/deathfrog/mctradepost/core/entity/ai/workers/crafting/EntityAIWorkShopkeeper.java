@@ -110,7 +110,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
     /**
      * Number of ticks that the AI should wait after completing a task
      */
-    private static final int AFTER_TASK_DELAY = 3;
+    private static final int AFTER_TASK_DELAY = 5;
 
     // The base sell time for selling displayed items.
     // private static final int SELLTIME = MCTPConfig.baseSelltime.get();;
@@ -723,7 +723,13 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 continue;
             }
 
-            if (handle.getItem().isEmpty())
+            ItemStack displayedItem = handle.getItem();
+
+            if (displayedItem == null) continue;
+
+            building.reconcileDisplayCase(displayCase, displayedItem);
+
+            if (displayedItem.isEmpty())
             {
                 TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {}: Shopkeeper - found empty frame for filling at {}", building.getColony().getID(), displayLocation));
 
@@ -782,11 +788,19 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
                 continue;
             }
 
-            if (!handle.getItem().isEmpty())
+            ItemStack displayedItem = handle.getItem();
+
+            if (displayedItem == null) continue;
+
+            building.reconcileDisplayCase(displayCase, displayedItem);
+
+            if (!displayedItem.isEmpty())
             {
                 BlockPos pos = displayLocation.immutable();
                 int ticks = displayCase.getTickcount();
-                displayCase.setTickcount(ticks + 1);        // Purely informational now. May be used in a future iteration.
+
+                // Purely informational now. May be used in a future iteration.
+                displayCase.setTickcount(ticks + 1);
 
                 if (displayCase.getSaleState() == SaleState.ORDER_PLACED)
                 {
@@ -998,13 +1012,23 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
 
                 final ItemStack souvenirFinal = souvenir.copy();
 
-                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER,
-                    () -> LOGGER.info("Colony {} Shopkeeper: Placing souvenir {} in display at {}",
+                TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} Shopkeeper: Placing souvenir {} in display at {}",
                         building.getColony().getID(),
                         SouvenirItem.toString(souvenirFinal),
                         currentTarget));
 
-                handle.setItem(souvenir);   
+                if (!handle.setItem(souvenir))
+                {
+                    // split(1) removed the original stock item from the hand; put it back and
+                    // leave the display record untouched when the physical write fails.
+                    heldItem.grow(placed.getCount());
+                    TraceUtils.dynamicTrace(TRACE_SHOPKEEPER, () -> LOGGER.info("Colony {} Shopkeeper: Could not place an item in display at {}.",
+                        building.getColony().getID(), localCurrentTarget));
+
+                    setDelay(AFTER_TASK_DELAY);
+
+                    return START_WORKING;
+                }
 
                 displayCase.setStack(souvenir);
                 displayCase.setTickcount(0);
