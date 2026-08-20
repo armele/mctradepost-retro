@@ -58,6 +58,14 @@ public class ModTags
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Item> STEW_INGREDIENTS_TAG = ItemTags.create(STEW_INGREDIENTS_TAG_KEY);
 
+        public static final ResourceLocation PROTEIN_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "protein");
+        @SuppressWarnings("null")
+        public @Nonnull static final TagKey<Item> PROTEIN_TAG = ItemTags.create(PROTEIN_TAG_KEY);
+
+        public static final ResourceLocation VEGETABLE_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "vegetable");
+        @SuppressWarnings("null")
+        public @Nonnull static final TagKey<Item> VEGETABLE_TAG = ItemTags.create(VEGETABLE_TAG_KEY);
+
         public static final ResourceLocation RARE_FINDS_BLACKLIST_TAG_KEY = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "rarefinds_blacklist");
         @SuppressWarnings("null")
         public @Nonnull static final TagKey<Item> RARE_FINDS_BLACKLIST_TAG = ItemTags.create(RARE_FINDS_BLACKLIST_TAG_KEY);

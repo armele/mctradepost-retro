@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "#mctradepost:meat",
+    { "id": "#c:foods/raw_meat", "required": false },
+    { "id": "#c:foods/cooked_meat", "required": false },
+    { "id": "#c:foods/raw_fish", "required": false },
+    { "id": "#c:foods/cooked_fish", "required": false },
+    { "id": "#c:eggs", "required": false },
+    { "id": "#c:foods/cheese", "required": false },
+    "minecolonies:cheddar_cheese",
+    "minecolonies:feta_cheese",
+    "minecolonies:creamcheese",
+    "minecolonies:soybean",
+    "minecolonies:chickpea",
+    "minecolonies:tofu",
+    "minecolonies:peas"
+  ]
+}

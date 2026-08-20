@@ -4,7 +4,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewmelierIngredientModule;
 import com.mojang.serialization.MapCodec;
@@ -57,6 +56,7 @@ public class StewpotBlock extends AbstractCauldronBlock
     }
 
     public static final @Nonnull IntegerProperty LEVEL = NullnessBridge.assumeNonnull(BlockStateProperties.LEVEL_CAULDRON);
+    public static final @Nonnull IntegerProperty STEW_TIER = NullnessBridge.assumeNonnull(IntegerProperty.create("stew_tier", 1, 3));
 
     /**
      * Required in 1.21+: blocks provide a codec used by registry/serialization plumbing.
@@ -70,7 +70,7 @@ public class StewpotBlock extends AbstractCauldronBlock
         super(props, StewpotBehaviors.BEHAVIORS);
 
         // Pick whatever default makes sense visually. 1 is fine (has visible contents).
-        BlockState stewlevel = this.stateDefinition.any().setValue(LEVEL, 1);
+        BlockState stewlevel = this.stateDefinition.any().setValue(LEVEL, 1).setValue(STEW_TIER, 1);
 
         if (stewlevel != null) this.registerDefaultState(stewlevel);
     }
@@ -78,7 +78,7 @@ public class StewpotBlock extends AbstractCauldronBlock
     @Override
     protected void createBlockStateDefinition(@Nonnull StateDefinition.Builder<Block, BlockState> builder)
     {
-        builder.add(LEVEL);
+        builder.add(LEVEL, STEW_TIER);
     }
 
     /**
@@ -178,8 +178,14 @@ public class StewpotBlock extends AbstractCauldronBlock
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
+        // Broth has physical volume but cannot be portioned until it qualifies as Basic stew.
+        if (module.getServableStewQuantityBowlsWorth() <= 0)
+        {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
         // Create the filled stew item
-        final ItemStack filledStew = new ItemStack(NullnessBridge.assumeNonnull(MCTradePostMod.PERPETUAL_STEW.get()));
+        final ItemStack filledStew = new ItemStack(NullnessBridge.assumeNonnull(module.getActualStewTier().getItem()));
 
         // If not creative, consume exactly one bowl from the held stack
         if (!player.getAbilities().instabuild)

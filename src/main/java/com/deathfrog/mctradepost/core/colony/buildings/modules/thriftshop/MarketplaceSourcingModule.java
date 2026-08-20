@@ -62,7 +62,9 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     /** Describes one retained item and its current prepaid investment. */
     public record RetainedSearch(@Nonnull ItemStack stack, MarketTier tier, int investmentLevel, long investmentUntil) {}
 
-    /** Describes one recurring item purchase and the last day on which it was attempted. */
+    /** 
+     * Describes one recurring item purchase and the last day on which it was attempted. 
+     */
     public record Subscription(@Nonnull ItemStack stack, MarketTier tier, long lastProcessedDay) {}
 
     /**

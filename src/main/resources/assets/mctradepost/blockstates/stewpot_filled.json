@@ -1,7 +1,13 @@
 {
   "variants": {
-    "level=1": { "model": "mctradepost:block/stewpot_level1" },
-    "level=2": { "model": "mctradepost:block/stewpot_level2" },
-    "level=3": { "model": "mctradepost:block/stewpot_filled" }
+    "level=1,stew_tier=1": { "model": "mctradepost:block/stewpot_level1_tier1" },
+    "level=1,stew_tier=2": { "model": "mctradepost:block/stewpot_level1_tier2" },
+    "level=1,stew_tier=3": { "model": "mctradepost:block/stewpot_level1_tier3" },
+    "level=2,stew_tier=1": { "model": "mctradepost:block/stewpot_level2_tier1" },
+    "level=2,stew_tier=2": { "model": "mctradepost:block/stewpot_level2_tier2" },
+    "level=2,stew_tier=3": { "model": "mctradepost:block/stewpot_level2_tier3" },
+    "level=3,stew_tier=1": { "model": "mctradepost:block/stewpot_level3_tier1" },
+    "level=3,stew_tier=2": { "model": "mctradepost:block/stewpot_level3_tier2" },
+    "level=3,stew_tier=3": { "model": "mctradepost:block/stewpot_level3_tier3" }
   }
 }

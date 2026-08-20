@@ -4,7 +4,12 @@
             <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
                    label="$(com.minecolonies.coremod.gui.stewmelier.ingredients)"/>
             <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
-            <list id="ingredientlist" size="170 160" pos="13 50" emptytext="$(com.minecolonies.coremod.gui.ingredients.empty)" emptycolor="black">
+            <button id="tierBasic" size="50 17" pos="17 31" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" label="$(mctradepost.stewmelier.tier.basic)"/>
+            <button id="tierHearty" size="50 17" pos="70 31" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" label="$(mctradepost.stewmelier.tier.hearty)"/>
+            <button id="tierGourmet" size="50 17" pos="123 31" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" label="$(mctradepost.stewmelier.tier.gourmet)"/>
+            <text id="actualTier" size="170 11" pos="10 53" textalign="MIDDLE" color="black"/>
+            <text id="tierProgress" size="170 11" pos="10 66" textalign="MIDDLE" color="black"/>
+            <list id="ingredientlist" size="170 116" pos="13 80" emptytext="$(com.minecolonies.coremod.gui.ingredients.empty)" emptycolor="black">
                 <box size="100% 17" linewidth="1">
                     <itemicon id="ingredientIcon" size="17 17" pos="0 0"/>
                     <text id="ingredientName" size="90 12" pos="20 1" color="black"/>
@@ -14,9 +19,9 @@
                                  source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="red"/>
                 </box>
             </list>
-            <button id="addIngredient" size="86 17" pos="50 30" color="black"
+            <button id="addIngredient" size="86 17" pos="50 198" color="black"
                          source="minecolonies:textures/gui/builderhut/builder_button_medium.png"
                          label="$(com.minecolonies.coremod.gui.warehouse.add)"/>
-            <text size="180 11" pos="5 212" textalign="MIDDLE" color="black"
+            <text size="180 11" pos="5 220" textalign="MIDDLE" color="black"
                    label="$(com.minecolonies.coremod.gui.stewmelier.protected)" tooltip="$(com.minecolonies.coremod.gui.stewmolier.quantity.protected.tooltip)"/>
 </window>

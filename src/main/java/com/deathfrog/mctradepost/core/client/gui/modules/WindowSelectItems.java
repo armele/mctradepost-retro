@@ -118,7 +118,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         registerButton(BUTTON_SELECT, this::selectClicked);
         
         TextField quantityInput = this.findPaneOfTypeByID("quantity", TextField.class);
-        quantityInput.setText("5");
+        quantityInput.setText("3");
         PaneBuilders.tooltipBuilder().hoverPane(quantityInput).build().setText(Component.translatable(PROTECTED_QUANTITY_TOOLTIP));
 
         this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(ItemStack.EMPTY);
@@ -174,7 +174,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     {
         final ItemStack to = this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).getItem();
 
-        int quantity = simpleSelection ? 1 : 5;
+        int quantity = simpleSelection ? 1 : 3;
         if (!simpleSelection)
         {
             try
@@ -183,7 +183,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
             }
             catch (final NumberFormatException ex)
             {
-                Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 5 stacks!");
+                Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 3 stacks!");
             }
         }
 
