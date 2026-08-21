@@ -493,6 +493,9 @@
 
     "com.mctradepost.core.gui.modules.guestlist": "Guest List",
     "item.mctradepost.wish_health": "Wish of Health",
+    "item.mctradepost.wish_knowledge": "Wish of Knowledge",
+    "message.mctradepost.wish_knowledge.university_required": "A University is required to make a Wish of Knowledge.",
+    "message.mctradepost.wish_knowledge.no_research": "No research is currently in progress.",
     "item.mctradepost.wish_plenty": "Wish of Plenty",
     "item.mctradepost.wish_gathering_cow": "Wish of Herding",
     "item.mctradepost.wish_gathering_pig": "Wish of Droving",

@@ -248,6 +248,10 @@ public class RitualDefinitionHelper
                 text = "Claims an outpost at the location marked by an Outpost Claim Marker.";
                 break;
 
+            case RitualManager.RITUAL_EFFECT_KNOWLEDGE:
+                text = "Advances every in-progress colony research by approximately one hour.";
+                break;
+
             default:
                 text = "Broken ritual! Ritual type not recognized: " + ritualDefinition.effect();
                 break;

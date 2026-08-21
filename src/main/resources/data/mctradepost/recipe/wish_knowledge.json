@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "key": {
+      "G": { "item": "mctradepost:mctp_coin_gold" },
+      "B": { "item": "minecraft:book" },
+      "P": { "item": "minecraft:paper" }
+    },
+    "pattern": [
+      "GPG",
+      "PBP",
+      "GPG"
+    ],
+    "result": {
+      "count": 1,
+      "id": "mctradepost:wish_knowledge"
+    }
+}
+  

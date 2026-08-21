@@ -2,7 +2,8 @@
   "replace": false,
   "values": [
     "mctradepost:mctp_coin",
-    {"id": "lightmanscurrency:coin_iron", "required": false}
+    {"id": "lightmanscurrency:coin_iron", "required": false},
+    {"id": "lightmanscurrency:coin_copper", "required": false}
   ],
   "remove": [
   ]

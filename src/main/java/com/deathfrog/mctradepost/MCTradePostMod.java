@@ -453,6 +453,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> WISH_HEALTH = ITEMS.register("wish_health",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> WISH_KNOWLEDGE = ITEMS.register("wish_knowledge",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<WishGatheringItem> WISH_GATHERING_COW = ITEMS.register("wish_gathering_cow",
         () -> new WishGatheringItem(new Item.Properties(), PetTypes.COW));
         
@@ -2013,6 +2016,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.CHITIN_SLAB.get());
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
+                    event.accept(MCTradePostMod.WISH_KNOWLEDGE.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_COW.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_PIG.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());
