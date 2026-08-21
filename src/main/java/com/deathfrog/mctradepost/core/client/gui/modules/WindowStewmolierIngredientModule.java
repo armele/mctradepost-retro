@@ -118,7 +118,8 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
             false,
             stack -> null,
             this::ingredientBadge,
-            this::ingredientBadgeTooltip).open();
+            this::ingredientBadgeTooltip,
+            this::warehouseCountTooltip).open();
         
         updateIngredientList();
 
@@ -209,6 +210,21 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
         if (protein) return Component.translatable("mctradepost.stewmelier.ingredient.protein");
         if (vegetable) return Component.translatable("mctradepost.stewmelier.ingredient.vegetable");
         return Component.translatable("mctradepost.stewmelier.ingredient.other");
+    }
+
+    /**
+     * Builds raw warehouse-count information for an ingredient selection row.
+     * Protected-stack quantities are intentionally not deducted on this screen.
+     *
+     * @param stack candidate stew ingredient
+     * @return raw warehouse quantity tooltip
+     */
+    private Component warehouseCountTooltip(final ItemStack stack)
+    {
+        return moduleView.isWarehouseAvailable()
+            ? Component.translatable("mctradepost.stewmelier.ingredient.selection.availability",
+                moduleView.getWarehouseItemCount(stack))
+            : Component.translatable("mctradepost.stewmelier.ingredient.availability.no_warehouse");
     }
 
     /** Updates tier availability, tooltips, and current pot progress. */

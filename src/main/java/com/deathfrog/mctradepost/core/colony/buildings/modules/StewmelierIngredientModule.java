@@ -2,7 +2,9 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -598,6 +600,13 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
             buf.writeInt(warehouseCount);
             buf.writeInt(Math.max(0, warehouseCount - protectedCount));
         }
+        final Map<ResourceLocation, Integer> warehouseItemCounts = getWarehouseItemCounts(warehouse);
+        buf.writeInt(warehouseItemCounts.size());
+        for (Map.Entry<ResourceLocation, Integer> entry : warehouseItemCounts.entrySet())
+        {
+            buf.writeResourceLocation(entry.getKey());
+            buf.writeInt(entry.getValue());
+        }
         buf.writeInt(desiredStewTier.getLevel());
         buf.writeInt(actualStewTier.getLevel());
         buf.writeInt(getCreditedIngredientCount());
@@ -610,6 +619,29 @@ public class StewmelierIngredientModule extends AbstractBuildingModule implement
         buf.writeBoolean(potIdentified);
 
         buf.writeBlockPos(stewpotLocation == null ? BlockPos.ZERO : stewpotLocation);
+    }
+
+    /**
+     * Aggregates raw item quantities from the warehouse used by the Stewmelier.
+     * Counts are keyed by item identifier so matching component variants contribute
+     * to the same selection-screen total.
+     *
+     * @param warehouse warehouse selected relative to the claimed stewpot
+     * @return raw item counts, or an empty map when no warehouse is available
+     */
+    @SuppressWarnings("null")
+    private Map<ResourceLocation, Integer> getWarehouseItemCounts(final IWareHouse warehouse)
+    {
+        final Map<ResourceLocation, Integer> counts = new HashMap<>();
+        if (warehouse == null) return counts;
+
+        for (int slot = 0; slot < warehouse.getItemHandlerCap().getSlots(); slot++)
+        {
+            final ItemStack stack = warehouse.getItemHandlerCap().getStackInSlot(slot);
+            if (stack == null || stack.isEmpty() || !stack.is(ModTags.ITEMS.STEW_INGREDIENTS_TAG)) continue;
+            counts.merge(BuiltInRegistries.ITEM.getKey(stack.getItem()), stack.getCount(), Integer::sum);
+        }
+        return counts;
     }
 
 

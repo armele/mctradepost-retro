@@ -8,12 +8,14 @@
     { "id": "#c:foods/cooked_fish", "required": false },
     { "id": "#c:eggs", "required": false },
     { "id": "#c:foods/cheese", "required": false },
+    { "id": "#c:nuts", "required": false },
     "minecolonies:cheddar_cheese",
     "minecolonies:feta_cheese",
     "minecolonies:creamcheese",
     "minecolonies:soybean",
     "minecolonies:chickpea",
     "minecolonies:tofu",
-    "minecolonies:peas"
+    "minecolonies:peas",
+    { "id": "wildernature:hazelnut", "required": false }
   ]
 }

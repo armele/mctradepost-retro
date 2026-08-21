@@ -743,6 +743,7 @@
     "mctradepost.stewmelier.ingredient.vegetable_protein": "Vegetable and protein",
     "mctradepost.stewmelier.ingredient.other": "Other",
     "mctradepost.stewmelier.ingredient.availability": "%s in warehouse; %s available for stew",
+    "mctradepost.stewmelier.ingredient.selection.availability": "%s in warehouse",
     "mctradepost.stewmelier.ingredient.availability.no_warehouse": "No warehouse is available for the assigned stewpot.",
     "com.mctradepost.job.stewmelier": "Stewmelier",
     "mctradepost:stewmelier.job.desc": "Expertly takes excess foodstuffs and makes a delicious perpetual stew to feed the hungry.",

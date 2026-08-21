@@ -1,7 +1,9 @@
 package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +17,7 @@ import com.minecolonies.api.util.Utils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -24,6 +27,7 @@ public class StewmelierIngredientModuleView extends AbstractBuildingModuleView
 
     private final List<ItemStorage> ingredientList = new ArrayList<>();
     private final List<WarehouseAvailability> warehouseAvailability = new ArrayList<>();
+    private final Map<ResourceLocation, Integer> warehouseItemCounts = new HashMap<>();
     private boolean warehouseAvailable;
     private int warehouseSnapshotVersion;
     private StewTier desiredTier = StewTier.BASIC;
@@ -46,6 +50,7 @@ public class StewmelierIngredientModuleView extends AbstractBuildingModuleView
     {
         ingredientList.clear();
         warehouseAvailability.clear();
+        warehouseItemCounts.clear();
         final int size = buf.readInt();
         warehouseAvailable = buf.readBoolean();
         for (int i = 0; i < size; i++)
@@ -54,6 +59,11 @@ public class StewmelierIngredientModuleView extends AbstractBuildingModuleView
             int protectedQuantity = buf.readInt();
             ingredientList.add(new ItemStorage(itemStack, protectedQuantity));
             warehouseAvailability.add(new WarehouseAvailability(buf.readInt(), buf.readInt()));
+        }
+        final int warehouseItemTypeCount = buf.readInt();
+        for (int i = 0; i < warehouseItemTypeCount; i++)
+        {
+            warehouseItemCounts.put(buf.readResourceLocation(), buf.readInt());
         }
         desiredTier = StewTier.fromLevel(buf.readInt());
         actualTier = StewTier.fromLevel(buf.readInt());
@@ -152,6 +162,19 @@ public class StewmelierIngredientModuleView extends AbstractBuildingModuleView
     public WarehouseAvailability getWarehouseAvailability(final int index)
     {
         return warehouseAvailability.get(index);
+    }
+
+    /**
+     * Gets the raw quantity of an item in the warehouse selected for this Stewmelier.
+     *
+     * @param stack item whose warehouse quantity is requested
+     * @return matching item count, or zero when absent
+     */
+    @SuppressWarnings("null")
+    public int getWarehouseItemCount(final ItemStack stack)
+    {
+        if (stack == null || stack.isEmpty()) return 0;
+        return warehouseItemCounts.getOrDefault(BuiltInRegistries.ITEM.getKey(stack.getItem()), 0);
     }
 
     /** @return a value incremented whenever fresh warehouse counts are synchronized. */

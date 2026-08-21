@@ -281,6 +281,12 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             job.resetBowlCounter();
         }
 
+        final IAIState upgradeState = findStewUpgradeAction();
+        if (upgradeState != null)
+        {
+            return upgradeState;
+        }
+
         if (stewInInventory >= 32)
         {
             int hungryCitizenCount = hungryCitizens.size();
@@ -768,6 +774,128 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
         }
 
         return ingredientCount;
+    }
+
+    /**
+     * Selects the next action that can advance the pot toward the requested tier.
+     * Missing distinct proteins are sought across all sources before other missing
+     * ingredients, and both categories take precedence over routine replenishment.
+     *
+     * @return an upgrade action, or null when the requested tier is already qualified
+     *         or no qualifying ingredient is currently available
+     */
+    @Nullable
+    private IAIState findStewUpgradeAction()
+    {
+        final StewmelierIngredientModule module = safeStewModule();
+        final StewTier desiredTier = module.getDesiredStewTier();
+        final boolean needsUpgrade = !module.isStewQualified()
+            || module.getActualStewTier().getLevel() < desiredTier.getLevel();
+        if (!needsUpgrade) return null;
+
+        final boolean needsProtein = module.getCreditedProteinIngredientCount()
+            < desiredTier.getRequiredProteinIngredients();
+        if (needsProtein)
+        {
+            final IAIState proteinAction = findUpgradeIngredientAction(true);
+            if (proteinAction != null) return proteinAction;
+        }
+        return module.getCreditedIngredientCount() < desiredTier.getRequiredDistinctIngredients()
+            ? findUpgradeIngredientAction(false) : null;
+    }
+
+    /**
+     * Finds an upgrade ingredient in carried inventory, the kitchen, or the warehouse.
+     * Source order is applied only within one priority category so a warehouse protein
+     * is preferred over an available non-protein in the worker's inventory.
+     *
+     * @param proteinOnly whether only missing protein ingredients qualify
+     * @return the action needed to use or retrieve a qualifying ingredient, or null
+     */
+    @Nullable
+    private IAIState findUpgradeIngredientAction(final boolean proteinOnly)
+    {
+        if (hasUpgradeIngredientInInventory(proteinOnly)) return StewmelierState.MAKE_STEW;
+        if (hasUpgradeIngredientInBuilding(proteinOnly)) return StewmelierState.GATHER_BUILDING_INGREDIENTS;
+        if (hasUpgradeIngredientInWarehouse(proteinOnly)) return StewmelierState.GATHER_WH_INGREDIENTS;
+        return null;
+    }
+
+    /**
+     * Checks the worker inventory for an uncredited ingredient that advances the requested tier.
+     *
+     * @param proteinOnly whether the candidate must be protein-tagged
+     * @return true when a qualifying carried ingredient exists
+     */
+    private boolean hasUpgradeIngredientInInventory(final boolean proteinOnly)
+    {
+        for (ItemStorage ingredient : orderedIngredients())
+        {
+            final ItemStack ingredientStack = ingredient.getItemStack();
+            if (ingredientStack == null || !isUpgradeIngredient(ingredientStack, proteinOnly)) continue;
+            if (InventoryUtils.hasItemInItemHandler(worker.getInventoryCitizen(),
+                stack -> stack != null && ItemStack.isSameItem(stack, ingredientStack))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks the kitchen inventory for an uncredited ingredient that advances the requested tier.
+     * The existing rule that at least two items must be present is preserved.
+     *
+     * @param proteinOnly whether the candidate must be protein-tagged
+     * @return true when a qualifying kitchen ingredient exists
+     */
+    private boolean hasUpgradeIngredientInBuilding(final boolean proteinOnly)
+    {
+        for (ItemStorage ingredient : orderedIngredients())
+        {
+            final ItemStack ingredientStack = ingredient.getItemStack();
+            if (ingredientStack == null || !isUpgradeIngredient(ingredientStack, proteinOnly)) continue;
+            final int count = InventoryUtils.getItemCountInProvider(building,
+                stack -> stack != null && ItemStack.isSameItem(stack, ingredientStack));
+            if (count > 1) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Checks the Stewmelier's selected warehouse for an uncredited ingredient while
+     * respecting its configured protected-stack quantity.
+     *
+     * @param proteinOnly whether the candidate must be protein-tagged
+     * @return true when a qualifying warehouse ingredient is available
+     */
+    private boolean hasUpgradeIngredientInWarehouse(final boolean proteinOnly)
+    {
+        final StewmelierIngredientModule module = safeStewModule();
+        final IWareHouse warehouse = building.getColony().getServerBuildingManager()
+            .getClosestWarehouseInColony(module.getStewpotLocation());
+        if (warehouse == null) return false;
+
+        for (ItemStorage ingredient : orderedIngredients())
+        {
+            final ItemStack ingredientStack = ingredient.getItemStack();
+            if (ingredientStack == null || !isUpgradeIngredient(ingredientStack, proteinOnly)) continue;
+            final int warehouseCount = InventoryUtils.getItemCountInProvider(warehouse,
+                stack -> stack != null && ItemStack.isSameItem(stack, ingredientStack));
+            final int protectedCount = ingredient.getAmount() * ingredientStack.getMaxStackSize();
+            if (warehouseCount > protectedCount) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Tests whether a configured ingredient is a new distinct qualification credit.
+     *
+     * @param ingredient candidate ingredient
+     * @param proteinOnly whether the candidate must be protein-tagged
+     * @return true when the ingredient can advance the requested tier
+     */
+    private boolean isUpgradeIngredient(final ItemStack ingredient, final boolean proteinOnly)
+    {
+        if (ingredient == null || ingredient.isEmpty() || safeStewModule().isIngredientCredited(ingredient)) return false;
+        return !proteinOnly || ingredient.is(ModTags.ITEMS.PROTEIN_TAG);
     }
 
     /**
