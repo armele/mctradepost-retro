@@ -16,6 +16,7 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
@@ -180,6 +181,19 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
 
         return false;
     }
+
+    /**
+     * Checks whether an item already acknowledged into recycler custody is
+     * still waiting in the worker inventory to be loaded into an input chest.
+     */
+    private boolean hasAcceptedInputInWorkerInventory()
+    {
+        final RecyclingItemListModule module =
+            building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
+        return InventoryUtils.hasItemInProvider(worker,
+            stack -> module.findAcceptedRecyclingInput(new ItemStorage(stack)) != null);
+    }
+
     /**
      * Decide what to do next. If there's a non-empty output chest, sort its contents. Otherwise, load the recycling module.
      * 
@@ -198,6 +212,13 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         if (checkDeliveryStatus())
         {
             TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("Recycling Engineer: Deciding what to do: Load delivery to input."));
+            return RecyclingStates.LOAD_TO_INPUT;
+        }
+
+        if (hasAcceptedInputInWorkerInventory())
+        {
+            TraceUtils.dynamicTrace(TRACE_RECYCLING,
+                () -> LOGGER.info("Recycling Engineer: Deciding what to do: Load accepted recycling input."));
             return RecyclingStates.LOAD_TO_INPUT;
         }
 
@@ -696,12 +717,19 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             return getState();
         }
 
-        building.reconcileRecyclingRequests();
-
-        final List<ItemStorage> list =
-            building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST)).getList();
         final RecyclingItemListModule recyclingModule =
             building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
+
+        // A request may become RECEIVED while this state is active. Claim the
+        // physical delivery before reconciliation can consider a new request.
+        if (checkDeliveryStatus() || hasAcceptedInputInWorkerInventory())
+        {
+            return RecyclingStates.LOAD_TO_INPUT;
+        }
+
+        building.reconcileRecyclingRequests();
+
+        final List<ItemStorage> list = recyclingModule.getList();
 
         if (list.isEmpty()  && building.getRecyclingProcessors().isEmpty())
         {
@@ -712,8 +740,10 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         worker.setItemInHand(InteractionHand.MAIN_HAND, NullnessBridge.assumeNonnull(ItemStack.EMPTY));
 
         int requestedCount = 0;
+        boolean completedSelection = false;
         ItemListModule module = building.getModule(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
         final List<ItemStorage> requestableSnapshot = new ArrayList<>(list);
+        final Object2IntMap<ItemStorage> warehouseSnapshot = building.getWarehouseRecyclingSnapshot();
         for (final ItemStorage item : requestableSnapshot)
         {
             if (recyclingModule.hasPendingWarehouseRequest(item) || recyclingModule.hasAcceptedRecyclingInput(item))
@@ -722,23 +752,30 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             }
 
             final ItemStack itemStack = item.getItemStack().copy();
-            itemStack.setCount(item.getAmount());
-            final ArrayList<ItemStack> itemList = new ArrayList<>();
-            itemList.add(itemStack);
+            itemStack.setCount(1);
+            final List<ItemStack> itemList = building.getWarehouseStacksMatching(item, warehouseSnapshot);
+            if (itemList.isEmpty())
+            {
+                module.removeItem(item);
+                completedSelection = true;
+                continue;
+            }
 
             final IToken<?> requestToken = building.createRequest(worker.getCitizenData(),
-                new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, item.getAmount(), 1),
+                new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, 1, 1),
                 true);
 
             recyclingModule.addPendingWarehouseRequest(requestToken, new ItemStorage(itemStack));
             requestedCount++;
 
-            // These are meant to be one-time calls to the warehouse for garbage to be recycled. Prevent requests
-            // that might result in items being crafted just to be recycled by turning off the item setting in the module list.
-            module.removeItem(new ItemStorage(itemStack));
         }
 
         if (requestedCount > 0)
+        {
+            building.markDirty();
+        }
+
+        if (completedSelection)
         {
             building.refreshItemList();
         }
