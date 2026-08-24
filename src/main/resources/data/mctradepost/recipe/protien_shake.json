@@ -3,13 +3,10 @@
   "category": "misc",
   "ingredients": [
     {
-      "tag": "mctradepost:meat"
+      "tag": "mctradepost:protein"
     },
     {
-      "tag": "mctradepost:meat"
-    },
-    {
-      "item": "minecraft:egg"
+      "tag": "mctradepost:protein"
     },
     {
       "item": "mctradepost:immersion_blender"

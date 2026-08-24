@@ -363,6 +363,14 @@ public class MCTradePostMod
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(6).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 1));
 
     @SuppressWarnings("null")
+    public static final DeferredItem<ItemFood> HEARTY_PERPETUAL_STEW = ITEMS.register("hearty_perpetual_stew",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(9).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 2));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<ItemFood> GOURMET_PERPETUAL_STEW = ITEMS.register("gourmet_perpetual_stew",
+        () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(13).usingConvertsTo(Items.BOWL).saturationModifier(3.0F).alwaysEdible().build()), 3));
+
+    @SuppressWarnings("null")
     public static final DeferredItem<ItemFood> CHICKPEA_STROGANOFF = ITEMS.register("chickpea_stroganoff",
         () -> new ItemFood((new Item.Properties()).food(new FoodProperties.Builder().nutrition(7).saturationModifier(2.0F).build()), 2));
 
@@ -443,6 +451,9 @@ public class MCTradePostMod
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<Item> WISH_HEALTH = ITEMS.register("wish_health",
+        () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<Item> WISH_KNOWLEDGE = ITEMS.register("wish_knowledge",
         () -> new Item(new Item.Properties()));
 
     public static final DeferredItem<WishGatheringItem> WISH_GATHERING_COW = ITEMS.register("wish_gathering_cow",
@@ -1909,6 +1920,8 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.VANILLA_MILKSHAKE.get());
                     event.accept(MCTradePostMod.BAR_NUTS.get());
                     event.accept(MCTradePostMod.PERPETUAL_STEW.get());
+                    event.accept(MCTradePostMod.HEARTY_PERPETUAL_STEW.get());
+                    event.accept(MCTradePostMod.GOURMET_PERPETUAL_STEW.get());
                     event.accept(MCTradePostMod.CHICKPEA_STROGANOFF.get());
                     event.accept(MCTradePostMod.STIR_FRY.get());
                     event.accept(MCTradePostMod.COLD_BREW.get());
@@ -2003,6 +2016,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.CHITIN_SLAB.get());
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
+                    event.accept(MCTradePostMod.WISH_KNOWLEDGE.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_COW.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_PIG.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());

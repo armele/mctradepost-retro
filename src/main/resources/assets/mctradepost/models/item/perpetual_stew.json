@@ -1,7 +1,6 @@
 {
     "parent": "item/generated",
     "textures": {
-      "layer0": "mctradepost:item/perpetual_stew"
+      "layer0": "mctradepost:item/perpetual_stew_tier1"
     }
   }
-  

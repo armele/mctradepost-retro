@@ -2,10 +2,12 @@
   "replace": false,
   "values": [
     "#mctradepost:meat",
+    "#mctradepost:protein",
     "#mctradepost:vegetable",
     "#c:mushrooms",
     "minecolonies:durum",
     "minecolonies:rice",
+    { "id": "wildernature:truffle", "required": false },
     "#c:eggs",
     "#c:crops/wheat",
     "#c:foods/cooked_meat",

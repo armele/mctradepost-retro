@@ -30,7 +30,7 @@ public class StewIngredientMessage extends AbstractBuildingServerMessage<IBuildi
 
     public enum IngredientAction
     {
-        ADD, REMOVE, QUERY
+        ADD, REMOVE, QUERY, SET_TIER
     }
 
     private static final String INGREDIENTS_UPDATED = "mctradepost.stewmolier.ingredients_updated";
@@ -49,6 +49,7 @@ public class StewIngredientMessage extends AbstractBuildingServerMessage<IBuildi
      * How many items will we leave in the warehouse untouched?
      */
     private int protectedQuantity;
+    private StewTier stewTier = StewTier.BASIC;
 
     /**
      * Creates a Transfer Items request
@@ -73,12 +74,25 @@ public class StewIngredientMessage extends AbstractBuildingServerMessage<IBuildi
         this.protectedQuantity = 0;
     }
 
+    /**
+     * Creates a message that changes the desired stew tier.
+     *
+     * @param building target kitchen view
+     * @param stewTier desired stew tier
+     */
+    public StewIngredientMessage(final IBuildingView building, final StewTier stewTier)
+    {
+        this(building, IngredientAction.SET_TIER);
+        this.stewTier = stewTier;
+    }
+
     protected StewIngredientMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
         itemStack = Utils.deserializeCodecMess(buf);
         ingredientAction = IngredientAction.values()[buf.readInt()];
         protectedQuantity = buf.readInt();
+        stewTier = StewTier.fromLevel(buf.readInt());
     }
 
     @Override
@@ -89,6 +103,7 @@ public class StewIngredientMessage extends AbstractBuildingServerMessage<IBuildi
         Utils.serializeCodecMess(buf, itemStack);
         buf.writeInt(ingredientAction.ordinal());
         buf.writeInt(protectedQuantity);
+        buf.writeInt(stewTier.getLevel());
     }
 
     /**
@@ -110,18 +125,34 @@ public class StewIngredientMessage extends AbstractBuildingServerMessage<IBuildi
     {
         if (building.hasModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS))
         {
+            boolean ingredientsChanged = false;
             if (ingredientAction == IngredientAction.REMOVE)
             {
                 TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Executing StewIngredientMessage to remove ingredient."));
                 building.getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).removeIngredient(new ItemStorage(itemStack, protectedQuantity));
+                ingredientsChanged = true;
             }
-            else
+            else if (ingredientAction == IngredientAction.ADD)
             {
                 TraceUtils.dynamicTrace(TRACE_STEWMELIER, () -> LOGGER.info("Executing StewIngredientMessage to add ingredient."));
                 building.getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).addIngredient(new ItemStorage(itemStack, protectedQuantity));
+                ingredientsChanged = true;
             }
 
-            MessageUtils.format(INGREDIENTS_UPDATED).sendTo(player);
+            else if (ingredientAction == IngredientAction.SET_TIER)
+            {
+                building.getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).setDesiredStewTier(stewTier);
+            }
+
+            else if (ingredientAction == IngredientAction.QUERY)
+            {
+                building.getModule(MCTPBuildingModules.STEWMELIER_INGREDIENTS).markDirty();
+            }
+
+            if (ingredientsChanged)
+            {
+                MessageUtils.format(INGREDIENTS_UPDATED).sendTo(player);
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 import com.minecolonies.api.util.Utils;
+import com.deathfrog.mctradepost.api.util.RecyclableItemMatcher;
 import java.util.UUID;
 
 public class RecyclingItemListModule extends ItemListModule
@@ -99,7 +100,7 @@ public class RecyclingItemListModule extends ItemListModule
     {
         for (PendingWarehouseRequest request : pendingWarehouseRequests)
         {
-            if (request.item().equals(item))
+            if (matches(request.item(), item))
             {
                 return request;
             }
@@ -146,7 +147,7 @@ public class RecyclingItemListModule extends ItemListModule
      */
     public void removePendingWarehouseRequestFor(ItemStorage item)
     {
-        pendingWarehouseRequests.removeIf(request -> request.item().equals(item));
+        pendingWarehouseRequests.removeIf(request -> matches(request.item(), item));
     }
 
     /**
@@ -185,13 +186,22 @@ public class RecyclingItemListModule extends ItemListModule
     {
         for (ItemStorage accepted : acceptedRecyclingInputs)
         {
-            if (accepted.equals(item))
+            if (matches(accepted, item))
             {
                 return accepted;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Compares two recycler entries using recycler-specific category rules.
+     */
+    public static boolean matches(ItemStorage definition, ItemStorage candidate)
+    {
+        return definition != null && candidate != null
+            && RecyclableItemMatcher.matches(definition.getItemStack(), candidate.getItemStack());
     }
 
     /**

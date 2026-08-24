@@ -9,6 +9,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.CommunityRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.OutpostRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.KnowledgeRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
@@ -481,6 +482,10 @@ public class WishingWellHandler
 
                     case RitualManager.RITUAL_EFFECT_OUTPOST:
                         result = OutpostRitualProcessor.processRitualOutpost(marketplace, pos, ritual, state);
+                        break;
+
+                    case RitualManager.RITUAL_EFFECT_KNOWLEDGE:
+                        result = KnowledgeRitualProcessor.processRitualKnowledge(marketplace, pos, ritual, state);
                         break;
 
                     default:

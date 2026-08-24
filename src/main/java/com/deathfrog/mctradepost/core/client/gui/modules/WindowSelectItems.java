@@ -68,6 +68,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     private final Function<ItemStack, Component> disabledReason;
     private final Function<ItemStack, Component> badgeLabel;
     private final Function<ItemStack, Component> badgeTooltip;
+    private final Function<ItemStack, Component> rowTooltip;
 
     /**
      * The filter string.
@@ -101,7 +102,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     public WindowSelectItems(final BOWindow origin, final Predicate<ItemStack> test,
         final BiConsumer<ItemStack, Integer> consumer, final boolean simpleSelection)
     {
-        this(origin, test, consumer, simpleSelection, stack -> null, stack -> null, stack -> null);
+        this(origin, test, consumer, simpleSelection, stack -> null, stack -> null, stack -> null, stack -> null);
     }
 
     /** Creates a selector whose rows may expose a badge or be disabled with an explanation. */
@@ -111,6 +112,28 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         final Function<ItemStack, Component> badgeLabel,
         final Function<ItemStack, Component> badgeTooltip)
     {
+        this(origin, test, consumer, simpleSelection, disabledReason, badgeLabel, badgeTooltip, stack -> null);
+    }
+
+    /**
+     * Creates a selector whose rows may expose badges, disabled reasons, and informational tooltips.
+     *
+     * @param origin originating window
+     * @param test item eligibility predicate
+     * @param consumer selected-item consumer
+     * @param simpleSelection whether quantity controls are hidden
+     * @param disabledReason optional reason a row cannot be selected
+     * @param badgeLabel optional compact row badge
+     * @param badgeTooltip optional badge explanation
+     * @param rowTooltip optional informational tooltip for the item name
+     */
+    public WindowSelectItems(final BOWindow origin, final Predicate<ItemStack> test,
+        final BiConsumer<ItemStack, Integer> consumer, final boolean simpleSelection,
+        final Function<ItemStack, Component> disabledReason,
+        final Function<ItemStack, Component> badgeLabel,
+        final Function<ItemStack, Component> badgeTooltip,
+        final Function<ItemStack, Component> rowTooltip)
+    {
         super(origin, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/windowselectstewingredients.xml"));
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
         registerButton(BUTTON_DONE, this::doneClicked);
@@ -118,7 +141,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         registerButton(BUTTON_SELECT, this::selectClicked);
         
         TextField quantityInput = this.findPaneOfTypeByID("quantity", TextField.class);
-        quantityInput.setText("5");
+        quantityInput.setText("3");
         PaneBuilders.tooltipBuilder().hoverPane(quantityInput).build().setText(Component.translatable(PROTECTED_QUANTITY_TOOLTIP));
 
         this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(ItemStack.EMPTY);
@@ -129,6 +152,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         this.disabledReason = disabledReason;
         this.badgeLabel = badgeLabel;
         this.badgeTooltip = badgeTooltip;
+        this.rowTooltip = rowTooltip;
         if (simpleSelection)
         {
             quantityInput.hide();
@@ -174,7 +198,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     {
         final ItemStack to = this.findPaneOfTypeByID("resourceIcon", ItemIcon.class).getItem();
 
-        int quantity = simpleSelection ? 1 : 5;
+        int quantity = simpleSelection ? 1 : 3;
         if (!simpleSelection)
         {
             try
@@ -183,7 +207,7 @@ public class WindowSelectItems extends AbstractWindowSkeleton
             }
             catch (final NumberFormatException ex)
             {
-                Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 5 stacks!");
+                Log.getLogger().warn("Invalid input in selection for Protected Quantity, defaulting to 3 stacks!");
             }
         }
 
@@ -251,6 +275,9 @@ public class WindowSelectItems extends AbstractWindowSkeleton
                 final Text resourceLabel = rowPane.findPaneOfTypeByID("resourceName", Text.class);
                 resourceLabel.setText(resource.getHoverName());
                 resourceLabel.setColors(WHITE);
+                final Component information = rowTooltip.apply(resource);
+                PaneBuilders.tooltipBuilder().hoverPane(resourceLabel).build()
+                    .setText(information == null ? Component.empty() : information);
                 rowPane.findPaneOfTypeByID("resourceIcon", ItemIcon.class).setItem(resource);
 
                 final Text badge = rowPane.findPaneOfTypeByID("tierBadge", Text.class);
