@@ -96,11 +96,16 @@ public class BuildingRecycling extends AbstractBuilding
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final String ITEMS_RECOVERED = "items_recovered";
+    public static final String ITEMS_DESTROYED = "items_destroyed";
     public static final String CANCELLED_JOBS = "cancelled_jobs";
 
     // If true, any output with a crafting recipe will be resubmitted for further recycling.
     public static final ISettingKey<BoolSetting> ITERATIVE_PROCESSING =
         new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "iterative_processing"));
+
+    // If true, inputs that cannot start a recycling process are destroyed instead of returned to building inventory.
+    public static final ISettingKey<BoolSetting> DELETE_FAILED_ATTEMPTS =
+        new SettingKey<>(BoolSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "delete_failed_attempts"));
 
     public static final ISettingKey<SortSetting> ALLOW_SORT =
         new SettingKey<SortSetting>(SortSetting.class, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "allow_sort"));

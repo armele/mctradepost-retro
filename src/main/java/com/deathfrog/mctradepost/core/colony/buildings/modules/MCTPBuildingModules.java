@@ -92,7 +92,9 @@ public class MCTPBuildingModules
 
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> RECYCLING_SETTINGS    =
       new BuildingEntry.ModuleProducer<>("recycling_settings", () -> new SettingsModule()
-        .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false)).with(BuildingRecycling.ALLOW_SORT, new SortSetting()), () -> SettingsModuleView::new);
+        .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false))
+        .with(BuildingRecycling.DELETE_FAILED_ATTEMPTS, new BoolSetting(false))
+        .with(BuildingRecycling.ALLOW_SORT, new SortSetting()), () -> SettingsModuleView::new);
 
     public static final BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView> RECYCLING_PROGRESS     =
       new BuildingEntry.ModuleProducer<BuildingRecyclerProgressModule, RecyclerProgressView>("recycling_progress", () -> new BuildingRecyclerProgressModule(), () -> RecyclerProgressView::new);

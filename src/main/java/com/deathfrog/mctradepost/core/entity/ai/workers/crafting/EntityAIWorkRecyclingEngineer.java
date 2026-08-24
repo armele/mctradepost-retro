@@ -23,6 +23,7 @@ import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
 import com.minecolonies.api.util.IItemHandlerCapProvider;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.MessageUtils;
+import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.colony.buildings.modules.ItemListModule;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIBasic;
 import com.mojang.logging.LogUtils;
@@ -587,21 +588,41 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
                     }
                     else
                     {
-                        // TraceUtils.dynamicTrace(TRACE_RECYCLING, () -> LOGGER.info("This item cannot be recycled {}", removedStack.getDescriptionId()));
-                        if (removedStack.isEnchanted())
+                        building.getModule(RecyclingItemListModule.class, m -> m.getId().equals(RECYCLING_LIST))
+                            .removeAcceptedRecyclingInput(new ItemStorage(removedStack, true, true));
+                        building.markDirty();
+
+                        final boolean deleteFailedAttempt = building.getSetting(BuildingRecycling.DELETE_FAILED_ATTEMPTS).getValue();
+                        if (deleteFailedAttempt)
                         {
-                            MessageUtils.format("Your recycling engineer could not safely strip the enchantments from the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            StatsUtil.trackStatByName(building, BuildingRecycling.ITEMS_DESTROYED, removedStack.getHoverName(), removedStack.getCount());
+
+                            if (removedStack.isEnchanted())
+                            {
+                                MessageUtils.format("Your recycling engineer could not safely strip the enchantments from the %s, and discarded it.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            }
+                            else
+                            {
+                                MessageUtils.format("Your recycling engineer could not recycle the %s, and discarded it.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            }
                         }
                         else
                         {
-                            MessageUtils.format("Your recycling engineer could not recycle the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
-                        }
-                         
-                        if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), stackToRecycle))
-                        {
-                            InventoryUtils
-                                .spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
-                            return INVENTORY_FULL;
+                            if (removedStack.isEnchanted())
+                            {
+                                MessageUtils.format("Your recycling engineer could not safely strip the enchantments from the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            }
+                            else
+                            {
+                                MessageUtils.format("Your recycling engineer could not recycle the %s, and put it away.", removedStack.getDisplayName()).sendTo(building.getColony()).forAllPlayers();
+                            }
+
+                            if (!InventoryUtils.addItemStackToItemHandler(recycling.getItemHandlerCap(), removedStack))
+                            {
+                                InventoryUtils
+                                    .spawnItemStack(recycling.getColony().getWorld(), pos.getX(), pos.getY(), pos.getZ(), removedStack);
+                                return INVENTORY_FULL;
+                            }
                         }
                     }
                 }
