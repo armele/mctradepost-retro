@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.gradle.userdev' version '7.0.173'
+    id 'net.neoforged.gradle.userdev' version '7.1.38'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -19,13 +19,21 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
-    flatDir {
-        dirs '../Minecolonies/build/libs' // adjust path as needed
-    }
     maven {
         name 'LDTTeam - Modding'
         url 'https://ldtteam.jfrog.io/ldtteam/modding/'
     } 
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'CurseMaven'
+                url = uri('https://www.cursemaven.com')
+            }
+        }
+        filter {
+            includeGroup 'curse.maven'
+        }
+    }
     maven {
         // location of the maven that hosts JEI files since January 2023
         name = "Jared's maven"
@@ -125,22 +133,22 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
-    //compileOnly name: 'minecolonies-1.1.978-1.21.1-snapshot'  // use the actual filename without .jar
-    //localRuntime files('../Minecolonies/build/libs/minecolonies-1.1.978-1.21.1-snapshot.jar')
-    compileOnly name: 'minecolonies-1.1.1368-1.21.1-snapshot'
-    localRuntime files ('../Minecolonies/build/libs/minecolonies-1.1.1368-1.21.1-snapshot.jar')
-    
-    compileOnly name: 'multipiston-1.2.58-1.21.1'
-    localRuntime files ('../Minecolonies/build/libs/multipiston-1.2.58-1.21.1.jar')
+    implementation("com.ldtteam:minecolonies:${minecolonies_version}") {
+        transitive = false
+    }
+    implementation("com.ldtteam:structurize:${structurize_version}") {
+        transitive = false
+    }
+    implementation("com.ldtteam:blockui:${blockui_version}") {
+        transitive = false
+    }
+    implementation("com.ldtteam:domum-ornamentum:${domum_ornamentum_version}") {
+        transitive = false
+    }
+    implementation("com.ldtteam:multipiston:${multipiston_version}") {
+        transitive = false
+    }
 
-    compileOnly name: 'blockui-1.0.211-1.21.1-snapshot'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/blockui-1.0.211-1.21.1-snapshot.jar')    
-
-    compileOnly name: 'structurize-1.0.832-1.21.1-snapshot'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/structurize-1.0.832-1.21.1-snapshot.jar')    
-
-    compileOnly name: 'domum-ornamentum-1.0.234-snapshot-main'  // use the actual filename without .jar
-    localRuntime files('../Minecolonies/build/libs/domum-ornamentum-1.0.234-snapshot-main.jar')    
     localRuntime("com.ldtteam:datagenerators:1.19.3-0.1.54-ALPHA:universal")
 
     // JEI for compile-time access
