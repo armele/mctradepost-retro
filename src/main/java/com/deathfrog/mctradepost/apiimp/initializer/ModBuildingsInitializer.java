@@ -194,6 +194,8 @@ public final class ModBuildingsInitializer
      */
     public static void injectBuildingModules()
     {
+        injectModuleToBuilding(MCTPBuildingModules.CITIZEN_INCENTIVES, com.minecolonies.api.colony.buildings.ModBuildings.townHall);
+
         // Get the existing entry to extend
         final DeferredHolder<BuildingEntry,BuildingEntry> cowboy = com.minecolonies.api.colony.buildings.ModBuildings.cowboy;
 

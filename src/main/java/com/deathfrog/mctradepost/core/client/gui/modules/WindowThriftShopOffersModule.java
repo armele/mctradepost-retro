@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
@@ -221,17 +222,10 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
 
                 Text pricePane = rowPane.findPaneOfTypeByID(OFFER_PRICE, Text.class);
 
-                if (offer.price() > 10000)
-                {
-                    pricePane.setText(Component.literal(offer.price() / 1000 + "k‡"));
-                }
-                else 
-                {
-                    pricePane.setText(Component.literal(offer.price() + "‡"));
-                }
+                pricePane.setText(Component.literal(EconomicValueFormatter.compact(offer.price())));
 
                 PaneBuilders.tooltipBuilder()
-                        .append(Component.literal(offer.price() + "‡"))
+                        .append(Component.literal(EconomicValueFormatter.exact(offer.price())))
                         .hoverPane(pricePane)
                         .build();
 

@@ -44,6 +44,10 @@ import net.minecraft.network.chat.Component;
 
 public class MCTPBuildingModules
 {
+    public static final BuildingEntry.ModuleProducer<CitizenIncentiveModule, com.deathfrog.mctradepost.api.colony.buildings.moduleviews.CitizenIncentiveModuleView> CITIZEN_INCENTIVES =
+        new BuildingEntry.ModuleProducer<>("citizen_incentives", CitizenIncentiveModule::new,
+            () -> com.deathfrog.mctradepost.api.colony.buildings.moduleviews.CitizenIncentiveModuleView::new);
+
     /**
      * Global
      */

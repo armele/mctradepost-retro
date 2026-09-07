@@ -1,5 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
+import com.deathfrog.mctradepost.core.colony.buildings.modules.CitizenIncentiveModule;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -280,7 +282,7 @@ public class BuildingResort extends AbstractBuilding
         }
 
         if (guest.getTargetLevel() > 0
-            && citizenData.getCitizenSkillHandler().getLevel(guest.getBurntSkill()) >= guest.getTargetLevel())
+            && CitizenIncentiveModule.getNormalLevel(citizenData, guest.getBurntSkill()) >= guest.getTargetLevel())
         {
             return false;
         }

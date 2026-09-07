@@ -21,6 +21,8 @@ public class MCTPConfig
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
     public static final ModConfigSpec SPEC;
 
+    public static final ConfigValue<Integer> incentiveCostPerSkillPoint;
+
     // Server side Neoforge-managed configurations.
     // Marketplace settings
     public static final ConfigValue<Integer> tradeCoinValue;
@@ -67,6 +69,11 @@ public class MCTPConfig
 
     static
     {
+        BUILDER.push("incentives");
+        incentiveCostPerSkillPoint = BUILDER.comment("Colony economic units charged per boosted citizen skill point per colony day.")
+            .defineInRange("incentiveCostPerSkillPoint", 1000, 1, Integer.MAX_VALUE);
+        BUILDER.pop();
+
         BUILDER.push("marketplace");
 
         tradeCoinValue = BUILDER.comment("What is the value of a Trade Coin (‡)?").define("tradeCoinValue", 1000);

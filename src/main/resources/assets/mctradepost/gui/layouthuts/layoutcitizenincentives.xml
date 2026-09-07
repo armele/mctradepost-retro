@@ -1,0 +1,39 @@
+<window size="190 244">
+    <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
+    <text id="title" size="170 11" pos="10 14" textalign="MIDDLE" color="black" label="$(mctradepost.incentives.title)"/>
+    <view id="roster" size="190 210" pos="0 28">
+        <text id="balance" size="160 11" pos="20 0" color="black"/>
+        <text id="total" size="160 11" pos="20 13" color="black"/>
+        <input id="search" size="166 16" pos="12 27" maxlength="100" tooltip="$(mctradepost.incentives.search)"/>
+        <list id="citizens" size="170 140" pos="10 47" emptytext="$(mctradepost.incentives.empty)" emptycolor="black">
+            <view size="100% 28">
+                <text id="name" size="85 11" pos="0 1" color="black"/>
+                <text id="job" size="108 11" pos="0 15" color="black"/>
+                <text id="status" size="73 11" pos="87 1" color="black" textalign="MIDDLE_RIGHT"/>
+                <button id="up" size="12 13" pos="113 13" label="+" tooltip="$(mctradepost.incentives.up)"/>
+                <button id="down" size="12 13" pos="128 13" label="-" tooltip="$(mctradepost.incentives.down)"/>
+                <button id="edit" size="15 15" pos="145 12" tooltip="$(mctradepost.incentives.edit)" source="minecolonies:textures/gui/builderhut/edit.png"/>
+            </view>
+        </list>
+        <text size="170 20" pos="10 189" color="black" textalign="MIDDLE" label="$(mctradepost.incentives.priority)"/>
+    </view>
+    <view id="editor" size="190 234" pos="0 4" visible="false">
+        <text id="selectedName" size="135 11" pos="10 10" color="black"/>
+        <button id="back" size="14 15" pos="174 0" tooltip="$(mctradepost.incentives.back)" source="minecolonies:textures/gui/button_x.png"/>
+        <text id="price" size="170 11" pos="10 26" color="black"/>
+        <list id="skills" size="170 143" pos="10 38" childspacing="0">
+            <view size="100% 13">
+                <text id="skillName" size="68 12" pos="0 1" color="black" textalign="MIDDLE_RIGHT"/>
+                <image id="skillIcon" size="9 9" pos="70 2"/>
+                <text id="levels" size="15 12" pos="82 1" color="black" textalign="MIDDLE_LEFT"/>
+                <text id="boost" size="22 12" pos="99 1" color="darkgreen" textalign="MIDDLE_LEFT"/>
+                <button id="minus" size="12 13" pos="124 0" label="-"/>
+                <button id="plus" size="12 13" pos="140 0" label="+"/>
+            </view>
+        </list>
+        <text id="cost" size="170 11" pos="10 184" color="black" textalign="MIDDLE"/>
+        <button id="save" size="78 17" pos="12 200" label="$(mctradepost.incentives.save)" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png"/>
+        <button id="stop" size="85 17" pos="93 200" label="$(mctradepost.incentives.stop)" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png"/>
+        <text id="editorHint" size="170 12" pos="10 220" color="black" textalign="MIDDLE"/>
+    </view>
+</window>

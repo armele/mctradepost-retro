@@ -1440,6 +1440,7 @@ public class MCTradePostMod
 
         MCTradePostMod.LOGGER.info("Injecting building modules.");
         ModBuildingsInitializer.injectBuildingModules();
+        com.deathfrog.mctradepost.core.colony.buildings.modules.CitizenIncentiveModule.registerLifecycleHooks();
     }
 
     @EventBusSubscriber(modid = MCTradePostMod.MODID)
@@ -1495,6 +1496,7 @@ public class MCTradePostMod
 
             TradeMessage.TYPE.register(registrar);
             WithdrawMessage.TYPE.register(registrar);
+            com.deathfrog.mctradepost.core.colony.buildings.modules.CitizenIncentiveMessage.TYPE.register(registrar);
             PetMessage.TYPE.register(registrar);
             CancelRecyclingMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);

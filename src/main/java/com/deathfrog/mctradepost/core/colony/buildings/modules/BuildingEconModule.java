@@ -78,11 +78,22 @@ public class BuildingEconModule extends AbstractBuildingModule implements IPersi
      * Deposits a given count of coins into the building's economy, adding the corresponding amount of value to the economy.
      * @param count the count to deposit
      */
-    public void deposit(final int count)
+    public boolean deposit(final int count)
     {
+        long totalValue = getTotalBalance();
+
+        if (totalValue + count > Integer.MAX_VALUE)
+        {
+            long limitedDeposit = Integer.MAX_VALUE - totalValue;
+            deposit((int)limitedDeposit);
+            return false;
+        }
+
         statisticsManager.incrementBy(WindowEconModule.CURRENT_BALANCE, count, building.getColony().getDay());  // Building stats
         building.getColony().getStatisticsManager().incrementBy(WindowEconModule.CURRENT_BALANCE, count, building.getColony().getDay());         // Colony stats (the official current balance)
         markDirty();
+        
+        return true;
     }
 
     /**
