@@ -32,11 +32,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 
 /**
- * Builds display-only JEI entries for pet foraging from the server's active datapack state.
+ * Builds JEI entries and Focused Foraging source data from the server's active datapack state.
  * <p>
  * The builder intentionally mirrors the path conventions used by the runtime scavenge profiles while staying display-oriented:
  * expand each source block tag, derive the matching loot-table id, then flatten simple item entries from the loot-table JSON into
- * possible JEI outputs. When a custom forage table does not exist, the source block's normal loot table is inspected instead.
+ * possible outputs, following referenced tables. When a custom forage table does not exist, the source block's normal loot table is inspected instead.
  * </p>
  */
 public final class PetForagingJeiDataBuilder
@@ -63,8 +63,11 @@ public final class PetForagingJeiDataBuilder
         if (server == null) return List.of();
 
         final List<PetForagingJeiEntry> entries = new ArrayList<>();
+        final ForagingLootReader reader = new ForagingLootReader(
+            id -> readLootTable(server, ResourceLocation.parse(id)),
+            message -> MCTradePostMod.LOGGER.warn("{}", message));
 
-        addTaggedEntries(server, entries,
+        addTaggedEntries(server, reader, entries,
             new SourceDefinition(
                 PetRoles.SCAVENGE_VEGETATION,
                 blockId(MCTradePostMod.FEEDER.get()),
@@ -72,7 +75,7 @@ public final class PetForagingJeiDataBuilder
                 "pet/vegetation_scavenge/fruit",
                 NOTE_VEGETATION_FRUIT));
 
-        addTaggedEntries(server, entries,
+        addTaggedEntries(server, reader, entries,
             new SourceDefinition(
                 PetRoles.SCAVENGE_VEGETATION,
                 blockId(MCTradePostMod.FEEDER.get()),
@@ -80,7 +83,7 @@ public final class PetForagingJeiDataBuilder
                 "pet/vegetation_scavenge/leaves",
                 NOTE_VEGETATION_LEAVES));
 
-        addTaggedEntries(server, entries,
+        addTaggedEntries(server, reader, entries,
             new SourceDefinition(
                 PetRoles.SCAVENGE_VEGETATION,
                 blockId(MCTradePostMod.FEEDER.get()),
@@ -88,7 +91,7 @@ public final class PetForagingJeiDataBuilder
                 "pet/vegetation_scavenge/groundcover",
                 NOTE_VEGETATION_GROUNDCOVER));
 
-        addTaggedEntries(server, entries,
+        addTaggedEntries(server, reader, entries,
             new SourceDefinition(
                 PetRoles.SCAVENGE_WATER,
                 blockId(MCTradePostMod.DREDGER.get()),
@@ -96,7 +99,7 @@ public final class PetForagingJeiDataBuilder
                 "pet/amphibious_scavenge",
                 NOTE_WATER));
 
-        addTaggedEntries(server, entries,
+        addTaggedEntries(server, reader, entries,
             new SourceDefinition(
                 PetRoles.SCAVENGE_LAND,
                 blockId(MCTradePostMod.SCAVENGE.get()),
@@ -112,7 +115,7 @@ public final class PetForagingJeiDataBuilder
     /**
      * Expands one source definition into JEI entries, one per block in the configured source tag.
      */
-    private static void addTaggedEntries(final MinecraftServer server, final List<PetForagingJeiEntry> entries, final SourceDefinition definition)
+    private static void addTaggedEntries(final MinecraftServer server, final ForagingLootReader reader, final List<PetForagingJeiEntry> entries, final SourceDefinition definition)
     {
         @SuppressWarnings("null")
         final Optional<HolderSet.Named<Block>> tag = BuiltInRegistries.BLOCK.getTag(definition.sourceTag());
@@ -132,11 +135,15 @@ public final class PetForagingJeiDataBuilder
             final BlockState representativeState = ScavengeBlockStateHelper.representativeState(sourceBlock);
 
             ResourceLocation effectiveLootTableId = customLootTableId;
-            List<ItemStack> outputs = readLootOutputs(server, customLootTableId, representativeState);
+            List<ItemStack> outputs;
             if (!lootTableExists(server, customLootTableId))
             {
                 effectiveLootTableId = normalBlockLootTableId(sourceBlockId);
-                outputs = readLootOutputs(server, effectiveLootTableId, representativeState);
+                outputs = readLootOutputs(reader, effectiveLootTableId, representativeState);
+            }
+            else
+            {
+                outputs = readLootOutputs(reader, customLootTableId, representativeState);
             }
             final List<ItemStack> displayOutputs = outputs.isEmpty() ? fallbackOutput(sourceBlock) : outputs;
             if (displayOutputs.isEmpty()) continue;
@@ -196,80 +203,42 @@ public final class PetForagingJeiDataBuilder
     }
 
     /**
-     * Reads possible item outputs from a simple loot-table JSON resource.
-     * <p>
-     * This is not a full loot-table evaluator. It is a deterministic display flattener for the item-entry structure used by the pet
-     * scavenge tables, with light support for {@code minecraft:set_count}.
-     * </p>
+     * Loads one active datapack table; the build-scoped reader caches this result.
      */
-    @SuppressWarnings("null")
-    private static List<ItemStack> readLootOutputs(
-        final MinecraftServer server,
-        final ResourceLocation lootTableId,
-        final BlockState sourceState)
+    private static Optional<JsonObject> readLootTable(final MinecraftServer server, final ResourceLocation id)
     {
-        final ResourceLocation resourceId = lootTableResourceId(lootTableId);
+        final ResourceLocation lootTableResourceID = lootTableResourceId(id);
 
-        final Optional<Resource> resource = server.getResourceManager().getResource(resourceId);
-        if (resource.isEmpty()) return List.of();
+        if (lootTableResourceID == null)
+        {
+            return Optional.empty();
+        }
 
-        final List<ItemStack> outputs = new ArrayList<>();
-
+        final Optional<Resource> resource = server.getResourceManager().getResource(lootTableResourceID);
+        if (resource.isEmpty()) return Optional.empty();
         try (InputStreamReader reader = new InputStreamReader(resource.get().open(), StandardCharsets.UTF_8))
         {
             final JsonElement root = JsonParser.parseReader(reader);
-            if (!root.isJsonObject()) return List.of();
-
-            final JsonArray pools = root.getAsJsonObject().getAsJsonArray("pools");
-            if (pools == null) return List.of();
-
-            for (JsonElement poolElement : pools)
-            {
-                if (!poolElement.isJsonObject()) continue;
-                final JsonObject pool = poolElement.getAsJsonObject();
-                if (!conditionsMatch(pool, sourceState)) continue;
-                collectItemOutputs(pool.getAsJsonArray("entries"), outputs, sourceState);
-            }
+            return root.isJsonObject() ? Optional.of(root.getAsJsonObject()) : Optional.empty();
         }
-        catch (Exception e)
+        catch (Exception exception)
         {
-            MCTradePostMod.LOGGER.warn("Unable to read pet foraging JEI loot table {}", lootTableId, e);
-            return List.of();
+            MCTradePostMod.LOGGER.warn("Unable to read pet foraging loot table {}", id, exception);
+            return Optional.empty();
         }
-
-        return outputs;
     }
 
-    /**
-     * Recursively collects direct item entries from loot-table entry arrays.
-     */
-    private static void collectItemOutputs(
-        final JsonArray entries,
-        final List<ItemStack> outputs,
-        final BlockState sourceState)
+    /** Collects possible items using the same source state throughout nested tables. */
+    private static List<ItemStack> readLootOutputs(
+        final ForagingLootReader reader, final ResourceLocation lootTableId, final BlockState sourceState)
     {
-        if (entries == null) return;
-
-        for (JsonElement entryElement : entries)
-        {
-            if (!entryElement.isJsonObject()) continue;
-
-            final JsonObject entry = entryElement.getAsJsonObject();
-            if (!conditionsMatch(entry, sourceState)) continue;
-            final String type = stringValue(entry, "type");
-
-            if ("item".equals(type) || "minecraft:item".equals(type))
-            {
-                final ResourceLocation itemId = ResourceLocation.parse(stringValue(entry, "name"));
-                final Item item = BuiltInRegistries.ITEM.get(itemId);
-
-                outputs.add(new ItemStack(item, outputCount(entry)));
-                continue;
-            }
-
-            collectItemOutputs(entry.getAsJsonArray("children"), outputs, sourceState);
-            collectItemOutputs(entry.getAsJsonArray("entries"), outputs, sourceState);
-        }
+        final List<ItemStack> outputs = new ArrayList<>();
+        reader.collect(lootTableId.toString(), owner -> conditionsMatch(owner, sourceState), entry -> {
+            final Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(stringValue(entry, "name")));
+            final ItemStack output = new ItemStack(item, outputCount(entry));
+            if (!output.isEmpty()) outputs.add(output);
+        });
+        return outputs;
     }
 
     /**

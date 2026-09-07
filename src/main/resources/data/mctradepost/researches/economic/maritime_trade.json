@@ -1,8 +1,8 @@
 {
     "subtitle": "com.mctradepost.research.economic.maritime_trade.subtitle",
     "branch": "economic",
-    "researchLevel": 3,
-    "parentResearch": "mctradepost:economic/tourism",
+    "researchLevel": 2,
+    "parentResearch": "mctradepost:economic/expansion",
     "sortOrder": 0,
     "exclusiveChildResearch": false,
     "no-reset": false,
@@ -13,7 +13,7 @@
         {
             "type": "minecolonies:building",
             "building": "mctradepost:station",
-            "level": 3
+            "level": 2
         }
     ],
     "costs": [
@@ -26,8 +26,8 @@
             "item": "mctradepost:mctp_coin_gold"
         },
         {
-            "count": 1,
-            "item": "minecraft:heart_of_the_sea"
+            "count": 4,
+            "item": "minecraft:sea_pickle"
         }
     ],
     "effects": [

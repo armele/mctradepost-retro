@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     {"id": "#mctradepost:rarefinds_generated_blacklist", "required": false},
+    {"id": "#mctradepost:base_currency", "required": false},
     {"id": "lootr:lootr_shulker", "required": false},
     {"id": "immersiveengineering:capacitor_creative", "required": false},
     {"id": "integrateddynamics:energy_battery_creative", "required": false},
@@ -21,6 +22,7 @@
     {"id": "pipez:infinity_upgrade", "required": false},
     {"id": "dndesires:creative_gear_motor", "required": false},
     {"id": "moonlight:spawn_box", "required": false},
+    {"id": "minecraft:filled_map", "required": false},
     "#mctradepost:spawn_eggs",
     "minecraft:ominous_trial_key",
     "minecraft:dragon_head",

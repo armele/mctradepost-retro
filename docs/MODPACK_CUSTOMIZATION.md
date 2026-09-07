@@ -382,7 +382,7 @@ data/mctradepost/loot_modifiers/add_trade_coin_entities.json
 
 The included modifier grants trade coins to entities matching `#mctradepost:coindroppers`.
 
-Pet scavenging uses explicit loot tables:
+Pet scavenging checks for custom loot tables at these paths:
 
 ```text
 data/mctradepost/loot_table/pet/amphibious_scavenge/*.json
@@ -400,7 +400,9 @@ The associated trigger tags are:
 - `#mctradepost:scavenge_leaves` -> `pet/vegetation_scavenge/leaves/<block_path>.json`
 - `#mctradepost:scavenge_groundcover` -> `pet/vegetation_scavenge/groundcover/<block_path>.json`
 
-If you add a block to one of these scavenge tags, you should usually also provide the matching loot table for that block path.
+Adding a block to one of these scavenge tags does not require a custom pet loot table. When no custom table exists, harvesting
+falls back to the block's normal drops for its actual state. Provide a matching custom table only when you want to change pet
+harvest yields. Custom tables replace that fallback rather than adding to its drops.
 
 Only the block path is used when resolving these tables; the source block namespace is discarded. For example,
 `othermod:blue_mushroom` resolves to
@@ -412,7 +414,7 @@ share the same Trade Post scavenge table and cannot be configured independently 
 Mushroom scavenging has two target types:
 
 - Existing blocks in `#mctradepost:mushroom_scavenge` are harvested and use
-  `pet/mushroom_scavenge/<block_path>.json`.
+  `pet/mushroom_scavenge/<block_path>.json` when present, otherwise their normal block drops.
 - Empty locations use the shared `mctradepost:pet/mushroom_scavenge/forage` table when the location has a raw brightness below 8
   and is above a block in `#minecraft:dirt` or `#minecraft:mushroom_grow_block`.
 
@@ -767,11 +769,10 @@ road routing.
 ### If You Want Pack-Specific Pet Scavenging
 
 1. Add blocks to the scavenge block tags
-2. Add matching loot tables under the corresponding `pet/...` loot-table folders
+2. Use normal block drops, or add matching tables under the corresponding `pet/...` folders to customize pet yields
 3. Customize `pet/mushroom_scavenge/forage.json` to control discoveries in empty mushroom-growing locations
 4. For plantable forage results, add the block to `#mctradepost:mushroom_scavenge` and verify its default state can survive there
 5. Test harvest/reset behavior for fruit-bearing plants with unusual blockstate properties
-6. Check for block-path collisions when integrating similarly named blocks from multiple mods
 
 ### If You Want Custom Trade Roads
 
@@ -802,6 +803,8 @@ road routing.
   and `/mctp tradepath clear` to remove its overlay
 - Use `/mctp station routes` to inspect the segmented routes stations actually have cached
 - Test one pet scavenge target for every new block tag you added
+- After `/reload`, check JEI's possible pet-foraging outputs and test a focus item supplied by a referenced loot table
+- For fruit focus targets, verify immature plants are skipped and mature, reachable plants are selected
 - Test both an existing mushroom target and an empty, dim mushroom forage location if you changed mushroom scavenging
 - Confirm custom mushroom forage results are awarded and that intended block results are planted
 - Restart a dedicated server once if you changed rituals
