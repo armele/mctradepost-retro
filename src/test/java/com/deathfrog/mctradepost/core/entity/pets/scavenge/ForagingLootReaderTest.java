@@ -46,7 +46,7 @@ class ForagingLootReaderTest
         for (String name : List.of("blueberry_bush", "blueberry_bush_berries"))
         {
             try (var stream = getClass().getResourceAsStream("/foraging/" + name + ".json");
-                 var reader = new InputStreamReader(stream, StandardCharsets.UTF_8))
+                 InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8))
             {
                 tables.put("twilightforest:blocks/" + name, JsonParser.parseReader(reader).getAsJsonObject());
             }

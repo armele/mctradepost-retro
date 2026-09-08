@@ -1,0 +1,25 @@
+{
+  "subtitle": "com.mctradepost.research.economic.big_bonuses.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/incentive_plans",
+  "researchLevel": 3,
+  "sortOrder": 0,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    { "type": "minecolonies:building", "building": "mctradepost:marketplace", "level": 3 },
+    { "type": "minecolonies:building", "building": "minecolonies:townhall", "level": 3 }
+  ],
+  "costs": [
+    { "count": 4, "item": "mctradepost:mctp_coin" },
+    { "count": 8, "item": "minecraft:golden_carrot" },
+    { "count": 8, "tag": "minecraft:fences" }
+  ],
+  "effects": [
+    { "id": "mctradepost:effects/incentive_plans", "level": 2 }
+  ],
+  "icon": "minecraft:golden_carrot"
+}

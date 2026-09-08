@@ -1,0 +1,25 @@
+{
+  "subtitle": "com.mctradepost.research.economic.golden_handcuffs.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/big_bonuses",
+  "researchLevel": 4,
+  "sortOrder": 0,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    { "type": "minecolonies:building", "building": "mctradepost:marketplace", "level": 4 },
+    { "type": "minecolonies:building", "building": "minecolonies:townhall", "level": 4 }
+  ],
+  "costs": [
+    { "count": 2, "item": "mctradepost:mctp_coin_gold" },
+    { "count": 32, "item": "minecraft:gold_ingot" },
+    { "count": 8, "item": "minecraft:magma_block" }
+  ],
+  "effects": [
+    { "id": "mctradepost:effects/incentive_plans", "level": 3 }
+  ],
+  "icon": "minecraft:magma_block"
+}

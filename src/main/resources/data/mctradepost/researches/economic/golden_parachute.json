@@ -1,0 +1,25 @@
+{
+  "subtitle": "com.mctradepost.research.economic.golden_parachute.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/golden_handcuffs",
+  "researchLevel": 5,
+  "sortOrder": 0,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    { "type": "minecolonies:building", "building": "mctradepost:marketplace", "level": 5 },
+    { "type": "minecolonies:building", "building": "minecolonies:townhall", "level": 5 }
+  ],
+  "costs": [
+    { "count": 2, "item": "mctradepost:mctp_coin_diamond" },
+    { "count": 16, "item": "minecraft:gold_block" },
+    { "count": 8, "item": "minecraft:end_rod" }
+  ],
+  "effects": [
+    { "id": "mctradepost:effects/incentive_plans", "level": 4 }
+  ],
+  "icon": "minecraft:end_rod"
+}

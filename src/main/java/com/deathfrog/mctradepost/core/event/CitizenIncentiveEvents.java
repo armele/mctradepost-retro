@@ -3,7 +3,11 @@ package com.deathfrog.mctradepost.core.event;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.CitizenIncentiveModule;
 import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.workerbuildings.ITownHall;
 import com.minecolonies.api.colony.ColonyState;
+import com.minecolonies.api.colony.IColony;
+
+import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
@@ -22,12 +26,12 @@ public final class CitizenIncentiveEvents
     @SubscribeEvent
     public static void onLevelTick(final LevelTickEvent.Post event)
     {
-        final var level = event.getLevel();
+        final Level level = event.getLevel();
         if (level.isClientSide || level.getGameTime() % 20 != 0) return;
-        for (final var colony : IColonyManager.getInstance().getColonies(level))
+        for (final IColony colony : IColonyManager.getInstance().getColonies(level))
         {
             if (colony.getState() != ColonyState.ACTIVE) continue;
-            final var townHall = colony.getServerBuildingManager().getTownHall();
+            final ITownHall townHall = colony.getServerBuildingManager().getTownHall();
             if (townHall != null && townHall.hasModule(CitizenIncentiveModule.class))
             {
                 townHall.getModule(CitizenIncentiveModule.class).onColonyTick(colony);

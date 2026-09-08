@@ -1,5 +1,6 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
+import com.deathfrog.mctradepost.api.event.CitizenIncentivesPaidEvent;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
@@ -8,6 +9,7 @@ import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.core.colony.managers.StatisticsManager;
 import com.minecolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationHandler;
@@ -39,6 +41,8 @@ class CitizenIncentiveModuleTest
     private static final class Town
     {
         int day;
+        int payCycleDays = 1;
+        long salaryCap = Long.MAX_VALUE;
         final StatisticsManager stats = new StatisticsManager();
         final Map<Integer, ICitizenData> citizens = new LinkedHashMap<>();
         final ICitizenManager citizenManager = proxy(ICitizenManager.class, (p, method, args) -> switch (method.getName()) {
@@ -50,6 +54,7 @@ class CitizenIncentiveModuleTest
             case "getCitizenManager" -> citizenManager;
             case "getStatisticsManager" -> stats;
             case "getDay" -> day;
+            case "getMessagePlayerEntities" -> java.util.List.of();
             case "markDirty" -> null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
@@ -68,6 +73,14 @@ class CitizenIncentiveModuleTest
                 /** {@inheritDoc} */
                 @Override
                 protected int pointPrice() { return 1000; }
+
+                /** {@inheritDoc} */
+                @Override
+                protected long incentiveCap() { return salaryCap; }
+
+                /** {@inheritDoc} */
+                @Override
+                protected int payCycleDays() { return payCycleDays; }
             };
             result.setBuilding(building);
             return result;
@@ -105,10 +118,28 @@ class CitizenIncentiveModuleTest
             assertTrue(module.schedule(citizen.getId(), citizen.getUUID(), Map.of(STRENGTH, amount)));
         }
 
-        /** Runs payroll for the fixture's current colony day. */
+        /** Runs payroll for the fixture's current pay cycle. */
         void tick() { module.onColonyTick(colony); }
         /** @return current colony treasury balance */
         int balance() { return stats.getStatTotal("current_balance"); }
+
+        /**
+         * Reads one plan through the module's persisted representation.
+         * @param id colony-local citizen ID
+         * @return copied plan, or null when absent
+         */
+        IncentivePlan plan(final int id)
+        {
+            final CompoundTag saved = new CompoundTag();
+            module.serializeNBT(null, saved);
+            final var entries = saved.getList(CitizenIncentiveModule.TAG_INCENTIVES, Tag.TAG_COMPOUND);
+            for (int index = 0; index < entries.size(); index++)
+            {
+                final CompoundTag entry = entries.getCompound(index);
+                if (entry.getInt(CitizenIncentiveModule.TAG_CITIZEN_ID) == id) return IncentivePlan.read(entry);
+            }
+            return null;
+        }
     }
 
     /** Verifies payment priority and paid-day state survive module reloads under limited funds. */
@@ -214,5 +245,109 @@ class CitizenIncentiveModuleTest
         town.tick();
         assertEquals(20, replacement.getCitizenSkillHandler().getLevel(STRENGTH));
         assertEquals(5000, town.balance());
+    }
+
+    /** Verifies salary-cap priority, retained deferred plans, and automatic reconsideration after an upgrade. */
+    @Test
+    void salaryCapDefersLowerPriorityPlansWithoutDeletingThem()
+    {
+        final Town town = new Town();
+        final var joe = town.addCitizen(1);
+        final var jane = town.addCitizen(2);
+        town.stats.incrementBy("current_balance", 20_000, 0);
+        town.salaryCap = 4_000;
+        town.schedule(joe, 2);
+        town.schedule(jane, 2);
+        assertTrue(town.module.movePriority(2, -1));
+        town.salaryCap = 3_000;
+        town.day = 1;
+        town.tick();
+        assertEquals(22, jane.getCitizenSkillHandler().getLevel(STRENGTH));
+        assertEquals(20, joe.getCitizenSkillHandler().getLevel(STRENGTH));
+        assertTrue(town.plan(1).limitedByCap());
+        assertTrue(town.plan(1).isScheduled());
+        town.salaryCap = 4_000;
+        town.day = 2;
+        town.tick();
+        assertEquals(22, jane.getCitizenSkillHandler().getLevel(STRENGTH));
+        assertEquals(22, joe.getCitizenSkillHandler().getLevel(STRENGTH));
+        assertFalse(town.plan(1).limitedByCap());
+        assertEquals(14_000, town.balance());
+    }
+
+    /** Verifies research rollback removes paid boosts at dawn while preserving the requested plans. */
+    @Test
+    void lockedResearchRemovesBenefitsButRetainsPlans()
+    {
+        final Town town = new Town();
+        final var joe = town.addCitizen(1);
+        town.stats.incrementBy("current_balance", 10_000, 0);
+        town.salaryCap = 5_000;
+        town.schedule(joe, 2);
+        town.day = 1;
+        town.tick();
+        assertEquals(22, joe.getCitizenSkillHandler().getLevel(STRENGTH));
+        town.salaryCap = 0;
+        town.day = 2;
+        town.tick();
+        assertEquals(20, joe.getCitizenSkillHandler().getLevel(STRENGTH));
+        assertTrue(town.plan(1).limitedByCap());
+        assertTrue(town.plan(1).isScheduled());
+        assertEquals(8_000, town.balance());
+    }
+
+    /** Verifies the authoritative scheduler rejects aggregate commitments above the researched cap. */
+    @Test
+    void scheduleRejectsPayrollAboveResearchCapButAllowsCancellation()
+    {
+        final Town town = new Town();
+        final var joe = town.addCitizen(1);
+        final var jane = town.addCitizen(2);
+        town.salaryCap = 3_000;
+        town.schedule(joe, 2);
+        assertFalse(town.module.schedule(jane.getId(), jane.getUUID(), Map.of(STRENGTH, 2)));
+        town.salaryCap = 0;
+        assertTrue(town.module.schedule(joe.getId(), joe.getUUID(), Map.of()));
+    }
+
+    /** Verifies the public payout event reports ordered citizen amounts through immutable collections. */
+    @Test
+    void payoutEventExposesImmutableOrderedPayments()
+    {
+        final Town town = new Town();
+        final var joe = town.addCitizen(1);
+        final var jane = town.addCitizen(2);
+        final var event = new CitizenIncentivesPaidEvent(town.colony, java.util.List.of(
+            new CitizenIncentivesPaidEvent.Payment(jane, 3_000),
+            new CitizenIncentivesPaidEvent.Payment(joe, 2_000)));
+        assertSame(town.colony, event.getColony());
+        assertSame(jane, event.getPayments().get(0).getCitizen());
+        assertEquals(3_000, event.getPayments().get(0).getAmount());
+        assertEquals(5_000, event.getTotalAmount());
+        assertThrows(UnsupportedOperationException.class,
+            () -> event.getPayments().add(new CitizenIncentivesPaidEvent.Payment(joe, 1)));
+    }
+
+    /** Verifies module payroll charges once per configured cycle and preserves the boost between renewals. */
+    @Test
+    void moduleRenewsOnlyAtPayCycleBoundary()
+    {
+        final Town town = new Town();
+        town.payCycleDays = 5;
+        final var joe = town.addCitizen(1);
+        town.stats.incrementBy("current_balance", 10_000, 0);
+        town.schedule(joe, 2);
+        town.day = 1;
+        town.tick();
+        assertEquals(8_000, town.balance());
+        for (town.day = 2; town.day < 6; town.day++)
+        {
+            town.tick();
+            assertEquals(8_000, town.balance());
+            assertEquals(22, joe.getCitizenSkillHandler().getLevel(STRENGTH));
+        }
+        town.tick();
+        assertEquals(6_000, town.balance());
+        assertEquals(22, joe.getCitizenSkillHandler().getLevel(STRENGTH));
     }
 }

@@ -4,23 +4,31 @@
     <view id="roster" size="190 210" pos="0 28">
         <text id="balance" size="160 11" pos="20 0" color="black"/>
         <text id="total" size="160 11" pos="20 13" color="black"/>
-        <input id="search" size="166 16" pos="12 27" maxlength="100" tooltip="$(mctradepost.incentives.search)"/>
-        <list id="citizens" size="170 140" pos="10 47" emptytext="$(mctradepost.incentives.empty)" emptycolor="black">
-            <view size="100% 28">
-                <text id="name" size="85 11" pos="0 1" color="black"/>
-                <text id="job" size="108 11" pos="0 15" color="black"/>
-                <text id="status" size="73 11" pos="87 1" color="black" textalign="MIDDLE_RIGHT"/>
-                <button id="up" size="12 13" pos="113 13" label="+" tooltip="$(mctradepost.incentives.up)"/>
-                <button id="down" size="12 13" pos="128 13" label="-" tooltip="$(mctradepost.incentives.down)"/>
-                <button id="edit" size="15 15" pos="145 12" tooltip="$(mctradepost.incentives.edit)" source="minecolonies:textures/gui/builderhut/edit.png"/>
+        <text id="payCycle" size="160 11" pos="20 26" color="black"/>
+        <view id="unlocked" size="190 171" pos="0 40">
+        <input id="search" size="166 16" pos="12 0" maxlength="100" tooltip="$(mctradepost.incentives.search)"/>
+        <list id="citizens" size="170 127" pos="10 20" emptytext="$(mctradepost.incentives.empty)" emptycolor="black">
+            <view size="100% 25">
+                <box size="100% 26" linewidth="1">
+                    <text id="name" size="85 11" pos="2 1" color="black"/>
+                    <text id="job" size="108 11" pos="2 13" color="black"/>
+                    <text id="status" size="73 11" pos="87 1" color="black" textalign="MIDDLE_RIGHT"/>
+                    <button id="up" size="12 13" pos="113 12" label="+" tooltip="$(mctradepost.incentives.up)"/>
+                    <button id="down" size="12 13" pos="128 12" label="-" tooltip="$(mctradepost.incentives.down)"/>
+                    <button id="edit" size="15 15" pos="145 12" tooltip="$(mctradepost.incentives.edit)" source="minecolonies:textures/gui/builderhut/edit.png"/>
+                </box>
             </view>
         </list>
-        <text size="170 20" pos="10 189" color="black" textalign="MIDDLE" label="$(mctradepost.incentives.priority)"/>
+        <text size="170 20" pos="10 149" color="black" textalign="MIDDLE" label="$(mctradepost.incentives.priority)"/>
+        </view>
+        <view id="locked" size="170 132" pos="10 52" visible="false">
+            <text size="170 120" pos="0 0" color="black" textalign="TOP_MIDDLE" label="$(mctradepost.incentives.locked.explanation)"/>
+        </view>
     </view>
-    <view id="editor" size="190 234" pos="0 4" visible="false">
-        <text id="selectedName" size="135 11" pos="10 10" color="black"/>
-        <button id="back" size="14 15" pos="174 0" tooltip="$(mctradepost.incentives.back)" source="minecolonies:textures/gui/button_x.png"/>
-        <text id="price" size="170 11" pos="10 26" color="black"/>
+    <view id="editor" size="190 234" pos="4 4" visible="false">
+        <text id="selectedName" size="135 11" pos="14 10" color="black"/>
+        <button id="back" size="14 15" pos="170 2" tooltip="$(mctradepost.incentives.back)" source="minecolonies:textures/gui/button_x.png"/>
+        <text id="price" size="170 11" pos="14 26" color="black"/>
         <list id="skills" size="170 143" pos="10 38" childspacing="0">
             <view size="100% 13">
                 <text id="skillName" size="68 12" pos="0 1" color="black" textalign="MIDDLE_RIGHT"/>

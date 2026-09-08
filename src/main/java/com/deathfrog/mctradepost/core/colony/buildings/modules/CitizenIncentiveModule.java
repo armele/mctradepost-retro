@@ -1,6 +1,9 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.api.event.CitizenIncentivesPaidEvent;
+import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
+import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.minecolonies.api.IMinecoloniesAPI;
 import com.minecolonies.api.colony.ICitizenData;
@@ -10,18 +13,24 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IBuildingEventsModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
+import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.api.entity.citizen.Skill;
+import com.minecolonies.api.eventbus.EventBus;
 import com.minecolonies.api.eventbus.events.colony.buildings.BuildingRemovedModEvent;
 import com.minecolonies.api.eventbus.events.colony.citizens.CitizenRemovedModEvent;
+import com.minecolonies.api.util.MessageUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.entity.Entity;
+import net.neoforged.neoforge.common.NeoForge;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,6 +52,16 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
 
     /** @return the configured number of economic units charged per skill point */
     protected int pointPrice() { return MCTPConfig.incentiveCostPerSkillPoint.get(); }
+
+    /** @return configured number of colony days covered by one incentive payment */
+    protected int payCycleDays() { return MCTPConfig.incentivePayCycleDays.get(); }
+
+    /** @return colony-wide per-cycle incentive cap supplied by the Incentive Plans research effect */
+    protected long incentiveCap()
+    {
+        return Math.max(0L, (long) building.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.INCENTIVE_PLANS));
+    }
 
     /** Advances the edit revision and marks the module and colony for persistence and synchronization. */
     private void changed()
@@ -71,6 +90,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
             final int amount = boosts.getOrDefault(skill, 0);
             if (amount < 0 || amount != IncentivePlan.availableBoost(normal, amount)) return false;
         }
+        if (!fitsSalaryCap(id, boosts)) return false;
         final IncentivePlan plan = plans.computeIfAbsent(id, ignored -> new IncentivePlan(uuid));
         plan.schedule(boosts, building.getColony().getDay());
         changed();
@@ -78,14 +98,67 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     }
 
     /**
-     * Moves a saved plan one position in the daily payment order.
+     * Checks a replacement package against the current aggregate research cap.
+     * Zero-cost cancellation remains valid while the feature is locked.
+     * @param id colony-local citizen ID being replaced
+     * @param boosts proposed adjustments
+     * @return whether the resulting scheduled payroll fits the current cap
+     */
+    boolean fitsSalaryCap(final int id, final Map<Skill, Integer> boosts)
+    {
+        final ICitizenData citizen = building.getColony().getCitizenManager().getCivilian(id);
+        if (citizen == null) return false;
+        final IncentivePlan existing = plans.get(id);
+        final long proposedCost = requestedCost(citizen, existing, boosts);
+        return proposedCost == 0 || proposedCost + scheduledCostExcluding(id) <= incentiveCap();
+    }
+
+    /**
+     * Calculates a proposed citizen package from normal levels without mutating its current plan.
+     * @param citizen citizen whose package is being evaluated
+     * @param existing existing plan whose applied adjustments establish normal levels, or null
+     * @param boosts requested adjustments
+     * @return proposed per-cycle cost calculated as a long
+     */
+    private long requestedCost(final ICitizenData citizen, final IncentivePlan existing, final Map<Skill, Integer> boosts)
+    {
+        long points = 0;
+        for (final Skill skill : Skill.values())
+        {
+            final int applied = existing == null ? 0 : existing.applied(skill);
+            final int normal = IncentivePlan.normalLevel(citizen.getCitizenSkillHandler().getLevel(skill), applied);
+            points += IncentivePlan.availableBoost(normal, boosts.getOrDefault(skill, 0));
+        }
+        return points * pointPrice();
+    }
+
+    /**
+     * Totals active scheduled commitments other than the citizen currently being edited.
+     * @param excludedId colony-local citizen ID to omit
+     * @return aggregate per-cycle cost calculated as a long
+     */
+    private long scheduledCostExcluding(final int excludedId)
+    {
+        long total = 0;
+        for (final Map.Entry<Integer, IncentivePlan> entry : plans.entrySet())
+        {
+            if (entry.getKey() == excludedId) continue;
+            final ICitizenData citizen = building.getColony().getCitizenManager().getCivilian(entry.getKey());
+            if (citizen != null && citizen.getUUID().equals(entry.getValue().citizenUuid()))
+                total += entry.getValue().cycleCost(pointPrice(), citizen.getCitizenSkillHandler()::getLevel);
+        }
+        return total;
+    }
+
+    /**
+     * Moves a saved plan one position in the payment priority order.
      * @param id citizen whose payment priority changes
      * @param direction minus one for earlier payment or plus one for later payment
      * @return whether the plan moved
      */
     public boolean movePriority(final int id, final int direction)
     {
-        final var ids = new ArrayList<>(plans.keySet());
+        final List<Integer> ids = new ArrayList<>(plans.keySet());
         final int index = ids.indexOf(id);
         final int target = index + direction;
         if (Math.abs(direction) != 1 || index < 0 || target < 0 || target >= ids.size()) return false;
@@ -99,14 +172,18 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("null")
     @Override
     public void onColonyTick(final IColony colony)
     {
         boolean dirty = false;
-        final var iterator = plans.entrySet().iterator();
+        final List<CitizenIncentivesPaidEvent.Payment> payments = new ArrayList<>();
+        long remainingCapacity = incentiveCap();
+        boolean incentiveCapReached = remainingCapacity <= 0;
+        final Iterator<Map.Entry<Integer, IncentivePlan>> iterator = plans.entrySet().iterator();
         while (iterator.hasNext())
         {
-            final var entry = iterator.next();
+            final Map.Entry<Integer, IncentivePlan> entry = iterator.next();
             final ICitizenData citizen = colony.getCitizenManager().getCivilian(entry.getKey());
             final IncentivePlan plan = entry.getValue();
             if (citizen == null || !citizen.getUUID().equals(plan.citizenUuid()))
@@ -115,12 +192,32 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
                 dirty = true;
                 continue;
             }
-            if (plan.processDay(colony.getDay(), pointPrice(),
-                citizen.getCitizenSkillHandler()::getLevel, citizen.getCitizenSkillHandler()::incrementLevel,
-                amount -> withdraw(colony, amount)))
+            final long packageCost = plan.cycleCost(pointPrice(), citizen.getCitizenSkillHandler()::getLevel);
+            if (incentiveCapReached || packageCost > remainingCapacity)
             {
-                refreshCitizen(citizen);
-                dirty = true;
+                if (plan.isScheduled() && plan.limitForDay(colony.getDay(), citizen.getCitizenSkillHandler()::incrementLevel))
+                {
+                    refreshCitizen(citizen);
+                    dirty = true;
+                    incentiveCapReached = plan.isScheduled();
+                }
+            }
+            else
+            {
+                final long[] charged = {0};
+                remainingCapacity -= packageCost;
+                if (plan.processDay(colony.getDay(), pointPrice(), payCycleDays(),
+                    citizen.getCitizenSkillHandler()::getLevel, citizen.getCitizenSkillHandler()::incrementLevel,
+                    amount -> {
+                        final boolean withdrawn = withdraw(colony, amount);
+                        if (withdrawn) charged[0] = amount;
+                        return withdrawn;
+                    }))
+                {
+                    if (charged[0] > 0) payments.add(new CitizenIncentivesPaidEvent.Payment(citizen, charged[0]));
+                    refreshCitizen(citizen);
+                    dirty = true;
+                }
             }
             if (!plan.isScheduled() && !plan.hasApplied() && !plan.endedForFunds())
             {
@@ -128,6 +225,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
                 dirty = true;
             }
         }
+        if (!payments.isEmpty()) announcePayments(colony, payments);
         if (dirty) changed();
         // Refresh treasury, newly arrived citizens and naturally changing levels while a player has the tab open.
         if (++syncTicks >= VIEW_SYNC_INTERVAL)
@@ -135,6 +233,19 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
             syncTicks = 0;
             markDirty();
         }
+    }
+
+    /**
+     * Posts the public payroll event and sends one aggregate MineColonies message to colony message recipients.
+     * @param colony colony whose payroll completed
+     * @param payments successful payments in priority order
+     */
+    private static void announcePayments(final IColony colony, final List<CitizenIncentivesPaidEvent.Payment> payments)
+    {
+        final CitizenIncentivesPaidEvent event = new CitizenIncentivesPaidEvent(colony, payments);
+        NeoForge.EVENT_BUS.post(event);
+        MessageUtils.format("mctradepost.incentives.paid", EconomicValueFormatter.compact(event.getTotalAmount()))
+            .sendTo(colony).forAllPlayers();
     }
 
     /**
@@ -146,7 +257,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     private boolean withdraw(final IColony colony, final long amount)
     {
         // The existing treasury is an int-valued colony statistic. Calculate prices as longs first.
-        final var stats = colony.getStatisticsManager();
+        final IStatisticsManager  stats = colony.getStatisticsManager();
         if (amount <= 0 || amount > Integer.MAX_VALUE || stats.getStatTotal(WindowEconModule.CURRENT_BALANCE) < amount) return false;
         stats.incrementBy(WindowEconModule.CURRENT_BALANCE, -(int) amount, colony.getDay());
         stats.incrementBy(EXPENSE_STAT, (int) amount, colony.getDay());
@@ -170,6 +281,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
      * Integrations transferring citizens should call this before copying their data.
      * @param citizen departing citizen
      */
+    @SuppressWarnings("null")
     public void releaseCitizen(final ICitizenData citizen)
     {
         final IncentivePlan plan = plans.get(citizen.getId());
@@ -214,7 +326,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     /** Registers core event handlers for pre-grave death cleanup and Town Hall removal. Call once during mod setup. */
     public static void registerLifecycleHooks()
     {
-        final var bus = IMinecoloniesAPI.getInstance().getEventBus();
+        final EventBus bus = IMinecoloniesAPI.getInstance().getEventBus();
         bus.subscribe(CitizenRemovedModEvent.class, event -> {
             // KILLED is emitted before core grave creation. Unloading/discarding an entity is not a payroll cancellation.
             if (event.getRemovalReason() != Entity.RemovalReason.KILLED || event.getColony() == null) return;
@@ -241,7 +353,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
         });
         tag.put(TAG_INCENTIVES, list);
         tag.putLong(TAG_REVISION, revision);
-        tag.putInt(TAG_SCHEMA_VERSION, 1);
+        tag.putInt(TAG_SCHEMA_VERSION, 2);
     }
 
     /** {@inheritDoc} */
@@ -259,16 +371,20 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("null")
     @Override
     public void serializeToView(final RegistryFriendlyByteBuf buf)
     {
         buf.writeLong(revision);
         buf.writeInt(pointPrice());
+        buf.writeInt(payCycleDays());
+        buf.writeInt(building.getColony().getDay());
         buf.writeInt(building.getColony().getStatisticsManager().getStatTotal(WindowEconModule.CURRENT_BALANCE));
+        buf.writeLong(incentiveCap());
         final CompoundTag tag = new CompoundTag();
         serializeNBT(buf.registryAccess(), tag);
         buf.writeNbt(tag);
-        final var citizens = building.getColony().getCitizenManager().getCitizens();
+        final List<ICitizenData> citizens = building.getColony().getCitizenManager().getCitizens();
         buf.writeInt(citizens.size());
         for (final ICitizenData citizen : citizens)
         {

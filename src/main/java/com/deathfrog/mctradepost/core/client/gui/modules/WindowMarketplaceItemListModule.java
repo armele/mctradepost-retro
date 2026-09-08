@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceItemListModuleView;
-import com.deathfrog.mctradepost.api.util.CompactNumberFormatter;
+import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
@@ -98,6 +98,7 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
              * @param index the index of the row/list element.
              * @param rowPane the parent Pane for the row, containing the elements to update.
              */
+            @SuppressWarnings("null")
             @Override
             public void updateElement(final int index, @NotNull final Pane rowPane)
             {
@@ -114,8 +115,8 @@ public class WindowMarketplaceItemListModule extends ItemListModuleWindow
                     value = marketplaceView.getMarketplaceValue(resource);
                 }
 
-                resourceValue.setText(Component.literal(CompactNumberFormatter.format(value)));
-                PaneBuilders.tooltipBuilder().hoverPane(resourceValue).build().setText(Component.literal(Integer.toString(value) + "‡"));
+                resourceValue.setText(Component.literal(EconomicValueFormatter.compact(value)));
+                PaneBuilders.tooltipBuilder().hoverPane(resourceValue).build().setText(Component.literal(EconomicValueFormatter.exact(value)));
 
                 resourceValue.setColors(WHITE);
 

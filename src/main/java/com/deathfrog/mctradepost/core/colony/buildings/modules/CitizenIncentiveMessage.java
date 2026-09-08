@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.ldtteam.common.network.PlayMessageType;
+import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
@@ -62,6 +63,7 @@ public class CitizenIncentiveMessage extends AbstractBuildingServerMessage<IBuil
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("null")
     @Override
     protected void toBytes(final RegistryFriendlyByteBuf buf)
     {
@@ -74,6 +76,7 @@ public class CitizenIncentiveMessage extends AbstractBuildingServerMessage<IBuil
     }
 
     /** {@inheritDoc} */
+    @SuppressWarnings("null")
     @Override
     protected void onExecute(final IPayloadContext ctx, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
@@ -81,10 +84,23 @@ public class CitizenIncentiveMessage extends AbstractBuildingServerMessage<IBuil
         final CitizenIncentiveModule module = building.getModule(CitizenIncentiveModule.class);
         // Settle a dawn that arrived between opening the editor and receiving the message.
         module.onColonyTick(colony);
-        final var citizen = colony.getCitizenManager().getCivilian(citizenId);
+        final ICitizenData citizen = colony.getCitizenManager().getCivilian(citizenId);
         if (module.revision() != revision || citizen == null || !citizen.getUUID().equals(uuid))
         {
             player.displayClientMessage(Component.translatable("mctradepost.incentives.stale"), false);
+            module.markDirty();
+            return;
+        }
+        final boolean cancellation = direction == 0 && boosts.values().stream().allMatch(value -> value == 0);
+        if (!cancellation && module.incentiveCap() <= 0)
+        {
+            player.displayClientMessage(Component.translatable("mctradepost.incentives.locked.message"), false);
+            module.markDirty();
+            return;
+        }
+        if (direction == 0 && !module.fitsSalaryCap(citizenId, boosts))
+        {
+            player.displayClientMessage(Component.translatable("mctradepost.incentives.cap_exceeded"), false);
             module.markDirty();
             return;
         }

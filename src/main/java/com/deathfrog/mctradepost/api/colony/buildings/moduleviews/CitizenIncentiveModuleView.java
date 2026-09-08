@@ -8,6 +8,7 @@ import com.ldtteam.blockui.views.BOWindow;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModuleView;
 import com.minecolonies.api.entity.citizen.Skill;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -23,7 +24,10 @@ public class CitizenIncentiveModuleView extends AbstractBuildingModuleView
     private final Map<Integer, CitizenSkills> citizens = new LinkedHashMap<>();
     private long revision;
     private int price;
+    private int payCycleDays;
+    private int colonyDay;
     private int balance;
+    private long incentiveCap;
 
     /** @return saved plans in payment order, exposed through an unmodifiable map */
     public Map<Integer, IncentivePlan> plans()
@@ -49,10 +53,34 @@ public class CitizenIncentiveModuleView extends AbstractBuildingModuleView
         return price;
     }
 
+    /** @return synchronized number of colony days covered by one payment */
+    public int payCycleDays()
+    {
+        return payCycleDays;
+    }
+
+    /** @return synchronized MineColonies day used to present relative payment dates */
+    public int colonyDay()
+    {
+        return colonyDay;
+    }
+
     /** @return colony treasury balance at the last module synchronization */
     public int balance()
     {
         return balance;
+    }
+
+    /** @return synchronized colony-wide per-cycle incentive cap, or zero while research is locked */
+    public long incentiveCap()
+    {
+        return incentiveCap;
+    }
+
+    /** @return whether the colony has unlocked its first Incentive Plans research level */
+    public boolean isUnlocked()
+    {
+        return incentiveCap > 0;
     }
 
     /**
@@ -74,12 +102,15 @@ public class CitizenIncentiveModuleView extends AbstractBuildingModuleView
     {
         revision = buf.readLong();
         price = buf.readInt();
+        payCycleDays = buf.readInt();
+        colonyDay = buf.readInt();
         balance = buf.readInt();
+        incentiveCap = buf.readLong();
         plans.clear();
         final CompoundTag tag = buf.readNbt();
         if (tag != null)
         {
-            final var list = tag.getList(CitizenIncentiveModule.TAG_INCENTIVES, Tag.TAG_COMPOUND);
+            final ListTag list = tag.getList(CitizenIncentiveModule.TAG_INCENTIVES, Tag.TAG_COMPOUND);
             for (int i = 0; i < list.size(); i++)
             {
                 final CompoundTag entry = list.getCompound(i);

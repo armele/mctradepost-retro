@@ -5,7 +5,7 @@ import java.util.Locale;
 /** Formats economic values consistently for compact labels and exact hover text. */
 public final class EconomicValueFormatter
 {
-    private static final long COMPACT_THRESHOLD = 10_000;
+    private static final long MILLION_DISPLAY_THRESHOLD = 99_900;
     private static final long THOUSAND = 1_000;
     private static final long MILLION = 1_000_000;
     private static final String CURRENCY_SYMBOL = "\u2021";
@@ -16,19 +16,30 @@ public final class EconomicValueFormatter
     }
 
     /**
-     * Uses whole thousands above 10,000 and millions rounded to one decimal place
-     * above 1,000,000 in magnitude, with a locale-independent decimal point.
+     * Uses K above 1,000 and M above 99,900 in magnitude. Scaled values below
+     * 100 in magnitude keep at most one decimal place; larger values use whole
+     * numbers, with a locale-independent decimal point.
      * @param value signed economic amount, including long-valued daily totals
      * @return compact amount with the economic currency symbol
      */
     public static String compact(final long value)
     {
-        if (value > MILLION || value < -MILLION)
+        if (value > MILLION_DISPLAY_THRESHOLD || value < -MILLION_DISPLAY_THRESHOLD)
         {
-            return String.format(Locale.ROOT, "%.1fM", value / (double) MILLION) + CURRENCY_SYMBOL;
+            return formatScaled(value / (double) MILLION) + "M" + CURRENCY_SYMBOL;
         }
-        return value > COMPACT_THRESHOLD || value < -COMPACT_THRESHOLD
-            ? value / THOUSAND + "k" + CURRENCY_SYMBOL : exact(value);
+        if (value > THOUSAND || value < -THOUSAND)
+        {
+            return formatScaled(value / (double) THOUSAND) + "K" + CURRENCY_SYMBOL;
+        }
+        return exact(value);
+    }
+
+    private static String formatScaled(final double value)
+    {
+        final int decimalPlaces = Math.abs(value) < 100 && value != Math.floor(value) ? 1 : 0;
+        final String formatted = String.format(Locale.ROOT, "%." + decimalPlaces + "f", value);
+        return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
     }
 
     /**

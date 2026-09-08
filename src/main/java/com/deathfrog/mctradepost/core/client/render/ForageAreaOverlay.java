@@ -23,6 +23,7 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -336,7 +337,7 @@ public final class ForageAreaOverlay
         final PoseStack pose = event.getPoseStack();
         pose.pushPose();
         pose.translate(-camera.x, -camera.y, -camera.z);
-        final var buffers = minecraft.renderBuffers().bufferSource();
+        final BufferSource buffers = minecraft.renderBuffers().bufferSource();
 
         // Complementary depth tests split the boundary into obscured and
         // directly visible fragments without relying on draw-order overlap.

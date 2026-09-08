@@ -42,6 +42,7 @@ public final class TownHallIncentiveTab
      * Records the exact Town Hall that the player opened rather than guessing from proximity.
      * @param event client block interaction that may open a Town Hall window
      */
+    @SuppressWarnings("null")
     @SubscribeEvent
     public static void onInteract(final PlayerInteractEvent.RightClickBlock event)
     {
@@ -84,7 +85,7 @@ public final class TownHallIncentiveTab
     public static void onScreenInit(final ScreenEvent.Init.Post event)
     {
         if (!(event.getScreen() instanceof BOScreen screen) || !(screen.getWindow() instanceof AbstractWindowTownHall window)) return;
-        final var level = Minecraft.getInstance().level;
+        final Level level = Minecraft.getInstance().level;
         if (level == null || townHallPosition == null || !level.dimension().equals(townHallDimension)) return;
         if (!windowChainOpen && (level.getGameTime() < clickedAt || level.getGameTime() - clickedAt > OPEN_TIMEOUT_TICKS))
         {

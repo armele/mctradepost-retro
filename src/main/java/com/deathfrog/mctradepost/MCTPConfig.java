@@ -22,6 +22,7 @@ public class MCTPConfig
     public static final ModConfigSpec SPEC;
 
     public static final ConfigValue<Integer> incentiveCostPerSkillPoint;
+    public static final ConfigValue<Integer> incentivePayCycleDays;
 
     // Server side Neoforge-managed configurations.
     // Marketplace settings
@@ -69,11 +70,6 @@ public class MCTPConfig
 
     static
     {
-        BUILDER.push("incentives");
-        incentiveCostPerSkillPoint = BUILDER.comment("Colony economic units charged per boosted citizen skill point per colony day.")
-            .defineInRange("incentiveCostPerSkillPoint", 1000, 1, Integer.MAX_VALUE);
-        BUILDER.pop();
-
         BUILDER.push("marketplace");
 
         tradeCoinValue = BUILDER.comment("What is the value of a Trade Coin (‡)?").define("tradeCoinValue", 1000);
@@ -108,6 +104,13 @@ public class MCTPConfig
         subscriptionPriceMultiplier = BUILDER.comment("Multiplier applied to the greater of an item's economic value and tier price floor for subscriptions.")
             .defineInRange("subscriptionPriceMultiplier", 2.0D, 1.0D, 100.0D);
 
+        BUILDER.pop();
+
+        BUILDER.push("incentives");
+        incentiveCostPerSkillPoint = BUILDER.comment("‡ charged per boosted citizen skill point per pay cycle.")
+            .defineInRange("incentiveCostPerSkillPoint", 1000, 100, 100000);
+        incentivePayCycleDays = BUILDER.comment("MineColonies days in one citizen incentive pay cycle.")
+            .defineInRange("incentivePayCycleDays", 3, 1, 30);
         BUILDER.pop();
 
         BUILDER.push("resort");

@@ -5,6 +5,9 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.core.entity.citizen.citizenhandlers.CitizenSkillHandler;
 import com.minecolonies.core.util.ExperienceUtils;
+
+import net.minecraft.nbt.CompoundTag;
+
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -15,7 +18,7 @@ import java.util.UUID;
 import static com.minecolonies.api.util.constant.CitizenConstants.MAX_CITIZEN_LEVEL;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Verifies daily incentive accounting against the actual core skill handler. */
+/** Verifies pay-cycle incentive accounting against the actual core skill handler. */
 class IncentivePlanTest
 {
     private static final Skill STRENGTH = Skill.Strength;
@@ -45,7 +48,20 @@ class IncentivePlanTest
          */
         boolean day(final int day, final int price)
         {
-            return plan.processDay(day, price, skills::getLevel, skills::incrementLevel, amount -> {
+            return day(day, price, 1);
+        }
+
+        /**
+         * Processes a colony day using an explicit pay-cycle length.
+         * @param day colony day to process
+         * @param price economic units per skill point per cycle
+         * @param cycleDays colony days covered by one payment
+         * @return whether an activation, edit, cancellation, or renewal was processed
+         */
+        @SuppressWarnings("null")
+        boolean day(final int day, final int price, final int cycleDays)
+        {
+            return plan.processDay(day, price, cycleDays, skills::getLevel, skills::incrementLevel, amount -> {
                 withdrawals++;
                 if (amount > balance) return false;
                 balance -= amount;
@@ -115,8 +131,8 @@ class IncentivePlanTest
         joe.day(1, 1000);
         joe.skills.incrementLevel(STRENGTH, 1);
         joe.skills.getSkills().get(STRENGTH).setExperience(11.25);
-        final var citizenSave = joe.skills.write();
-        final var planSave = joe.plan.write();
+        final CompoundTag citizenSave = joe.skills.write();
+        final CompoundTag planSave = joe.plan.write();
         joe.skills.read(citizenSave);
         joe.plan = IncentivePlan.read(planSave);
         assertFalse(joe.day(1, 1000));
@@ -166,6 +182,7 @@ class IncentivePlanTest
     }
 
     /** Verifies natural gains reduce the points available for purchase at the core cap. */
+    @SuppressWarnings("null")
     @Test
     void capRecalculatedAtDawnAndOnlyAvailablePointsAreBilled()
     {
@@ -197,6 +214,7 @@ class IncentivePlanTest
     }
 
     /** Verifies repeated cleanup does not remove extra levels or erase permanent skill losses. */
+    @SuppressWarnings("null")
     @Test
     void cleanupIsIdempotentAndKeepsPermanentSkillLosses()
     {
@@ -216,11 +234,28 @@ class IncentivePlanTest
         final Worker joe = new Worker(20);
         joe.balance = Integer.MAX_VALUE;
         joe.plan.schedule(Map.of(STRENGTH, 2), 0);
-        assertEquals(2L * Integer.MAX_VALUE, joe.plan.dailyCost(Integer.MAX_VALUE, joe.skills::getLevel));
+        assertEquals(2L * Integer.MAX_VALUE, joe.plan.cycleCost(Integer.MAX_VALUE, joe.skills::getLevel));
         joe.day(1, Integer.MAX_VALUE);
         assertEquals(Integer.MAX_VALUE, joe.balance);
         assertEquals(20, joe.skills.getLevel(STRENGTH));
         assertTrue(joe.plan.endedForFunds());
         assertThrows(IllegalArgumentException.class, () -> joe.plan.schedule(Map.of(STRENGTH, -1), 2));
+    }
+
+    /** Verifies one payment covers the configured cycle and renews on its first uncovered day. */
+    @Test
+    void paymentCoversConfiguredCycle()
+    {
+        final Worker joe = new Worker(20);
+        joe.plan.schedule(Map.of(STRENGTH, 2), 0);
+        assertTrue(joe.day(1, 1000, 5));
+        assertEquals(2_000, 100_000 - joe.balance);
+        assertEquals(1, joe.plan.cycleStartDay());
+        assertEquals(6, joe.plan.nextPaymentDay());
+        for (int day = 2; day < 6; day++) assertFalse(joe.day(day, 1000, 5));
+        assertEquals(1, joe.withdrawals);
+        assertTrue(joe.day(6, 1000, 5));
+        assertEquals(2, joe.withdrawals);
+        assertEquals(96_000, joe.balance);
     }
 }

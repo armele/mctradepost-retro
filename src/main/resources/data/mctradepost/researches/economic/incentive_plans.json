@@ -1,0 +1,25 @@
+{
+  "subtitle": "com.mctradepost.research.economic.incentive_plans.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/capitalism",
+  "researchLevel": 2,
+  "sortOrder": 0,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    { "type": "minecolonies:building", "building": "mctradepost:marketplace", "level": 2 },
+    { "type": "minecolonies:building", "building": "minecolonies:townhall", "level": 2 }
+  ],
+  "costs": [
+    { "count": 2, "item": "mctradepost:mctp_coin" },
+    { "count": 8, "item": "minecraft:carrot" },
+    { "count": 8, "item": "minecraft:stick" }
+  ],
+  "effects": [
+    { "id": "mctradepost:effects/incentive_plans", "level": 1 }
+  ],
+  "icon": "minecraft:carrot"
+}
