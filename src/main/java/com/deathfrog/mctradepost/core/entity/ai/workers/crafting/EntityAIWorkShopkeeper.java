@@ -12,6 +12,7 @@ import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.api.util.EconomicConstants;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
@@ -250,7 +251,7 @@ public class EntityAIWorkShopkeeper extends AbstractEntityAIInteract<JobShopkeep
         // Current balance
         building.getColony()
             .getStatisticsManager()
-            .incrementBy(WindowEconModule.CURRENT_BALANCE, sellvalue, building.getColony().getDay());
+            .incrementBy(EconomicConstants.CURRENT_BALANCE, sellvalue, building.getColony().getDay());
     }
 
     /**

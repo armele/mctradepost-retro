@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.util.EconomicConstants;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
@@ -32,6 +33,9 @@ import static com.minecolonies.api.util.constant.WindowConstants.*;
  */
 public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 {
+    /** @deprecated use the side-neutral {@link EconomicConstants#CURRENT_BALANCE} statistic key */
+    @Deprecated(forRemoval = false)
+    public static final String CURRENT_BALANCE = EconomicConstants.CURRENT_BALANCE;
     private IStatisticsManager statsManager = null;
     /**
      * Drop down list for interval.
@@ -46,7 +50,6 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
     public static final String ITEM_SOLD = "item.sold";
     public static final String CASH_GENERATED = "cash.generated";
     public static final String COINS_MINTED = "coins.minted";
-    public static final String CURRENT_BALANCE = "current_balance";
     public static final String PARTIAL_ECON_MODIFIER_NAME = "com.mctradepost.coremod.gui.econ.";
     public static final String WITHDRAW_TOOLTIP = "com.mctradepost.coremod.gui.econ.withdraw.tooltip";
     public static final String WITHDRAW_TOOLTIP_NSF = "com.mctradepost.coremod.gui.econ.withdraw.tooltip.nsf";
@@ -118,7 +121,7 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
     private void updateStats()
     {
 
-        currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
+        currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), EconomicConstants.CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
         final Text balanceLabel = findPaneOfTypeByID("currentbalance", Text.class);
         NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
         String formattedSales = "‡" + formatter.format(currentBalance);        

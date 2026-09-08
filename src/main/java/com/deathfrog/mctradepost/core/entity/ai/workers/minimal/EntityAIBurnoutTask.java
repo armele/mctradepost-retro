@@ -12,7 +12,7 @@ import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
-import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
+import com.deathfrog.mctradepost.api.util.EconomicConstants;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingResort;
 import com.deathfrog.mctradepost.core.entity.ai.workers.minimal.Vacationer.VacationState;
@@ -880,7 +880,7 @@ public class EntityAIBurnoutTask
             int incomeGenerated = MCTPConfig.vacationIncome.get() * MCTPConfig.tradeCoinValue.get();
             citizenData.getColony()
                 .getStatisticsManager()
-                .incrementBy(WindowEconModule.CURRENT_BALANCE, incomeGenerated, citizenData.getColony().getDay());
+                .incrementBy(EconomicConstants.CURRENT_BALANCE, incomeGenerated, citizenData.getColony().getDay());
 
             vacationTracker.reset();
         }

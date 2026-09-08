@@ -3,8 +3,8 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.event.CitizenIncentivesPaidEvent;
 import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
+import com.deathfrog.mctradepost.api.util.EconomicConstants;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
-import com.deathfrog.mctradepost.core.client.gui.modules.WindowEconModule;
 import com.minecolonies.api.IMinecoloniesAPI;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.colony.IColony;
@@ -258,8 +258,8 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
     {
         // The existing treasury is an int-valued colony statistic. Calculate prices as longs first.
         final IStatisticsManager  stats = colony.getStatisticsManager();
-        if (amount <= 0 || amount > Integer.MAX_VALUE || stats.getStatTotal(WindowEconModule.CURRENT_BALANCE) < amount) return false;
-        stats.incrementBy(WindowEconModule.CURRENT_BALANCE, -(int) amount, colony.getDay());
+        if (amount <= 0 || amount > Integer.MAX_VALUE || stats.getStatTotal(EconomicConstants.CURRENT_BALANCE) < amount) return false;
+        stats.incrementBy(EconomicConstants.CURRENT_BALANCE, -(int) amount, colony.getDay());
         stats.incrementBy(EXPENSE_STAT, (int) amount, colony.getDay());
         colony.markDirty();
         return true;
@@ -379,7 +379,7 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
         buf.writeInt(pointPrice());
         buf.writeInt(payCycleDays());
         buf.writeInt(building.getColony().getDay());
-        buf.writeInt(building.getColony().getStatisticsManager().getStatTotal(WindowEconModule.CURRENT_BALANCE));
+        buf.writeInt(building.getColony().getStatisticsManager().getStatTotal(EconomicConstants.CURRENT_BALANCE));
         buf.writeLong(incentiveCap());
         final CompoundTag tag = new CompoundTag();
         serializeNBT(buf.registryAccess(), tag);
