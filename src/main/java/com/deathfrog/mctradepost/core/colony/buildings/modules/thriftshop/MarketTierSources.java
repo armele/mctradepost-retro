@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.ModTags;
+import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManager;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketTier;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -352,7 +353,7 @@ public final class MarketTierSources
      * <p>
      * This method first checks if the stack is empty, in which case it returns false.
      * <p>
-     * Then, it checks if the stack has the {@link ModTags#RARE_FINDS_BLACKLIST_TAG} tag, in which case it returns false.
+     * Then, it checks the effective Rare Finds blacklist, including the legacy item tag and reloadable rules.
      * <p>
      * Finally, it checks if the stack has a tag that is specific to a higher market tier. If so, it returns false.
      * <p>
@@ -363,7 +364,7 @@ public final class MarketTierSources
     public static boolean isSellable(ItemStack stack, MarketTier rollingTier)
     {
         if (stack.isEmpty()) return false;
-        if (stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
+        if (RareFindBlacklistManager.isBlacklisted(stack)) return false;
 
         boolean in1 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER1_TAG);
         boolean in2 = stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG);
@@ -394,7 +395,7 @@ public final class MarketTierSources
      */
     public static MarketTier taggedTier(ItemStack stack)
     {
-        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return null;
+        if (RareFindBlacklistManager.isBlacklisted(stack)) return null;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER4_TAG)) return MarketTier.TIER4_EPIC;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER3_TAG)) return MarketTier.TIER3_RARE;
         if (stack.is(ModTags.ITEMS.RARE_FINDS_TIER2_TAG)) return MarketTier.TIER2_UNCOMMON;
@@ -411,7 +412,7 @@ public final class MarketTierSources
      */
     public static boolean isTierZero(ItemStack stack)
     {
-        if (stack == null || stack.isEmpty() || stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)) return false;
+        if (RareFindBlacklistManager.isBlacklisted(stack)) return false;
         return taggedTier(stack) == null && stack.is(ModTags.ITEMS.RARE_FINDS_TIER0_TAG);
     }
 

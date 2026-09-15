@@ -89,6 +89,8 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingS
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
 import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistManager;
+import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManager;
+import com.deathfrog.mctradepost.network.RareFindBlacklistSyncPacket;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualPacket;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiSyncPacket;
@@ -1347,6 +1349,7 @@ public class MCTradePostMod
         // NeoForge.EVENT_BUS.register(RitualReloadListener.class);
         NeoForge.EVENT_BUS.register(BurnoutRemedyManager.class);
         NeoForge.EVENT_BUS.register(RecyclingBlacklistManager.class);
+        NeoForge.EVENT_BUS.register(RareFindBlacklistManager.class);
 
         // Add a listener for the common setup event.
         modEventBus.addListener(this::onCommonSetup);
@@ -1483,6 +1486,12 @@ public class MCTradePostMod
             );
 
             registrar.playToClient(
+                RareFindBlacklistSyncPacket.TYPE,
+                RareFindBlacklistSyncPacket.STREAM_CODEC,
+                (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
+            );
+
+            registrar.playToClient(
                 PetForagingJeiSyncPacket.TYPE,
                 PetForagingJeiSyncPacket.STREAM_CODEC,
                 (payload, ctx) -> payload.handleDataInClientOnMain(ctx)
@@ -1518,6 +1527,7 @@ public class MCTradePostMod
                     ConfigurationPacket.sendPacketsToPlayer(player);
                     RitualPacket.sendPacketsToPlayer(player);
                     ItemValueSyncPacket.sendPacketsToPlayer(player);
+                    RareFindBlacklistSyncPacket.sendToPlayer(player);
                     PetForagingJeiSyncPacket.sendPacketsToPlayer(player);
                 }
             }
@@ -1532,6 +1542,7 @@ public class MCTradePostMod
                 {
                     RitualPacket.sendPacketsToPlayer(localPlayer);
                     ItemValueSyncPacket.sendPacketsToPlayer(localPlayer);
+                    RareFindBlacklistSyncPacket.sendToPlayer(localPlayer);
                     PetForagingJeiSyncPacket.sendPacketsToPlayer(localPlayer);
                     return;
                 }
@@ -1541,6 +1552,7 @@ public class MCTradePostMod
                     RitualPacket.sendPacketsToPlayer(player);
                 }
                 ItemValueSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
+                RareFindBlacklistSyncPacket.sendToAllPlayers(event.getPlayerList().getServer());
                 PetForagingJeiSyncPacket.sendPacketsToAllPlayers(event.getPlayerList().getServer());
             }
         }   

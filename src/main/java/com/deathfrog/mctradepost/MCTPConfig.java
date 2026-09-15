@@ -78,7 +78,7 @@ public class MCTPConfig
             "For economies balanced around player-sold items, what penalty or bonus is applied to marketplace sales? (0.0 = no change, > 0.0 = % bonus, < 0.0 = % penalty)")
             .defineInRange("economicScaling", -0.00, -1.0, 1.0);
 
-        mintingLevel = BUILDER.comment("At what building level can the Marketplace mint coins?").define("mintingLevel", 2);
+        mintingLevel = BUILDER.comment("At what building level can the Marketplace withdraw coins?").define("mintingLevel", 2);
 
         shoppingCooldown = BUILDER.comment("How long before visitors will consider shopping again?").define("shoppingCooldown", 400);
 

@@ -35,7 +35,7 @@ Main categories:
 - `marketplace`
   - `tradeCoinValue`: base value of a trade coin
   - `economicScaling`: global bonus/penalty applied to item values used by the marketplace
-  - `mintingLevel`: marketplace level required to mint coins
+  - `mintingLevel`: marketplace level required to withdraw coins
   - `shoppingCooldown`: visitor shopping cooldown
   - `registerSoundChance`: chance for sale sound effects
   - `shoppingChance`: visitor shopping chance per marketplace level
@@ -470,11 +470,84 @@ Rare Finds notes:
 - Tier 0 is eligible only for Retained Search and subscriptions created from a successful search; it never enters random Rare Finds rolls
 - Each tier has a 20% chance to roll directly from its tag before falling back to chest/fishing/wandering-trader sources
 - If an item appears in multiple rarefinds tiers, the mod treats the highest tier as owner and logs a warning
-- `rarefinds_blacklist` blocks an item from appearing even if other sources would roll it
+- `rarefinds_blacklist` blocks an item from appearing even if other sources would roll it.
 - `rarefinds_unique_purchase` allows an item to appear normally, including through Retained Search, but prevents subscriptions
-  and causes each purchase to consume the offer even when Bottomless Inventory research would normally preserve it
+  and causes each purchase to consume the offer even when Bottomless Inventory research would normally preserve it.
 - The effective tier tags include optional generator-owned companions named `rarefinds_generated_tier0` through
   `rarefinds_generated_tier4`. Direct/manual membership remains definitive; generated membership only fills unclassified items.
+
+#### Rare Finds Blacklist
+
+Rare Finds supports both the existing item tag and reloadable blacklist rule files. Existing datapacks that extend
+`#mctradepost:rarefinds_blacklist` continue to work without migration.
+
+Rule folder:
+
+```text
+data/<namespace>/rarefinds_blacklist/*.json
+```
+
+The folder may be placed under your datapack's own namespace; it does not have to be under `mctradepost`. To exclude every item
+registered by a mod, add a namespace rule:
+
+```json
+{
+  "replace": false,
+  "deny": [
+    { "type": "namespace", "id": "examplemod" }
+  ]
+}
+```
+
+`namespace`, `mod`, and `modid` are equivalent rule types. The namespace is the part before the colon in an item registry ID,
+so the rule above matches `examplemod:artifact`, `examplemod:machine`, and every other loaded item from that mod. An absent mod
+simply contributes no matching items.
+
+Rare Finds rule files use the same schema as the Recycling Blacklist:
+
+- `item`: matches one item registry ID
+- `tag`: matches every item in an item tag
+- `namespace`, `mod`, or `modid`: matches every item registered in that namespace
+- `predicate`: matches a built-in predicate; currently `is_food` is available
+- `rules`: convenience alias for additional deny rules
+- `replace: true`: clears rules accumulated from files processed earlier
+
+For a namespace rule, `"id": "*"` matches every item namespace. This can be combined with namespace `allow` rules to make
+Rare Finds opt-in by mod:
+
+```json
+{
+  "replace": false,
+  "deny": [
+    { "type": "namespace", "id": "*" }
+  ],
+  "allow": [
+    { "type": "namespace", "id": "minecraft" },
+    { "type": "namespace", "id": "approvedmod" }
+  ]
+}
+```
+
+`allow` rules override matches from rule-file `deny` entries. This permits a broad namespace exclusion with selected exceptions:
+
+```json
+{
+  "replace": false,
+  "deny": [
+    { "type": "modid", "id": "examplemod" }
+  ],
+  "allow": [
+    { "type": "item", "id": "examplemod:approved_relic" }
+  ]
+}
+```
+
+Membership in `#mctradepost:rarefinds_blacklist` is an unconditional deny and cannot be undone by an `allow` rule. This keeps
+legacy item-tag blacklists authoritative. The effective blacklist is enforced for random offers, tier classification, Tier 0,
+Retained Search selection, and active retained-search promotion. It is synchronized to clients on login and datapack reload so
+the Marketplace picker uses the same result as the server.
+
+Use `/reload` after changing rule files or the legacy item tag. Rule files are processed in sorted resource-ID order.
 
 #### Unique Purchases
 
@@ -600,9 +673,10 @@ Generator configuration is loaded from `data/mctradepost/rare_find_generation_ru
 }
 ```
 
-`blacklisted_namespaces` expands every currently loaded item whose registry namespace matches into the optional
+`blacklisted_namespaces` is a generator-specific setting: it expands every currently loaded item whose registry namespace matches into the optional
 `rarefinds_generated_blacklist` companion tag. A namespace whose mod is absent simply contributes no items. This avoids relying
-on a non-standard per-mod "all items" tag and safely adapts when a mod adds or removes items between pack versions.
+on a non-standard per-mod "all items" tag and safely adapts when a mod adds or removes items between pack versions. For ordinary
+runtime blacklisting that does not depend on running the generator, prefer a `rarefinds_blacklist/*.json` namespace rule.
 
 `namespace_tier_floors` assigns a minimum generated tier to every non-blacklisted item in a loaded registry namespace. It promotes
 unclassified items and derived classifications below the floor, but never lowers a higher derived tier. Definitive manual tier
@@ -762,9 +836,10 @@ road routing.
 ### If You Want Custom Rare Finds
 
 1. Put your desired items in the `rarefinds_tier*` tags
-2. Remove unsuitable results through `rarefinds_blacklist`
-3. Put occasional, non-renewable finds in `rarefinds_unique_purchase`
-4. Avoid tagging the same item in more than one tier
+2. Remove individual unsuitable results through `#mctradepost:rarefinds_blacklist`
+3. Exclude a whole mod through a namespace rule in `data/<namespace>/rarefinds_blacklist/*.json`
+4. Put occasional, non-renewable finds in `rarefinds_unique_purchase`
+5. Avoid tagging the same item in more than one tier
 
 ### If You Want Pack-Specific Pet Scavenging
 
@@ -794,6 +869,7 @@ road routing.
 - Verify marketplace currency still resolves correctly
 - Test one resort burnout cure per skill you changed
 - Test recycler blacklist allow/deny precedence
+- Test Rare Finds namespace blacklist exceptions and confirm the Retained Search picker updates after `/reload`
 - Test one rarefinds roll from each tier
 - For tagged or enchanted unique-purchase Rare Finds, verify the subscription control is disabled and a purchase consumes the offer with Bottomless Inventory unlocked
 - If changing the unique-purchase tag in an existing world, verify affected active subscriptions are canceled on the next natural daily pass
@@ -815,6 +891,7 @@ road routing.
 - `src/main/java/com/deathfrog/mctradepost/api/util/ItemValueManager.java`
 - `src/main/java/com/deathfrog/mctradepost/core/economy/ItemValueSeedLoader.java`
 - `src/main/java/com/deathfrog/mctradepost/core/recycling/blacklist/RecyclingBlacklistManager.java`
+- `src/main/java/com/deathfrog/mctradepost/core/rarefinds/blacklist/RareFindBlacklistManager.java`
 - `src/main/java/com/deathfrog/mctradepost/core/event/burnout/BurnoutRemedyManager.java`
 - `src/main/java/com/deathfrog/mctradepost/core/event/wishingwell/ritual/RitualDefinition.java`
 - `src/main/java/com/deathfrog/mctradepost/core/ModTags.java`

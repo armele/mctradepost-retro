@@ -4,7 +4,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.MarketplaceSourcingModuleView;
 import com.deathfrog.mctradepost.api.util.ItemValueManager;
-import com.deathfrog.mctradepost.core.ModTags;
+import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManager;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage.Action;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketplaceSourcingModule.RetainedSearch;
@@ -234,7 +234,7 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     /** Returns whether an item belongs in the retained-search picker, including locked tiers. */
     private boolean isRetainedSearchCandidate(ItemStack stack)
     {
-        return !stack.is(ModTags.ITEMS.RARE_FINDS_BLACKLIST_TAG)
+        return !RareFindBlacklistManager.isBlacklisted(stack)
             && ItemValueManager.get(stack.getItem()) > 0
             && MarketTierSources.retainedSearchTierLevel(stack) >= 0;
     }

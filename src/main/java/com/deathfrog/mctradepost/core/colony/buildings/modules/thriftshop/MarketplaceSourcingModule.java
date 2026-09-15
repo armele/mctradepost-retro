@@ -8,6 +8,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModul
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
+import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManager;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketTier;
@@ -335,6 +336,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         java.util.EnumSet<MarketTier> promotedTiers = java.util.EnumSet.noneOf(MarketTier.class);
         for (RetainedSearch search : candidates)
         {
+            if (RareFindBlacklistManager.isBlacklisted(search.stack())) continue;
             if (search.investmentLevel() == 0 || search.investmentUntil() <= day) continue;
             if (promotedTiers.contains(search.tier())) continue;
             if (containsSubscription(search.stack()) || offers.stream().anyMatch(o -> ItemStack.isSameItemSameComponents(o.stack(), search.stack()))) continue;
