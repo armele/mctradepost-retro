@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.items;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
+import com.deathfrog.mctradepost.api.items.datacomponent.ResurrectionWishRecord;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
@@ -52,4 +53,10 @@ public class MCTPModDataComponents
             builder -> builder
                 .persistent(DimensionalLinkageRecord.CODEC)
                 .networkSynchronized(DimensionalLinkageRecord.STREAM_CODEC));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ResurrectionWishRecord>> RESURRECTION_WISH =
+        REGISTRAR.registerComponentType("resurrection_wish",
+            builder -> builder.persistent(ResurrectionWishRecord.CODEC)
+                .networkSynchronized(ResurrectionWishRecord.STREAM_CODEC));
 }

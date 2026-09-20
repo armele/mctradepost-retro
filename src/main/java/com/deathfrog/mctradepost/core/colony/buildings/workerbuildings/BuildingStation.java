@@ -125,10 +125,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     private static final String TAG_CONNECTION_ROUTE = "route";
     private static final String TAG_ROUTE_SEGMENTS = "segments";
     private static final String TAG_ROUTE_SEGMENT_TYPE = "type";
-    private static final String TAG_ROUTE_SEGMENT_DIMENSION = "dimension";
     private static final String TAG_ROUTE_SEGMENT_TRANSFER_FROM = "transfer_from";
     private static final String TAG_ROUTE_SEGMENT_TRANSFER_TO = "transfer_to";
-    private static final String TAG_DIMPOS_DIMENSION = "dimension";
     private static final String TAG_DIMPOS_POS = "pos";
 
     /**
@@ -803,7 +801,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             CompoundTag segmentTag = new CompoundTag();
             segmentTag.putString(TAG_ROUTE_SEGMENT_TYPE, segment.type().name());
-            segmentTag.putString(TAG_ROUTE_SEGMENT_DIMENSION, segment.dimension().location().toString());
+            segmentTag.putString(BuildingUtil.TAG_DIMENSION, segment.dimension().location().toString());
             segmentTag.put(TAG_CONNECTION_PATH, writeBlockPosList(segment.path()));
             if (segment.transferFrom() != null)
             {
@@ -854,19 +852,19 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             }
             else if (type == TrackRoute.SegmentType.DOCK)
             {
-                ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.dock(dimension, path.getFirst()));
             }
             else if (type == TrackRoute.SegmentType.INTERCHANGE)
             {
-                ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.interchange(dimension, path.getFirst()));
             }
             else
             {
-                ResourceKey<Level> dimension = readDimension(segmentTag.getString(TAG_ROUTE_SEGMENT_DIMENSION));
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty())
                 {
@@ -887,7 +885,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
     private static @Nonnull CompoundTag writeDimPos(DimPos dimPos)
     {
         CompoundTag tag = new CompoundTag();
-        tag.putString(TAG_DIMPOS_DIMENSION, dimPos.dimension().location().toString());
+        tag.putString(BuildingUtil.TAG_DIMENSION, dimPos.dimension().location().toString());
         BlockPosUtil.write(tag, TAG_DIMPOS_POS, dimPos.pos());
         return tag;
     }
@@ -900,7 +898,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     private static DimPos readDimPos(CompoundTag tag)
     {
-        if (tag == null || !tag.contains(TAG_DIMPOS_DIMENSION))
+        if (tag == null || !tag.contains(BuildingUtil.TAG_DIMENSION))
         {
             return null;
         }
@@ -909,7 +907,7 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             return null;
         }
-        ResourceKey<Level> dimension = readDimension(tag.getString(TAG_DIMPOS_DIMENSION));
+        ResourceKey<Level> dimension = readDimension(tag.getString(BuildingUtil.TAG_DIMENSION));
         return dimension == null ? null : new DimPos(dimension, pos);
     }
 

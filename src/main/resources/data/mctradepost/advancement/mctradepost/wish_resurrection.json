@@ -1,0 +1,27 @@
+{
+  "parent": "mctradepost:mctradepost/make_a_wish",
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "mctradepost:wish_resurrection"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.wish_resurrection.title"
+    },
+    "description": {
+      "translate": "advancement.mctradepost.wish_resurrection.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "rewards": {
+    "experience": 250
+  },
+  "criteria": {
+    "resurrect_citizen_wish": {
+      "trigger": "mctradepost:resurrect_citizen_wish"
+    }
+  }
+}

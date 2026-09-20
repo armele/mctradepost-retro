@@ -1,0 +1,13 @@
+{
+  "type": "recipe",
+  "crafter": "enchanter_custom",
+  "inputs": [
+    { "id": "minecraft:nether_star" },
+    { "id": "minecraft:totem_of_undying" },
+    { "count": 4, "id": "mctradepost:quartz_mortar" }
+  ],
+  "intermediate": "minecraft:air",
+  "result": { "id": "mctradepost:wish_resurrection" },
+  "min-building-level": 3,
+  "show-tooltip": true
+}

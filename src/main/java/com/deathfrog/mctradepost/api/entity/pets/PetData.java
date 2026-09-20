@@ -212,7 +212,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         if (dimName == null) return;
 
-        compound.putString("dimension", dimName);
+        compound.putString(BuildingUtil.TAG_DIMENSION, dimName);
         
         if (petType != null)
         {
@@ -276,7 +276,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
 
         // Dimension (guard against blank)
-        String dimname = compound.getString("dimension");
+        String dimname = compound.getString(BuildingUtil.TAG_DIMENSION);
         if (dimname != null && !dimname.isEmpty()) 
         {
             ResourceLocation level = ResourceLocation.parse(dimname);

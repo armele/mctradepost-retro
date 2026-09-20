@@ -23,6 +23,7 @@ public class RitualManager extends SimpleJsonResourceReloadListener
     public static final String RITUAL_EFFECT_COMMUNITY = "community";
     public static final String RITUAL_EFFECT_OUTPOST    = "outpost";
     public static final String RITUAL_EFFECT_KNOWLEDGE  = "knowledge";
+    public static final String RITUAL_EFFECT_RESURRECTION = "resurrection";
 
     public RitualManager()
     {

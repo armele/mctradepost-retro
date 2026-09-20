@@ -88,6 +88,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingO
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.event.ModelRegistryHandler;
 import com.deathfrog.mctradepost.core.event.burnout.BurnoutRemedyManager;
+import com.deathfrog.mctradepost.core.event.wishingwell.resurrection.BurialEventHandler;
 import com.deathfrog.mctradepost.core.recycling.blacklist.RecyclingBlacklistManager;
 import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManager;
 import com.deathfrog.mctradepost.network.RareFindBlacklistSyncPacket;
@@ -117,6 +118,7 @@ import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
+import com.deathfrog.mctradepost.item.WishResurrectionItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValueSyncPacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
@@ -129,6 +131,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementHandlers;
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.IMinecoloniesAPI;
+import com.minecolonies.api.eventbus.events.colony.citizens.CitizenBuriedModEvent;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.compatibility.Compatibility;
@@ -472,6 +476,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WISH_SHELTER = ITEMS.register("wish_shelter",
         () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<WishResurrectionItem> WISH_RESURRECTION = ITEMS.register("wish_resurrection",
+        () -> new WishResurrectionItem(new Item.Properties()));
 
     @SuppressWarnings("null")
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
@@ -1422,8 +1429,12 @@ public class MCTradePostMod
             Compatibility.registerItemTier(REINFORCED_LEATHER_CHESTPLATE.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
             Compatibility.registerItemTier(REINFORCED_LEATHER_LEGGINGS.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
             Compatibility.registerItemTier(REINFORCED_LEATHER_BOOTS.get(), EquipmentLevelConstants.ARMOR_LEVEL_GOLD);
+
+            IMinecoloniesAPI.getInstance().getEventBus().subscribe(CitizenBuriedModEvent.class,
+                BurialEventHandler::onCitizenBuried);
         });
     }
+
 
     /**
      * This method is called on both the client and server side after the mod has finished loading.
@@ -2036,6 +2047,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_SHEEP.get());
                     event.accept(MCTradePostMod.WISH_SHELTER.get());
+                    event.accept(MCTradePostMod.WISH_RESURRECTION.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                     event.accept(MCTradePostMod.STEWPOT_FILLED.get());
                     event.accept(MCTradePostMod.BLOCK_LAMP.get());

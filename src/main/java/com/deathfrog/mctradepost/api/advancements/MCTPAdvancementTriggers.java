@@ -15,6 +15,7 @@ public class MCTPAdvancementTriggers
     public static final String ADV_RECYCLE_ITEM = "recycle_item";
     public static final String ADV_COMPLETE_VACATION = "complete_vacation";
     public static final String ADV_MAKE_WISH = "make_wish";
+    public static final String ADV_RESURRECT_CITIZEN_WISH = "resurrect_citizen_wish";
     public static final String ADV_RUNS_ON_STEW = "runs_on_stew";
     public static final String ADV_RARE_FIND = "rare_find";
 
@@ -23,6 +24,8 @@ public class MCTPAdvancementTriggers
     public static final DeferredHolder<CriterionTrigger<?>, RecycleItemTrigger>       RECYCLE_ITEM          = DEFERRED_REGISTER.register(ADV_RECYCLE_ITEM, RecycleItemTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, CompleteVacationTrigger>  COMPLETE_VACATION     = DEFERRED_REGISTER.register(ADV_COMPLETE_VACATION, CompleteVacationTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, MakeWishTrigger>          MAKE_WISH             = DEFERRED_REGISTER.register(ADV_MAKE_WISH, MakeWishTrigger::new);
+    public static final DeferredHolder<CriterionTrigger<?>, ResurrectCitizenWishTrigger> RESURRECT_CITIZEN_WISH =
+        DEFERRED_REGISTER.register(ADV_RESURRECT_CITIZEN_WISH, ResurrectCitizenWishTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, RunsOnStewTrigger>        RUNS_ON_STEW          = DEFERRED_REGISTER.register(ADV_RUNS_ON_STEW, RunsOnStewTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, RareFindTrigger>          RARE_FIND             = DEFERRED_REGISTER.register(ADV_RARE_FIND, RareFindTrigger::new);
 }

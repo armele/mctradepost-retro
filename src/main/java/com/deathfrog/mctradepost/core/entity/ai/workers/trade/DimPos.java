@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -29,7 +30,7 @@ public record DimPos(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos po
      */
     @SuppressWarnings("null")
     public static final Codec<DimPos> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-        ResourceLocation.CODEC.fieldOf("dimension").forGetter(dimPos -> dimPos.dimension().location()),
+        ResourceLocation.CODEC.fieldOf(BuildingUtil.TAG_DIMENSION).forGetter(dimPos -> dimPos.dimension().location()),
         BlockPos.CODEC.fieldOf("pos").forGetter(DimPos::pos))
         .apply(instance, DimPos::fromResourceLocation));
 

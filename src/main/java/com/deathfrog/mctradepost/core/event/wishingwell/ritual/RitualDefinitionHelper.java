@@ -252,6 +252,10 @@ public class RitualDefinitionHelper
                 text = "Advances every in-progress colony research by approximately one hour.";
                 break;
 
+            case RitualManager.RITUAL_EFFECT_RESURRECTION:
+                text = "Resurrects the recently buried citizen bound to this wish. Cost increases the longer ago the citizen was buried.";
+                break;
+
             default:
                 text = "Broken ritual! Ritual type not recognized: " + ritualDefinition.effect();
                 break;
