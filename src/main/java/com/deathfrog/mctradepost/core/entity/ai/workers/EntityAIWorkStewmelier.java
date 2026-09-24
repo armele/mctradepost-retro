@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.SoundUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
@@ -958,7 +959,9 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             if (ingredientCount > 1)
             {
                 int ingredientsToTake = (int) Math.max(ingredientCount / 2, 1);
-                boolean gotSomeThisTime = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(building.getItemHandlerCap(),
+                
+                @SuppressWarnings("null")
+                boolean gotSomeThisTime = MCTPInventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandlerSafely(building.getItemHandlerCap(),
                     stack -> stack != null && ItemStack.isSameItem(stack, ingredientStack),
                     ingredientsToTake,
                     worker.getInventoryCitizen());
@@ -1056,7 +1059,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
 
             if (toTake > 0)
             {
-                boolean gotSome = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(warehouse.getItemHandlerCap(),
+                @SuppressWarnings("null")
+                boolean gotSome = MCTPInventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandlerSafely(warehouse.getItemHandlerCap(),
                     stack -> stack != null && ItemStack.isSameItem(stack, ingredientStack),
                     toTake,
                     worker.getInventoryCitizen());
@@ -1400,7 +1404,8 @@ public class EntityAIWorkStewmelier extends AbstractEntityAIInteract<JobStewmeli
             // Drop off stew at currentDiningHallToStock.
             if (stewInInventory >= KITCHEN_STEW_DELIVERY)
             {
-                boolean gaveStew = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(worker.getInventoryCitizen(),
+                @SuppressWarnings("null")
+                boolean gaveStew = MCTPInventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandlerSafely(worker.getInventoryCitizen(),
                     stack -> stack != null && ItemStack.isSameItem(stack, currentStew),
                     KITCHEN_STEW_DELIVERY,
                     currentDiningHallToStock.getItemHandlerCap());

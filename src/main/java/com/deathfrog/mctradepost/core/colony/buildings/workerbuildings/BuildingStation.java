@@ -359,10 +359,10 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 putTrackConnectionResult(remoteStation, trackConnectionResult);
                 markTradesDirty();
             } 
-            else if (tcr != null && tcr.connected && (tcr.path == null || tcr.path.isEmpty()))
+            else if (tcr.connected && !tcr.hasUsableRouteData())
             {
                 TraceUtils.dynamicTrace(TRACE_STATION,
-                    () -> LOGGER.info("Colony {} - allegedly connected track connection result between station {} and remote station {} has no path. Repairing.", 
+                    () -> LOGGER.info("Colony {} - allegedly connected track connection result between station {} and remote station {} has neither legacy path nor segmented route data. Repairing.",
                     building.getColony().getID(), building.getPosition(), remoteStation));
 
                 TrackConnectionResult trackConnectionResult = TrackRouteConnection.findRoute(this, remoteStation, true);

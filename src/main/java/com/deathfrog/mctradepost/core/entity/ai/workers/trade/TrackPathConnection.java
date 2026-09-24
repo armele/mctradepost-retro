@@ -102,6 +102,19 @@ public class TrackPathConnection
         }
 
         /**
+         * Checks whether this result contains a path representation that can be reused.
+         * <p>
+         * Legacy results store their route in {@link #path}, while newer multimodal results may store the complete route only in
+         * {@link #route}. Callers performing cache repair must accept either representation.
+         *
+         * @return true when a legacy path or segmented route is present
+         */
+        public boolean hasUsableRouteData()
+        {
+            return (path != null && !path.isEmpty()) || (route != null && !route.segments().isEmpty());
+        }
+
+        /**
          * @return total route distance, including dimensional transfer hops
          */
         public int getRouteDistance()

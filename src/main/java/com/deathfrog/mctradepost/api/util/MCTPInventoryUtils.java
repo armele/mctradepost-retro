@@ -11,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
-import org.jetbrains.annotations.NotNull;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.minecolonies.api.colony.ICitizenData;
@@ -46,12 +45,75 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 
 public class MCTPInventoryUtils
 {
+    /**
+     * Checks whether an item stack can be inserted completely into a handler without
+     * changing the handler.
+     *
+     * @param targetHandler destination inventory
+     * @param stack stack to simulate inserting
+     * @return true when the entire stack would be accepted
+     */
+    @SuppressWarnings("null")
+    public static boolean canFullyInsert(@Nonnull final IItemHandler targetHandler, @Nonnull final ItemStack stack)
+    {
+        return stack.isEmpty() || ItemHandlerHelper.insertItemStacked(targetHandler, stack.copy(), true).isEmpty();
+    }
+
+    /**
+     * Safely transfers matching items between handlers without using MineColonies'
+     * unbounded multi-stack transfer loop. Each source stack is preflighted against
+     * the destination, and a failed or incomplete transfer returns immediately.
+     *
+     * @param sourceHandler source inventory
+     * @param stackPredicate predicate selecting source stacks
+     * @param count maximum number of items to transfer
+     * @param targetHandler destination inventory
+     * @return true when the full requested count was transferred, false otherwise
+     */
+    public static boolean transferItemStackIntoNextFreeSlotFromItemHandlerSafely(
+        @Nonnull final IItemHandler sourceHandler,
+        @Nonnull final Predicate<ItemStack> stackPredicate,
+        final int count,
+        @Nonnull final IItemHandler targetHandler)
+    {
+        if (count <= 0)
+        {
+            return true;
+        }
+
+        int remaining = count;
+        for (int slot = 0; slot < sourceHandler.getSlots() && remaining > 0; slot++)
+        {
+            final ItemStack sourceStack = sourceHandler.getStackInSlot(slot);
+            if (sourceStack.isEmpty() || !stackPredicate.test(sourceStack))
+            {
+                continue;
+            }
+
+            final int transferCount = Math.min(remaining, sourceStack.getCount());
+            final ItemStack simulatedTransfer = sourceStack.copy();
+            simulatedTransfer.setCount(transferCount);
+
+            if (!canFullyInsert(targetHandler, simulatedTransfer)
+                || !InventoryUtils.transferXOfItemStackIntoNextFreeSlotInItemHandler(
+                    sourceHandler, slot, transferCount, targetHandler))
+            {
+                return false;
+            }
+
+            remaining -= transferCount;
+        }
+
+        return remaining == 0;
+    }
+
     /**
      * Checks whether an item stack exposes an inventory containing at least one item.
      * Item capabilities cover modded containers such as backpacks, while the data
@@ -89,8 +151,8 @@ public class MCTPInventoryUtils
      * @param itemStackSelectionPredicate the predicate to test each slot with
      * @return a random matching slot, or -1 if no slot matches
      */
-    public static int findRandomSlotInItemHandlerWith(@NotNull IItemHandler itemHandler,
-        @NotNull Predicate<ItemStack> itemStackSelectionPredicate)
+    public static int findRandomSlotInItemHandlerWith(@Nonnull IItemHandler itemHandler,
+        @Nonnull Predicate<ItemStack> itemStackSelectionPredicate)
     {
         List<Integer> matchingSlots = new ArrayList<>();
 
@@ -160,8 +222,9 @@ public class MCTPInventoryUtils
      * @param world  the world to use for the calculation, or null if not applicable
      * @return a list of the secondary outputs, or an empty list if no secondary outputs are possible
      */
-    @NotNull
-    public static List<ItemStack> calculateSecondaryOutputs(@NotNull final Recipe<?> recipe, @Nonnull final Level world)
+    @SuppressWarnings("null")
+    @Nonnull
+    public static List<ItemStack> calculateSecondaryOutputs(@Nonnull final Recipe<?> recipe, @Nonnull final Level world)
     {
         if (recipe instanceof final CraftingRecipe craftingRecipe)
         {
@@ -198,10 +261,17 @@ public class MCTPInventoryUtils
 
             if (input != null && craftingRecipe.matches(input, world))
             {
-                return craftingRecipe.getRemainingItems(input)
+                List<ItemStack> remainingStack = craftingRecipe.getRemainingItems(input)
                     .stream()
                     .filter(ItemStackUtils::isNotEmpty)
                     .collect(Collectors.toList());
+
+                if (remainingStack == null) 
+                {
+                    return Collections.emptyList();
+                }
+
+                return remainingStack;
             }
         }
         return Collections.emptyList();

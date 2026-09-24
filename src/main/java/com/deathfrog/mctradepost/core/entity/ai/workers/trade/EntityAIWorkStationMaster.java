@@ -39,12 +39,10 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
 public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStationMaster, BuildingStation>
@@ -59,6 +57,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     public static final int BASE_XP_EXISTING_TRACK = 1;
     public static final int BASE_XP_SEND_SHIPMENT = 2;
 
+    private static final int TRACK_WALK_SELECTION_RANGE = 50;
 
     protected static final int OUTPOST_COOLDOWN_TIMER = 10;
     protected int outpostCooldown = OUTPOST_COOLDOWN_TIMER;
@@ -92,7 +91,6 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     private ExportData currentExport = null;
     private Integer currentFundRequest = null;
     private BlockPos currentTargetWalkingPosition = null;
-    Queue<BlockPos> currentCheckingTrack = new ArrayDeque<>();
 
     @SuppressWarnings("unchecked")
     public EntityAIWorkStationMaster(@NotNull JobStationMaster job)
@@ -109,7 +107,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
           new AITarget<IAIState>(StationMasterStates.CHECK_CONNECTION, this::checkConnection, 50),
           new AITarget<IAIState>(StationMasterStates.REQUEST_FUNDS, this::requestFunds, 50),
           new AITarget<IAIState>(StationMasterStates.SEND_SHIPMENT, this::sendShipment, 50),
-          new AITarget<IAIState>(StationMasterStates.WALK_THE_TRACK, this::walkTheTrack, 1)
+          new AITarget<IAIState>(StationMasterStates.WALK_THE_TRACK, this::walkTheTrack, 10)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -714,6 +712,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
      */
     protected IAIState checkConnection()
     {
+        currentTargetWalkingPosition = null;
+
         if (currentRemoteStation != null)
         {
             TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
@@ -738,7 +738,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     ? TrackPathConnection.validateExistingPath(world, connectionResult)
                     : TrackRouteConnection.validateExistingRoute(world.getServer(), connectionResult);
 
-                currentCheckingTrack.addAll(connectionResult.path);
+                if (isValid)
+                {
+                    selectTrackWalkingTarget(connectionResult);
+                }
 
                 connectionResult.setConnected(isValid);
                 building.putTrackConnectionResult(currentRemoteStation, connectionResult);
@@ -771,45 +774,86 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     }
 
 
-    /**
-     * Walks the station master along the track to simulate verifying the connection.
-     * If there is no track to check, transitions to the DECIDE state.
-     * Otherwise, the station master moves to the next target position on the track.
-     * If the target position is outside the colony borders, the process is stopped 
-     * and transitions to the DECIDE state. Otherwise, continues walking the track.
-     *
-     * @return the next AI state to transition to, either continuing to walk the track
-     *         or deciding the next action if the track is complete or invalid.
-     */
-    private IAIState walkTheTrack()
+    /** Selects one nearby local rail or road position for the station master's cosmetic validation walk. */
+    private void selectTrackWalkingTarget(final TrackConnectionResult connectionResult)
     {
-        if (currentCheckingTrack == null || currentCheckingTrack.isEmpty())
+        currentTargetWalkingPosition = null;
+        List<BlockPos> path = null;
+
+        if (connectionResult.route == null)
         {
-            return DECIDE;
+            path = connectionResult.path;
         }
         else
         {
-            if (currentTargetWalkingPosition == null)
+            for (TrackRoute.Segment segment : connectionResult.route.segments())
             {
-                currentTargetWalkingPosition = currentCheckingTrack.poll();
-            }
-
-            if (this.walkToSafePos(currentTargetWalkingPosition)) 
-            {
-
-                // Station master will only walk to the colony border while checking tracks.
-                IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(building.getColony().getWorld(), currentTargetWalkingPosition);
-                if (colony == null || !colony.equals(building.getColony()))
+                if (segment.type() == TrackRoute.SegmentType.TRANSFER)
                 {
-                    currentTargetWalkingPosition = null;
-                    currentCheckingTrack.clear();
-                    return DECIDE;
+                    break;
+                }
+                if (segment.type() == TrackRoute.SegmentType.DOCK || segment.type() == TrackRoute.SegmentType.INTERCHANGE)
+                {
+                    continue;
                 }
 
-                currentTargetWalkingPosition = null;
+                if ((segment.type() == TrackRoute.SegmentType.RAIL || segment.type() == TrackRoute.SegmentType.ROAD) &&
+                    segment.dimension().equals(building.getColony().getDimension()))
+                {
+                    path = segment.path();
+                }
+                break;
             }
-            return StationMasterStates.WALK_THE_TRACK;
         }
+
+        if (path == null || path.size() < 2)
+        {
+            return;
+        }
+
+        List<BlockPos> candidates = new ArrayList<>();
+        int upperBound = Math.min(path.size(), TRACK_WALK_SELECTION_RANGE + 1);
+        for (int i = 1; i < upperBound; i++)
+        {
+            BlockPos candidate = path.get(i);
+            IColony candidateColony = IColonyManager.getInstance()
+                .getColonyByPosFromWorld(building.getColony().getWorld(), candidate);
+
+            if (building.getColony().equals(candidateColony))
+            {
+                candidates.add(candidate);
+            }
+        }
+
+        if (!candidates.isEmpty())
+        {
+            currentTargetWalkingPosition = candidates.get(worker.getRandom().nextInt(candidates.size()));
+        }
+    }
+
+    /** Walks once to the selected local route position, then resumes normal work. */
+    private IAIState walkTheTrack()
+    {
+        if (currentTargetWalkingPosition == null)
+        {
+            return DECIDE;
+        }
+
+        IColony targetColony = IColonyManager.getInstance()
+            .getColonyByPosFromWorld(building.getColony().getWorld(), currentTargetWalkingPosition);
+        if (!building.getColony().equals(targetColony))
+        {
+            currentTargetWalkingPosition = null;
+            return DECIDE;
+        }
+
+        if (walkToSafePos(currentTargetWalkingPosition))
+        {
+            currentTargetWalkingPosition = null;
+            return DECIDE;
+        }
+
+        return StationMasterStates.WALK_THE_TRACK;
     }
         
 
