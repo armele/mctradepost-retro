@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -675,7 +676,8 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
             return DECIDE;
         }
 
-        boolean moved = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(buildingInventory, stack -> stack != null && ItemStack.isSameItemSameComponents(stack, localSatisfier), localSatisfier.getCount(), worker.getInventoryCitizen());
+        @SuppressWarnings("null")
+        boolean moved = MCTPInventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandlerSafely(buildingInventory, stack -> stack != null && ItemStack.isSameItemSameComponents(stack, localSatisfier), localSatisfier.getCount(), worker.getInventoryCitizen());
 
         if (moved)
         {
@@ -1674,7 +1676,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         }
 
         final int toMove = Math.min(desiredCount - alreadyStaged, availableInOutpost);
-        final boolean moved = InventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandler(outpostInventory,
+        final boolean moved = MCTPInventoryUtils.transferItemStackIntoNextFreeSlotFromItemHandlerSafely(outpostInventory,
             stack -> !stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, desiredStack),
             toMove,
             builderInventory);
