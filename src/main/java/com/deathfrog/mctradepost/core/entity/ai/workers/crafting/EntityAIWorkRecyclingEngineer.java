@@ -762,7 +762,7 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             }
 
             final IToken<?> requestToken = building.createRequest(worker.getCitizenData(),
-                new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, 1, 1),
+                new StackList(itemList, BuildingRecycling.REQUESTS_TYPE_RECYCLABLE, itemStack.getMaxStackSize(), 1),
                 true);
 
             recyclingModule.addPendingWarehouseRequest(requestToken, new ItemStorage(itemStack));
