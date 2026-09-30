@@ -3,7 +3,7 @@
     "category": "equipment",
     "key": {
       "O": { "tag": "minecraft:logs" },
-      "T": { "item": "mctradepost:thatch" },
+      "T": { "tag": "mctradepost:thatchlike" },
       "S": { "item": "minecraft:stick" }
     },
     "pattern": [
@@ -16,4 +16,3 @@
       "id": "mctradepost:trough"
     }
 }
-  

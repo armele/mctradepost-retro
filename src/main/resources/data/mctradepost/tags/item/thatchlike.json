@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:thatch",
+    {
+      "id": "quark:thatch",
+      "required": false
+    },
+    {
+      "id": "biomeswevegone:cattail_thatch",
+      "required": false
+    }
+  ]
+}

@@ -19,7 +19,9 @@ import com.minecolonies.api.colony.IAnimalData;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.managers.interfaces.IAnimalDataView;
 import com.minecolonies.api.colony.managers.interfaces.IManagedAnimal;
+import com.minecolonies.api.entity.pathfinding.registry.IPathNavigateRegistry;
 import com.minecolonies.api.util.constant.NbtTagConstants;
+import com.minecolonies.core.entity.pathfinding.navigation.AbstractAdvancedPathNavigate;
 import com.minecolonies.core.entity.pathfinding.navigation.MinecoloniesAdvancedPathNavigate;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
@@ -433,7 +435,7 @@ public class PetAxolotl extends Axolotl implements ITradePostPet, IHerdingPet, I
     @Override
     protected PathNavigation createNavigation(@Nonnull Level level)
     {
-        MinecoloniesAdvancedPathNavigate pathNavigation = new MinecoloniesAdvancedPathNavigate(this, level);
+        AbstractAdvancedPathNavigate pathNavigation = IPathNavigateRegistry.getInstance().getNavigateFor(this);
         pathNavigation.getPathingOptions().setEnterDoors(true);
         pathNavigation.getPathingOptions().setCanOpenDoors(true);
         pathNavigation.getPathingOptions().setEnterGates(true);

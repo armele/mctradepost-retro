@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import javax.annotation.Nonnull;
 
+import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
@@ -145,7 +146,7 @@ public class StationData
     {
         CompoundTag tag = new CompoundTag();
 
-        tag.putString("dimension", dimension.location().toString() + "");
+        tag.putString(BuildingUtil.TAG_DIMENSION, dimension.location().toString() + "");
         tag.putInt("colonyId", colonyId);
 
         BlockPosUtil.write(tag, "buildingposition", buildingposition);
@@ -182,7 +183,7 @@ public class StationData
             return null;
         }
 
-        String dimension = tag.getString("dimension") + "";
+        String dimension = tag.getString(BuildingUtil.TAG_DIMENSION) + "";
         ResourceLocation level = ResourceLocation.parse(dimension);
 
         ResourceKey<Level> levelKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), NullnessBridge.requireNonnull(level, "Null dimension: " + dimension));

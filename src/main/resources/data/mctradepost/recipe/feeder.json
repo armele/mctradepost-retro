@@ -4,7 +4,7 @@
     "key": {
       "C": { "item": "minecraft:chain" },
       "G": { "item": "minecraft:glass" },
-      "T": { "item": "mctradepost:thatch" },
+      "T": { "tag": "mctradepost:thatchlike" },
       "S": { "item": "minecraft:stick" },
       "O": { "tag": "minecraft:planks" }
     },
@@ -18,4 +18,3 @@
       "id": "mctradepost:feeder"
     }
 }
-  

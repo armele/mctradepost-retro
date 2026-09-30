@@ -4,7 +4,7 @@
     "key": {
       "C": { "item": "minecraft:chain" },
       "O": { "item": "mctradepost:woven_kelp" },
-      "T": { "item": "mctradepost:thatch" },
+      "T": { "tag": "mctradepost:thatchlike" },
       "S": { "item": "minecraft:stick" }
     },
     "pattern": [
@@ -17,4 +17,3 @@
       "id": "mctradepost:dredger"
     }
 }
-  
