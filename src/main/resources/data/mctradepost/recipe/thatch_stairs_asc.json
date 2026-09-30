@@ -2,7 +2,7 @@
     "type": "minecraft:crafting_shaped",
     "category": "building",
     "key": {
-      "S": { "item": "mctradepost:thatch" }
+      "S": { "tag": "mctradepost:thatchlike" }
     },
     "pattern": [
       "  S",
@@ -14,4 +14,3 @@
       "id": "mctradepost:thatch_stairs"
     }
 }
-  
