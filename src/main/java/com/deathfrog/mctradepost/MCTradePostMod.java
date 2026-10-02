@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
+import com.deathfrog.mctradepost.api.entity.AirshipEntity;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
 import com.deathfrog.mctradepost.api.entity.WagonEntity;
@@ -63,6 +64,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutOutpost;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
+import com.deathfrog.mctradepost.core.client.render.AirshipRenderer;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.GhostBoatRenderer;
@@ -543,6 +545,12 @@ public class MCTradePostMod
         () -> EntityType.Builder.<WagonEntity>of(WagonEntity::new, MobCategory.MISC)
             .sized(1.2F, 1.0F).clientTrackingRange(128).updateInterval(1)
             .build(ResourceLocation.fromNamespaceAndPath(MODID, "wagon").toString()));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<EntityType<?>, EntityType<AirshipEntity>> AIRSHIP = ENTITIES.register("airship",
+        () -> EntityType.Builder.<AirshipEntity>of(AirshipEntity::new, MobCategory.MISC)
+            .sized(1.875F, 2.6875F).clientTrackingRange(128).updateInterval(1)
+            .build(ResourceLocation.fromNamespaceAndPath(MODID, "airship").toString()));
 
     @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
@@ -2074,6 +2082,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.GHOST_BOAT.get(), GhostBoatRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.WAGON.get(), WagonRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.AIRSHIP.get(), AirshipRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);

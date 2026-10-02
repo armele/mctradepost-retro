@@ -729,6 +729,7 @@
     "entity.mctradepost.ghost_cart" : "Trade Cart",
     "entity.mctradepost.ghost_boat" : "Trade Boat",
     "entity.mctradepost.wagon" : "Trade Wagon",
+    "entity.mctradepost.airship" : "Trade Airship",
     "block.mctradepost.trade_dock" : "Trade Dock",
     "block.mctradepost.trade_interchange" : "Trade Interchange",
     "entity.mctradepost.pet_inventory"  : "Pet Inventory",

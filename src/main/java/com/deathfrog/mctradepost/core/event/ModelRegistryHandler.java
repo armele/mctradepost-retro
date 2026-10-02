@@ -17,6 +17,9 @@ import net.neoforged.api.distmarker.Dist;
 public class ModelRegistryHandler
 {
     @SuppressWarnings("null")
+    public static final ModelLayerLocation AIRSHIP = new ModelLayerLocation(
+        ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "airship"), "main");
+    @SuppressWarnings("null")
     public static final ModelLayerLocation TRADE_CART = new ModelLayerLocation(
         ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "trade_cart"), "main");
     @SuppressWarnings("null")
@@ -70,6 +73,7 @@ public class ModelRegistryHandler
     @SuppressWarnings("null")
     public static void registerModels(EntityRenderersEvent.RegisterLayerDefinitions event) 
     {
+        event.registerLayerDefinition(AIRSHIP, com.deathfrog.mctradepost.core.client.model.AirshipModel::createBodyLayer);
         event.registerLayerDefinition(TRADE_CART, com.deathfrog.mctradepost.core.client.model.TradeCartModel::createBodyLayer);
         event.registerLayerDefinition(PET_DRAGON, com.deathfrog.mctradepost.core.client.model.PetDragonModel::createBodyLayer);
         event.registerLayerDefinition(MALE_SHOPKEEPER, MaleAlchemistModel::createMesh);
