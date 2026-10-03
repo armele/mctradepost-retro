@@ -48,6 +48,7 @@ import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockHauler;
 import com.deathfrog.mctradepost.core.blocks.BlockLamp;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
+import com.deathfrog.mctradepost.core.blocks.BlockMooringBay;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
@@ -619,6 +620,10 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredBlock<BlockTradeInterchange> TRADE_INTERCHANGE = BLOCKS.register(BlockTradeInterchange.ID,
         () -> new BlockTradeInterchange(Properties.of().mapColor(MapColor.STONE).strength(2.0F, 6.0F).sound(SoundType.STONE)));
+
+    @SuppressWarnings("null")
+    public static final DeferredBlock<BlockMooringBay> MOORING_BAY = BLOCKS.register(BlockMooringBay.ID,
+        () -> new BlockMooringBay(Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)));
             
     @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -768,6 +773,10 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<Item> TRADE_INTERCHANGE_ITEM =
         ITEMS.register(BlockTradeInterchange.ID, () -> new BlockItem(TRADE_INTERCHANGE.get(), new Item.Properties()));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> MOORING_BAY_ITEM =
+        ITEMS.register(BlockMooringBay.ID, () -> new BlockItem(MOORING_BAY.get(), new Item.Properties()));
     
     @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_STAIRS_ITEM =
@@ -1743,7 +1752,7 @@ public class MCTradePostMod
             if (state.getBlock() instanceof BaseRailBlock ||
                 state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)) ||
                 state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRADE_ROADS_TAG)) ||
-                state.is(TRADE_DOCK.get()) || state.is(TRADE_INTERCHANGE.get()))
+                state.is(TRADE_DOCK.get()) || state.is(TRADE_INTERCHANGE.get()) || state.is(MOORING_BAY.get()))
             {
                 invalidateTrackCachesForBrokenTrack(level, pos);
             }
@@ -1938,6 +1947,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutOutpost.get());
                     event.accept(MCTradePostMod.TRADE_DOCK.get());
                     event.accept(MCTradePostMod.TRADE_INTERCHANGE.get());
+                    event.accept(MCTradePostMod.MOORING_BAY.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());

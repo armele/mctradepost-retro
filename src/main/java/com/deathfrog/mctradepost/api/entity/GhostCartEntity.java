@@ -282,7 +282,7 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
 
         if (path == null || path.isEmpty())
         {
-            if (ticksWithNoPath++ > MAX_TICKS_WITH_NO_PATH)
+            if (discardWhenPathless() && ticksWithNoPath++ > MAX_TICKS_WITH_NO_PATH)
             {   
                 discard();
             }
@@ -408,6 +408,15 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
     }
 
     /**
+     * Whether this visual vehicle should remove itself after waiting without a route path.
+     * Subclasses that are useful as standalone entities may opt out.
+     */
+    protected boolean discardWhenPathless()
+    {
+        return true;
+    }
+
+    /**
      * Length from a fractional point (a, tA) to node b along the path. a must be <= b, and tA in [0,1]. If a == b, returns 0.
      */
     @SuppressWarnings("null")
@@ -447,7 +456,14 @@ public class GhostCartEntity extends AbstractMinecart implements IEntityWithComp
         Vec3 offset = NullnessBridge.assumeNonnull(getForward().scale(0.9));
         Vec3 behind = position().subtract(offset);
         ((ServerLevel) level())
-            .sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.CAMPFIRE_COSY_SMOKE), behind.x(), behind.y() + 0.1, behind.z(), 1, 0.1, 0.1, 0.1, 0.0);
+            .sendParticles(NullnessBridge.assumeNonnull(ParticleTypes.CAMPFIRE_COSY_SMOKE), behind.x(),
+                behind.y() + getTrailParticleYOffset(), behind.z(), 1, 0.1, 0.1, 0.1, 0.0);
+    }
+
+    /** Vertical offset of the trail emitter from the vehicle origin. */
+    protected double getTrailParticleYOffset()
+    {
+        return 0.1D;
     }
 
     /**

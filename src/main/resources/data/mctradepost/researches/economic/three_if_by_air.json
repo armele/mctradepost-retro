@@ -1,0 +1,24 @@
+{
+  "subtitle": "com.mctradepost.research.economic.three_if_by_air.subtitle",
+  "branch": "economic",
+  "researchLevel": 3,
+  "parentResearch": "mctradepost:economic/maritime_trade",
+  "sortOrder": 1,
+  "exclusiveChildResearch": false,
+  "no-reset": false,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [{
+    "type": "minecolonies:building",
+    "building": "mctradepost:station",
+    "level": 3
+  }],
+  "costs": [
+    { "count": 1, "item": "mctradepost:mooring_bay" },
+    { "count": 3, "item": "mctradepost:mctp_coin_gold" },
+    { "count": 16, "item": "minecraft:phantom_membrane" }
+  ],
+  "effects": [{ "id": "mctradepost:effects/air_trade", "level": 1 }],
+  "icon": "mctradepost:mooring_bay"
+}

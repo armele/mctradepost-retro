@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 
 import javax.annotation.Nonnull;
 
@@ -32,8 +33,14 @@ public class TrackRoute
         ROAD,
         /** A contiguous navigable surface-water path between docks. */
         WATER,
+        /** A visible airship path near a colony endpoint. */
+        AIR,
+        /** An unanimated, distance-bearing flight between colony borders. */
+        AIR_TRANSIT,
         /** A zero-distance vehicle handoff at a trade dock. */
         DOCK,
+        /** A zero-distance handoff between a local route and an air route. */
+        MOORING,
         /** A zero-distance rail/road vehicle handoff. */
         INTERCHANGE,
         /**
@@ -101,7 +108,8 @@ public class TrackRoute
         @SuppressWarnings("null")
         public static Segment traversable(@Nonnull SegmentType type, @Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
         {
-            if (type == SegmentType.TRANSFER || type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            if (type == SegmentType.TRANSFER || type == SegmentType.DOCK || type == SegmentType.MOORING ||
+                type == SegmentType.INTERCHANGE || type == SegmentType.AIR_TRANSIT)
             {
                 throw new IllegalArgumentException("Transfer segments require endpoints");
             }
@@ -148,6 +156,45 @@ public class TrackRoute
         }
 
         /**
+         * Creates a zero-distance handoff at a Mooring Bay.
+         *
+         * @param dimension dimension containing the Bay
+         * @param position Mooring Bay position
+         * @return Mooring Bay handoff segment
+         */
+        @SuppressWarnings("null")
+        public static Segment mooring(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos position)
+        {
+            return new Segment(SegmentType.MOORING, dimension, List.of(position), null, null);
+        }
+
+        /**
+         * Creates a visible airship path near a colony.
+         *
+         * @param dimension dimension containing the path
+         * @param path ordered airship positions
+         * @return visible air segment
+         */
+        public static Segment air(@Nonnull ResourceKey<Level> dimension, @Nonnull List<BlockPos> path)
+        {
+            return traversable(SegmentType.AIR, dimension, path);
+        }
+
+        /**
+         * Creates an unanimated air leg whose distance is the horizontal Euclidean distance between its endpoints.
+         *
+         * @param dimension dimension containing both colonies
+         * @param from origin colony border position
+         * @param to destination colony border position
+         * @return abstract air-transit segment
+         */
+        @SuppressWarnings("null")
+        public static Segment airTransit(@Nonnull ResourceKey<Level> dimension, @Nonnull BlockPos from, @Nonnull BlockPos to)
+        {
+            return new Segment(SegmentType.AIR_TRANSIT, dimension, List.of(from.immutable(), to.immutable()), null, null);
+        }
+
+        /**
          * @return travel distance represented by this segment
          */
         public int distance()
@@ -156,7 +203,14 @@ public class TrackRoute
             {
                 return 1;
             }
-            if (type == SegmentType.DOCK || type == SegmentType.INTERCHANGE)
+            if (type == SegmentType.AIR_TRANSIT)
+            {
+                if (path.size() < 2) return 0;
+                long dx = (long) path.getLast().getX() - path.getFirst().getX();
+                long dz = (long) path.getLast().getZ() - path.getFirst().getZ();
+                return Math.max(1, (int) Math.ceil(Math.sqrt((double) dx * dx + (double) dz * dz)));
+            }
+            if (type == SegmentType.DOCK || type == SegmentType.MOORING || type == SegmentType.INTERCHANGE)
             {
                 return 0;
             }
@@ -210,6 +264,48 @@ public class TrackRoute
     }
 
     /**
+     * Advances a physical route position by a base movement budget, applying the supplied speed factor independently to each segment.
+     * Route distances remain physical distances, so this has no effect on route selection or progress-bar totals.
+     *
+     * @param startDistance current physical distance along the route
+     * @param movementBudget movement available at a 1x segment speed
+     * @param speedMultiplier speed factor for each segment type
+     * @return the new physical route distance, clamped to the route length
+     */
+    public int advanceDistance(int startDistance, double movementBudget, ToDoubleFunction<SegmentType> speedMultiplier)
+    {
+        int position = Math.max(0, startDistance);
+        double remainingBudget = Math.max(0.0D, movementBudget);
+        int cursor = 0;
+
+        for (Segment segment : segments)
+        {
+            int segmentDistance = segment.distance();
+            int segmentEnd = cursor + segmentDistance;
+            if (segmentDistance == 0 || position >= segmentEnd)
+            {
+                cursor = segmentEnd;
+                continue;
+            }
+
+            position = Math.max(position, cursor);
+            int remainingSegmentDistance = segmentEnd - position;
+            double multiplier = Math.max(0.000001D, speedMultiplier.applyAsDouble(segment.type()));
+            int possibleAdvance = (int) Math.floor((remainingBudget * multiplier) + 1.0E-9D);
+            if (possibleAdvance < remainingSegmentDistance)
+            {
+                return position + possibleAdvance;
+            }
+
+            position = segmentEnd;
+            remainingBudget -= remainingSegmentDistance / multiplier;
+            cursor = segmentEnd;
+        }
+
+        return Math.min(position, totalDistance());
+    }
+
+    /**
      * @return first rail path in the route, used for legacy connection-result compatibility
      */
     public List<BlockPos> firstRailPath()
@@ -233,7 +329,8 @@ public class TrackRoute
     {
         for (Segment segment : segments)
         {
-            if (segment.type() != SegmentType.TRANSFER && segment.type() != SegmentType.DOCK &&
+            if (segment.type() != SegmentType.TRANSFER && segment.type() != SegmentType.AIR_TRANSIT &&
+                segment.type() != SegmentType.DOCK && segment.type() != SegmentType.MOORING &&
                 segment.type() != SegmentType.INTERCHANGE && segment.path() != null && !segment.path().isEmpty()) return segment.path();
         }
         return List.of();
@@ -262,6 +359,14 @@ public class TrackRoute
             else if (segment.type() == SegmentType.INTERCHANGE)
             {
                 reversed.add(Segment.interchange(segment.dimension(), segment.path().getFirst()));
+            }
+            else if (segment.type() == SegmentType.MOORING)
+            {
+                reversed.add(Segment.mooring(segment.dimension(), segment.path().getFirst()));
+            }
+            else if (segment.type() == SegmentType.AIR_TRANSIT)
+            {
+                reversed.add(Segment.airTransit(segment.dimension(), segment.path().getLast(), segment.path().getFirst()));
             }
             else
             {

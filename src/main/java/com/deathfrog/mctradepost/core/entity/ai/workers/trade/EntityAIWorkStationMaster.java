@@ -533,11 +533,26 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 return StationMasterStates.CHECK_CONNECTION;
             }
 
+            boolean allowWater = building.getColony().getResearchManager().getResearchEffects()
+                .getEffectStrength(com.deathfrog.mctradepost.api.research.MCTPResearchConstants.MARITIME_TRADE) > 0;
+            TrackConnectionResult preferredAir = AirRouteConnection.findRoute(building,
+                currentExport.getDestinationStationData(), true, allowWater);
+                
+            if (preferredAir != null && preferredAir.isConnected())
+            {
+                tcr = preferredAir;
+                building.putTrackConnectionResult(currentExport.getDestinationStationData(), tcr);
+            }
 
             int trackDistance = tcr.getRouteDistance();
-            currentExport.setShipDistance(0);
-            currentExport.setTrackDistance(trackDistance);
-            currentExport.setLastShipDay(building.getColony().getDay());
+            ITradeCapable destinationBuilding = currentExport.getDestinationStationData().getStation();
+            if (!AirRouteConnection.canLaunch(building, destinationBuilding, tcr.getRoute()))
+            {
+                currentRemoteStation = currentExport.getDestinationStationData();
+                tcr.setConnected(false);
+                building.putTrackConnectionResult(currentRemoteStation, tcr);
+                return StationMasterStates.CHECK_CONNECTION;
+            }
 
             final ItemStack cargoCopy = currentExport.getTradeItem().getItemStack().copy();
             ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
@@ -563,6 +578,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 currentExport = null;
                 return AIWorkerState.DECIDE;
             }
+
+            // Commit the departure only after both sides of the inventory transaction succeed. A failed attempt must remain eligible
+            // to retry later the same day and must never look like a shipment that is permanently in transit.
+            currentExport.setTrackDistance(trackDistance);
+            currentExport.setShipDistance(0);
+            currentExport.setLastShipDay(building.getColony().getDay());
 
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
             GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.getRoute());
@@ -733,6 +754,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             else
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Cached connection found. Validating it.",  building.getColony().getID()));
+
+                boolean allowWater = building.getColony().getResearchManager().getResearchEffects()
+                    .getEffectStrength(com.deathfrog.mctradepost.api.research.MCTPResearchConstants.MARITIME_TRADE) > 0;
+                TrackConnectionResult preferredAir = AirRouteConnection.findRoute(building, currentRemoteStation, false, allowWater);
+                if (preferredAir != null && preferredAir.isConnected())
+                {
+                    connectionResult = preferredAir;
+                }
 
                 boolean isValid = connectionResult.route == null
                     ? TrackPathConnection.validateExistingPath(world, connectionResult)

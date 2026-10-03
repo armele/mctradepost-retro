@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.MCTPConfig;
 
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_CART;
 
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
+import com.deathfrog.mctradepost.api.entity.AirshipEntity;
 import com.deathfrog.mctradepost.api.entity.WagonEntity;
 import com.deathfrog.mctradepost.api.util.ChunkUtil;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
@@ -192,6 +194,7 @@ public class ExportData
         {
             case WATER -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.GHOST_BOAT.get());
             case ROAD -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.WAGON.get());
+            case AIR -> GhostCartEntity.spawnTyped(level, immutablePath, reverse, MCTradePostMod.AIRSHIP.get());
             default -> GhostCartEntity.spawn(level, immutablePath, reverse);
         };
 
@@ -333,12 +336,21 @@ public class ExportData
         }
     }
 
+    /** Calculates the next physical route position using the configured speed of every segment crossed. */
+    public int advanceShipDistance(int baseMovement)
+    {
+        if (activeRoute == null)
+        {
+            return shipDistance + baseMovement;
+        }
+        return activeRoute.advanceDistance(shipDistance, baseMovement, MCTPConfig::getTradeSpeedMultiplier);
+    }
+
     /** Splits one colony-tick movement request across every modal segment it crosses. */
     private void beginVisualStride(int fromDistance, int toDistance)
     {
         pendingVisualLegs.clear();
         int target = Math.min(toDistance, activeRoute.totalDistance());
-        int travelled = Math.max(1, target - fromDistance);
         int cursor = 0;
         List<VisualLegDraft> drafts = new ArrayList<>();
         List<TrackRoute.Segment> routeSegments = activeRoute.segments();
@@ -352,20 +364,24 @@ public class ExportData
             if (overlapEnd > overlapStart)
             {
                 int amount = overlapEnd - overlapStart;
-                int localTarget = segment.type() == TrackRoute.SegmentType.TRANSFER
+                int localTarget = segment.type() == TrackRoute.SegmentType.TRANSFER || segment.type() == TrackRoute.SegmentType.AIR_TRANSIT
                     ? 0 : Math.min(segment.path().size() - 1, overlapEnd - cursor);
                 drafts.add(new VisualLegDraft(segmentIndex, segment, localTarget, amount));
             }
             cursor += distance;
         }
 
+        double totalTravelCost = drafts.stream()
+            .mapToDouble(draft -> draft.distance() / MCTPConfig.getTradeSpeedMultiplier(draft.segment().type()))
+            .sum();
         int assignedTicks = 0;
         for (int i = 0; i < drafts.size(); i++)
         {
             VisualLegDraft draft = drafts.get(i);
             int duration = i == drafts.size() - 1
                 ? Math.max(1, GhostCartEntity.DEFAULT_STRIDE_TICKS - assignedTicks)
-                : Math.max(1, Math.round(GhostCartEntity.DEFAULT_STRIDE_TICKS * draft.distance() / (float) travelled));
+                : Math.max(1, (int) Math.round(GhostCartEntity.DEFAULT_STRIDE_TICKS *
+                    (draft.distance() / MCTPConfig.getTradeSpeedMultiplier(draft.segment().type())) / totalTravelCost));
             assignedTicks += duration;
             pendingVisualLegs.addLast(new VisualLeg(draft.segmentIndex(), draft.segment(), draft.targetIndex(), duration));
         }
@@ -399,9 +415,9 @@ public class ExportData
             "Starting trade visual leg index={} mode={} target={} durationTicks={} remainingLegs={}",
             leg.segmentIndex(), segment.type(), leg.targetIndex(), leg.durationTicks(), pendingVisualLegs.size()));
 
-        if (segment.type() == TrackRoute.SegmentType.TRANSFER)
+        if (segment.type() == TrackRoute.SegmentType.TRANSFER || segment.type() == TrackRoute.SegmentType.AIR_TRANSIT)
         {
-            if (cart != null) cart.playTransferEffects();
+            if (cart != null && segment.type() == TrackRoute.SegmentType.TRANSFER) cart.playTransferEffects();
             discardCart();
             activeRouteSegmentIndex = leg.segmentIndex();
         }
@@ -442,7 +458,8 @@ public class ExportData
         for (int index = previousIndex + step; index != nextIndex; index += step)
         {
             TrackRoute.Segment between = activeRoute.segments().get(index);
-            if ((between.type() == TrackRoute.SegmentType.DOCK || between.type() == TrackRoute.SegmentType.INTERCHANGE)
+            if ((between.type() == TrackRoute.SegmentType.DOCK || between.type() == TrackRoute.SegmentType.INTERCHANGE ||
+                between.type() == TrackRoute.SegmentType.MOORING)
                 && between.dimension().equals(level.dimension()) && !between.path().isEmpty())
             {
                 handoff = between.path().getFirst();
@@ -467,7 +484,8 @@ public class ExportData
 
     private static boolean isVehicleMode(TrackRoute.SegmentType type)
     {
-        return type == TrackRoute.SegmentType.RAIL || type == TrackRoute.SegmentType.ROAD || type == TrackRoute.SegmentType.WATER;
+        return type == TrackRoute.SegmentType.RAIL || type == TrackRoute.SegmentType.ROAD ||
+            type == TrackRoute.SegmentType.WATER || type == TrackRoute.SegmentType.AIR;
     }
 
     private boolean vehicleMatches(TrackRoute.SegmentType type)
@@ -476,7 +494,8 @@ public class ExportData
         {
             case ROAD -> cart instanceof WagonEntity;
             case WATER -> cart instanceof GhostBoatEntity;
-            case RAIL -> !(cart instanceof WagonEntity) && !(cart instanceof GhostBoatEntity);
+            case AIR -> cart instanceof AirshipEntity;
+            case RAIL -> !(cart instanceof WagonEntity) && !(cart instanceof GhostBoatEntity) && !(cart instanceof AirshipEntity);
             default -> true;
         };
     }
@@ -526,9 +545,9 @@ public class ExportData
                 continue;
             }
 
-            if (segment.type() == TrackRoute.SegmentType.TRANSFER)
+            if (segment.type() == TrackRoute.SegmentType.TRANSFER || segment.type() == TrackRoute.SegmentType.AIR_TRANSIT)
             {
-                if (cart != null)
+                if (cart != null && segment.type() == TrackRoute.SegmentType.TRANSFER)
                 {
                     cart.playTransferEffects();
                 }

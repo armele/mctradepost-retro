@@ -19,7 +19,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 
-/** Renders the visual vehicle used by future air trade-route segments. */
+/** Renders the visual vehicle used by air trade-route endpoint segments. */
 public class AirshipRenderer extends EntityRenderer<AirshipEntity>
 {
     @SuppressWarnings("null")
@@ -29,6 +29,7 @@ public class AirshipRenderer extends EntityRenderer<AirshipEntity>
     private final AirshipModel model;
     private final ItemRenderer itemRenderer;
 
+    @SuppressWarnings("null")
     public AirshipRenderer(EntityRendererProvider.Context context)
     {
         super(context);
@@ -37,6 +38,7 @@ public class AirshipRenderer extends EntityRenderer<AirshipEntity>
         shadowRadius = 1.0F;
     }
 
+    @SuppressWarnings("null")
     @Override
     public void render(@Nonnull AirshipEntity airship, float yaw, float partialTick, @Nonnull PoseStack pose,
         @Nonnull MultiBufferSource buffers, int light)
@@ -53,7 +55,8 @@ public class AirshipRenderer extends EntityRenderer<AirshipEntity>
         if (!airship.getTradeItem().isEmpty())
         {
             pose.pushPose();
-            pose.translate(0.0D, 0.65D, 0.1D);
+            pose.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
+            pose.translate(0.0D, 0.3D, 0.125D);
             pose.scale(0.9F, 0.9F, 0.9F);
             pose.mulPose(Axis.YP.rotationDegrees((airship.tickCount + partialTick) * 4.0F));
             itemRenderer.renderStatic(airship.getTradeItem(), ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,

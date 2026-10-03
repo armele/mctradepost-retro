@@ -862,6 +862,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.interchange(dimension, path.getFirst()));
             }
+            else if (type == TrackRoute.SegmentType.MOORING)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.mooring(dimension, path.getFirst()));
+            }
+            else if (type == TrackRoute.SegmentType.AIR_TRANSIT)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && path.size() >= 2) segments.add(TrackRoute.Segment.airTransit(dimension, path.getFirst(), path.getLast()));
+            }
             else
             {
                 ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
