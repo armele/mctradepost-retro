@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        {
+            "item": "minecraft:compass"
+        },
+        {
+            "item": "minecraft:paper"
+        },
+        {
+            "item": "minecraft:spyglass"
+        }
+    ],
+    "result": {
+        "id": "mctradepost:route_survey",
+        "count": 1
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "variants": {
+        "facing=north,lit=false": {
+            "model": "mctradepost:block/gasifier"
+        },
+        "facing=east,lit=false": {
+            "model": "mctradepost:block/gasifier",
+            "y": 90
+        },
+        "facing=south,lit=false": {
+            "model": "mctradepost:block/gasifier",
+            "y": 180
+        },
+        "facing=west,lit=false": {
+            "model": "mctradepost:block/gasifier",
+            "y": 270
+        },
+        "facing=north,lit=true": {
+            "model": "mctradepost:block/gasifier_lit"
+        },
+        "facing=east,lit=true": {
+            "model": "mctradepost:block/gasifier_lit",
+            "y": 90
+        },
+        "facing=south,lit=true": {
+            "model": "mctradepost:block/gasifier_lit",
+            "y": 180
+        },
+        "facing=west,lit=true": {
+            "model": "mctradepost:block/gasifier_lit",
+            "y": 270
+        }
+    }
+}

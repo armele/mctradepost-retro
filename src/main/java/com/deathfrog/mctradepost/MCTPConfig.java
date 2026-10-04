@@ -63,8 +63,16 @@ public class MCTPConfig
     public static final ConfigValue<Double> roadTradeSpeedMultiplier;
     public static final ConfigValue<Double> waterTradeSpeedMultiplier;
     public static final ConfigValue<Double> airTradeSpeedMultiplier;
+    public static final ConfigValue<Double> visibleAirTradeSpeedMultiplier;
     public static final ConfigValue<Integer> maximumWaterRouteDistance;
     public static final ConfigValue<Integer> airshipCruisingClearance;
+    public static final ConfigValue<Integer> mooringBayGasCapacity;
+    public static final ConfigValue<Integer> gasifierGasCapacity;
+    public static final ConfigValue<Integer> gasPerBurnTick;
+    public static final ConfigValue<Integer> gasifierTransferRate;
+    public static final ConfigValue<Integer> airshipBaseGasCost;
+    public static final ConfigValue<Integer> airshipBlocksPerGasUnit;
+    public static final ConfigValue<Integer> gasComplaintAttempts;
     public static final ConfigValue<Integer> importsPerLevel;
 
     // Animal Trainer Settings
@@ -172,12 +180,21 @@ public class MCTPConfig
             .defineInRange("roadTradeSpeedMultiplier", 1.0D, 0.1D, 100.0D);
         waterTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier while traveling by water.")
             .defineInRange("waterTradeSpeedMultiplier", 1.0D, 0.1D, 100.0D);
-        airTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier for visible and long-distance air travel.")
+        airTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier for long-distance air travel.")
             .defineInRange("airTradeSpeedMultiplier", 10.0D, 0.1D, 100.0D);
+        visibleAirTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier for visible air travel.")
+            .defineInRange("visibleAirTradeSpeedMultiplier", 4.0D, 0.1D, 100.0D);
         maximumWaterRouteDistance = BUILDER.comment("Maximum navigable block distance for one dock-to-dock water leg.")
             .defineInRange("maximumWaterRouteDistance", 1000, 1, 10000);
         airshipCruisingClearance = BUILDER.comment("Airship cruising height above the higher Mooring Bay or local colony-border terrain.")
             .defineInRange("airshipCruisingClearance", 16, 1, 128);
+        mooringBayGasCapacity = BUILDER.comment("Lifting Gas capacity of a Mooring Bay.").defineInRange("mooringBayGasCapacity", 240000, 1000, 10000000);
+        gasifierGasCapacity = BUILDER.comment("Lifting Gas capacity of a Gasifier.").defineInRange("gasifierGasCapacity", 16000, 1000, 10000000);
+        gasPerBurnTick = BUILDER.comment("Lifting Gas produced per furnace burn tick.").defineInRange("gasPerBurnTick", 1, 1, 1000);
+        gasifierTransferRate = BUILDER.comment("Maximum Lifting Gas pushed per adjacent face per tick.").defineInRange("gasifierTransferRate", 250, 1, 100000);
+        airshipBaseGasCost = BUILDER.comment("Base Lifting Gas cost per air shipment.").defineInRange("airshipBaseGasCost", 1000, 0, 1000000);
+        airshipBlocksPerGasUnit = BUILDER.comment("Air-route blocks traveled per Lifting Gas unit.").defineInRange("airshipBlocksPerGasUnit", 1, 1, 100000);
+        gasComplaintAttempts = BUILDER.comment("Ready shipment attempts blocked by gas before the Station Master complains.").defineInRange("gasComplaintAttempts", 3, 1, 100);
 
         importsPerLevel = BUILDER.comment("Number of imports allowed per Station level.").define("importsPerLevel", 5);
 
@@ -204,7 +221,9 @@ public class MCTPConfig
         // MCTradePostMod.LOGGER.info("Static initialization of MCTPConfig complete.");
     }
 
-    /** Returns the configured shipment-speed factor for a route segment without affecting route selection distance. */
+    /** 
+     * Returns the configured shipment-speed factor for a route segment without affecting route selection distance. 
+     */
     public static double getTradeSpeedMultiplier(TrackRoute.SegmentType type)
     {
         return switch (type)
@@ -212,7 +231,8 @@ public class MCTPConfig
             case RAIL -> railTradeSpeedMultiplier.get();
             case ROAD -> roadTradeSpeedMultiplier.get();
             case WATER -> waterTradeSpeedMultiplier.get();
-            case AIR, AIR_TRANSIT -> airTradeSpeedMultiplier.get();
+            case AIR -> visibleAirTradeSpeedMultiplier.get();
+            case AIR_TRANSIT -> airTradeSpeedMultiplier.get();
             default -> 1.0D;
         };
     }

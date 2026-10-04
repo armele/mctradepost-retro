@@ -1,0 +1,26 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "IWI",
+        "ICI",
+        "IFI"
+    ],
+    "key": {
+        "I": {
+            "item": "minecraft:iron_ingot"
+        },
+        "F": {
+            "item": "minecraft:furnace"
+        },
+        "C": {
+            "item": "minecraft:coal"
+        },
+        "W": {
+            "tag": "minecraft:wool"
+        }
+    },
+    "result": {
+        "id": "mctradepost:gasifier",
+        "count": 1
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "parent": "mctradepost:block/gasifier",
+    "textures": {
+        "north": "mctradepost:block/gasifier_front_lit"
+    }
+}

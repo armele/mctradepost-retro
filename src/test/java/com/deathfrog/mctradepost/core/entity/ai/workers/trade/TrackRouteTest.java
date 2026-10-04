@@ -72,14 +72,16 @@ class TrackRouteTest
             TrackRoute.Segment.rail(Level.OVERWORLD, positions(125, 130))));
 
         assertEquals(130, route.totalDistance());
-        assertEquals(95, route.advanceDistance(0, 14, type -> switch (type)
+        assertEquals(65, route.advanceDistance(0, 14, type -> switch (type)
         {
-            case AIR, AIR_TRANSIT -> 10.0D;
+            case AIR -> 4.0D;
+            case AIR_TRANSIT -> 10.0D;
             default -> 1.0D;
         }));
-        assertEquals(130, route.advanceDistance(95, 9, type -> switch (type)
+        assertEquals(130, route.advanceDistance(65, 12, type -> switch (type)
         {
-            case AIR, AIR_TRANSIT -> 10.0D;
+            case AIR -> 4.0D;
+            case AIR_TRANSIT -> 10.0D;
             default -> 1.0D;
         }));
     }

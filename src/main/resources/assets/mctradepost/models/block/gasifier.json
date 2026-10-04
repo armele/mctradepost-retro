@@ -1,0 +1,12 @@
+{
+    "parent": "minecraft:block/cube",
+    "textures": {
+        "down": "mctradepost:block/gasifier_bottom",
+        "up": "mctradepost:block/gasifier_top",
+        "north": "mctradepost:block/gasifier_front",
+        "south": "mctradepost:block/gasifier_back",
+        "west": "mctradepost:block/gasifier_side",
+        "east": "mctradepost:block/gasifier_side",
+        "particle": "mctradepost:block/gasifier_side"
+    }
+}
