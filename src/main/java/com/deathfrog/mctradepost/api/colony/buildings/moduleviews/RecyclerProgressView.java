@@ -24,6 +24,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
 
     private Set<RecyclingProcessor> recyclingProcessors = new LinkedHashSet<RecyclingProcessor>();
     private int maxProcessors = -1;
+    private int scrapPointsPerPile = 16;
 
     public RecyclerProgressView() {
         super();
@@ -86,6 +87,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
         if (max != null && max.contains("maxProcessors", Tag.TAG_INT)) {
             int maxProcessors = max.getInt("maxProcessors");
             this.maxProcessors = maxProcessors;
+            this.scrapPointsPerPile = Math.max(1, max.getInt("scrapPointsPerPile"));
         }
     }
 
@@ -98,4 +100,7 @@ public class RecyclerProgressView extends AbstractBuildingModuleView
     public Set<RecyclingProcessor> getRecyclingProcessors() {
         return recyclingProcessors;
     }
+
+    public int getScrapPointsPerPile() { return scrapPointsPerPile; }
+
 }

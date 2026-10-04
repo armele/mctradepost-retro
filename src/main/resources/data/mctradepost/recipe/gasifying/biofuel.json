@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "tag": "c:fuels/bio" },
+  "burn_time": 200,
+  "gas": 1000
+}

@@ -1,0 +1,10 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "create:cinder_flour" },
+  "burn_time": 200,
+  "gas": 250,
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create" },
+    { "type": "neoforge:item_exists", "item": "create:cinder_flour" }
+  ]
+}

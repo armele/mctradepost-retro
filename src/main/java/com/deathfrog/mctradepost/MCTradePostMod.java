@@ -123,6 +123,7 @@ import com.deathfrog.mctradepost.item.LiftingGasBucketItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
+import com.deathfrog.mctradepost.item.ScrapPileItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.item.WishResurrectionItem;
@@ -468,6 +469,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<ScrapPileItem> SCRAP_PILE = ITEMS.register("scrap_pile",
+        () -> new ScrapPileItem(new Item.Properties()));
 
     public static final DeferredItem<Item> END_MORTAR = ITEMS.register("end_mortar",
         () -> new Item(new Item.Properties()));
@@ -1354,6 +1358,7 @@ public class MCTradePostMod
                 output.accept(ROUTE_SURVEY.get());
                 output.accept(GASIFIER_ITEM.get());
                 output.accept(LIFTING_GAS_BUCKET.get());
+                output.accept(SCRAP_PILE.get());
             }).build());
 
     /*
@@ -2233,9 +2238,9 @@ public class MCTradePostMod
             event.registerItem(new SouvenirItemExtension(), MCTradePostMod.SOUVENIR.get());
             event.registerFluidType(new net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions()
             {
-                @Override public ResourceLocation getStillTexture() { return ResourceLocation.withDefaultNamespace("block/water_still"); }
-                @Override public ResourceLocation getFlowingTexture() { return ResourceLocation.withDefaultNamespace("block/water_flow"); }
-                @Override public int getTintColor() { return 0xFFB7E6F2; }
+                @Override public ResourceLocation getStillTexture() { return ResourceLocation.fromNamespaceAndPath(MODID, "block/gas_bubbles"); }
+                @Override public ResourceLocation getFlowingTexture() { return ResourceLocation.fromNamespaceAndPath(MODID, "block/gas_bubbles"); }
+                @Override public int getTintColor() { return 0xFFFFFFFF; }
             }, MCTPFluids.LIFTING_GAS_TYPE.get());
         }
 

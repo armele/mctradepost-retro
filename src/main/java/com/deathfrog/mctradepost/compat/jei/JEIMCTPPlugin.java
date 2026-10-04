@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.compat.jei;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
+import com.deathfrog.mctradepost.core.client.gui.GasifierScreen;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiCache;
 import com.deathfrog.mctradepost.core.entity.pets.scavenge.PetForagingJeiEntry;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinition;
@@ -10,6 +11,7 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionH
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
 import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
+import com.deathfrog.mctradepost.recipe.GasifierRecipe;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.recipe.IRecipeManager;
@@ -17,9 +19,12 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.ItemStack;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +38,9 @@ public class JEIMCTPPlugin implements IModPlugin
     @SuppressWarnings("null")
     public static final RecipeType<PetForagingJeiEntry> PET_FORAGING_TYPE =
         new RecipeType<>(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_foraging"), PetForagingJeiEntry.class);
+    @SuppressWarnings("null")
+    public static final RecipeType<GasifierRecipe> GASIFYING_TYPE =
+        new RecipeType<>(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, GasifierRecipe.ID), GasifierRecipe.class);
 
     public static IRecipeManager RECIPE_MANAGER = null;
     @SuppressWarnings("null")
@@ -64,7 +72,8 @@ public class JEIMCTPPlugin implements IModPlugin
     {
         registration.addRecipeCategories(
             new RitualCategory(registration.getJeiHelpers().getGuiHelper()),
-            new PetForagingCategory(registration.getJeiHelpers().getGuiHelper()));
+            new PetForagingCategory(registration.getJeiHelpers().getGuiHelper()),
+            new GasifierCategory(registration.getJeiHelpers().getGuiHelper()));
     }
 
     /**
@@ -75,6 +84,16 @@ public class JEIMCTPPlugin implements IModPlugin
     public void registerRecipes(@Nonnull IRecipeRegistration registration)
     {
         MCTradePostMod.LOGGER.info("Registering JEI recipes");
+        if (Minecraft.getInstance().level != null)
+        {
+            List<GasifierRecipe> gasifierRecipes = Minecraft.getInstance().level.getRecipeManager()
+                .getAllRecipesFor(MCTradePostMod.GASIFIER_RECIPE_TYPE.get()).stream()
+                .map(RecipeHolder::value)
+                // Empty optional-mod tags resolve to a barrier placeholder; omit those unusable recipes from JEI.
+                .filter(recipe -> !recipe.input().hasNoItems())
+                .toList();
+            registration.addRecipes(NullnessBridge.assumeNonnull(GASIFYING_TYPE), gasifierRecipes);
+        }
         List<RitualDefinitionHelper> allRituals = RitualManager.getAllRituals().values().stream().toList();
 
         if (allRituals == null || allRituals.isEmpty())
@@ -210,6 +229,17 @@ public class JEIMCTPPlugin implements IModPlugin
         reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.FEEDER.get()), PET_FORAGING_TYPE);
         reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.DREDGER.get()), PET_FORAGING_TYPE);
         reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.SCAVENGE.get()), PET_FORAGING_TYPE);
+        reg.addRecipeCatalyst(new ItemStack(MCTradePostMod.GASIFIER.get()), GASIFYING_TYPE);
+    }
+
+    /** Makes the Gasifier's progress arrow open this plugin's gasifying recipes. */
+    @Override
+    public void registerGuiHandlers(@Nonnull IGuiHandlerRegistration registration)
+    {
+        registration.addRecipeClickArea(GasifierScreen.class,
+            GasifierScreen.RECIPE_ARROW_X, GasifierScreen.RECIPE_ARROW_Y,
+            GasifierScreen.RECIPE_ARROW_WIDTH, GasifierScreen.RECIPE_ARROW_HEIGHT,
+            GASIFYING_TYPE);
     }
 
     @Override

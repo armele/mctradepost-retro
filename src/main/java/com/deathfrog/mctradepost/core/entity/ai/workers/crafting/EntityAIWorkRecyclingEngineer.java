@@ -727,7 +727,8 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
             return RecyclingStates.LOAD_TO_INPUT;
         }
 
-        building.reconcileRecyclingRequests();
+        final Object2IntMap<ItemStorage> warehouseSnapshot = building.getWarehouseRecyclingSnapshot();
+        building.reconcileRecyclingRequests(warehouseSnapshot);
 
         final List<ItemStorage> list = recyclingModule.getList();
 
@@ -743,7 +744,6 @@ public class EntityAIWorkRecyclingEngineer extends AbstractEntityAIBasic<JobRecy
         boolean completedSelection = false;
         ItemListModule module = building.getModule(ItemListModule.class, m -> m.getId().equals(RECYCLING_LIST));
         final List<ItemStorage> requestableSnapshot = new ArrayList<>(list);
-        final Object2IntMap<ItemStorage> warehouseSnapshot = building.getWarehouseRecyclingSnapshot();
         for (final ItemStorage item : requestableSnapshot)
         {
             if (recyclingModule.hasPendingWarehouseRequest(item) || recyclingModule.hasAcceptedRecyclingInput(item))

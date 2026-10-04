@@ -20,7 +20,7 @@ public class GasifierMenu extends AbstractContainerMenu
 
     public GasifierMenu(int id, Inventory inventory)
     {
-        this(id, inventory, new SimpleContainer(1), new SimpleContainerData(5));
+        this(id, inventory, new SimpleContainer(2), new SimpleContainerData(7));
     }
 
     @SuppressWarnings("null")
@@ -29,8 +29,8 @@ public class GasifierMenu extends AbstractContainerMenu
         super(MCTradePostMod.GASIFIER_MENU.get(), id);
         this.machine = machine;
         this.data = data;
-        checkContainerSize(machine, 1);
-        checkContainerDataCount(data, 5);
+        checkContainerSize(machine, 2);
+        checkContainerDataCount(data, 7);
         machine.startOpen(inv.player);
         addSlot(new Slot(machine, 0, 56, 53)
         {
@@ -38,6 +38,14 @@ public class GasifierMenu extends AbstractContainerMenu
             public boolean mayPlace(@Nonnull ItemStack stack)
             {
                 return machine.canPlaceItem(0, stack);
+            }
+        });
+        addSlot(new Slot(machine, 1, 56, 17)
+        {
+            @Override
+            public boolean mayPlace(@Nonnull ItemStack stack)
+            {
+                return machine.canPlaceItem(1, stack);
             }
         });
         for (int r = 0; r < 3; r++) for (int c = 0; c < 9; c++) addSlot(new Slot(inv, c + r * 9 + 9, 8 + c * 18, 84 + r * 18));
@@ -65,11 +73,15 @@ public class GasifierMenu extends AbstractContainerMenu
         Slot slot = slots.get(index);
         if (!slot.hasItem()) return ItemStack.EMPTY;
         ItemStack original = slot.getItem(), copy = original.copy();
-        if (index == 0)
+        if (index < 2)
         {
-            if (!moveItemStackTo(original, 1, slots.size(), true)) return ItemStack.EMPTY;
+            if (!moveItemStackTo(original, 2, slots.size(), true)) return ItemStack.EMPTY;
         }
-        else if (!moveItemStackTo(original, 0, 1, false)) return ItemStack.EMPTY;
+        else
+        {
+            final int target = machine.canPlaceItem(1, original) ? 1 : 0;
+            if (!machine.canPlaceItem(target, original) || !moveItemStackTo(original, target, target + 1, false)) return ItemStack.EMPTY;
+        }
         if (original.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
         else slot.setChanged();
         return copy;
@@ -97,7 +109,7 @@ public class GasifierMenu extends AbstractContainerMenu
 
     public boolean isLit()
     {
-        return data.get(4) != 0;
+        return data.get(6) != 0;
     }
 
     public float litProgress()
@@ -107,6 +119,6 @@ public class GasifierMenu extends AbstractContainerMenu
 
     public float burnProgress()
     {
-        return burnTotal() <= 0 ? 0.0F : (float) (burnTotal() - burn()) / burnTotal();
+        return data.get(5) <= 0 ? 0.0F : (float) (data.get(5) - data.get(4)) / data.get(5);
     }
 }

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.MCTPConfig;
@@ -82,7 +83,7 @@ public final class AirRouteConnection
         Map<BlockPos, TrackRoute> sourceLegs = new LinkedHashMap<>();
         for (BlockPos sourceBay : sourceBays)
         {
-            if (!validateCandidateBay(level, sourceBay)) continue;
+            if (!validateCandidateBay(level, sourceBay, loadChunks)) continue;
             TrackPathConnection.TrackConnectionResult sourceLeg =
                 MultimodalRouteConnection.findRoute(level, source.getRailStartPosition(), sourceBay, loadChunks, allowWater);
             if (sourceLeg.isConnected() && sourceLeg.getRoute() != null) sourceLegs.put(sourceBay, sourceLeg.getRoute());
@@ -91,7 +92,7 @@ public final class AirRouteConnection
         Map<BlockPos, TrackRoute> destinationLegs = new LinkedHashMap<>();
         for (BlockPos destinationBay : destinationBays)
         {
-            if (!validateCandidateBay(level, destinationBay)) continue;
+            if (!validateCandidateBay(level, destinationBay, loadChunks)) continue;
             TrackPathConnection.TrackConnectionResult destinationLeg =
                 MultimodalRouteConnection.findRoute(level, destinationBay, destination.getRailStartPosition(), loadChunks, allowWater);
             if (destinationLeg.isConnected() && destinationLeg.getRoute() != null)
@@ -161,34 +162,59 @@ public final class AirRouteConnection
     @SuppressWarnings("null")
     public static boolean canLaunch(ITradeCapable source, ITradeCapable destination, TrackRoute route)
     {
+        return validateAirPrerequisites(source, destination, route, true);
+    }
+
+    /**
+     * Validates the cheap, externally mutable prerequisites of a cached air route without loading endpoint chunks. Unloaded Bay
+     * blocks remain provisionally valid here and are checked authoritatively by {@link #canLaunch(ITradeCapable, ITradeCapable,
+     * TrackRoute)} immediately before dispatch.
+     */
+    public static boolean validateCachedRoute(ITradeCapable source, ITradeCapable destination, TrackRoute route)
+    {
+        return validateAirPrerequisites(source, destination, route, false);
+    }
+
+    @SuppressWarnings("null")
+    private static boolean validateAirPrerequisites(ITradeCapable source,
+        ITradeCapable destination,
+        TrackRoute route,
+        boolean requireLoaded)
+    {
         if (!isAirRoute(route)) return true;
         if (source == null || destination == null || source.getColony() == null || destination.getColony() == null) return false;
         if (!hasRequiredResearch(source.getColony(), destination.getColony())) return false;
         if (!source.getColony().getDimension().equals(destination.getColony().getDimension())) return false;
 
         ServerLevel level = (ServerLevel) source.getColony().getWorld();
+        Set<BlockPos> registeredBays = MooringBayRegistry.get(level).bays();
         List<BlockPos> routeBays = new ArrayList<>();
-
         for (TrackRoute.Segment segment : route.segments())
         {
             if (segment.type() != TrackRoute.SegmentType.MOORING) continue;
             if (segment.path().isEmpty()) return false;
-            final BlockPos bay = segment.path().getFirst();
+            BlockPos bay = segment.path().getFirst();
+            if (bay == null || !registeredBays.contains(bay)) return false;
 
-            if (bay == null) continue;
-
-            if (!level.isLoaded(bay) || !level.getBlockState(bay).is(MCTradePostMod.MOORING_BAY.get()) ||
-                !BlockMooringBay.isOpenToSky(level, bay)) return false;
             IColony owner = IColonyManager.getInstance().getColonyByPosFromWorld(level, bay);
             if (owner == null || (owner.getID() != source.getColony().getID() && owner.getID() != destination.getColony().getID()))
                 return false;
+            if (!level.isLoaded(bay))
+            {
+                if (requireLoaded) return false;
+            }
+            else if (!level.getBlockState(bay).is(MCTradePostMod.MOORING_BAY.get()) || !BlockMooringBay.isOpenToSky(level, bay))
+            {
+                return false;
+            }
             routeBays.add(bay);
         }
 
-        if (routeBays.size() < 2 || !(level.getBlockEntity(routeBays.getFirst()) instanceof MooringBayBlockEntity departure) ||
-            !departure.authorizes(routeBays.getLast())) return false;
-
-        return true;
+        if (routeBays.size() < 2) return false;
+        BlockPos departurePos = routeBays.getFirst();
+        if (!level.isLoaded(departurePos)) return !requireLoaded;
+        return level.getBlockEntity(departurePos) instanceof MooringBayBlockEntity departure &&
+            departure.authorizes(routeBays.getLast());
     }
 
     /** Returns the Lifting Gas required by the air portions of a route. */
@@ -268,17 +294,22 @@ public final class AirRouteConnection
     }
 
     /**
-     * Loads and authoritatively validates one already-ranked endpoint candidate. Only bounded local endpoint candidates reach this
-     * method; no flight-corridor chunks are loaded.
+     * Authoritatively validates one already-ranked endpoint candidate. When chunk loading is disabled, unloaded candidates are
+     * skipped instead. Only bounded local endpoint candidates reach this method; no flight-corridor chunks are loaded.
      *
      * @param level dimension containing the candidate
      * @param bay   candidate Mooring Bay position
+     * @param loadChunks whether the candidate's chunk may be loaded for route discovery
      * @return true when the registered block exists and its 3x3 area is sky-open
      */
     @SuppressWarnings("null")
-    private static boolean validateCandidateBay(ServerLevel level, @Nonnull BlockPos bay)
+    private static boolean validateCandidateBay(ServerLevel level, @Nonnull BlockPos bay, boolean loadChunks)
     {
-        level.getChunkAt(bay);
+        if (!level.isLoaded(bay))
+        {
+            if (!loadChunks) return false;
+            level.getChunkAt(bay);
+        }
         return level.getBlockState(bay).is(MCTradePostMod.MOORING_BAY.get()) && BlockMooringBay.isOpenToSky(level, bay);
     }
 

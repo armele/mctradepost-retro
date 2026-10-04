@@ -1,7 +1,5 @@
 package com.deathfrog.mctradepost.core.blocks.blockentity;
 
-import java.util.Optional;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import com.deathfrog.mctradepost.MCTPConfig;
@@ -9,7 +7,6 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.core.inventory.GasifierMenu;
 import com.deathfrog.mctradepost.core.blocks.BlockGasifier;
-import com.deathfrog.mctradepost.recipe.GasifierRecipe;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,27 +23,32 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import com.deathfrog.mctradepost.recipe.GasifierRecipe;
 
-/** Converts furnace fuels or configured gasifying recipes into stored Lifting Gas. */
+/** Burns furnace fuel to convert recipe-defined feedstocks into stored Lifting Gas. */
 public class GasifierBlockEntity extends BlockEntity implements Container, MenuProvider, LiftingGasStorage
 {
     private static final String BURN_REMAINING_NBT_KEY = "BurnRemaining";
     private static final String BURN_TOTAL_NBT_KEY = "BurnTotal";
     private static final String GAS_REMAINING_NBT_KEY = "GasRemaining";
+    private static final String PROCESS_REMAINING_NBT_KEY = "ProcessRemaining";
+    private static final String PROCESS_TOTAL_NBT_KEY = "ProcessTotal";
     private static final String DISPLAY_NAME_KEY = "container.mctradepost.gasifier";
-
     @SuppressWarnings("null")
-    private NonNullList<ItemStack> items = NonNullList.withSize(1, ItemStack.EMPTY);
+    private NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private int gas;
     private int burnRemaining;
     private int burnTotal;
     private int gasRemaining;
+    private int processRemaining;
+    private int processTotal;
     private int outputCursor;
 
     private final @Nonnull ContainerData data = new ContainerData()
@@ -61,6 +63,8 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
                 case 1 -> gasCapacity();
                 case 2 -> burnRemaining;
                 case 3 -> burnTotal;
+                case 4 -> processRemaining;
+                case 5 -> processTotal;
                 default -> getBlockState().getValue(BlockGasifier.LIT) ? 1 : 0;
             };
         }
@@ -71,12 +75,14 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
             if (i == 0) setGasAmount(value);
             else if (i == 2) burnRemaining = value;
             else if (i == 3) burnTotal = value;
+            else if (i == 4) processRemaining = value;
+            else if (i == 5) processTotal = value;
         }
 
         @Override
         public int getCount()
         {
-            return 5;
+            return 7;
         }
     };
 
@@ -108,46 +114,31 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     public static void serverTick(Level level, BlockPos pos, BlockState state, GasifierBlockEntity be)
     {
         be.pushGas(level, pos);
-        int perTick = be.burnRemaining <= 0 ? 0 : (be.gasRemaining + be.burnRemaining - 1) / be.burnRemaining;
         boolean active = false;
 
-        if (be.burnRemaining > 0 && be.gasCapacity() - be.gas >= perTick)
+        if (be.processRemaining <= 0)
         {
-            active = true;
-            be.burnRemaining--;
-            be.gasRemaining -= perTick;
-            be.setGasAmount(be.gas + perTick);
+            final ItemStack feedstock = be.items.get(1);
+            final GasifierRecipe recipe = be.findRecipe(feedstock);
+            if (recipe != null && be.gasCapacity() - be.gas >= recipe.gasYield()
+                && (be.burnRemaining > 0 || be.canBurn(be.items.getFirst())))
+            {
+                be.processRemaining = recipe.burnTime();
+                be.processTotal = be.processRemaining;
+                be.gasRemaining = recipe.gasYield();
+                feedstock.shrink(1);
+                be.setChanged();
+            }
         }
 
-        if (be.burnRemaining <= 0 && be.gas < be.gasCapacity())
+        if (be.processRemaining > 0 && be.burnRemaining <= 0)
         {
             ItemStack fuel = be.items.getFirst();
-            int duration = 0;
-            int yield = 0;
-            if (!fuel.isEmpty())
-            {
-                Optional<RecipeHolder<GasifierRecipe>> override = level.getRecipeManager()
-                    .getRecipeFor(MCTradePostMod.GASIFIER_RECIPE_TYPE.get(),
-                        new net.minecraft.world.item.crafting.SingleRecipeInput(fuel),
-                        level);
-                        
-                if (override.isPresent())
-                {
-                    duration = Math.max(1, override.get().value().burnTime());
-                    yield = Math.max(1, override.get().value().gasYield());
-                }
-                else
-                {
-                    duration = fuel.getBurnTime(null);
-                    yield = duration * MCTPConfig.gasPerBurnTick.get();
-                }
-            }
+            int duration = fuel.isEmpty() ? 0 : fuel.getBurnTime(null);
             if (duration > 0)
             {
-                active = true;
                 be.burnRemaining = duration;
                 be.burnTotal = duration;
-                be.gasRemaining = yield;
                 ItemStack remainder = fuel.getCraftingRemainingItem();
                 fuel.shrink(1);
                 if (fuel.isEmpty() && !remainder.isEmpty()) be.items.set(0, remainder);
@@ -155,8 +146,39 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
             }
         }
 
+        if (be.processRemaining > 0 && be.burnRemaining > 0)
+        {
+            final int perTick = (be.gasRemaining + be.processRemaining - 1) / be.processRemaining;
+            if (be.gasCapacity() - be.gas >= perTick)
+            {
+                active = true;
+                be.burnRemaining--;
+                be.processRemaining--;
+                be.gasRemaining -= perTick;
+                be.setGasAmount(be.gas + perTick);
+            }
+        }
+
         if (state.getValue(BlockGasifier.LIT) != active)
             level.setBlock(pos, state.setValue(BlockGasifier.LIT, active), 3);
+    }
+
+    @SuppressWarnings("null")
+    private boolean canBurn(ItemStack stack)
+    {
+        return !stack.isEmpty() && stack.getBurnTime(null) > 0;
+    }
+
+    /** Resolves the authoritative gasifying recipe for an input stack. */
+    @SuppressWarnings("null")
+    private @Nullable GasifierRecipe findRecipe(ItemStack stack)
+    {
+        if (stack.isEmpty() || level == null) return null;
+        SingleRecipeInput input = new SingleRecipeInput(stack);
+        return level.getRecipeManager()
+            .getRecipeFor(MCTradePostMod.GASIFIER_RECIPE_TYPE.get(), input, level)
+            .map(RecipeHolder::value)
+            .orElse(null);
     }
 
     @SuppressWarnings("null")
@@ -187,6 +209,8 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
         tag.putInt(BURN_REMAINING_NBT_KEY, burnRemaining);
         tag.putInt(BURN_TOTAL_NBT_KEY, burnTotal);
         tag.putInt(GAS_REMAINING_NBT_KEY, gasRemaining);
+        tag.putInt(PROCESS_REMAINING_NBT_KEY, processRemaining);
+        tag.putInt(PROCESS_TOTAL_NBT_KEY, processTotal);
     }
 
     @SuppressWarnings("null")
@@ -194,24 +218,32 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     public void loadAdditional(@Nonnull CompoundTag tag, @Nonnull HolderLookup.Provider registries)
     {
         super.loadAdditional(tag, registries);
-        items = NonNullList.withSize(1, ItemStack.EMPTY);
+        items = NonNullList.withSize(2, ItemStack.EMPTY);
         ContainerHelper.loadAllItems(tag, items, registries);
         gas = Math.max(0, Math.min(tag.getInt(LIFTING_GAS_NBT_KEY), gasCapacity()));
         burnRemaining = tag.getInt(BURN_REMAINING_NBT_KEY);
         burnTotal = tag.getInt(BURN_TOTAL_NBT_KEY);
         gasRemaining = tag.getInt(GAS_REMAINING_NBT_KEY);
+        processRemaining = tag.getInt(PROCESS_REMAINING_NBT_KEY);
+        processTotal = tag.getInt(PROCESS_TOTAL_NBT_KEY);
+        // Continue legacy in-flight gas batches rather than silently losing their yield.
+        if (!tag.contains(PROCESS_REMAINING_NBT_KEY) && gasRemaining > 0 && burnRemaining > 0)
+        {
+            processRemaining = burnRemaining;
+            processTotal = Math.max(processRemaining, burnTotal);
+        }
     }
 
     @Override
     public int getContainerSize()
     {
-        return 1;
+        return 2;
     }
 
     @Override
     public boolean isEmpty()
     {
-        return items.getFirst().isEmpty();
+        return items.getFirst().isEmpty() && items.get(1).isEmpty();
     }
 
     @Override
@@ -247,13 +279,7 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     @Override
     public boolean canPlaceItem(int slot, ItemStack stack)
     {
-        if (stack.getBurnTime(null) > 0)
-            return true;
-        return level != null && level.getRecipeManager()
-            .getRecipeFor(MCTradePostMod.GASIFIER_RECIPE_TYPE.get(),
-                new net.minecraft.world.item.crafting.SingleRecipeInput(stack),
-                level)
-            .isPresent();
+        return slot == 0 ? stack.getBurnTime(null) > 0 : slot == 1 && findRecipe(stack) != null;
     }
 
     @Override

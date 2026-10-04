@@ -17,7 +17,7 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.Level;
 
-/** Optional datapack override for a Gasifier fuel. Furnace fuels remain the fallback. */
+/** Defines a feedstock that the Gasifier converts into Lifting Gas. */
 public record GasifierRecipe(Ingredient input, int burnTime, int gasYield) implements Recipe<SingleRecipeInput>
 {
     public static final String ID = "gasifying";
@@ -65,8 +65,8 @@ public record GasifierRecipe(Ingredient input, int burnTime, int gasYield) imple
         private static final MapCodec<GasifierRecipe> CODEC = RecordCodecBuilder.mapCodec(
             i -> i
                 .group(Ingredient.CODEC_NONEMPTY.fieldOf("input").forGetter(GasifierRecipe::input),
-                    Codec.INT.fieldOf("burn_time").forGetter(GasifierRecipe::burnTime),
-                    Codec.INT.fieldOf("gas").forGetter(GasifierRecipe::gasYield))
+                    Codec.intRange(1, 1_000_000).fieldOf("burn_time").forGetter(GasifierRecipe::burnTime),
+                    Codec.intRange(1, 10_000_000).fieldOf("gas").forGetter(GasifierRecipe::gasYield))
                 .apply(i, GasifierRecipe::new));
 
         @SuppressWarnings("null")

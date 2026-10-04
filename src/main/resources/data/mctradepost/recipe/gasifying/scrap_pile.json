@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "mctradepost:scrap_pile" },
+  "burn_time": 200,
+  "gas": 1000
+}

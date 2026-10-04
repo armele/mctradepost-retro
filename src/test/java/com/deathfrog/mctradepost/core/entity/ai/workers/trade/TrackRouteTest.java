@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -57,6 +59,24 @@ class TrackRouteTest
         TrackRoute reversed = route.reversed();
         assertEquals(destination, reversed.segments().get(1).path().getFirst());
         assertEquals(origin, reversed.segments().get(1).path().getLast());
+    }
+
+    @SuppressWarnings("null")
+    @Test
+    void identifiesOnlyRoutesContainingAirTravelAsAirRoutes()
+    {
+        TrackRoute terrestrial = new TrackRoute(List.of(
+            TrackRoute.Segment.rail(Level.OVERWORLD, positions(0, 2)),
+            TrackRoute.Segment.interchange(Level.OVERWORLD, BlockPos.ZERO.east(2)),
+            TrackRoute.Segment.road(Level.OVERWORLD, positions(2, 4))));
+        TrackRoute air = new TrackRoute(List.of(
+            TrackRoute.Segment.mooring(Level.OVERWORLD, BlockPos.ZERO),
+            TrackRoute.Segment.airTransit(Level.OVERWORLD, BlockPos.ZERO, BlockPos.ZERO.east(10)),
+            TrackRoute.Segment.mooring(Level.OVERWORLD, BlockPos.ZERO.east(10))));
+
+        assertFalse(AirRouteConnection.isAirRoute(null));
+        assertFalse(AirRouteConnection.isAirRoute(terrestrial));
+        assertTrue(AirRouteConnection.isAirRoute(air));
     }
 
     @SuppressWarnings("null")

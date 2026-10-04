@@ -4,13 +4,18 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import com.deathfrog.mctradepost.core.inventory.GasifierMenu;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.neoforged.fml.ModList;
+import org.lwjgl.glfw.GLFW;
 
 /** Client screen for Gasifier fuel, burn progress, and Lifting Gas storage. */
 public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
@@ -18,17 +23,32 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
     private static final ResourceLocation TEXTURE = ResourceLocation.withDefaultNamespace("textures/gui/container/furnace.png");
     private static final ResourceLocation LIT_PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/lit_progress");
     private static final ResourceLocation BURN_PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("container/furnace/burn_progress");
-    private static final ResourceLocation GAS_TEXTURE = ResourceLocation.fromNamespaceAndPath("mctradepost", "textures/gui/gas_bubbles.png");
+    private static final ResourceLocation GAS_TEXTURE = ResourceLocation.fromNamespaceAndPath("mctradepost", "block/gas_bubbles");
     private static final int GAS_TEXTURE_SIZE = 16;
     private static final int METER_X = 115;
     private static final int METER_Y = 16;
     private static final int METER_WIDTH = 20;
     private static final int METER_HEIGHT = 54;
     private static final int METER_INNER_HEIGHT = METER_HEIGHT - 4;
+    public static final int RECIPE_ARROW_X = 79;
+    public static final int RECIPE_ARROW_Y = 34;
+    public static final int RECIPE_ARROW_WIDTH = 24;
+    public static final int RECIPE_ARROW_HEIGHT = 16;
+
+    private long handCursor;
+    private boolean handCursorActive;
 
     public GasifierScreen(GasifierMenu menu, Inventory inventory, Component title)
     {
         super(menu, inventory, title);
+    }
+
+    @Override
+    protected void init()
+    {
+        super.init();
+        if (handCursor == 0L && ModList.get().isLoaded("jei"))
+            handCursor = GLFW.glfwCreateStandardCursor(GLFW.GLFW_HAND_CURSOR);
     }
 
     @SuppressWarnings("null")
@@ -36,6 +56,7 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
     public void render(@Nonnull GuiGraphics g, int x, int y, float p)
     {
         super.render(g, x, y, p);
+        updateRecipeArrowCursor(x, y);
         renderTooltip(g, x, y);
         if (x >= leftPos + METER_X && x < leftPos + METER_X + METER_WIDTH &&
             y >= topPos + METER_Y && y < topPos + METER_Y + METER_HEIGHT)
@@ -51,8 +72,7 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
     {
         g.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight);
 
-        // The Gasifier has only a fuel slot; erase the furnace's unused input and output slots.
-        g.fill(leftPos + 55, topPos + 16, leftPos + 73, topPos + 34, 0xFFC6C6C6);
+        // The Gasifier uses the furnace input and fuel positions; erase only the unused output slot.
         g.fill(leftPos + 110, topPos + 29, leftPos + 142, topPos + 59, 0xFFC6C6C6);
 
         if (menu.isLit())
@@ -63,9 +83,34 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
         }
 
         int width = Mth.ceil(menu.burnProgress() * 24.0F);
-        g.blitSprite(BURN_PROGRESS_SPRITE, 24, 16, 0, 0, leftPos + 79, topPos + 34, width, 16);
+        g.blitSprite(BURN_PROGRESS_SPRITE, RECIPE_ARROW_WIDTH, RECIPE_ARROW_HEIGHT, 0, 0,
+            leftPos + RECIPE_ARROW_X, topPos + RECIPE_ARROW_Y, width, RECIPE_ARROW_HEIGHT);
 
         renderGasMeter(g);
+    }
+
+    private void updateRecipeArrowCursor(double mouseX, double mouseY)
+    {
+        boolean shouldUseHand = handCursor != 0L &&
+            mouseX >= leftPos + RECIPE_ARROW_X && mouseX < leftPos + RECIPE_ARROW_X + RECIPE_ARROW_WIDTH &&
+            mouseY >= topPos + RECIPE_ARROW_Y && mouseY < topPos + RECIPE_ARROW_Y + RECIPE_ARROW_HEIGHT;
+        if (shouldUseHand != handCursorActive)
+        {
+            GLFW.glfwSetCursor(Minecraft.getInstance().getWindow().getWindow(), shouldUseHand ? handCursor : 0L);
+            handCursorActive = shouldUseHand;
+        }
+    }
+
+    @Override
+    public void removed()
+    {
+        if (handCursorActive)
+            GLFW.glfwSetCursor(Minecraft.getInstance().getWindow().getWindow(), 0L);
+        if (handCursor != 0L)
+            GLFW.glfwDestroyCursor(handCursor);
+        handCursor = 0L;
+        handCursorActive = false;
+        super.removed();
     }
 
     private void renderGasMeter(GuiGraphics g)
@@ -123,22 +168,27 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
         }
     }
 
-    /** Draws unscaled gas tiles, cropping edge tiles and anchoring the pattern to the bottom. */
+    /** Draws animated fluid-sprite tiles, clipping edge tiles and anchoring the pattern to the bottom. */
     @SuppressWarnings("null")
     private void renderTiledGas(GuiGraphics g, int left, int top, int right, int bottom)
     {
-        for (int tileBottom = bottom; tileBottom > top; tileBottom -= GAS_TEXTURE_SIZE)
-        {
-            int tileHeight = Math.min(GAS_TEXTURE_SIZE, tileBottom - top);
-            int tileY = tileBottom - tileHeight;
-            int textureY = GAS_TEXTURE_SIZE - tileHeight;
+        TextureAtlasSprite gasSprite = Minecraft.getInstance()
+            .getTextureAtlas(InventoryMenu.BLOCK_ATLAS)
+            .apply(GAS_TEXTURE);
 
-            for (int tileX = left; tileX < right; tileX += GAS_TEXTURE_SIZE)
+        g.enableScissor(left, top, right, bottom);
+        try
+        {
+            for (int tileBottom = bottom; tileBottom > top; tileBottom -= GAS_TEXTURE_SIZE)
             {
-                int tileWidth = Math.min(GAS_TEXTURE_SIZE, right - tileX);
-                g.blit(GAS_TEXTURE, tileX, tileY, 0, textureY,
-                    tileWidth, tileHeight, GAS_TEXTURE_SIZE, GAS_TEXTURE_SIZE);
+                int tileY = tileBottom - GAS_TEXTURE_SIZE;
+                for (int tileX = left; tileX < right; tileX += GAS_TEXTURE_SIZE)
+                    g.blit(tileX, tileY, 0, GAS_TEXTURE_SIZE, GAS_TEXTURE_SIZE, gasSprite);
             }
+        }
+        finally
+        {
+            g.disableScissor();
         }
     }
 }

@@ -280,6 +280,7 @@ These are standard datapack recipes plus a few custom recipe types provided by t
 - `mctradepost:unique_tag_shapeless`
 - `mctradepost:potion_shapeless`
 - `mctradepost:deconstruction`
+- `mctradepost:gasifying`
 
 Example of the custom unique-tag recipe:
 
@@ -303,6 +304,68 @@ This recipe requires:
 - each tagged ingredient must be a different item id
 
 That makes tag composition part of recipe balance.
+
+#### Gasifier Feedstocks
+
+Gasifier feedstocks are defined exclusively by `mctradepost:gasifying` recipes. The Gasifier does not use low- or high-yield
+feedstock tags, and gas yield or processing time are not configuration values. JEI displays the active recipes and their Lifting Gas
+outputs; the Gasifier is registered as the category catalyst.
+
+The former Gasifier yield/processing configuration keys and
+`mctradepost:gasifier_feedstocks/low_yield`/`high_yield` tags are obsolete. Existing keys left in an older generated TOML are ignored;
+move pack-specific balancing and feedstock additions into recipes.
+
+Place pack-provided recipes anywhere under a recipe folder, for example:
+
+```text
+data/<your_namespace>/recipe/gasifying/<name>.json
+```
+
+Recipe format:
+
+```json
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "minecraft:bone_meal" },
+  "burn_time": 200,
+  "gas": 250
+}
+```
+
+- `input` is a standard ingredient and may identify an item or a tag.
+- `burn_time` is the number of processing ticks and must be from `1` through `1000000`.
+- `gas` is the number of Lifting Gas units produced per input and must be from `1` through `10000000`.
+- Gasifying consumes ordinary furnace fuel separately; `burn_time` describes how long the feedstock takes to process.
+
+Convention tags are useful for broad compatibility:
+
+```json
+{
+  "type": "mctradepost:gasifying",
+  "input": { "tag": "c:dusts/wood" },
+  "burn_time": 200,
+  "gas": 250
+}
+```
+
+For a direct item supplied by an optional mod, guard the recipe so its absence does not produce a broken recipe:
+
+```json
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "examplemod:biomass" },
+  "burn_time": 200,
+  "gas": 500,
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "examplemod" },
+    { "type": "neoforge:item_exists", "item": "examplemod:biomass" }
+  ]
+}
+```
+
+To alter a built-in feedstock, override its recipe at the same resource location. To remove one, replace it with an override using a
+condition that is always false, or use your pack's normal datapack recipe-removal facility. Recipe changes take effect on datapack
+reload; reopen JEI if its displayed recipe list does not refresh immediately.
 
 ### Custom Advancement Triggers
 

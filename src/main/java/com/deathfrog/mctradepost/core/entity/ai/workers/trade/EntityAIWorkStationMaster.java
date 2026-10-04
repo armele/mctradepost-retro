@@ -533,21 +533,10 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if (currentExport != null && currentExport.getTradeItem() != null && !currentExport.getTradeItem().getItemStack().isEmpty())
         {   
             TrackConnectionResult tcr = ((BuildingStation) building).getTrackConnectionResult(currentExport.getDestinationStationData());
-            if (tcr == null)
+            if (tcr == null || !tcr.isConnected())
             {
                 currentRemoteStation = currentExport.getDestinationStationData();
                 return StationMasterStates.CHECK_CONNECTION;
-            }
-
-            boolean allowWater = building.getColony().getResearchManager().getResearchEffects()
-                .getEffectStrength(com.deathfrog.mctradepost.api.research.MCTPResearchConstants.MARITIME_TRADE) > 0;
-            TrackConnectionResult preferredAir = AirRouteConnection.findRoute(building,
-                currentExport.getDestinationStationData(), true, allowWater);
-                
-            if (preferredAir != null && preferredAir.isConnected())
-            {
-                tcr = preferredAir;
-                building.putTrackConnectionResult(currentExport.getDestinationStationData(), tcr);
             }
 
             int trackDistance = tcr.getRouteDistance();
@@ -791,17 +780,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             {
                 TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Cached connection found. Validating it.",  building.getColony().getID()));
 
-                boolean allowWater = building.getColony().getResearchManager().getResearchEffects()
-                    .getEffectStrength(com.deathfrog.mctradepost.api.research.MCTPResearchConstants.MARITIME_TRADE) > 0;
-                TrackConnectionResult preferredAir = AirRouteConnection.findRoute(building, currentRemoteStation, false, allowWater);
-                if (preferredAir != null && preferredAir.isConnected())
-                {
-                    connectionResult = preferredAir;
-                }
-
                 boolean isValid = connectionResult.route == null
                     ? TrackPathConnection.validateExistingPath(world, connectionResult)
                     : TrackRouteConnection.validateExistingRoute(world.getServer(), connectionResult);
+                isValid = isValid && AirRouteConnection.validateCachedRoute(building,
+                    currentRemoteStation.getStation(), connectionResult.getRoute());
 
                 if (isValid)
                 {

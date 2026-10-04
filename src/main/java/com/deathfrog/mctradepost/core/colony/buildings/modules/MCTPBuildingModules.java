@@ -97,6 +97,7 @@ public class MCTPBuildingModules
     public static final BuildingEntry.ModuleProducer<SettingsModule,SettingsModuleView> RECYCLING_SETTINGS    =
       new BuildingEntry.ModuleProducer<>("recycling_settings", () -> new SettingsModule()
         .with(BuildingRecycling.ITERATIVE_PROCESSING, new BoolSetting(false))
+        .with(BuildingRecycling.SCRAP_MODE, new BoolSetting(false))
         .with(BuildingRecycling.DELETE_FAILED_ATTEMPTS, new BoolSetting(false))
         .with(BuildingRecycling.ALLOW_SORT, new SortSetting()), () -> SettingsModuleView::new);
 

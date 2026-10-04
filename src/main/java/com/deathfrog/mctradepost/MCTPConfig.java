@@ -55,6 +55,7 @@ public class MCTPConfig
     public static final ConfigValue<Integer> baseRecyclerTime;
     public static final ConfigValue<Integer> flawlessRecycling;
     public static final ConfigValue<Integer> warehouseInventoryCooldown;
+    public static final ConfigValue<Integer> scrapPointsPerPile;
 
     // Station Settings
     public static final ConfigValue<Integer> trackValidationFrequency;
@@ -68,7 +69,6 @@ public class MCTPConfig
     public static final ConfigValue<Integer> airshipCruisingClearance;
     public static final ConfigValue<Integer> mooringBayGasCapacity;
     public static final ConfigValue<Integer> gasifierGasCapacity;
-    public static final ConfigValue<Integer> gasPerBurnTick;
     public static final ConfigValue<Integer> gasifierTransferRate;
     public static final ConfigValue<Integer> airshipBaseGasCost;
     public static final ConfigValue<Integer> airshipBlocksPerGasUnit;
@@ -166,6 +166,9 @@ public class MCTPConfig
         warehouseInventoryCooldown = BUILDER.comment("Frequency of warehouse inventory updates in Colony Ticks (processor intensive).")
             .define("warehouseInventoryCooldown", 50);
 
+        scrapPointsPerPile = BUILDER.comment("Scrap Points required to produce one Scrap Pile.")
+            .defineInRange("scrapPointsPerPile", 16, 1, 1000000);
+
         BUILDER.pop();
 
         // Station Settings
@@ -190,7 +193,6 @@ public class MCTPConfig
             .defineInRange("airshipCruisingClearance", 16, 1, 128);
         mooringBayGasCapacity = BUILDER.comment("Lifting Gas capacity of a Mooring Bay.").defineInRange("mooringBayGasCapacity", 240000, 1000, 10000000);
         gasifierGasCapacity = BUILDER.comment("Lifting Gas capacity of a Gasifier.").defineInRange("gasifierGasCapacity", 16000, 1000, 10000000);
-        gasPerBurnTick = BUILDER.comment("Lifting Gas produced per furnace burn tick.").defineInRange("gasPerBurnTick", 1, 1, 1000);
         gasifierTransferRate = BUILDER.comment("Maximum Lifting Gas pushed per adjacent face per tick.").defineInRange("gasifierTransferRate", 250, 1, 100000);
         airshipBaseGasCost = BUILDER.comment("Base Lifting Gas cost per air shipment.").defineInRange("airshipBaseGasCost", 1000, 0, 1000000);
         airshipBlocksPerGasUnit = BUILDER.comment("Air-route blocks traveled per Lifting Gas unit.").defineInRange("airshipBlocksPerGasUnit", 1, 1, 100000);
