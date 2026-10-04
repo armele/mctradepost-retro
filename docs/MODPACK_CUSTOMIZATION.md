@@ -367,50 +367,6 @@ To alter a built-in feedstock, override its recipe at the same resource location
 condition that is always false, or use your pack's normal datapack recipe-removal facility. Recipe changes take effect on datapack
 reload; reopen JEI if its displayed recipe list does not refresh immediately.
 
-### Custom Advancement Triggers
-
-The mod registers several custom advancement triggers under the `mctradepost` namespace. These can be used in your own advancement JSON if you want pack-specific progression, quests, or tutorials to react to Trade Post gameplay.
-
-Folder to review for examples:
-
-```text
-data/mctradepost/advancement/mctradepost/*.json
-```
-
-Supported trigger ids:
-
-- `mctradepost:pet_trained`
-  - fired when the Animal Trainer successfully acquires or trains a Trade Post pet
-- `mctradepost:colony_connected`
-  - fired when a Station successfully validates a remote colony connection
-- `mctradepost:recycle_item`
-  - fired when a recycling process finishes
-- `mctradepost:complete_vacation`
-  - fired when a citizen completes a resort vacation
-- `mctradepost:make_wish`
-  - fired when a wishing well ritual completes successfully
-- `mctradepost:runs_on_stew`
-  - fired when the Stewmelier successfully serves stew
-- `mctradepost:rare_find`
-  - fired when a player purchases a tier-4 Rare Find from the thrift shop
-
-Current limitation:
-
-- these triggers are simple event triggers and currently only expose the standard optional `player` predicate in their codec
-- they do not currently provide additional custom trigger fields for filtering by item, building, tier, or similar event metadata
-
-Minimal example:
-
-```json
-{
-  "criteria": {
-    "wish": {
-      "trigger": "mctradepost:make_wish"
-    }
-  }
-}
-```
-
 ### Research Trees And Effects
 
 Folders:

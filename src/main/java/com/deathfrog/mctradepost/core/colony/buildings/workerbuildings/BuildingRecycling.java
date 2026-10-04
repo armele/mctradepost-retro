@@ -880,7 +880,6 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /** Converts all complete point groups into Scrap Pile items. */
-    @SuppressWarnings("null")
     private void emitAvailableScrapPiles()
     {
         final int threshold = Math.max(1, MCTPConfig.scrapPointsPerPile.get());
@@ -909,6 +908,7 @@ public class BuildingRecycling extends AbstractBuilding
     }
 
     /** Inserts as many piles as fit and leaves all overflow represented by points. */
+    @SuppressWarnings("null")
     private int insertScrapPiles(final int count, final List<IItemHandler> cachedOutputs)
     {
         if (cachedOutputs.isEmpty())

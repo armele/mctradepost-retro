@@ -159,7 +159,6 @@ public final class AirRouteConnection
      * @param route       cached route to validate
      * @return true when a non-air route needs no air validation or every air-launch prerequisite remains satisfied
      */
-    @SuppressWarnings("null")
     public static boolean canLaunch(ITradeCapable source, ITradeCapable destination, TrackRoute route)
     {
         return validateAirPrerequisites(source, destination, route, true);

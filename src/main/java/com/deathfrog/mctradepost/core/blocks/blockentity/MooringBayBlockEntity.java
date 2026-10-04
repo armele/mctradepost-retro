@@ -181,14 +181,6 @@ public class MooringBayBlockEntity extends BlockEntity implements Container, Men
         return 1;
     }
 
-    @SuppressWarnings("null")
-    @Override
-    public void setChanged()
-    {
-        super.setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-    }
-
     @Override
     public boolean stillValid(@Nonnull Player player)
     {

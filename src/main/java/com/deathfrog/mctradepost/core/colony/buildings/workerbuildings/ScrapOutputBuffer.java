@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.core.colony.buildings.workerbuildings;
 
 import java.util.function.IntUnaryOperator;
 
+import javax.annotation.Nonnull;
+
 import net.minecraft.nbt.CompoundTag;
 
 /**
@@ -22,14 +24,14 @@ final class ScrapOutputBuffer
         return points;
     }
 
-    void read(final CompoundTag tag, final String key)
+    void read(final CompoundTag tag, final @Nonnull String key)
     {
         points = Math.max(0.0D, tag.getDouble(key));
         retryCooldown = 0;
         lastThreshold = -1;
     }
 
-    void write(final CompoundTag tag, final String key)
+    void write(final CompoundTag tag, final @Nonnull String key)
     {
         tag.putDouble(key, points);
     }

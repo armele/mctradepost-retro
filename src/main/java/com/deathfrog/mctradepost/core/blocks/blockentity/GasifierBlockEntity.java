@@ -41,6 +41,7 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     private static final String PROCESS_REMAINING_NBT_KEY = "ProcessRemaining";
     private static final String PROCESS_TOTAL_NBT_KEY = "ProcessTotal";
     private static final String DISPLAY_NAME_KEY = "container.mctradepost.gasifier";
+    private static final int FAILED_TRANSFER_RETRY_TICKS = 20;
     @SuppressWarnings("null")
     private NonNullList<ItemStack> items = NonNullList.withSize(2, ItemStack.EMPTY);
     private int gas;
@@ -50,6 +51,7 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     private int processRemaining;
     private int processTotal;
     private int outputCursor;
+    private int transferRetryCooldown;
 
     private final @Nonnull ContainerData data = new ContainerData()
     {
@@ -106,7 +108,9 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     @Override
     public void setGasAmount(int amount)
     {
+        final boolean wasEmpty = gas <= 0;
         gas = Math.max(0, Math.min(amount, gasCapacity()));
+        if (wasEmpty && gas > 0) transferRetryCooldown = 0;
         setChanged();
     }
 
@@ -184,8 +188,19 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
     @SuppressWarnings("null")
     private void pushGas(Level level, BlockPos pos)
     {
-        if (gas <= 0) return;
+        if (gas <= 0)
+        {
+            transferRetryCooldown = 0;
+            return;
+        }
+        if (transferRetryCooldown > 0)
+        {
+            transferRetryCooldown--;
+            return;
+        }
+
         Direction[] directions = Direction.values();
+        boolean transferred = false;
         for (int checked = 0; checked < directions.length && gas > 0; checked++)
         {
             Direction direction = directions[(outputCursor + checked) % directions.length];
@@ -194,9 +209,14 @@ public class GasifierBlockEntity extends BlockEntity implements Container, MenuP
             if (target == null) continue;
             int offered = Math.min(gas, MCTPConfig.gasifierTransferRate.get());
             int accepted = target.fill(new FluidStack(liftingGas(), offered), IFluidHandler.FluidAction.EXECUTE);
-            if (accepted > 0) drainGas(accepted, false);
+            if (accepted > 0)
+            {
+                transferred = true;
+                drainGas(accepted, false);
+            }
         }
         outputCursor = (outputCursor + 1) % directions.length;
+        if (!transferred) transferRetryCooldown = FAILED_TRANSFER_RETRY_TICKS;
     }
 
     @SuppressWarnings("null")

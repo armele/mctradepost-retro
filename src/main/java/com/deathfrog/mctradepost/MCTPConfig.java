@@ -178,15 +178,15 @@ public class MCTPConfig
 
         baseTradeSpeed = BUILDER.comment("Base trade speed per building level.").define("baseTradeSpeed", 4);
         railTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier while traveling by rail.")
-            .defineInRange("railTradeSpeedMultiplier", 1.0D, 0.1D, 100.0D);
+            .defineInRange("railTradeSpeedMultiplier", 1.0D, 1.0D, 100.0D);
         roadTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier while traveling by road.")
-            .defineInRange("roadTradeSpeedMultiplier", 1.0D, 0.1D, 100.0D);
+            .defineInRange("roadTradeSpeedMultiplier", 1.0D, 1.0D, 100.0D);
         waterTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier while traveling by water.")
-            .defineInRange("waterTradeSpeedMultiplier", 1.0D, 0.1D, 100.0D);
+            .defineInRange("waterTradeSpeedMultiplier", 1.0D, 1.0D, 100.0D);
         airTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier for long-distance air travel.")
-            .defineInRange("airTradeSpeedMultiplier", 10.0D, 0.1D, 100.0D);
+            .defineInRange("airTradeSpeedMultiplier", 10.0D, 1.0D, 100.0D);
         visibleAirTradeSpeedMultiplier = BUILDER.comment("Shipment speed multiplier for visible air travel.")
-            .defineInRange("visibleAirTradeSpeedMultiplier", 4.0D, 0.1D, 100.0D);
+            .defineInRange("visibleAirTradeSpeedMultiplier", 4.0D, 1.0D, 100.0D);
         maximumWaterRouteDistance = BUILDER.comment("Maximum navigable block distance for one dock-to-dock water leg.")
             .defineInRange("maximumWaterRouteDistance", 1000, 1, 10000);
         airshipCruisingClearance = BUILDER.comment("Airship cruising height above the higher Mooring Bay or local colony-border terrain.")
