@@ -21,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
 /** Displays authoritative Gasifier recipes and their Lifting Gas yields in JEI. */
 public class GasifierCategory implements IRecipeCategory<GasifierRecipe>
 {
-    public static final int WIDTH = 120;
+    public static final int WIDTH = 170;
     public static final int HEIGHT = 44;
 
     private final IDrawable icon;
@@ -74,7 +74,7 @@ public class GasifierCategory implements IRecipeCategory<GasifierRecipe>
         builder.addSlot(RecipeIngredientRole.INPUT, 12, 10)
             .setStandardSlotBackground()
             .addIngredients(recipe.input());
-        builder.addSlot(RecipeIngredientRole.OUTPUT, 90, 10)
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 140, 10)
             .setOutputSlotBackground()
             .setFluidRenderer(recipe.gasYield(), false, 16, 16)
             .addFluidStack(MCTPFluids.LIFTING_GAS.get(), recipe.gasYield());
@@ -85,7 +85,7 @@ public class GasifierCategory implements IRecipeCategory<GasifierRecipe>
     public void createRecipeExtras(@Nonnull IRecipeExtrasBuilder builder, @Nonnull GasifierRecipe recipe,
         @Nonnull IFocusGroup focuses)
     {
-        builder.addAnimatedRecipeArrow(recipe.burnTime()).setPosition(45, 10);
+        builder.addAnimatedRecipeArrow(recipe.burnTime()).setPosition(73, 10);
         builder.addText(Component.translatable("jei.mctradepost.gasifying.output", recipe.gasYield()), WIDTH, 10)
             .setPosition(0, 33)
             .setColor(ChatFormatting.DARK_GRAY.getColor());

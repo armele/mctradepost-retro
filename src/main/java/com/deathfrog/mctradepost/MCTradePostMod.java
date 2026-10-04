@@ -473,6 +473,9 @@ public class MCTradePostMod
     public static final DeferredItem<ScrapPileItem> SCRAP_PILE = ITEMS.register("scrap_pile",
         () -> new ScrapPileItem(new Item.Properties()));
 
+    public static final DeferredItem<Item> PET_WASTE = ITEMS.register("pet_waste",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<Item> END_MORTAR = ITEMS.register("end_mortar",
         () -> new Item(new Item.Properties()));
 
@@ -1359,6 +1362,7 @@ public class MCTradePostMod
                 output.accept(GASIFIER_ITEM.get());
                 output.accept(LIFTING_GAS_BUCKET.get());
                 output.accept(SCRAP_PILE.get());
+                output.accept(PET_WASTE.get());
             }).build());
 
     /*

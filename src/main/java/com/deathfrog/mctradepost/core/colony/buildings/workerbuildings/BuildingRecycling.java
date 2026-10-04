@@ -537,14 +537,36 @@ public class BuildingRecycling extends AbstractBuilding
     {
         if (getSetting(SCRAP_MODE).getValue())
         {
-            final Double points = resolveScrapPoints(itemToRecycle, workerSkill);
+            final Level level = getColony() == null ? null : getColony().getWorld();
+            if (level == null)
+            {
+                return false;
+            }
+
+            // Scrap enchanted items only after safely recovering their enchantments.
+            // Keep the original stack unchanged so a rejected or cancelled job can
+            // return it intact, while valuing the item as its stripped counterpart.
+            final ItemStack strippedItem = itemToRecycle.copy();
+
+            if (strippedItem == null)
+            {
+                return false;
+            }
+
+            final List<ItemStack> recoveredEnchantments = new ArrayList<>();
+            if (!tryStripEnchantments(strippedItem, level, recoveredEnchantments))
+            {
+                return false;
+            }
+
+            final Double points = resolveScrapPoints(strippedItem, workerSkill);
             if (points != null)
             {
                 RecyclingProcessor processor = new RecyclingProcessor();
                 processor.processingItem = itemToRecycle.copy();
                 processor.processingTimer = 0;
                 processor.processingTimerComplete = MCTPConfig.baseRecyclerTime.get();
-                processor.output = new ArrayList<>();
+                processor.output = recoveredEnchantments;
                 processor.scrapMode = true;
                 processor.scrapPoints = points;
                 recyclingProcessors.add(processor);
@@ -859,6 +881,7 @@ public class BuildingRecycling extends AbstractBuilding
         if (processor.scrapMode)
         {
             StatsUtil.trackStatByName(this, ITEMS_SCRAPPED, processor.processingItem.getHoverName(), processor.processingItem.getCount());
+            generateOutput(processor.output);
             addScrapPointsAndEmit(processor.scrapPoints);
             removeRecyclingProcess(processor);
             return;
@@ -1528,11 +1551,25 @@ public class BuildingRecycling extends AbstractBuilding
      * @param actualOutput the mutable output list to append recovered enchantments to
      * @return true if recycling may proceed, false if the enchanted item should be preserved whole
      */
+    @SuppressWarnings("null")
     protected boolean tryAddDisenchantmentOutputs(@Nonnull final ItemStack inputStack,
         @Nonnull final Level level,
         @Nonnull final List<ItemStack> actualOutput)
     {
-        if (!inputStack.isEnchanted())
+        return tryStripEnchantments(inputStack.copy(), level, actualOutput);
+    }
+
+    /**
+     * Attempts to recover enchantments from a mutable working stack. On success,
+     * the supplied stack is stripped and the recovered books are appended to the
+     * output list. The caller should retain the original input separately when it
+     * may need to be returned intact.
+     */
+    protected boolean tryStripEnchantments(@Nonnull final ItemStack workingStack,
+        @Nonnull final Level level,
+        @Nonnull final List<ItemStack> actualOutput)
+    {
+        if (!workingStack.isEnchanted())
         {
             return true;
         }
@@ -1544,11 +1581,11 @@ public class BuildingRecycling extends AbstractBuilding
         {
             TraceUtils.dynamicTrace(TRACE_RECYCLING,
                 () -> LOGGER.info("Stripping enchantments from {}, with a chance of {} and a roll of {}.",
-                    inputStack,
+                    workingStack,
                     disenchantmentStrength,
                     roll));
 
-            List<ItemStack> enchantments = MCTPInventoryUtils.extractEnchantmentsToBooks(inputStack.copy());
+            List<ItemStack> enchantments = MCTPInventoryUtils.extractEnchantmentsToBooks(workingStack);
 
             if (!enchantments.isEmpty())
             {
@@ -1560,7 +1597,7 @@ public class BuildingRecycling extends AbstractBuilding
         {
             TraceUtils.dynamicTrace(TRACE_RECYCLING,
                 () -> LOGGER.info("The {} cannot be disenchanted, with a chance of {} and a roll of {}.",
-                    inputStack,
+                    workingStack,
                     disenchantmentStrength,
                     roll));
         }

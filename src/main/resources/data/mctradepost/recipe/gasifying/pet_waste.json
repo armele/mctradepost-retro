@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "mctradepost:pet_waste" },
+  "burn_time": 200,
+  "gas": 500
+}

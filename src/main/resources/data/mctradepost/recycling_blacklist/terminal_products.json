@@ -8,6 +8,10 @@
     {
       "type": "item",
       "id": "mctradepost:scrap_pile"
+    },
+    {
+      "type": "item",
+      "id": "mctradepost:pet_waste"
     }
   ]
 }
