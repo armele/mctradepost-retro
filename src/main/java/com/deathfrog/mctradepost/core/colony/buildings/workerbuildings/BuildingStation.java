@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
@@ -72,6 +73,7 @@ import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -1064,6 +1066,40 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
 
         MCTPInventoryUtils.insertOrDropByQuantity(remoteStation, exportData.getTradeItem());
+
+        ITradeCapable exporter = exportData.isReverse() ? exportData.getSourceStation() : this;
+        ITradeCapable importer = exportData.isReverse() ? this : remoteStation;
+
+        boolean isInterColonyStationTrade = exporter instanceof BuildingStation
+            && importer instanceof BuildingStation
+            && exporter.getColony().getID() != importer.getColony().getID();
+
+        if (isInterColonyStationTrade)
+        {
+            if (exporter !=  null)
+            {
+                AdvancementUtils.TriggerAdvancementPlayersForColony(exporter.getColony(),
+                    player -> {
+                        if (player == null) return;
+                        MCTPAdvancementTriggers.EXPORTER.get().trigger(player);
+                    });
+
+                if (exportData.usesAirship())
+                {
+                    AdvancementUtils.TriggerAdvancementPlayersForColony(exporter.getColony(),
+                        player -> {
+                            if (player == null) return;
+                            MCTPAdvancementTriggers.EXPRESS_DELIVERY.get().trigger(player);
+                        });
+                }
+            }
+
+            AdvancementUtils.TriggerAdvancementPlayersForColony(importer.getColony(),
+                player -> {
+                    if (player == null) return;
+                    MCTPAdvancementTriggers.IMPORTER.get().trigger(player);
+                });
+        }
 
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
         if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))

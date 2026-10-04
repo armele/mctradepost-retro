@@ -146,6 +146,13 @@ public class ExportData
         return requestToken;
     }
 
+    /** @return whether the active shipment route uses an airship leg */
+    public boolean usesAirship()
+    {
+        return activeRoute != null && activeRoute.segments().stream()
+            .anyMatch(segment -> segment.type() == TrackRoute.SegmentType.AIR);
+    }
+
     /**
      * Spawns a GhostCartEntity for trade if one does not already exist. The cart is initialized with the current export's trade item
      * and set on this export data.

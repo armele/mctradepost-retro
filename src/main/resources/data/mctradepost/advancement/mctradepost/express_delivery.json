@@ -1,0 +1,22 @@
+{
+  "parent": "mctradepost:mctradepost/exporter",
+  "criteria": {
+    "shipment": {
+      "trigger": "mctradepost:express_delivery"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.express_delivery.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:phantom_membrane"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.express_delivery.title"
+    }
+  },
+  "requirements": [["shipment"]],
+  "sends_telemetry_event": true
+}

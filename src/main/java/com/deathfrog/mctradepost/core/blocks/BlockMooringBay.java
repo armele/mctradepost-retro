@@ -92,6 +92,25 @@ public class BlockMooringBay extends BaseEntityBlock
     {
         if (stack.is(MCTradePostMod.ROUTE_SURVEY.get())) return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
 
+        if (stack.is(MCTradePostMod.LIFTING_GAS_BUCKET.get()) &&
+            level.getBlockEntity(pos) instanceof MooringBayBlockEntity bay)
+        {
+            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+
+            if (bay.fillGas(MooringBayBlockEntity.BUCKET_VOLUME, true) == MooringBayBlockEntity.BUCKET_VOLUME)
+            {
+                bay.fillGas(MooringBayBlockEntity.BUCKET_VOLUME, false);
+                if (!player.getAbilities().instabuild)
+                {
+                    stack.shrink(1);
+                    ItemStack emptyBucket = new ItemStack(Items.BUCKET);
+                    if (stack.isEmpty()) player.setItemInHand(hand, emptyBucket);
+                    else if (!player.getInventory().add(emptyBucket)) player.drop(emptyBucket, false);
+                }
+                return ItemInteractionResult.SUCCESS;
+            }
+        }
+
         if (stack.is(Items.BUCKET) && level.getBlockEntity(pos) instanceof MooringBayBlockEntity bay &&
             bay.drainGas(MooringBayBlockEntity.BUCKET_VOLUME, true) == MooringBayBlockEntity.BUCKET_VOLUME)
         {
