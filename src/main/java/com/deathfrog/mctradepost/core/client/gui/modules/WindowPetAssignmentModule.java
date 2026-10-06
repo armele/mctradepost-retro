@@ -18,6 +18,7 @@ import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.Text;
 import com.ldtteam.blockui.views.DropDownList;
 import com.ldtteam.blockui.views.ScrollingList;
+import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
 
 import net.minecraft.client.Minecraft;
@@ -32,6 +33,8 @@ import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
@@ -121,6 +124,12 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
      */
     private void updatePetAssignmentList()
     {
+        selectedBuildings.clear();
+        for (PetData<?> pet : ((PetshopView) buildingView).getPets())
+        {
+            selectedBuildings.add(pet.getWorkLocation());
+        }
+
         petList.enable();
         petList.show();
         petList.setDataProvider(new ScrollingList.DataProvider()
@@ -133,16 +142,7 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
             @Override
             public int getElementCount()
             {
-                int elementCount = ((PetshopView) buildingView).getPets().size();
-                int i = 0;
-
-                for (PetData<?> pet : ((PetshopView) buildingView).getPets())
-                {
-                    selectedBuildings.add(i, pet.getWorkLocation());
-                    i++;    
-                }
-
-                return elementCount;
+                return ((PetshopView) buildingView).getPets().size();
             }
 
             /**
@@ -216,57 +216,60 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                 }
                     
                 DropDownList buildings = rowPane.findPaneOfTypeByID(BUILDING_SELECTION_ID, DropDownList.class);
+                final List<PetWorkingLocationData> workLocations = getSortedWorkLocations();
 
-                buildings.setHandler(dropDownList -> onDropDownListChanged(dropDownList, index, pets.get(index).getEntityUuid()));
+                buildings.setHandler(dropDownList -> onDropDownListChanged(dropDownList, workLocations, index, pets.get(index).getEntityUuid()));
                 buildings.setDataProvider(new DropDownList.DataProvider()
                 {
                     @Override
                     public int getElementCount()
                     {
-                        if (moduleView.getPetWorkLocations() == null)
-                        {
-                            return 0;
-                        }
-
-                        return moduleView.getPetWorkLocations().size();
+                        return workLocations.size();
                     }
 
+                    @SuppressWarnings("null")
                     @Override
                     public MutableComponent getLabel(final int index)
                     {
 
-                        if (index == -1 || moduleView.getPetWorkLocations() == null)
+                        if (index == -1)
                         {
                             return Component.literal("Unassigned");
                         }
 
-                        if (index >= moduleView.getPetWorkLocations().size())
+                        if (index >= workLocations.size())
                         {
                             return Component.empty();
                         }
 
-                        String workBldName = (String) moduleView.getPetWorkLocations().get(index).name + "";
-                        return Component.translatableEscape(workBldName);
+                        final PetWorkingLocationData workLocation = workLocations.get(index);
+                        final int distance = (int) BlockPosUtil.getDistance(buildingView.getPosition(), workLocation.workLocation);
+                        final Component direction = BlockPosUtil.calcDirection(buildingView.getPosition(), workLocation.workLocation).getShortText();
+                        return Component.translatableEscape(workLocation.name)
+                            .append(Component.literal(" - " + distance + "m "))
+                            .append(direction);
                     }
                 });
 
                 BlockPos location = pets.get(index).getWorkLocation();
-                buildings.setSelectedIndex(workLocationIndex(location));
+                buildings.setSelectedIndex(workLocationIndex(location, workLocations));
+                updateSelectedLocationTooltip(buildings, location);
             }
 
             /**
              * Returns the index of the given building in the list of herding buildings.
-             * @param building the building to find the index of.
+             * @param location the work location to find.
+             * @param workLocations the distance-sorted work locations.
              * @return the index of the given building in the list of herding buildings, or -1 if the building is not in the list.
              */
-            private int workLocationIndex(final BlockPos location)
+            private int workLocationIndex(final BlockPos location, final List<PetWorkingLocationData> workLocations)
             {
                 int index = -1;
                 
                 if (location != null && !BlockPos.ZERO.equals(location))
                 {
                     PetWorkingLocationData workData = moduleView.getPetWorkLocationsMap().get(location);
-                    index = moduleView.getPetWorkLocations().indexOf(workData);
+                    index = workLocations.indexOf(workData);
                 }
                 
                 // MCTradePostMod.LOGGER.info("Index of building {} in herding buildings: {}", building, index);
@@ -280,8 +283,18 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
              * @param dropDownList the changed dropdown list.
              * @param selectedEntity the entity ID of the pet that the selected building is for.
              */
-            private void onDropDownListChanged(final DropDownList dropDownList, int rowIndex, UUID selectedEntity)
+            private void onDropDownListChanged(
+                final DropDownList dropDownList,
+                final List<PetWorkingLocationData> workLocations,
+                final int rowIndex,
+                final UUID selectedEntity)
             {
+                final int selectedIndex = dropDownList.getSelectedIndex();
+                if (selectedIndex >= 0 && selectedIndex < workLocations.size())
+                {
+                    updateSelectedLocationTooltip(dropDownList, workLocations.get(selectedIndex).workLocation);
+                }
+
                 // We need to prevent the dropdown list from being updated while the module view is dirty
                 // Our server signal needs to reach the server and be processed then show up back in the view before we respond to more inputs
                 if (moduleView.isDirty())
@@ -295,14 +308,15 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
                     petMessage.setWorkLocation(BlockPos.ZERO);
                     petMessage.sendToServer();
                     moduleView.markDirty();
-                    selectedBuildings.add(rowIndex, null);
+                    selectedBuildings.set(rowIndex, null);
+                    updateSelectedLocationTooltip(dropDownList, null);
                     return;
                 }
 
-                final BlockPos temp = moduleView.getPetWorkLocations().get(dropDownList.getSelectedIndex()).workLocation;
+                final BlockPos temp = workLocations.get(dropDownList.getSelectedIndex()).workLocation;
                 if (!temp.equals(selectedBuildings.get(rowIndex)))
                 {
-                    selectedBuildings.add(rowIndex, temp);
+                    selectedBuildings.set(rowIndex, temp);
                     PetMessage petMessage = new PetMessage(buildingView, PetAction.ASSIGN, selectedEntity);
                     petMessage.setWorkLocation(selectedBuildings.get(rowIndex));
                     petMessage.sendToServer();
@@ -311,6 +325,37 @@ public class WindowPetAssignmentModule extends AbstractModuleWindow<PetAssignmen
             }
 
         });
+    }
+
+    /**
+     * Returns the available work locations in deterministic nearest-first order.
+     */
+    private List<PetWorkingLocationData> getSortedWorkLocations()
+    {
+        final BlockPos hutPosition = buildingView.getPosition();
+        final List<PetWorkingLocationData> workLocations = new ArrayList<>(moduleView.getPetWorkLocations());
+        workLocations.sort(Comparator
+            .comparingLong((PetWorkingLocationData location) -> BlockPosUtil.getDistanceSquared(hutPosition, location.workLocation))
+            .thenComparingInt(location -> location.workLocation.getX())
+            .thenComparingInt(location -> location.workLocation.getY())
+            .thenComparingInt(location -> location.workLocation.getZ()));
+        return workLocations;
+    }
+
+    /**
+     * Shows the exact position for the value displayed by the collapsed dropdown.
+     */
+    private void updateSelectedLocationTooltip(final DropDownList dropDownList, final BlockPos workLocation)
+    {
+        final Button selectionButton = dropDownList.findFirstPaneByType(Button.class);
+        selectionButton.setHoverPane(null);
+        if (workLocation != null && !BlockPos.ZERO.equals(workLocation))
+        {
+            PaneBuilders.tooltipBuilder()
+                .hoverPane(selectionButton)
+                .append(Component.literal(workLocation.toShortString() + ""))
+                .build();
+        }
     }
 
 
