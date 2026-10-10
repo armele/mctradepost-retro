@@ -12,7 +12,7 @@ import net.minecraft.world.item.TooltipFlag;
 /** Gasifier feedstock produced by a Recycling Engineer working in Scrap mode. */
 public class ScrapPileItem extends Item
 {
-    public ScrapPileItem(Properties properties)
+    public ScrapPileItem(@Nonnull Properties properties)
     {
         super(properties);
     }

@@ -532,6 +532,8 @@ public class MCTradePostMod
     public static final DeferredItem<DimensionalLinkageItem> DIMENSIONAL_LINKAGE = ITEMS.register("dimensional_linkage",
         () -> new DimensionalLinkageItem(new Item.Properties().stacksTo(1)
             .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.uninitialized())));
+            
+    @SuppressWarnings("null")
     public static final DeferredItem<RouteSurveyItem> ROUTE_SURVEY = ITEMS.register("route_survey",
         () -> new RouteSurveyItem(new Item.Properties().stacksTo(1)));
         

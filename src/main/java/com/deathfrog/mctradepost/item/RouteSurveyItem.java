@@ -27,7 +27,7 @@ import net.minecraft.world.level.Level;
 /** Records a one-way flight from one Mooring Bay to another. */
 public class RouteSurveyItem extends Item
 {
-    public RouteSurveyItem(Properties properties)
+    public RouteSurveyItem(@Nonnull Properties properties)
     {
         super(properties);
     }

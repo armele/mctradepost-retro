@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 /** A sealed, non-placeable 1,000-unit manual container for Lifting Gas. */
 public class LiftingGasBucketItem extends Item
 {
-    public LiftingGasBucketItem(Properties properties)
+    public LiftingGasBucketItem(@Nonnull Properties properties)
     {
         super(properties);
     }

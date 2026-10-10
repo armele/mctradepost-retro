@@ -658,6 +658,8 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             buf.writeVarInt(modes.size());
             for (TrackRoute.SegmentType mode : modes)
             {
+                if (mode == null) continue;
+
                 buf.writeEnum(mode);
             }
         }

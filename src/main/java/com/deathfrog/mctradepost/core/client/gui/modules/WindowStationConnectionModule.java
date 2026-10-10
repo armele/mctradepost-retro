@@ -187,13 +187,13 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
         StationData.TrackConnectionStatus status = stationView.stationConnectionStatus(station);
         if (status != StationData.TrackConnectionStatus.CONNECTED)
         {
-            return Component.literal(status.toString());
+            return Component.literal(status.toString() + "");
         }
 
         List<TrackRoute.SegmentType> modes = stationView.stationConnectionModes(station);
         if (modes.isEmpty())
         {
-            return Component.literal(status.toString());
+            return Component.literal(status.toString() + "");
         }
 
         String modeSummary = modes.stream()
