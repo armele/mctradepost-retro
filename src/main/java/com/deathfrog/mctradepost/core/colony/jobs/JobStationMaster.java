@@ -6,6 +6,8 @@ import com.minecolonies.core.colony.jobs.AbstractJob;
 
 public class JobStationMaster extends AbstractJob<EntityAIWorkStationMaster, JobStationMaster>
 {
+    private int gasShortageAttempts;
+    private boolean gasShortage;
 
     public JobStationMaster(ICitizenData entity)
     {
@@ -22,6 +24,20 @@ public class JobStationMaster extends AbstractJob<EntityAIWorkStationMaster, Job
     {
         return new EntityAIWorkStationMaster(this);
     }
+
+    public boolean noteGasShortage(int threshold)
+    {
+        gasShortage = true;
+        return ++gasShortageAttempts == threshold;
+    }
+
+    public void clearGasShortage()
+    {
+        gasShortage = false;
+        gasShortageAttempts = 0;
+    }
+
+    public boolean hasGasShortage() { return gasShortage; }
 
     
 }

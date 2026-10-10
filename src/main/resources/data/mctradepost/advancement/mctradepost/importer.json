@@ -1,0 +1,22 @@
+{
+  "parent": "mctradepost:mctradepost/colony_connected",
+  "criteria": {
+    "shipment": {
+      "trigger": "mctradepost:importer"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancement.mctradepost.importer.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:hopper_minecart"
+    },
+    "title": {
+      "translate": "advancement.mctradepost.importer.title"
+    }
+  },
+  "requirements": [["shipment"]],
+  "sends_telemetry_event": true
+}

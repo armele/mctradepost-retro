@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "minecraft:bone_meal" },
+  "burn_time": 200,
+  "gas": 250
+}

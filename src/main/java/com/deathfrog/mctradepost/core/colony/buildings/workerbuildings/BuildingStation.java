@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
@@ -72,6 +73,7 @@ import com.minecolonies.core.datalistener.RecruitmentItemsListener;
 import com.minecolonies.core.colony.interactionhandling.RecruitmentInteraction;
 import com.minecolonies.core.colony.requestsystem.management.IStandardRequestManager;
 import com.minecolonies.core.entity.citizen.EntityCitizen;
+import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -651,6 +653,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             buf.writeNbt(e.getKey().toNBT());       // key
             buf.writeBoolean(e.getValue().connected);     // value
+            TrackRoute route = e.getValue().getRoute();
+            List<TrackRoute.SegmentType> modes = route == null ? List.of() : route.transportModes();
+            buf.writeVarInt(modes.size());
+            for (TrackRoute.SegmentType mode : modes)
+            {
+                buf.writeEnum(mode);
+            }
         }
     }
 
@@ -862,6 +871,18 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
                 List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
                 if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.interchange(dimension, path.getFirst()));
             }
+            else if (type == TrackRoute.SegmentType.MOORING)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && !path.isEmpty()) segments.add(TrackRoute.Segment.mooring(dimension, path.getFirst()));
+            }
+            else if (type == TrackRoute.SegmentType.AIR_TRANSIT)
+            {
+                ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
+                List<BlockPos> path = readBlockPosList(segmentTag.getList(TAG_CONNECTION_PATH, Tag.TAG_COMPOUND));
+                if (dimension != null && path.size() >= 2) segments.add(TrackRoute.Segment.airTransit(dimension, path.getFirst(), path.getLast()));
+            }
             else
             {
                 ResourceKey<Level> dimension = readDimension(segmentTag.getString(BuildingUtil.TAG_DIMENSION));
@@ -1052,6 +1073,40 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         }
 
         MCTPInventoryUtils.insertOrDropByQuantity(remoteStation, exportData.getTradeItem());
+
+        ITradeCapable exporter = exportData.isReverse() ? exportData.getSourceStation() : this;
+        ITradeCapable importer = exportData.isReverse() ? this : remoteStation;
+
+        boolean isInterColonyStationTrade = exporter instanceof BuildingStation
+            && importer instanceof BuildingStation
+            && exporter.getColony().getID() != importer.getColony().getID();
+
+        if (isInterColonyStationTrade)
+        {
+            if (exporter !=  null)
+            {
+                AdvancementUtils.TriggerAdvancementPlayersForColony(exporter.getColony(),
+                    player -> {
+                        if (player == null) return;
+                        MCTPAdvancementTriggers.EXPORTER.get().trigger(player);
+                    });
+
+                if (exportData.usesAirship())
+                {
+                    AdvancementUtils.TriggerAdvancementPlayersForColony(exporter.getColony(),
+                        player -> {
+                            if (player == null) return;
+                            MCTPAdvancementTriggers.EXPRESS_DELIVERY.get().trigger(player);
+                        });
+                }
+            }
+
+            AdvancementUtils.TriggerAdvancementPlayersForColony(importer.getColony(),
+                player -> {
+                    if (player == null) return;
+                    MCTPAdvancementTriggers.IMPORTER.get().trigger(player);
+                });
+        }
 
         // Adds to the local building inventory and calls for a pickup to the warehouse or drops on the ground if inventory is full.
         if (InventoryUtils.addItemStackToItemHandler(this.getItemHandlerCap(), finalPayment))

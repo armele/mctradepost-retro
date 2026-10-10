@@ -26,7 +26,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 
-/** Wish item that is primed against a recent permanent MineColonies grave. */
+/** 
+ * Wish item that is primed against a recent permanent MineColonies grave. 
+ */
 public class WishResurrectionItem extends Item
 {
     public static final int MAX_BURIAL_AGE = 63;
@@ -41,6 +43,7 @@ public class WishResurrectionItem extends Item
     public InteractionResult useOn(@Nonnull UseOnContext context)
     {
         if (context.getLevel().isClientSide()) return InteractionResult.SUCCESS;
+
         Player player = context.getPlayer();
         if (!(context.getLevel() instanceof ServerLevel level) || player == null) return InteractionResult.PASS;
 

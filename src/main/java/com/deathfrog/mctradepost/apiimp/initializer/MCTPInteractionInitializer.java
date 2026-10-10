@@ -19,6 +19,8 @@ import com.deathfrog.mctradepost.core.colony.jobs.JobAnimalTrainer;
 import com.deathfrog.mctradepost.core.colony.jobs.JobDairyworker;
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.jobs.JobStewmelier;
+import com.deathfrog.mctradepost.core.colony.jobs.JobStationMaster;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 
 public class MCTPInteractionInitializer 
 {
@@ -38,6 +40,7 @@ public class MCTPInteractionInitializer
     public static final String MISSING_FRAME                = "entity.shopkeeper.missingframe";
     public static final String NO_MARKETPLACE               = "entity.animaltrainier.nomarketplace";
     public static final String ANIMAL_NSF                   = "entity.animaltrainier.nsf";
+    public static final String NO_LIFTING_GAS               = "entity.stationmaster.no_lifting_gas";
 
     public static void injectInteractionHandlers() 
     {
@@ -107,5 +110,8 @@ public class MCTPInteractionInitializer
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(ANIMAL_NSF),
           citizen -> citizen.getWorkBuilding() instanceof BuildingPetshop && citizen.getJob(JobAnimalTrainer.class).checkNSF());
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_LIFTING_GAS),
+          citizen -> citizen.getWorkBuilding() instanceof BuildingStation && citizen.getJob(JobStationMaster.class).hasGasShortage());
     }
 }

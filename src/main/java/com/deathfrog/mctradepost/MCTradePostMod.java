@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
+import com.deathfrog.mctradepost.api.entity.AirshipEntity;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
 import com.deathfrog.mctradepost.api.entity.GhostBoatEntity;
 import com.deathfrog.mctradepost.api.entity.WagonEntity;
@@ -47,6 +48,9 @@ import com.deathfrog.mctradepost.core.blocks.BlockGlazed;
 import com.deathfrog.mctradepost.core.blocks.BlockHauler;
 import com.deathfrog.mctradepost.core.blocks.BlockLamp;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
+import com.deathfrog.mctradepost.core.blocks.BlockMooringBay;
+import com.deathfrog.mctradepost.core.blocks.BlockGasifier;
+import com.deathfrog.mctradepost.core.fluids.MCTPFluids;
 import com.deathfrog.mctradepost.core.blocks.BlockOutpostMarker;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlab;
 import com.deathfrog.mctradepost.core.blocks.BlockSideSlabInterleaved;
@@ -63,6 +67,7 @@ import com.deathfrog.mctradepost.core.blocks.huts.BlockHutResort;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutStation;
 import com.deathfrog.mctradepost.core.blocks.huts.BlockHutOutpost;
 import com.deathfrog.mctradepost.core.blocks.huts.MCTPBaseBlockHut;
+import com.deathfrog.mctradepost.core.client.render.AirshipRenderer;
 import com.deathfrog.mctradepost.core.client.render.AdvancedClipBoardDecorator;
 import com.deathfrog.mctradepost.core.client.render.GhostCartRenderer;
 import com.deathfrog.mctradepost.core.client.render.GhostBoatRenderer;
@@ -76,6 +81,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationRouteRefreshMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
@@ -113,9 +119,12 @@ import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.CurrencyExchangeItem;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
+import com.deathfrog.mctradepost.item.RouteSurveyItem;
+import com.deathfrog.mctradepost.item.LiftingGasBucketItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
 import com.deathfrog.mctradepost.item.SouvenirItem;
+import com.deathfrog.mctradepost.item.ScrapPileItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.item.WishResurrectionItem;
@@ -124,6 +133,7 @@ import com.deathfrog.mctradepost.network.ItemValueSyncPacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
 import com.deathfrog.mctradepost.recipe.PotionShapelessRecipe;
 import com.deathfrog.mctradepost.recipe.UniqueTagShapelessRecipe;
+import com.deathfrog.mctradepost.recipe.GasifierRecipe;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
@@ -308,6 +318,26 @@ public class MCTradePostMod
     public static final DeferredHolder<MenuType<?>, MenuType<com.deathfrog.mctradepost.core.inventory.PetWorkingMenu>> PET_WORKING_MENU =
         MENUS.register("pet_working", () -> IMenuTypeExtension.create(com.deathfrog.mctradepost.core.inventory.PetWorkingMenu::new));
 
+    @SuppressWarnings("null")
+    public static final DeferredHolder<MenuType<?>, MenuType<com.deathfrog.mctradepost.core.inventory.MooringBayMenu>> MOORING_BAY_MENU =
+        MENUS.register("mooring_bay", () -> IMenuTypeExtension.create((id, inv, data) -> {
+            BlockPos pos = data.readBlockPos();
+            net.minecraft.world.level.block.entity.BlockEntity be = inv.player.level().getBlockEntity(pos);
+            if (be instanceof com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity bay)
+                return (com.deathfrog.mctradepost.core.inventory.MooringBayMenu) bay.createMenu(id, inv, inv.player);
+            throw new IllegalStateException("Missing Mooring Bay at " + pos);
+        }));
+    
+    @SuppressWarnings("null")
+    public static final DeferredHolder<MenuType<?>, MenuType<com.deathfrog.mctradepost.core.inventory.GasifierMenu>> GASIFIER_MENU =
+        MENUS.register("gasifier", () -> IMenuTypeExtension.create((id, inv, data) -> {
+            BlockPos pos = data.readBlockPos();
+            net.minecraft.world.level.block.entity.BlockEntity be = inv.player.level().getBlockEntity(pos);
+            if (be instanceof com.deathfrog.mctradepost.core.blocks.blockentity.GasifierBlockEntity gasifier)
+                return (com.deathfrog.mctradepost.core.inventory.GasifierMenu) gasifier.createMenu(id, inv, inv.player);
+            throw new IllegalStateException("Missing Gasifier at " + pos);
+        }));
+
     public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
 
     /*
@@ -441,6 +471,12 @@ public class MCTradePostMod
     public static final DeferredItem<Item> NAPKIN = ITEMS.register("napkin",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<ScrapPileItem> SCRAP_PILE = ITEMS.register("scrap_pile",
+        () -> new ScrapPileItem(new Item.Properties()));
+
+    public static final DeferredItem<Item> PET_WASTE = ITEMS.register("pet_waste",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<Item> END_MORTAR = ITEMS.register("end_mortar",
         () -> new Item(new Item.Properties()));
 
@@ -496,6 +532,12 @@ public class MCTradePostMod
     public static final DeferredItem<DimensionalLinkageItem> DIMENSIONAL_LINKAGE = ITEMS.register("dimensional_linkage",
         () -> new DimensionalLinkageItem(new Item.Properties().stacksTo(1)
             .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.uninitialized())));
+    public static final DeferredItem<RouteSurveyItem> ROUTE_SURVEY = ITEMS.register("route_survey",
+        () -> new RouteSurveyItem(new Item.Properties().stacksTo(1)));
+        
+    @SuppressWarnings("null")
+    public static final DeferredItem<LiftingGasBucketItem> LIFTING_GAS_BUCKET = ITEMS.register("lifting_gas_bucket",
+        () -> new LiftingGasBucketItem(new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET)));
     
     @SuppressWarnings("null")
     public static final DeferredItem<CoinItem> MCTP_COIN_ITEM = ITEMS.register("mctp_coin", 
@@ -543,6 +585,12 @@ public class MCTradePostMod
         () -> EntityType.Builder.<WagonEntity>of(WagonEntity::new, MobCategory.MISC)
             .sized(1.2F, 1.0F).clientTrackingRange(128).updateInterval(1)
             .build(ResourceLocation.fromNamespaceAndPath(MODID, "wagon").toString()));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<EntityType<?>, EntityType<AirshipEntity>> AIRSHIP = ENTITIES.register("airship",
+        () -> EntityType.Builder.<AirshipEntity>of(AirshipEntity::new, MobCategory.MISC)
+            .sized(1.875F, 2.6875F).clientTrackingRange(128).updateInterval(1)
+            .build(ResourceLocation.fromNamespaceAndPath(MODID, "airship").toString()));
 
     @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetWolf>> PET_WOLF = ENTITIES.register("pet_wolf",
@@ -611,6 +659,14 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredBlock<BlockTradeInterchange> TRADE_INTERCHANGE = BLOCKS.register(BlockTradeInterchange.ID,
         () -> new BlockTradeInterchange(Properties.of().mapColor(MapColor.STONE).strength(2.0F, 6.0F).sound(SoundType.STONE)));
+
+    @SuppressWarnings("null")
+    public static final DeferredBlock<BlockMooringBay> MOORING_BAY = BLOCKS.register(BlockMooringBay.ID,
+        () -> new BlockMooringBay(Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 3.0F).sound(SoundType.WOOD)));
+        
+    @SuppressWarnings("null")
+    public static final DeferredBlock<BlockGasifier> GASIFIER = BLOCKS.register(BlockGasifier.ID,
+        () -> new BlockGasifier(Properties.of().mapColor(MapColor.METAL).strength(3.0F, 6.0F).sound(SoundType.METAL)));
             
     @SuppressWarnings("null")
     public static final DeferredBlock<StairBlock> MIXED_STONE_STAIRS =
@@ -760,6 +816,14 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<Item> TRADE_INTERCHANGE_ITEM =
         ITEMS.register(BlockTradeInterchange.ID, () -> new BlockItem(TRADE_INTERCHANGE.get(), new Item.Properties()));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> MOORING_BAY_ITEM =
+        ITEMS.register(BlockMooringBay.ID, () -> new BlockItem(MOORING_BAY.get(), new Item.Properties()));
+        
+    @SuppressWarnings("null")
+    public static final DeferredItem<Item> GASIFIER_ITEM =
+        ITEMS.register(BlockGasifier.ID, () -> new BlockItem(GASIFIER.get(), new Item.Properties()));
     
     @SuppressWarnings("null")
     public static final DeferredItem<Item> MIXED_STONE_STAIRS_ITEM =
@@ -1295,6 +1359,11 @@ public class MCTradePostMod
                 output.accept(MCTP_COIN_ITEM.get());
                 output.accept(MCTP_COIN_GOLD.get());
                 output.accept(MCTP_COIN_DIAMOND.get());
+                output.accept(ROUTE_SURVEY.get());
+                output.accept(GASIFIER_ITEM.get());
+                output.accept(LIFTING_GAS_BUCKET.get());
+                output.accept(SCRAP_PILE.get());
+                output.accept(PET_WASTE.get());
             }).build());
 
     /*
@@ -1321,6 +1390,13 @@ public class MCTradePostMod
     public static final DeferredHolder<RecipeSerializer<?>, PotionShapelessRecipe.Serializer> POTION_SHAPELESS_SERIALIZER =
         RECIPE_SERIALIZERS.register(PotionShapelessRecipe.POTION_SHAPELESS_RECIPE_KEY, PotionShapelessRecipe.Serializer::new);
 
+    @SuppressWarnings("null")
+    public static final DeferredHolder<RecipeType<?>, RecipeType<GasifierRecipe>> GASIFIER_RECIPE_TYPE =
+        RECIPES.register(GasifierRecipe.ID, () -> RecipeType.simple(ResourceLocation.fromNamespaceAndPath(MODID, GasifierRecipe.ID)));
+        
+    public static final DeferredHolder<RecipeSerializer<?>, GasifierRecipe.Serializer> GASIFIER_RECIPE_SERIALIZER =
+        RECIPE_SERIALIZERS.register(GasifierRecipe.ID, GasifierRecipe.Serializer::new);
+
     // The constructor for the mod class is the first code that is run when your mod is loaded.
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public MCTradePostMod(@Nonnull IEventBus modEventBus, ModContainer modContainer)
@@ -1334,6 +1410,8 @@ public class MCTradePostMod
 
         // Register the Deferred Register to the mod event bus so items get registered
         ITEMS.register(modEventBus);
+        MCTPFluids.FLUID_TYPES.register(modEventBus);
+        MCTPFluids.FLUIDS.register(modEventBus);
        
         // Register the Deferred Register to the mod event bus so entities get registered
         ENTITIES.register(modEventBus);
@@ -1521,6 +1599,7 @@ public class MCTradePostMod
             CancelRecyclingMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);
             StationLinkageMessage.TYPE.register(registrar);
+            StationRouteRefreshMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);
             StewIngredientMessage.TYPE.register(registrar);
             ThriftShopMessage.TYPE.register(registrar);
@@ -1653,6 +1732,9 @@ public class MCTradePostMod
         @SubscribeEvent(priority = EventPriority.HIGH)
         public static void registerCaps(final RegisterCapabilitiesEvent event)
         {
+            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, MCTradePostTileEntities.MOORING_BAY.get(), (be, side) -> be);
+            event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, MCTradePostTileEntities.GASIFIER.get(), (be, side) -> be);
+            event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, MCTradePostTileEntities.GASIFIER.get(), (be, side) -> new InvWrapper(be));
             event.registerBlockEntity(
                 Capabilities.ItemHandler.BLOCK,
                 MCTradePostTileEntities.PET_WORK_LOCATION.get(),
@@ -1735,7 +1817,7 @@ public class MCTradePostMod
             if (state.getBlock() instanceof BaseRailBlock ||
                 state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRACK_TAG)) ||
                 state.is(NullnessBridge.assumeNonnull(ModTags.BLOCKS.TRADE_ROADS_TAG)) ||
-                state.is(TRADE_DOCK.get()) || state.is(TRADE_INTERCHANGE.get()))
+                state.is(TRADE_DOCK.get()) || state.is(TRADE_INTERCHANGE.get()) || state.is(MOORING_BAY.get()))
             {
                 invalidateTrackCachesForBrokenTrack(level, pos);
             }
@@ -1930,6 +2012,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.blockHutOutpost.get());
                     event.accept(MCTradePostMod.TRADE_DOCK.get());
                     event.accept(MCTradePostMod.TRADE_INTERCHANGE.get());
+                    event.accept(MCTradePostMod.MOORING_BAY.get());
                     event.accept(MCTradePostMod.ADVANCED_CLIPBOARD.get());
                     event.accept(MCTradePostMod.ICECREAM.get());
                     event.accept(MCTradePostMod.DAIQUIRI.get());
@@ -2074,6 +2157,7 @@ public class MCTradePostMod
             event.registerEntityRenderer(MCTradePostMod.GHOST_CART.get(), GhostCartRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.GHOST_BOAT.get(), GhostBoatRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.WAGON.get(), WagonRenderer::new);
+            event.registerEntityRenderer(MCTradePostMod.AIRSHIP.get(), AirshipRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_WOLF.get(), WolfRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_FOX.get(), FoxRenderer::new);
             event.registerEntityRenderer(MCTradePostMod.PET_AXOLOTL.get(), AxolotlRenderer::new);
@@ -2158,6 +2242,12 @@ public class MCTradePostMod
         {
             LOGGER.info("Registering souvenir item renderer");
             event.registerItem(new SouvenirItemExtension(), MCTradePostMod.SOUVENIR.get());
+            event.registerFluidType(new net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions()
+            {
+                @Override public ResourceLocation getStillTexture() { return ResourceLocation.fromNamespaceAndPath(MODID, "block/gas_bubbles"); }
+                @Override public ResourceLocation getFlowingTexture() { return ResourceLocation.fromNamespaceAndPath(MODID, "block/gas_bubbles"); }
+                @Override public int getTintColor() { return 0xFFFFFFFF; }
+            }, MCTPFluids.LIFTING_GAS_TYPE.get());
         }
 
         /**
@@ -2203,6 +2293,8 @@ public class MCTradePostMod
         public static void registerMenuScreens(RegisterMenuScreensEvent event)
         {
             event.register(PET_WORKING_MENU.get(), com.deathfrog.mctradepost.core.client.gui.PetWorkingScreen::new);
+            event.register(MOORING_BAY_MENU.get(), com.deathfrog.mctradepost.core.client.gui.MooringBayScreen::new);
+            event.register(GASIFIER_MENU.get(), com.deathfrog.mctradepost.core.client.gui.GasifierScreen::new);
         }
     }
 

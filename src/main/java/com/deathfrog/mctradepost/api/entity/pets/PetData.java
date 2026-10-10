@@ -78,6 +78,7 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -98,6 +99,11 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     public static final int STALL_PHASE1 = 10;
     public static final int STALL_PHASE2 = 30;
     public static final int STALL_PHASE3 = 50;
+
+    /** Check once per second, with 1,200 checks in a standard Minecraft day. */
+    private static final int PET_WASTE_CHECK_INTERVAL = 20;
+    /** A 1-in-600 roll per check averages two Pet Waste items per active pet-day. */
+    private static final int PET_WASTE_CHANCE_PER_CHECK = 600;
     
     // --- Debug snapshot state (server) ---
     private net.minecraft.world.phys.Vec3 lastGoalLogPos = null;
@@ -345,7 +351,33 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             }
             
             tryApplyPendingInventory(level);
+            tickPetWasteProduction(level);
         }
+    }
+
+    /**
+     * Gives registered pets a random chance to leave Pet Waste in the world.
+     * Only active, server-loaded time counts; unloaded pets do not accumulate
+     * waste or create a catch-up burst when their chunk is loaded again.
+     */
+    @SuppressWarnings("null")
+    private void tickPetWasteProduction(Level level)
+    {
+        if (!(level instanceof ServerLevel serverLevel)
+            || animal == null
+            || !animal.isAlive()
+            || BlockPos.ZERO.equals(trainerBuildingID)
+            || animal.tickCount % PET_WASTE_CHECK_INTERVAL != 0
+            || animal.getRandom().nextInt(PET_WASTE_CHANCE_PER_CHECK) != 0)
+        {
+            return;
+        }
+
+        ItemEntity waste = new ItemEntity(serverLevel,
+            animal.getX(), animal.getY(), animal.getZ(),
+            new ItemStack(MCTradePostMod.PET_WASTE.get()));
+        waste.setDefaultPickUpDelay();
+        serverLevel.addFreshEntity(waste);
     }
 
     /**

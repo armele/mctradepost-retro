@@ -32,6 +32,9 @@ import com.minecolonies.api.util.StatsUtil;
 import com.minecolonies.core.entity.ai.workers.AbstractEntityAIInteract;
 import com.minecolonies.core.entity.pathfinding.navigation.EntityNavigationUtils;
 import com.minecolonies.core.util.AdvancementUtils;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
+import com.minecolonies.core.colony.interactionhandling.StandardInteraction;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -52,6 +55,9 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
     public static final int MESSAGE_COOLDOWN_TIME = 1000;
 
     public static final String TRACK_VALIDATIONS = "tracks_validated";
+
+    /** Amount of Lifting Gas consumed by successfully launched shipments. */
+    public static final String LIFTING_GAS_USED = "lifting_gas_used";
 
     public static final int BASE_XP_NEW_TRACK = 5;
     public static final int BASE_XP_EXISTING_TRACK = 1;
@@ -527,17 +533,36 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         if (currentExport != null && currentExport.getTradeItem() != null && !currentExport.getTradeItem().getItemStack().isEmpty())
         {   
             TrackConnectionResult tcr = ((BuildingStation) building).getTrackConnectionResult(currentExport.getDestinationStationData());
-            if (tcr == null)
+            if (tcr == null || !tcr.isConnected())
             {
                 currentRemoteStation = currentExport.getDestinationStationData();
                 return StationMasterStates.CHECK_CONNECTION;
             }
 
-
             int trackDistance = tcr.getRouteDistance();
-            currentExport.setShipDistance(0);
-            currentExport.setTrackDistance(trackDistance);
-            currentExport.setLastShipDay(building.getColony().getDay());
+            ITradeCapable destinationBuilding = currentExport.getDestinationStationData().getStation();
+            if (!AirRouteConnection.canLaunch(building, destinationBuilding, tcr.getRoute()))
+            {
+                job.clearGasShortage();
+                currentRemoteStation = currentExport.getDestinationStationData();
+                tcr.setConnected(false);
+                building.putTrackConnectionResult(currentRemoteStation, tcr);
+                return StationMasterStates.CHECK_CONNECTION;
+            }
+
+            int gasCost = AirRouteConnection.liftingGasCost(tcr.getRoute());
+            com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity departureBay =
+                AirRouteConnection.departureBay((net.minecraft.server.level.ServerLevel) world, tcr.getRoute());
+            if (gasCost > 0 && (departureBay == null || departureBay.drainGas(gasCost, true) < gasCost))
+            {
+                if (job.noteGasShortage(MCTPConfig.gasComplaintAttempts.get()))
+                    worker.getCitizenData().triggerInteraction(new StandardInteraction(
+                        net.minecraft.network.chat.Component.translatable(com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.NO_LIFTING_GAS), ChatPriority.BLOCKING));
+                currentExport = null;
+                incrementActionsDoneAndDecSaturation();
+                return AIWorkerState.DECIDE;
+            }
+            job.clearGasShortage();
 
             final ItemStack cargoCopy = currentExport.getTradeItem().getItemStack().copy();
             ItemStorage removeFromStorage = new ItemStorage(cargoCopy.copy(), currentExport.getQuantity());
@@ -556,6 +581,21 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     incrementActionsDoneAndDecSaturation();
                     return AIWorkerState.DECIDE;
                 } 
+
+                int gasDebited = gasCost > 0 && departureBay != null ? departureBay.drainGas(gasCost, false) : 0;
+                if (gasCost > 0 && gasDebited < gasCost)
+                {
+                    MCTPInventoryUtils.insertOrDropByQuantity(building, refundIfNeeded);
+                    MCTPInventoryUtils.insertOrDropByQuantity(currentExport.getDestinationStationData().getStation(),
+                        new ItemStorage(BuildingMarketplace.tradeCurrency(), currentExport.getCost()));
+                    currentExport = null;
+                    incrementActionsDoneAndDecSaturation();
+                    return AIWorkerState.DECIDE;
+                }
+                if (gasDebited > 0)
+                {
+                    building.getModule(BuildingModules.STATS_MODULE).incrementBy(LIFTING_GAS_USED, gasDebited);
+                }
             }
             else
             {
@@ -563,6 +603,12 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 currentExport = null;
                 return AIWorkerState.DECIDE;
             }
+
+            // Commit the departure only after both sides of the inventory transaction succeed. A failed attempt must remain eligible
+            // to retry later the same day and must never look like a shipment that is permanently in transit.
+            currentExport.setTrackDistance(trackDistance);
+            currentExport.setShipDistance(0);
+            currentExport.setLastShipDay(building.getColony().getDay());
 
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_EXISTING_TRACK);
             GhostCartEntity cart = currentExport.spawnCartForTrade(tcr.getRoute());
@@ -737,6 +783,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                 boolean isValid = connectionResult.route == null
                     ? TrackPathConnection.validateExistingPath(world, connectionResult)
                     : TrackRouteConnection.validateExistingRoute(world.getServer(), connectionResult);
+                isValid = isValid && AirRouteConnection.validateCachedRoute(building,
+                    currentRemoteStation.getStation(), connectionResult.getRoute());
 
                 if (isValid)
                 {

@@ -157,6 +157,7 @@ dependencies {
 
     // Runtime for dev only (so it loads in runClient/runServer)
     localRuntime("mezz.jei:jei-1.21.1-neoforge:19.27.0.336")
+    localRuntime("curse.maven:journeymap-32274:8620140")
 
     // For modern mixin support
     implementation("org.spongepowered:mixin:0.8.7")

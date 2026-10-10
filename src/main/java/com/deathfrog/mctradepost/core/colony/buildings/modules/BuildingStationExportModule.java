@@ -432,7 +432,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
                     nextDistance = (int)(nextDistance * tradeSpeedBonus);
                 }
 
-                shipDistance = shipDistance + nextDistance;
+                shipDistance = exportData.advanceShipDistance(nextDistance);
 
                 exportData.setShipDistance(shipDistance);
 

@@ -32,6 +32,7 @@ public class BuildingRecyclerProgressModule extends AbstractBuildingModule imple
         
         CompoundTag tag = new CompoundTag();
         tag.putInt("maxProcessors", recyclingCenter.getMachineCapacity());
+        tag.putInt("scrapPointsPerPile", com.deathfrog.mctradepost.MCTPConfig.scrapPointsPerPile.get());
 
         buf.writeNbt(recyclingCenter.serializeRecyclingProcessors(NullnessBridge.assumeNonnull(buf.registryAccess())));
         buf.writeNbt(tag);

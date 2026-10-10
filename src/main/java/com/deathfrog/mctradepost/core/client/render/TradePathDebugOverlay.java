@@ -179,7 +179,10 @@ public final class TradePathDebugOverlay
             case RAIL -> new float[] {1.0F, 0.72F, 0.08F};
             case ROAD -> new float[] {0.18F, 0.95F, 0.28F};
             case WATER -> new float[] {0.12F, 0.52F, 1.0F};
+            case AIR -> new float[] {0.72F, 0.92F, 1.0F};
+            case AIR_TRANSIT -> new float[] {0.42F, 0.72F, 1.0F};
             case DOCK -> new float[] {0.05F, 1.0F, 1.0F};
+            case MOORING -> new float[] {0.88F, 0.88F, 1.0F};
             case INTERCHANGE -> new float[] {0.72F, 0.2F, 1.0F};
             case TRANSFER -> new float[] {1.0F, 0.12F, 0.72F};
         };

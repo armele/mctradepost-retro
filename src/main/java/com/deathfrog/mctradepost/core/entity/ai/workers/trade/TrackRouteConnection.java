@@ -19,6 +19,7 @@ import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingStationConnectionModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
+import com.deathfrog.mctradepost.core.blocks.BlockMooringBay;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 
 import net.minecraft.core.BlockPos;
@@ -96,6 +97,21 @@ public class TrackRouteConnection
                 continue;
             }
 
+            if (segment.type() == TrackRoute.SegmentType.MOORING)
+            {
+                if (segment.path().isEmpty()) return false;
+                BlockPos bay = segment.path().getFirst();
+                if (!level.isLoaded(bay)) continue;
+                if (!level.getBlockState(bay).is(MCTradePostMod.MOORING_BAY.get()) || !BlockMooringBay.isOpenToSky(level, bay)) return false;
+                continue;
+            }
+
+            if (segment.type() == TrackRoute.SegmentType.AIR_TRANSIT || segment.type() == TrackRoute.SegmentType.AIR)
+            {
+                if (segment.path().isEmpty()) return false;
+                continue;
+            }
+
             if (segment.type() != TrackRoute.SegmentType.RAIL)
             {
                 if (!ModalPathConnection.validate(level, segment))
@@ -154,6 +170,12 @@ public class TrackRouteConnection
             .getEffectStrength(MCTPResearchConstants.MARITIME_TRADE) > 0;
         RouteSearchContext context = new RouteSearchContext(loadChunks, allowWater);
         context.logRouteStart(source, destination, sourceLevel, destinationLevel);
+
+        if (sourceLevel.dimension().equals(destinationLevel.dimension()))
+        {
+            TrackPathConnection.TrackConnectionResult air = AirRouteConnection.findRoute(source, destination, loadChunks, allowWater);
+            if (air != null && air.isConnected()) return finishRouteSearch(context, air, source, destination);
+        }
 
         TrackPathConnection.TrackConnectionResult direct =
             new TrackPathConnection.TrackConnectionResult(false, sourceRail, List.of(), source.getColony().getWorld().getGameTime());

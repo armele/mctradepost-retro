@@ -18,6 +18,9 @@ public class MCTPAdvancementTriggers
     public static final String ADV_RESURRECT_CITIZEN_WISH = "resurrect_citizen_wish";
     public static final String ADV_RUNS_ON_STEW = "runs_on_stew";
     public static final String ADV_RARE_FIND = "rare_find";
+    public static final String ADV_EXPORTER = "exporter";
+    public static final String ADV_IMPORTER = "importer";
+    public static final String ADV_EXPRESS_DELIVERY = "express_delivery";
 
     public static final DeferredHolder<CriterionTrigger<?>, TrainPetTrigger>          PET_TRAINED           = DEFERRED_REGISTER.register(ADV_PET_TRAINED, TrainPetTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, ConnectColonyTrigger>     COLONY_CONNECTED      = DEFERRED_REGISTER.register(ADV_COLONY_CONNECTED, ConnectColonyTrigger::new);
@@ -28,4 +31,7 @@ public class MCTPAdvancementTriggers
         DEFERRED_REGISTER.register(ADV_RESURRECT_CITIZEN_WISH, ResurrectCitizenWishTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, RunsOnStewTrigger>        RUNS_ON_STEW          = DEFERRED_REGISTER.register(ADV_RUNS_ON_STEW, RunsOnStewTrigger::new);
     public static final DeferredHolder<CriterionTrigger<?>, RareFindTrigger>          RARE_FIND             = DEFERRED_REGISTER.register(ADV_RARE_FIND, RareFindTrigger::new);
+    public static final DeferredHolder<CriterionTrigger<?>, ShipmentTrigger>          EXPORTER              = DEFERRED_REGISTER.register(ADV_EXPORTER, ShipmentTrigger::new);
+    public static final DeferredHolder<CriterionTrigger<?>, ShipmentTrigger>          IMPORTER              = DEFERRED_REGISTER.register(ADV_IMPORTER, ShipmentTrigger::new);
+    public static final DeferredHolder<CriterionTrigger<?>, ShipmentTrigger>          EXPRESS_DELIVERY      = DEFERRED_REGISTER.register(ADV_EXPRESS_DELIVERY, ShipmentTrigger::new);
 }

@@ -78,6 +78,7 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
                 return recyclingProcessors.size();
             }
 
+            @SuppressWarnings("null")
             @Override
             public void updateElement(final int index, final Pane rowPane)
             {
@@ -100,6 +101,15 @@ public class WindowRecyclerProgressModule extends AbstractModuleWindow<RecyclerP
                 final ItemStack inputStack = processor.processingItem;
 
                 drawProgressBar(wrapperBox, progressBar, processor);
+
+                if (processor.scrapMode)
+                {
+                    final ItemIcon scrapDisplay = rowPane.findPaneOfTypeByID("outputStack0", ItemIcon.class);
+                    scrapDisplay.setVisible(true);
+                    final int indicativeCount = Math.max(1,
+                        (int) Math.floor(processor.scrapPoints / moduleView.getScrapPointsPerPile()));
+                    scrapDisplay.setItem(new ItemStack(MCTradePostMod.SCRAP_PILE.get(), indicativeCount));
+                }
 
                 final Button cancelButton = rowPane.findPaneOfTypeByID(CANCEL_RECYCLING, Button.class);
                 PaneBuilders.tooltipBuilder().hoverPane(cancelButton).build().setText(Component.translatable(CANCEL_RECYCLING_TOOLTIP));

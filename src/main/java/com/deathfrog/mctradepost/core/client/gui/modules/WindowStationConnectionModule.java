@@ -1,6 +1,8 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView.LinkageViewData;
@@ -8,13 +10,16 @@ import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecor
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage.LinkageAction;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationRouteRefreshMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
 import com.ldtteam.blockui.controls.Button;
+import com.ldtteam.blockui.controls.ButtonImage;
 import com.ldtteam.blockui.controls.Image;
 import com.ldtteam.blockui.controls.ItemIcon;
 import com.ldtteam.blockui.controls.Text;
@@ -33,6 +38,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
     private static final String PANE_STATIONS = "stations";
     private static final String PANE_LINKAGES = "linkages";
     private static final String BUTTON_REMOVE_LINKAGE = "removeLinkage";
+    private static final String BUTTON_REFRESH_ROUTE = "refreshRoute";
     private static final String IMAGE_HELP = "help";
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
     private Map<BlockPos, StationData> stations = null;
@@ -51,8 +57,28 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
         stations = ((StationView) buildingView).getStations();
 
         registerButton(BUTTON_REMOVE_LINKAGE, this::removeLinkage);
+        registerButton(BUTTON_REFRESH_ROUTE, this::refreshRoute);
         connectionDisplayList = findPaneOfTypeByID(PANE_STATIONS, ScrollingList.class);
         linkageDisplayList = findPaneOfTypeByID(PANE_LINKAGES, ScrollingList.class);
+    }
+
+    /** Queues fresh route discovery for the connection represented by the clicked row. */
+    private void refreshRoute(Button button)
+    {
+        if (!moduleView.isStationmasterEmployed())
+        {
+            return;
+        }
+
+        final int row = connectionDisplayList.getListElementIndexByPane(button);
+        if (row < 0 || stations == null || row >= stations.size())
+        {
+            return;
+        }
+
+        final BlockPos destination = stations.keySet().toArray(new BlockPos[0])[row];
+        button.disable();
+        new StationRouteRefreshMessage(buildingView, destination).sendToServer();
     }
 
     @Override
@@ -140,10 +166,52 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
                 }
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
-                String statValue = ((StationView) buildingView).stationConnectionStatus(station).toString() + "";
-                status.setText(Component.literal(statValue));
+                Component statusText = connectionStatusText((StationView) buildingView, station);
+                status.setText(statusText);
+                PaneBuilders.tooltipBuilder().hoverPane(status).build().setText(statusText);
+
+                final ButtonImage refresh = wrapperBox.findPaneOfTypeByID(BUTTON_REFRESH_ROUTE, ButtonImage.class);
+                refresh.setImage(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/refresh.png"));
+                refresh.setEnabled(moduleView.isStationmasterEmployed());
+                PaneBuilders.tooltipBuilder().hoverPane(refresh).build().setText(Component.translatable(
+                    moduleView.isStationmasterEmployed()
+                        ? "mctradepost.route_refresh.tooltip"
+                        : "mctradepost.route_refresh.no_stationmaster_tooltip"));
             }
         });
+    }
+
+    /** Builds the status label and its ordered, distinct transport-mode summary. */
+    private static Component connectionStatusText(StationView stationView, StationData station)
+    {
+        StationData.TrackConnectionStatus status = stationView.stationConnectionStatus(station);
+        if (status != StationData.TrackConnectionStatus.CONNECTED)
+        {
+            return Component.literal(status.toString());
+        }
+
+        List<TrackRoute.SegmentType> modes = stationView.stationConnectionModes(station);
+        if (modes.isEmpty())
+        {
+            return Component.literal(status.toString());
+        }
+
+        String modeSummary = modes.stream()
+            .map(WindowStationConnectionModule::modeName)
+            .collect(Collectors.joining(", "));
+        return Component.literal(status + " (" + modeSummary + ")");
+    }
+
+    private static String modeName(TrackRoute.SegmentType mode)
+    {
+        return switch (mode)
+        {
+            case RAIL -> "Rail";
+            case ROAD -> "Road";
+            case WATER -> "Water";
+            case AIR, AIR_TRANSIT -> "Air";
+            default -> mode.name();
+        };
     }
 
     /**

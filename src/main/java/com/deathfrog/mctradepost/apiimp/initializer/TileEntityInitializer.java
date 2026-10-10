@@ -6,6 +6,8 @@ import com.deathfrog.mctradepost.api.tileentities.MCTPTileEntityColonyBuilding;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.core.blocks.AbstractBlockPetWorkingLocation;
 import com.deathfrog.mctradepost.core.blocks.blockentity.PetWorkingBlockEntity;
+import com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity;
+import com.deathfrog.mctradepost.core.blocks.blockentity.GasifierBlockEntity;
 
 import net.minecraft.core.registries.Registries;
 import com.mojang.datafixers.DSL;
@@ -20,6 +22,10 @@ public class TileEntityInitializer
 
     static
     {
+        MCTradePostTileEntities.MOORING_BAY = BLOCK_ENTITIES.register("mooring_bay",
+            () -> BlockEntityType.Builder.of(MooringBayBlockEntity::new, MCTradePostMod.MOORING_BAY.get()).build(DSL.remainderType()));
+        MCTradePostTileEntities.GASIFIER = BLOCK_ENTITIES.register("gasifier",
+            () -> BlockEntityType.Builder.of(GasifierBlockEntity::new, MCTradePostMod.GASIFIER.get()).build(DSL.remainderType()));
         MCTradePostTileEntities.PET_WORK_LOCATION = BLOCK_ENTITIES.register("pet_work_location", 
             () -> BlockEntityType.Builder.of(PetWorkingBlockEntity::new, AbstractBlockPetWorkingLocation.getPetWorkBlocks()).build(DSL.remainderType()));
 

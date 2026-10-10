@@ -1,0 +1,10 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "salvation:corrupted_harvest" },
+  "burn_time": 200,
+  "gas": 250,
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "salvation" },
+    { "type": "neoforge:item_exists", "item": "salvation:corrupted_harvest" }
+  ]
+}

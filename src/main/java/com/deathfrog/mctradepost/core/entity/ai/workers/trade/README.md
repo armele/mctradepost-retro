@@ -16,8 +16,12 @@ The normal station workflow is:
    existing disconnected result use the less invasive search policy selected by the caller.
 3. If a connected result is cached, the AI validates it instead of running the full searches again. Legacy path-only results use
    `TrackPathConnection.validateExistingPath(...)`; segmented results use `TrackRouteConnection.validateExistingRoute(...)`.
+   Cached air routes additionally recheck research, ownership, registration, loaded Bay state, sky clearance, and loaded departure
+   authorization without loading endpoint chunks.
 4. The building stores the result. `BuildingStation` also serializes segmented routes to NBT so connections survive a reload.
-5. When a shipment is visualized, `ExportData` consumes the `TrackRoute`, spawns the vehicle appropriate to each traversable segment,
+5. Shipment dispatch consumes the cached route directly. Air routes receive a strict `AirRouteConnection.canLaunch(...)` check before
+   inventory or gas is charged; dispatch does not perform route discovery.
+6. When a shipment is visualized, `ExportData` consumes the `TrackRoute`, spawns the vehicle appropriate to each traversable segment,
    performs effects at docks and interchanges, and removes/recreates the vehicle across dimensional transfers.
 
 In abbreviated form:
@@ -52,6 +56,9 @@ types are:
 - `DOCK`: a zero-distance handoff involving water transport.
 - `INTERCHANGE`: a zero-distance rail/road handoff.
 - `TRANSFER`: a one-step transition between dimensional linkage endpoints.
+- `AIR`: a visible airship path near a colony endpoint.
+- `AIR_TRANSIT`: an unanimated same-dimension flight whose distance is calculated from its two border endpoints.
+- `MOORING`: a zero-distance handoff at a Mooring Bay.
 
 Handoff segments are explicit even though they add no distance. Consumers use them to distinguish a genuine mode transition from two
 unrelated adjacent path segments. Transfer segments retain both `DimPos` endpoints because their origin and destination are in
@@ -165,6 +172,11 @@ Other notable consumers are:
 `TradeDockRegistry` and `TradeInterchangeRegistry` are per-dimension `SavedData` indexes. Their blocks are responsible for adding and
 removing immutable positions as block lifecycle events occur. The multimodal search still verifies block states, but accurate removal
 keeps candidate selection fast and prevents stale entries from consuming the candidate cap.
+
+`MooringBayRegistry` supplies candidates to `AirRouteConnection`. Air discovery ranks registry positions without loading terrain,
+then loads and validates at most four candidates per endpoint. Each Bay must belong to the endpoint colony and have all nine columns
+of its centered 3x3 area open above the Bay. Local station-to-Bay legs reuse bounded multimodal discovery, while the long flight never
+pathfinds through or loads intervening chunks. A valid air route is preferred over any terrestrial route.
 
 ## Performance and chunk-loading rules
 
