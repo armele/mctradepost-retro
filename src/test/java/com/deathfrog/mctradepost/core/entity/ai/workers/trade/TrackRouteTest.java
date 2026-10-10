@@ -81,6 +81,21 @@ class TrackRouteTest
 
     @SuppressWarnings("null")
     @Test
+    void transportModesAreDistinctOrderedAndNormalizeAirTransit()
+    {
+        TrackRoute route = new TrackRoute(List.of(
+            TrackRoute.Segment.rail(Level.OVERWORLD, positions(0, 2)),
+            TrackRoute.Segment.interchange(Level.OVERWORLD, BlockPos.ZERO.east(2)),
+            TrackRoute.Segment.airTransit(Level.OVERWORLD, BlockPos.ZERO.east(2), BlockPos.ZERO.east(20)),
+            TrackRoute.Segment.mooring(Level.OVERWORLD, BlockPos.ZERO.east(20)),
+            TrackRoute.Segment.air(Level.OVERWORLD, positions(20, 22)),
+            TrackRoute.Segment.rail(Level.OVERWORLD, positions(22, 24))));
+
+        assertEquals(List.of(TrackRoute.SegmentType.RAIL, TrackRoute.SegmentType.AIR), route.transportModes());
+    }
+
+    @SuppressWarnings("null")
+    @Test
     void segmentSpeedFactorsApplyAcrossModeBoundariesWithoutChangingRouteDistance()
     {
         TrackRoute route = new TrackRoute(List.of(

@@ -653,6 +653,13 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
         {
             buf.writeNbt(e.getKey().toNBT());       // key
             buf.writeBoolean(e.getValue().connected);     // value
+            TrackRoute route = e.getValue().getRoute();
+            List<TrackRoute.SegmentType> modes = route == null ? List.of() : route.transportModes();
+            buf.writeVarInt(modes.size());
+            for (TrackRoute.SegmentType mode : modes)
+            {
+                buf.writeEnum(mode);
+            }
         }
     }
 

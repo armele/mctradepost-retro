@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 
@@ -30,6 +32,7 @@ public class StationView extends AbstractBuildingView
 {
     protected Map<BlockPos, StationData> stations = new HashMap<>();
     protected Map<StationData, Boolean> connectionstatus = new HashMap<>();
+    protected Map<StationData, List<TrackRoute.SegmentType>> connectionModes = new HashMap<>();
 
     public StationView(final IColonyView colony, final BlockPos location) 
     {
@@ -69,6 +72,12 @@ public class StationView extends AbstractBuildingView
         }
     }
 
+    /** @return distinct transport modes in outbound order for the cached connection */
+    public List<TrackRoute.SegmentType> stationConnectionModes(StationData station)
+    {
+        return connectionModes.getOrDefault(station, List.of());
+    }
+
     /**
      * Deserializes the state of the StationView from the given buffer. Clears the current set of stations and repopulates it
      * with data read from the buffer. The buffer is expected to contain a serialized int with the number of stations, and then
@@ -82,6 +91,7 @@ public class StationView extends AbstractBuildingView
         super.deserialize(buf);
         stations.clear();
         connectionstatus.clear();
+        connectionModes.clear();
         final int stationsize = buf.readInt();
         for (int i = 0; i < stationsize; i++)
         {
@@ -105,6 +115,12 @@ public class StationView extends AbstractBuildingView
         for (int i = 0; i < connSize; i++) {
             final CompoundTag keyTag = buf.readNbt();
             final boolean value = buf.readBoolean();
+            final int modeCount = buf.readVarInt();
+            final java.util.ArrayList<TrackRoute.SegmentType> modes = new java.util.ArrayList<>(modeCount);
+            for (int modeIndex = 0; modeIndex < modeCount; modeIndex++)
+            {
+                modes.add(buf.readEnum(TrackRoute.SegmentType.class));
+            }
 
             if (keyTag == null) 
             {
@@ -120,6 +136,7 @@ public class StationView extends AbstractBuildingView
             }
 
             this.connectionstatus.put(deserializedKey, Boolean.valueOf(value));
+            this.connectionModes.put(deserializedKey, List.copyOf(modes));
         }
     }
 }

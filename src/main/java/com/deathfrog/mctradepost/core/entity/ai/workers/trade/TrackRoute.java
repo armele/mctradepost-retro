@@ -2,7 +2,9 @@ package com.deathfrog.mctradepost.core.entity.ai.workers.trade;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.ToDoubleFunction;
 
 import javax.annotation.Nonnull;
@@ -261,6 +263,27 @@ public class TrackRoute
             total += segment.distance();
         }
         return total;
+    }
+
+    /**
+     * Returns the distinct shipment transport modes in the order they are first used by this route.
+     * Infrastructure and handoff segments are omitted, and AIR_TRANSIT is represented as AIR.
+     *
+     * @return ordered, immutable transport-mode list
+     */
+    public List<SegmentType> transportModes()
+    {
+        Set<SegmentType> modes = new LinkedHashSet<>();
+        for (Segment segment : segments)
+        {
+            SegmentType type = segment.type() == SegmentType.AIR_TRANSIT ? SegmentType.AIR : segment.type();
+            if (type == SegmentType.RAIL || type == SegmentType.ROAD ||
+                type == SegmentType.WATER || type == SegmentType.AIR)
+            {
+                modes.add(type);
+            }
+        }
+        return List.copyOf(modes);
     }
 
     /**

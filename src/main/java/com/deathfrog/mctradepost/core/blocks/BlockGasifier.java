@@ -10,7 +10,6 @@ import com.deathfrog.mctradepost.core.blocks.blockentity.GasifierBlockEntity;
 import com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity;
 import com.deathfrog.mctradepost.core.blocks.blockentity.LiftingGasStorage;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionHand;
@@ -19,7 +18,7 @@ import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -143,7 +142,7 @@ public class BlockGasifier extends BaseEntityBlock
         {
             CompoundTag data = new CompoundTag();
             data.putInt(LiftingGasStorage.LIFTING_GAS_NBT_KEY, gasifier.gasAmount());
-            drop.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(data));
+            BlockItem.setBlockEntityData(drop, gasifier.getType(), data);
             break;
         }
         return drops;

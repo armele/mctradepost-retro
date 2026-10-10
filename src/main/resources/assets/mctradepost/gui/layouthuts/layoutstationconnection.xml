@@ -8,8 +8,11 @@
     <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
     <list id="stations" size="170 100" pos="13 46" emptytext="$(com.minecolonies.coremod.gui.station.connection.empty)" emptycolor="black">
         <box id="stationx" size="100% 25" linewidth="1">
-            <text id="location" size="150 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
-            <text id="status" size="150 11" pos="2 13" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="location" size="138 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
+            <text id="status" size="138 11" pos="2 13" textalign="MIDDLE_LEFT" color="black"/>
+            <button id="refreshRoute" pos="144 5" size="14 14"
+                    source="mctradepost:textures/gui/refresh.png"
+                    disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png"/>
         </box>
     </list>
     <text size="96 11" pos="13 153" textalign="MIDDLE_LEFT" color="black"

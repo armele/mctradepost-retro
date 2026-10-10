@@ -6,7 +6,6 @@ import com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity;
 import com.deathfrog.mctradepost.core.blocks.blockentity.LiftingGasStorage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.MooringBayRegistry;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
@@ -16,7 +15,7 @@ import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BaseEntityBlock;
@@ -158,7 +157,7 @@ public class BlockMooringBay extends BaseEntityBlock
         {
             CompoundTag data = new CompoundTag();
             data.putInt(LiftingGasStorage.LIFTING_GAS_NBT_KEY, bay.gasAmount());
-            drop.set(DataComponents.BLOCK_ENTITY_DATA, CustomData.of(data));
+            BlockItem.setBlockEntityData(drop, bay.getType(), data);
             break;
         }
         return drops;

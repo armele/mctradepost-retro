@@ -81,6 +81,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationRouteRefreshMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceSourcingMessage;
@@ -1598,6 +1599,7 @@ public class MCTradePostMod
             CancelRecyclingMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);
             StationLinkageMessage.TYPE.register(registrar);
+            StationRouteRefreshMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);
             StewIngredientMessage.TYPE.register(registrar);
             ThriftShopMessage.TYPE.register(registrar);

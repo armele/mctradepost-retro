@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
@@ -250,6 +251,7 @@ public class BuildingStationConnectionModule extends AbstractBuildingModule impl
             buf.writeUtf(validation.messageKey());
         }
         buf.writeInt(getDimensionalLinkageLimit());
+        buf.writeBoolean(building instanceof BuildingStation station && station.getStationmaster() != null);
     }
 
     @Override

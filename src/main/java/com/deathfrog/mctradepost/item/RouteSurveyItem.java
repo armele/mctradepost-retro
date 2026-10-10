@@ -6,12 +6,14 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.items.datacomponent.RouteSurveyRecord;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.core.blocks.BlockMooringBay;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -65,6 +67,11 @@ public class RouteSurveyItem extends Item
 
         BlockPos pos = context.getClickedPos();
         if (!level.getBlockState(pos).is(MCTradePostMod.MOORING_BAY.get())) return InteractionResult.PASS;
+        if (!(level instanceof ServerLevel serverLevel) || !BlockMooringBay.isOpenToSky(serverLevel, pos))
+        {
+            player.displayClientMessage(Component.translatable("item.mctradepost.route_survey.insufficient_air_clearance"), true);
+            return InteractionResult.FAIL;
+        }
         IColony colony = IColonyManager.getInstance().getColonyByPosFromWorld(level, pos);
         
         if (colony == null)
