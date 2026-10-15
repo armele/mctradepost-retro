@@ -40,24 +40,78 @@ public class TrackPathConnection
 
     public static class TrackConnectionResult
     {
+        /** Broad reason why a route search stopped before reaching its destination. */
+        public enum FailureKind
+        {
+            PATH_ENDED,
+            ROUTE_BROKEN,
+            SEARCH_LIMIT_REACHED,
+            MISSING_DESTINATION,
+            NO_VALID_LINKAGE
+        }
+
+        /**
+         * Compact, dimension-aware description of the most useful failed-search frontier.
+         *
+         * @param position furthest useful position proven reachable from the source
+         * @param attemptedMode transport mode being searched beyond that position
+         * @param reason broad reason the search stopped
+         */
+        public record RouteFailureDiagnostic(DimPos position, TrackRoute.SegmentType attemptedMode, FailureKind reason) { }
+
         public boolean connected;
         public BlockPos closestPoint;         // same semantics as before
         public List<BlockPos> path;           // ordered start → end, tracks only
         public TrackRoute route;
         public long lastChecked = 0L;
+        public RouteFailureDiagnostic failureDiagnostic;
 
+        /**
+         * Creates a legacy-compatible connection result without a segmented route.
+         *
+         * @param connected whether the destination was reached
+         * @param closestPoint legacy closest rail position
+         * @param path legacy primary path
+         * @param now game time at which the search completed
+         */
         public TrackConnectionResult(boolean connected, BlockPos closestPoint, List<BlockPos> path, long now)
         {
             this(connected, closestPoint, path, now, null);
         }
 
+        /**
+         * Creates a connection result without a failed-search diagnostic.
+         *
+         * @param connected whether the destination was reached
+         * @param closestPoint legacy closest rail position
+         * @param path legacy primary path
+         * @param now game time at which the search completed
+         * @param route complete segmented route, or {@code null}
+         */
         public TrackConnectionResult(boolean connected, BlockPos closestPoint, List<BlockPos> path, long now, TrackRoute route)
+        {
+            this(connected, closestPoint, path, now, route, null);
+        }
+
+        /**
+         * Creates a connection result with an optional failed-search diagnostic.
+         *
+         * @param connected whether the destination was reached
+         * @param closestPoint legacy closest rail position
+         * @param path legacy primary path
+         * @param now game time at which the search completed
+         * @param route complete segmented route, or {@code null}
+         * @param failureDiagnostic failed-search frontier, or {@code null}
+         */
+        public TrackConnectionResult(boolean connected, BlockPos closestPoint, List<BlockPos> path, long now, TrackRoute route,
+            RouteFailureDiagnostic failureDiagnostic)
         {
             this.connected = connected;
             this.closestPoint = closestPoint;
             this.path = path;
             this.route = route;
             this.lastChecked = now;
+            this.failureDiagnostic = failureDiagnostic;
         }
 
         /**
@@ -213,8 +267,13 @@ public class TrackPathConnection
         }
 
         // not connected
-        diagnostics.logFinished(visited.size() >= MAX_DEPTH ? "max-depth" : "disconnected", visited.size(), toVisit.size(), addedRailTickets.size(), closestSoFar);
-        return new TrackConnectionResult(false, closestSoFar, List.of(), localLevel.getGameTime());
+        boolean searchLimitReached = visited.size() >= MAX_DEPTH;
+        diagnostics.logFinished(searchLimitReached ? "max-depth" : "disconnected", visited.size(), toVisit.size(), addedRailTickets.size(), closestSoFar);
+        TrackConnectionResult.RouteFailureDiagnostic failure = new TrackConnectionResult.RouteFailureDiagnostic(
+            new DimPos(localLevel.dimension(), closestSoFar),
+            TrackRoute.SegmentType.RAIL,
+            searchLimitReached ? TrackConnectionResult.FailureKind.SEARCH_LIMIT_REACHED : TrackConnectionResult.FailureKind.PATH_ENDED);
+        return new TrackConnectionResult(false, closestSoFar, List.of(), localLevel.getGameTime(), null, failure);
         }
         finally
         {

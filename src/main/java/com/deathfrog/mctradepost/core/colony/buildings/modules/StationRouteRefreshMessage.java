@@ -13,7 +13,6 @@ import com.minecolonies.api.colony.permissions.Action;
 import com.minecolonies.api.util.MessageUtils;
 import com.minecolonies.core.network.messages.server.AbstractBuildingServerMessage;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,29 +24,52 @@ public class StationRouteRefreshMessage extends AbstractBuildingServerMessage<IB
     public static final PlayMessageType<?> TYPE = PlayMessageType.forServer(
         MCTradePostMod.MODID, "station_route_refresh", StationRouteRefreshMessage::new);
 
-    private BlockPos destination;
+    private StationData destination;
 
-    public StationRouteRefreshMessage(final IBuildingView building, final BlockPos destination)
+    /**
+     * Creates a request to refresh one dimension-qualified station route.
+     *
+     * @param building local station view
+     * @param destination destination station
+     */
+    public StationRouteRefreshMessage(final IBuildingView building, final StationData destination)
     {
         super(TYPE, building);
-        this.destination = destination.immutable();
+        this.destination = destination;
     }
 
+    /**
+     * Decodes a route-refresh request.
+     *
+     * @param buf network buffer
+     * @param type message type
+     */
     protected StationRouteRefreshMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
-        destination = buf.readBlockPos();
+        destination = StationData.fromNBT(buf.readNbt());
     }
 
-    @SuppressWarnings("null")
+    /**
+     * Encodes this request.
+     *
+     * @param buf destination network buffer
+     */
     @Override
     protected void toBytes(@NotNull final RegistryFriendlyByteBuf buf)
     {
         super.toBytes(buf);
-        buf.writeBlockPos(destination);
+        buf.writeNbt(destination.toNBT());
     }
 
-    @SuppressWarnings("null")
+    /**
+     * Validates and queues the requested route refresh.
+     *
+     * @param ctxIn payload context
+     * @param player requesting player
+     * @param colony local colony
+     * @param building target building
+     */
     @Override
     protected void onExecute(final IPayloadContext ctxIn, final ServerPlayer player, final IColony colony, final IBuilding building)
     {
@@ -68,8 +90,13 @@ public class StationRouteRefreshMessage extends AbstractBuildingServerMessage<IB
             return;
         }
 
-        StationData remote = station.getStationAt(destination);
+        StationData remote = station.getStationAt(destination.getDimensionalPosition());
         if (remote == null)
+        {
+            return;
+        }
+
+        if (!station.shouldAttemptConnection(remote))
         {
             return;
         }

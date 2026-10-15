@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -16,6 +15,8 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.blocks.BlockTradeDock;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.FailureKind;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.RouteFailureDiagnostic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.state.BlockState;
@@ -70,7 +71,7 @@ public final class MultimodalRouteConnection
         final long searchStarted = System.nanoTime();
         final Node source = endpointNode(level, start);
         final Node destination = endpointNode(level, end);
-        final EdgeCache edgeCache = new EdgeCache(level, loadChunks, allowWater);
+        final EdgeCache edgeCache = new EdgeCache(level, end, loadChunks, allowWater);
 
         TrackRoute.Segment direct = edgeCache.get(source, destination);
         if (direct != null)
@@ -108,7 +109,9 @@ public final class MultimodalRouteConnection
             edgeCache.logSummary(candidateLimit, dockCount, interchangeCount, false, searchStarted);
         }
 
-        return new TrackConnectionResult(false, start, List.of(), level.getGameTime());
+        RouteFailureDiagnostic failure = edgeCache.bestFailure();
+        BlockPos closest = failure == null ? start : failure.position().pos();
+        return new TrackConnectionResult(false, closest, List.of(), level.getGameTime(), null, failure);
     }
 
     /**
@@ -319,34 +322,92 @@ public final class MultimodalRouteConnection
      * @return the shortest connecting segment, or {@code null} when the nodes cannot be connected
      */
     @SuppressWarnings("null")
-    private static TrackRoute.Segment edge(ServerLevel level, Node from, Node to, boolean loadChunks, boolean allowWater)
+    private static EdgeAttempt edge(ServerLevel level, Node from, Node to, boolean loadChunks, boolean allowWater)
     {
         TrackConnectionResult rail = TrackPathConnection.arePointsConnectedByTracks(level, from.rail(), to.rail(), loadChunks);
         TrackRoute.Segment best = rail.isConnected() ? TrackRoute.Segment.rail(level.dimension(), rail.path) : null;
-        List<BlockPos> road = ModalPathConnection.road(level, from.road(), to.road());
+        RouteFailureDiagnostic failure = rail.failureDiagnostic;
+        ModalPathConnection.SearchResult roadSearch = ModalPathConnection.roadSearch(level, from.road(), to.road());
+        List<BlockPos> road = roadSearch.path();
         if (!road.isEmpty() && (best == null || road.size() - 1 < best.distance()))
+        {
             best = TrackRoute.Segment.road(level.dimension(), road);
+        }
+        if (road.isEmpty())
+        {
+            RouteFailureDiagnostic roadFailure = new RouteFailureDiagnostic(
+                new DimPos(level.dimension(), roadSearch.closestPoint()),
+                TrackRoute.SegmentType.ROAD,
+                roadSearch.searchLimitReached() ? FailureKind.SEARCH_LIMIT_REACHED : FailureKind.PATH_ENDED);
+            failure = closerFailure(failure, roadFailure, to.position());
+        }
 
-        if (!allowWater || !from.isDock() || !to.isDock()) return best;
+        if (!allowWater || !from.isDock() || !to.isDock())
+        {
+            return new EdgeAttempt(best, failure);
+        }
+
+        WaterRouteRegistry.WaterLink link = WaterRouteRegistry.get(level).between(from.position(), to.position()).orElse(null);
+        if (link == null)
+        {
+            return new EdgeAttempt(best, failure);
+        }
+        link = WaterRouteRegistry.get(level).validate(level, link);
+        if (!link.usable())
+        {
+            BlockPos waterFrontier = link.firstDock().equals(from.position()) ? link.breakStart() : link.breakEnd();
+            if (waterFrontier != null)
+            {
+                RouteFailureDiagnostic waterFailure = new RouteFailureDiagnostic(
+                    new DimPos(level.dimension(), waterFrontier), TrackRoute.SegmentType.WATER, FailureKind.ROUTE_BROKEN);
+                failure = closerFailure(failure, waterFailure, to.position());
+            }
+            return new EdgeAttempt(best, failure);
+        }
 
         int limit = MCTPConfig.maximumWaterRouteDistance.get();
         BlockPos waterFrom = from.water(level);
         BlockPos waterTo = to.water(level);
-        if (waterFrom == null || waterTo == null) return best;
+        if (waterFrom == null || waterTo == null)
+        {
+            return new EdgeAttempt(best, failure);
+        }
 
         int minimumWaterDistance = Math.abs(waterFrom.getX() - waterTo.getX()) + Math.abs(waterFrom.getZ() - waterTo.getZ());
-        if (minimumWaterDistance > limit) return best;
+        if (minimumWaterDistance > limit)
+        {
+            return new EdgeAttempt(best, failure);
+        }
 
         if (best != null)
         {
-            if (minimumWaterDistance >= best.distance()) return best;
+            if (minimumWaterDistance >= best.distance())
+            {
+                return new EdgeAttempt(best, failure);
+            }
             limit = Math.min(limit, best.distance() - 1);
         }
 
-        List<BlockPos> water = ModalPathConnection.water(level, waterFrom, waterTo, limit);
+        List<BlockPos> water = link.pathFrom(from.position());
         if (!water.isEmpty()) best = TrackRoute.Segment.water(level.dimension(), water);
-        return best;
+        return new EdgeAttempt(best, failure);
     }
+
+    private static RouteFailureDiagnostic closerFailure(RouteFailureDiagnostic first, RouteFailureDiagnostic second, @Nonnull BlockPos destination)
+    {
+        if (second == null)
+        {
+            return first;
+        }
+        if (first == null)
+        {
+            return second;
+        }
+        return second.position().pos().distSqr(destination) < first.position().pos().distSqr(destination) ? second : first;
+    }
+
+    /** One graph-edge attempt and its best failed-search frontier. */
+    private record EdgeAttempt(TrackRoute.Segment segment, RouteFailureDiagnostic failure) { }
 
     /** Identifies the transport role of a route-graph node. */
     private enum NodeType
@@ -436,14 +497,17 @@ public final class MultimodalRouteConnection
         private final ServerLevel level;
         private final boolean loadChunks;
         private final boolean allowWater;
-        private final Map<EdgeKey, Optional<TrackRoute.Segment>> edges = new HashMap<>();
+        private final Map<EdgeKey, EdgeAttempt> edges = new HashMap<>();
+        private final @Nonnull BlockPos destination;
+        private RouteFailureDiagnostic bestFailure;
         private int searches;
         private int hits;
         private int failedHits;
 
-        private EdgeCache(ServerLevel level, boolean loadChunks, boolean allowWater)
+        private EdgeCache(ServerLevel level, @Nonnull BlockPos destination, boolean loadChunks, boolean allowWater)
         {
             this.level = level;
+            this.destination = destination;
             this.loadChunks = loadChunks;
             this.allowWater = allowWater;
         }
@@ -451,19 +515,25 @@ public final class MultimodalRouteConnection
         private TrackRoute.Segment get(Node from, Node to)
         {
             EdgeKey key = key(from, to);
-            Optional<TrackRoute.Segment> cached = edges.get(key);
+            EdgeAttempt cached = edges.get(key);
             if (cached != null)
             {
                 hits++;
-                if (cached.isEmpty()) failedHits++;
-                return cached.orElse(null);
+                if (cached.segment() == null) failedHits++;
+                return cached.segment();
             }
 
             searches++;
-            TrackRoute.Segment result = edge(level, from, to, loadChunks, allowWater);
-            edges.put(key, Optional.ofNullable(result));
-            edges.put(key(to, from), Optional.ofNullable(result == null ? null : reverse(result)));
-            return result;
+            EdgeAttempt attempt = edge(level, from, to, loadChunks, allowWater);
+            bestFailure = closerFailure(bestFailure, attempt.failure(), destination);
+            edges.put(key, attempt);
+            edges.put(key(to, from), new EdgeAttempt(attempt.segment() == null ? null : reverse(attempt.segment()), null));
+            return attempt.segment();
+        }
+
+        private RouteFailureDiagnostic bestFailure()
+        {
+            return bestFailure;
         }
 
         private void logSummary(int stageLimit, int docks, int interchanges, boolean connected, long started)

@@ -12,6 +12,7 @@ import java.util.Deque;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
@@ -55,7 +56,7 @@ public class ExportData
     };
 
     private final @Nullable ITradeCapable sourceStation;
-    private final StationData destinationStationData;
+    private final @Nonnull StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
 
@@ -77,7 +78,7 @@ public class ExportData
 
 
 
-    public ExportData(@Nullable ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
+    public ExportData(@Nullable ITradeCapable sourceStation, @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
     {
         this.sourceStation = sourceStation;
         this.destinationStationData = destinationStationData;
@@ -91,12 +92,12 @@ public class ExportData
         this.reverse = reverse;
     }
 
-    public ExportData(ITradeCapable sourceStation, StationData destinationStationData, ItemStorage tradeItem, int cost)
+    public ExportData(ITradeCapable sourceStation, @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost)
     {
         this(sourceStation, destinationStationData, tradeItem, cost, false);
     }
 
-    public StationData getDestinationStationData()
+    public @Nonnull StationData getDestinationStationData()
     {
         return destinationStationData;
     }

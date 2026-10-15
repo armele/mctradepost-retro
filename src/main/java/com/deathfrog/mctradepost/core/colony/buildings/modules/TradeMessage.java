@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_STATION;
 
+import javax.annotation.Nonnull;
+
 public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 {
     public static final Logger LOGGER = LogUtils.getLogger();
@@ -46,7 +48,7 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
     private TradeAction tradeAction;
     private TradeType tradeType;
 
-    private StationData remoteStation;
+    private @Nonnull StationData remoteStation;
 
     /**
      * What item are we trading for.
@@ -100,7 +102,10 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
     protected TradeMessage(final RegistryFriendlyByteBuf buf, final PlayMessageType<?> type)
     {
         super(buf, type);
-        remoteStation = StationData.fromNBT(buf.readNbt());
+
+        StationData readStation = StationData.fromNBT(buf.readNbt());
+
+        remoteStation = readStation == null ? StationData.EMPTY : readStation;
         itemStack = Utils.deserializeCodecMess(buf);
         cost = buf.readInt();
         quantity = buf.readInt();
@@ -135,6 +140,10 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
                     }
                     else
                     {
+                        if (building instanceof BuildingStation station && !station.shouldAttemptConnection(remoteStation))
+                        {
+                            return;
+                        }
                         TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Executing TradeMessage to add export."));
                         building.getModule(MCTPBuildingModules.EXPORTS).addExport(remoteStation, new ItemStorage(itemStack, quantity), cost);
                     }
@@ -177,7 +186,10 @@ public class TradeMessage extends AbstractBuildingServerMessage<IBuilding>
 
             for (StationData remoteStationData : station.getStations().values())
             {
-                if (remoteStationData.getStation() != null &&
+                if (remoteStationData == null) continue;
+
+                if (station.shouldAttemptConnection(remoteStationData) &&
+                    remoteStationData.getStation() != null &&
                     station.getTrackConnectionResult(remoteStationData) != null &&
                     station.getTrackConnectionResult(remoteStationData).connected)
                 {

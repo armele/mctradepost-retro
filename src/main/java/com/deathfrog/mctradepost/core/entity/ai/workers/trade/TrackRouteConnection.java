@@ -174,7 +174,11 @@ public class TrackRouteConnection
         if (sourceLevel.dimension().equals(destinationLevel.dimension()))
         {
             TrackPathConnection.TrackConnectionResult air = AirRouteConnection.findRoute(source, destination, loadChunks, allowWater);
-            if (air != null && air.isConnected()) return finishRouteSearch(context, air, source, destination);
+            if (air != null && air.isConnected())
+            {
+                return finishRouteSearch(context, air, source, destination);
+            }
+            context.considerFailure(air, 0, destination.getRailStartPosition());
         }
 
         TrackPathConnection.TrackConnectionResult direct =
@@ -188,6 +192,7 @@ public class TrackRouteConnection
         {
             return finishRouteSearch(context, direct, source, destination);
         }
+        context.considerFailure(direct, 0, destinationRail);
 
         ITradeCapable destinationBuilding = destination.getStation();
         List<DimensionalLinkageRecord> sourceLinkages = installedValidLinkages(source);
@@ -365,15 +370,27 @@ public class TrackRouteConnection
 
                 TrackPathConnection.TrackConnectionResult startToEntry =
                     context.tryModalSegment(overworld, sourceRail, entry.overworldEndpoint().get().pos());
-                if (!startToEntry.isConnected()) continue;
+                if (!startToEntry.isConnected())
+                {
+                    context.considerFailure(startToEntry, 0, entry.overworldEndpoint().get().pos());
+                    continue;
+                }
 
                 TrackPathConnection.TrackConnectionResult netherSegment =
                     context.tryModalSegment(nether, entry.netherEndpoint().get().pos(), exit.netherEndpoint().get().pos());
-                if (!netherSegment.isConnected()) continue;
+                if (!netherSegment.isConnected())
+                {
+                    context.considerFailure(netherSegment, 1, exit.netherEndpoint().get().pos());
+                    continue;
+                }
 
                 TrackPathConnection.TrackConnectionResult exitToDestination =
                     context.tryModalSegment(overworld, exit.overworldEndpoint().get().pos(), destinationRail);
-                if (!exitToDestination.isConnected()) continue;
+                if (!exitToDestination.isConnected())
+                {
+                    context.considerFailure(exitToDestination, 2, destinationRail);
+                    continue;
+                }
 
                 @SuppressWarnings("null")
                 TrackRoute route = joinedRoute(startToEntry,
@@ -465,11 +482,19 @@ public class TrackRouteConnection
 
         TrackPathConnection.TrackConnectionResult startToTransfer =
             context.tryModalSegment(sourceLevel, sourceRail, transferFrom.pos());
-        if (!startToTransfer.isConnected()) return null;
+        if (!startToTransfer.isConnected())
+        {
+            context.considerFailure(startToTransfer, 0, transferFrom.pos());
+            return null;
+        }
 
         TrackPathConnection.TrackConnectionResult transferToDestination =
             context.tryModalSegment(destinationLevel, transferTo.pos(), destinationRail);
-        if (!transferToDestination.isConnected()) return null;
+        if (!transferToDestination.isConnected())
+        {
+            context.considerFailure(transferToDestination, 1, destinationRail);
+            return null;
+        }
 
         TrackRoute route = joinedRoute(startToTransfer, TrackRoute.Segment.transfer(transferFrom, transferTo), transferToDestination);
 
@@ -554,6 +579,11 @@ public class TrackRouteConnection
                 context.pairLimitReached,
                 elapsedNanos / 1_000_000L));
         }
+        if (result != null && !result.isConnected() && context.bestFailure != null)
+        {
+            result.failureDiagnostic = context.bestFailure;
+            result.closestPoint = context.bestFailure.position().pos();
+        }
         context.logRouteFinished(result, elapsedNanos);
         return result;
     }
@@ -581,6 +611,9 @@ public class TrackRouteConnection
         private int cacheHitCount = 0;
         private int pairAttempts = 0;
         private boolean pairLimitReached = false;
+        private TrackPathConnection.TrackConnectionResult.RouteFailureDiagnostic bestFailure;
+        private int bestFailureStage = -1;
+        private double bestFailureDistance = Double.POSITIVE_INFINITY;
 
         /**
          * Creates a route search context for one call to {@link #findRoute(ITradeCapable, StationData, boolean)}.
@@ -676,6 +709,22 @@ public class TrackRouteConnection
                 pairAttempts,
                 MAX_LINKAGE_PAIR_ATTEMPTS));
             return true;
+        }
+
+        /** Retains a failed frontier from the furthest completed dimensional leg. */
+        private void considerFailure(TrackPathConnection.TrackConnectionResult result, int stage, BlockPos target)
+        {
+            if (result == null || result.failureDiagnostic == null || stage < bestFailureStage)
+            {
+                return;
+            }
+            double distance = target == null ? Double.POSITIVE_INFINITY : result.failureDiagnostic.position().pos().distSqr(target);
+            if (stage > bestFailureStage || bestFailure == null || distance < bestFailureDistance)
+            {
+                bestFailure = result.failureDiagnostic;
+                bestFailureStage = stage;
+                bestFailureDistance = distance;
+            }
         }
 
         /**

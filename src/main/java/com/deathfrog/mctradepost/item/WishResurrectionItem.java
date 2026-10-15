@@ -33,7 +33,7 @@ public class WishResurrectionItem extends Item
 {
     public static final int MAX_BURIAL_AGE = 63;
 
-    public WishResurrectionItem(Properties properties)
+    public WishResurrectionItem(@Nonnull Properties properties)
     {
         super(properties.stacksTo(1));
     }

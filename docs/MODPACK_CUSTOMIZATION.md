@@ -57,7 +57,8 @@ Main categories:
 - `station`
   - `trackValidationFrequency`
   - `baseTradeSpeed`
-  - `maximumWaterRouteDistance`: maximum navigable distance for a single dock-to-dock water leg (default `1000`, range `1`-`10000`)
+  - `maximumWaterRouteDistance`: maximum navigable distance for a charted dock-to-dock water leg (default `1000`, range `1`-`10000`);
+    lowering it leaves longer saved lanes visible but marks them `Over current distance limit` and prevents their use
   - `importsPerLevel`
 - `petshop`
   - `petsPerLevel`
@@ -756,14 +757,38 @@ Station connections are no longer limited to a single continuous rail path. A ro
 
 - rail on blocks in `#mctradepost:track`
 - roads on blocks in `#mctradepost:trade_roads`
-- navigable surface water between Trade Docks when the exporting colony has Maritime Trade research
+- player-charted, navigable surface-water lanes between Trade Docks when the exporting colony has Maritime Trade research
 - Trade Interchanges for rail/road handoffs
 - dimensional linkage transfers, including Overworld-to-Overworld routes through the Nether
 
 For each same-dimension leg, the route finder tests rail and road connections and uses the shorter available path. It can route through
 registered Trade Docks and Trade Interchanges to change modes. Road paths allow one-block elevation changes, are bounded searches, and
-do not load unloaded chunks. Water paths require water with unobstructed space above it and are limited by the station
+do not load unloaded chunks. Water is different: ordinary station route discovery never searches arbitrary dock pairs. A player must
+use a Navigation Chart on two Trade Docks to commission a persistent, bidirectional lane. Charting runs as a bounded multi-tick job,
+and succeeds only when surface water with unobstructed space above it connects the docks within the station
 `maximumWaterRouteDistance` config value.
+
+Navigation Charts may connect docks in the same colony, different colonies, or outside colony borders. A successful survey consumes
+the Chart and saves both the linkage and its exact water path in per-dimension world data. A dock may participate in at most 32 lanes.
+Removing either endpoint dock is the only way to remove a linkage and removes every lane involving that dock.
+
+Right-click a Trade Dock with an empty hand to inspect its lanes. The read-only screen reports each destination, length, last
+validation age, and one of these states:
+
+- `Operational`: every currently inspected part of the saved path is navigable.
+- `Operational — partially unverified`: unloaded portions are accepted optimistically and have not recently been inspected.
+- `Broken`: a loaded part of the saved path is obstructed or the dock's water-facing endpoint changed.
+- `Destination dock missing`: a loaded endpoint no longer contains its Trade Dock.
+- `Over current distance limit`: the configured maximum was lowered below the saved path length.
+
+Click a broken entry to highlight its recorded break interval with the trade-route overlay. A broken lane never searches for or adopts
+an alternate path automatically. Repairing the original saved path can restore it; selecting a different course requires removing an
+endpoint dock, replacing it, and spending a new Navigation Chart. Stationmasters also raise a rate-limited interaction when their
+normal route validation encounters a broken shipping lane.
+
+For server safety, charting limits concurrent jobs, node expansions per tick, total visited positions, and asynchronously requested
+chunks. Failed, cancelled, interrupted, duplicate, over-limit, or resource-capped surveys do not consume the Chart. In-progress jobs
+are intentionally not persisted across server restarts; completed lanes are.
 
 #### The `trade_roads` Tags
 
@@ -871,10 +896,7 @@ road routing.
 ### If You Want Custom Trade Roads
 
 1. Extend `#mctradepost:trade_roads` in both the block and item registries
-2. Use the block tag to control traversable road surfaces and the item tag to control the Expansion research cost
-3. Build continuous routes using horizontal steps or one-block elevation changes; road searches stop at unloaded chunks
-4. Use Trade Interchanges where shipments should hand off between road and rail, and correctly oriented Trade Docks for land/water handoffs
-5. Tune `station.maximumWaterRouteDistance` carefully if the network uses long water legs, because water discovery may load chunks
+2. The block tag controls traversable road surfaces and the item tag allows them to qualify for the Expansion research cost
 
 ### If You Want To Lock Down Recycler Abuse
 
@@ -894,6 +916,10 @@ road routing.
 - If changing the unique-purchase tag in an existing world, verify affected active subscriptions are canceled on the next natural daily pass
 - Test rail, road, and intended handoffs for station routes if you changed `#mctradepost:track`, either `#mctradepost:trade_roads` tag,
   or `maximumWaterRouteDistance`
+- Chart a water lane, restart the server, and verify that both docks still list the same bidirectional linkage
+- Obstruct a loaded position on the saved water path, run station validation, and verify the dock screen, break highlight, and
+  Stationmaster interaction identify the affected interval without finding a replacement route
+- Remove one linked Trade Dock and verify that all of its linkages disappear from the other endpoint docks
 - Use `/mctp tradepath <start> <end>` to display a fresh same-dimension route (this diagnostic bypasses colony research restrictions),
   and `/mctp tradepath clear` to remove its overlay
 - Use `/mctp station routes` to inspect the segmented routes stations actually have cached
@@ -903,16 +929,3 @@ road routing.
 - Test both an existing mushroom target and an empty, dim mushroom forage location if you changed mushroom scavenging
 - Confirm custom mushroom forage results are awarded and that intended block results are planted
 - Restart a dedicated server once if you changed rituals
-
-## High-Value Files To Review First
-
-- `src/main/java/com/deathfrog/mctradepost/MCTPConfig.java`
-- `src/main/java/com/deathfrog/mctradepost/api/util/ItemValueManager.java`
-- `src/main/java/com/deathfrog/mctradepost/core/economy/ItemValueSeedLoader.java`
-- `src/main/java/com/deathfrog/mctradepost/core/recycling/blacklist/RecyclingBlacklistManager.java`
-- `src/main/java/com/deathfrog/mctradepost/core/rarefinds/blacklist/RareFindBlacklistManager.java`
-- `src/main/java/com/deathfrog/mctradepost/core/event/burnout/BurnoutRemedyManager.java`
-- `src/main/java/com/deathfrog/mctradepost/core/event/wishingwell/ritual/RitualDefinition.java`
-- `src/main/java/com/deathfrog/mctradepost/core/ModTags.java`
-
-Those files define most of the pack-author-facing behavior.

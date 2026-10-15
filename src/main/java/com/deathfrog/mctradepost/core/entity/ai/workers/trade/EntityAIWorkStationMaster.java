@@ -70,6 +70,7 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
     protected static final int VALIDATION_COOLDOWN_TIMER = 60;
     protected int validationCooldown = VALIDATION_COOLDOWN_TIMER;
+    private long lastWaterBreakWarning = Long.MIN_VALUE;
 
     protected static final int MATCHING_COOLDOWN_TIMER = 5;
     protected int matchingCooldown = MATCHING_COOLDOWN_TIMER;
@@ -260,11 +261,22 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             }
 
             // Skip if already shipping or already shipped today
-            if (isAlreadyShippingToday(exportData)) continue;
+            if (isAlreadyShippingToday(exportData))
+            {
+                continue;
+            }
+
+            if (!building.shouldAttemptConnection(exportData.getDestinationStationData()))
+            {
+                continue;
+            }
 
             // 1) Destination must exist or we eliminate the order
             IAIState state = resolveDestinationOrEliminate(exportData);
-            if (state != null) return state;
+            if (state != null)
+            {
+                return state;
+            }
 
             // From here on, these are safe to dereference
             final StationData dest = exportData.getDestinationStationData();
@@ -273,20 +285,29 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             // 2) Connection lookup or check
             final TrackConnectionResult conn = building.getTrackConnectionResult(dest);
             state = getConnectionOrCheck(conn, dest, exportData);
-            if (state != null) return state;
+            if (state != null)
+            {
+                return state;
+            }
 
             final boolean stationConnected = conn.isConnected();
 
             // 3) If not an outpost, the remote must still offer the trade.
             state = validateRemoteImportOrEliminate(dest, exportData);
-            if (state != null) return state;
+            if (state != null)
+            {
+                return state;
+            }
 
             // 4) Do we have the goods locally?
             final boolean hasExports = hasLocalSupply(exportData);
 
             // 5) Remote must be staffed, else eliminate
             state = ensureRemoteStaffedOrEliminate(remote, exportData);
-            if (state != null) return state;
+            if (state != null)
+            {
+                return state;
+            }
 
             // 6) Remote funds check
             final boolean remoteHasFunds = remoteHasFunds(remote, exportData);
@@ -651,7 +672,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
             for (IBuilding checkbuilding : colony.getServerBuildingManager().getBuildings().values())
             {
                 // Disregard if it's not a station/outpost, or if it is the current station.
-                if (!(checkbuilding instanceof ITradeCapable tradeCapableBuilding) || tradeCapableBuilding.getPosition().equals(worker.getCitizenData().getWorkBuilding().getPosition()))
+                if (!(checkbuilding instanceof ITradeCapable tradeCapableBuilding))
+                {
+                    continue;
+                }
+
+                StationData candidate = new StationData(tradeCapableBuilding);
+                StationData localStation = new StationData(building);
+                if (candidate.equals(localStation))
                 {
                     continue;
                 }
@@ -675,14 +703,14 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     continue;
                 }
 
-                if (this.building.hasStationAt(tcBuildingPos))
+                if (this.building.hasStationAt(candidate))
                 {
                     checklist.add(checkbuilding);
                 }
                 else
                 {
                     // Add the newly discovered station.
-                    currentRemoteStation = new StationData(tradeCapableBuilding);
+                    currentRemoteStation = candidate;
                     this.building.addStation(currentRemoteStation);
                     checklist.add(checkbuilding);
                 }
@@ -692,10 +720,8 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         final long now = world.getGameTime();
         checklist.sort((firstBuilding, secondBuilding) ->
         {
-            @SuppressWarnings("null")
-            StationData firstStation = this.building.getStationAt(firstBuilding.getPosition());
-            @SuppressWarnings("null")
-            StationData secondStation = this.building.getStationAt(secondBuilding.getPosition());
+            StationData firstStation = this.building.getStationAt(new StationData((ITradeCapable) firstBuilding).getDimensionalPosition());
+            StationData secondStation = this.building.getStationAt(new StationData((ITradeCapable) secondBuilding).getDimensionalPosition());
             TrackConnectionResult firstResult = building.getTrackConnectionResult(firstStation);
             TrackConnectionResult secondResult = building.getTrackConnectionResult(secondStation);
 
@@ -719,9 +745,17 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         {
             BlockPos tcBuildingPos = checkThisBuilding.getPosition();
 
-            if (tcBuildingPos == null) continue;
+            if (tcBuildingPos == null)
+            {
+                continue;
+            }
 
-            StationData stationData = this.building.getStationAt(tcBuildingPos);
+            StationData stationData = this.building.getStationAt(new StationData((ITradeCapable) checkThisBuilding).getDimensionalPosition());
+
+            if (stationData == null || !building.shouldAttemptConnection(stationData))
+            {
+                continue;
+            }
 
             TraceUtils.dynamicTrace(TRACE_STATION, () -> LOGGER.info("Colony {}: Determining if trade capable building at {} should be checked: {}", building.getColony().getID(), tcBuildingPos, stationData));
 
@@ -762,6 +796,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         if (currentRemoteStation != null)
         {
+            if (!building.shouldAttemptConnection(currentRemoteStation))
+            {
+                currentRemoteStation = null;
+                return AIWorkerState.DECIDE;
+            }
             TrackConnectionResult connectionResult = building.getTrackConnectionResult(currentRemoteStation);
 
             if (connectionResult == null || !connectionResult.connected)
@@ -785,6 +824,11 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
                     : TrackRouteConnection.validateExistingRoute(world.getServer(), connectionResult);
                 isValid = isValid && AirRouteConnection.validateCachedRoute(building,
                     currentRemoteStation.getStation(), connectionResult.getRoute());
+
+                if (!isValid)
+                {
+                    warnAboutBrokenWaterRoute(connectionResult.getRoute());
+                }
 
                 if (isValid)
                 {
@@ -819,6 +863,31 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
         incrementActionsDoneAndDecSaturation();
         StatsUtil.trackStat(building, TRACK_VALIDATIONS, 1);
         return StationMasterStates.WALK_THE_TRACK;
+    }
+
+    /** Raises a rate-limited citizen interaction with the saved break interval of a surveyed shipping lane. */
+    private void warnAboutBrokenWaterRoute(final TrackRoute route)
+    {
+        if (route == null || !(world instanceof net.minecraft.server.level.ServerLevel serverLevel)) return;
+        long now = world.getGameTime();
+        if (lastWaterBreakWarning != Long.MIN_VALUE && now - lastWaterBreakWarning < 24000L) return;
+        WaterRouteRegistry registry = WaterRouteRegistry.get(serverLevel);
+        for (TrackRoute.Segment segment : route.segments())
+        {
+            if (segment.type() != TrackRoute.SegmentType.WATER) continue;
+            WaterRouteRegistry.WaterLink link = registry.matchingPath(segment.path()).orElse(null);
+            if (link == null) continue;
+            link = registry.validate(serverLevel, link);
+            if (link.usable()) continue;
+            BlockPos from = link.breakStart() == null ? link.firstDock() : link.breakStart();
+            BlockPos to = link.breakEnd() == null ? link.secondDock() : link.breakEnd();
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(
+                net.minecraft.network.chat.Component.translatable("entity.stationmaster.water_route_broken",
+                    link.firstDock().toShortString(), link.secondDock().toShortString(), from.toShortString(), to.toShortString()),
+                ChatPriority.BLOCKING));
+            lastWaterBreakWarning = now;
+            return;
+        }
     }
 
 

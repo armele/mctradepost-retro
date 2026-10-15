@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:compass" },
+    { "item": "minecraft:paper" },
+    { "tag": "minecraft:boats" }
+  ],
+  "result": {
+    "id": "mctradepost:navigation_chart",
+    "count": 1
+  }
+}

@@ -96,6 +96,22 @@ class TrackRouteTest
 
     @SuppressWarnings("null")
     @Test
+    void traversedDimensionsExcludeOriginAndRemainDistinctAndOrdered()
+    {
+        DimPos overworldEndpoint = new DimPos(Level.OVERWORLD, BlockPos.ZERO.east(2));
+        DimPos netherEndpoint = new DimPos(Level.NETHER, BlockPos.ZERO);
+        TrackRoute route = new TrackRoute(List.of(
+            TrackRoute.Segment.rail(Level.OVERWORLD, positions(0, 2)),
+            TrackRoute.Segment.transfer(overworldEndpoint, netherEndpoint),
+            TrackRoute.Segment.rail(Level.NETHER, positions(0, 4)),
+            TrackRoute.Segment.transfer(netherEndpoint, overworldEndpoint),
+            TrackRoute.Segment.rail(Level.OVERWORLD, positions(2, 5))));
+
+        assertEquals(List.of(Level.NETHER), route.traversedDimensions(Level.OVERWORLD));
+    }
+
+    @SuppressWarnings("null")
+    @Test
     void segmentSpeedFactorsApplyAcrossModeBoundariesWithoutChangingRouteDistance()
     {
         TrackRoute route = new TrackRoute(List.of(

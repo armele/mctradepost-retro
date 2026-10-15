@@ -18,6 +18,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingM
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.TradeMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData.TrackConnectionStatus;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
@@ -31,7 +32,6 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -333,13 +333,18 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
                     return;
                 }
 
-                Map<BlockPos, StationData> stations = ((StationView) buildingView).getStations();
+                StationView stationView = (StationView) buildingView;
+                Map<DimPos, StationData> stations = stationView.getStations();
                 potentialExportMap.clear();
 
                 for (StationData station : stations.values())
                 {
+                    if (!stationView.shouldAttemptConnection(station))
+                    {
+                        continue;
+                    }
                     IBuildingView remoteStationView = IColonyManager.getInstance().getBuildingView(station.getDimension(), station.getBuildingPosition());
-                    if (remoteStationView != null && remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS) && !buildingView.getPosition().equals(remoteStationView.getPosition()))
+                    if (remoteStationView != null && remoteStationView.hasModuleView(MCTPBuildingModules.IMPORTS))
                     {
                         List<TradeDefinition> imports = remoteStationView.getModuleView(MCTPBuildingModules.IMPORTS).getImports();
 
@@ -363,7 +368,7 @@ public class WindowStationExportModule extends AbstractModuleWindow<BuildingStat
                             continue;
                         }
 
-                        if (export.getDestinationStationData().getBuildingPosition().equals(exportGui.getDestinationStation().getBuildingPosition()) &&
+                        if (export.getDestinationStationData().equals(exportGui.getDestinationStation()) &&
                             export.getTradeItem().getItemStack().is(item) &&
                             exportGui.cost.equals(export.getCost()) &&
                             exportGui.quantity.equals(export.getQuantity()))

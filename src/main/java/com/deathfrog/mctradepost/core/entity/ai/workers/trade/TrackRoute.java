@@ -287,6 +287,29 @@ public class TrackRoute
     }
 
     /**
+     * Returns the distinct non-origin dimensions traversed by this route in first-use order.
+     *
+     * @param originDimension dimension containing the route's originating station
+     * @return ordered, immutable list of traversed dimensions other than the origin
+     */
+    public List<ResourceKey<Level>> traversedDimensions(@Nonnull ResourceKey<Level> originDimension)
+    {
+        Set<ResourceKey<Level>> dimensions = new LinkedHashSet<>();
+        for (Segment segment : segments)
+        {
+            if (!segment.dimension().equals(originDimension))
+            {
+                dimensions.add(segment.dimension());
+            }
+            if (segment.transferTo() != null && !segment.transferTo().dimension().equals(originDimension))
+            {
+                dimensions.add(segment.transferTo().dimension());
+            }
+        }
+        return List.copyOf(dimensions);
+    }
+
+    /**
      * Advances a physical route position by a base movement budget, applying the supplied speed factor independently to each segment.
      * Route distances remain physical distances, so this has no effect on route selection or progress-bar totals.
      *
@@ -326,21 +349,6 @@ public class TrackRoute
         }
 
         return Math.min(position, totalDistance());
-    }
-
-    /**
-     * @return first rail path in the route, used for legacy connection-result compatibility
-     */
-    public List<BlockPos> firstRailPath()
-    {
-        for (Segment segment : segments)
-        {
-            if (segment.type() == SegmentType.RAIL && segment.path() != null && !segment.path().isEmpty())
-            {
-                return segment.path();
-            }
-        }
-        return List.of();
     }
 
     /**

@@ -1,16 +1,20 @@
 package com.deathfrog.mctradepost.core.blocks;
 
 import javax.annotation.Nonnull;
-
+import com.deathfrog.mctradepost.MCTradePostMod;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -19,18 +23,26 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.tags.FluidTags;
-
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TradeDockRegistry;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.WaterRouteRegistry;
+import com.deathfrog.mctradepost.core.blocks.blockentity.TradeDockBlockEntity;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
 
 /**
- * A facing-aware transition between a land transport path and navigable water.
- * The block faces its water endpoint; the opposite side is its land endpoint.
+ * A facing-aware transition between a land transport path and navigable water. The block faces its water endpoint; the opposite side
+ * is its land endpoint.
  */
-public class BlockTradeDock extends HorizontalDirectionalBlock
+public class BlockTradeDock extends BaseEntityBlock
 {
     public static final String ID = "trade_dock";
+    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final MapCodec<BlockTradeDock> CODEC = simpleCodec(BlockTradeDock::new);
 
     /** Full footprint matching the model's approximately 2.4-pixel maximum height. */
@@ -44,26 +56,69 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
     }
 
     @Override
-    protected VoxelShape getShape(@Nonnull BlockState state, @Nonnull BlockGetter level, @Nonnull BlockPos pos, @Nonnull CollisionContext context)
+    protected VoxelShape getShape(@Nonnull BlockState state,
+        @Nonnull BlockGetter level,
+        @Nonnull BlockPos pos,
+        @Nonnull CollisionContext context)
     {
         return SHAPE;
     }
 
     @Override
-    protected VoxelShape getCollisionShape(@Nonnull BlockState state, @Nonnull BlockGetter level, @Nonnull BlockPos pos, @Nonnull CollisionContext context)
+    protected VoxelShape getCollisionShape(@Nonnull BlockState state,
+        @Nonnull BlockGetter level,
+        @Nonnull BlockPos pos,
+        @Nonnull CollisionContext context)
     {
         return SHAPE;
     }
 
     @Override
-    protected MapCodec<? extends HorizontalDirectionalBlock> codec()
+    protected MapCodec<? extends BaseEntityBlock> codec()
     {
         return CODEC;
     }
 
+    @Override
+    public RenderShape getRenderShape(@Nonnull BlockState state)
+    {
+        return RenderShape.MODEL;
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(@Nonnull BlockPos pos, @Nonnull BlockState state)
+    {
+        return new TradeDockBlockEntity(pos, state);
+    }
+
+    @SuppressWarnings("null")
+    @Override
+    protected ItemInteractionResult useItemOn(@Nonnull ItemStack stack,
+        @Nonnull BlockState state,
+        @Nonnull Level level,
+        @Nonnull BlockPos pos,
+        @Nonnull Player player,
+        @Nonnull InteractionHand hand,
+        @Nonnull BlockHitResult hit)
+    {
+        if (stack.is(MCTradePostMod.NAVIGATION_CHART.get())) return ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(@Nonnull BlockState state,
+        @Nonnull Level level,
+        @Nonnull BlockPos pos,
+        @Nonnull Player player,
+        @Nonnull BlockHitResult hit)
+    {
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof TradeDockBlockEntity dock)
+            player.openMenu(dock, dock::writeMenuData);
+        return InteractionResult.sidedSuccess(level.isClientSide);
+    }
+
     /**
-     * Resolves the navigable water beside the dock. A dock may sit level with
-     * the water or, more commonly, one block above it.
+     * Resolves the navigable water beside the dock. A dock may sit level with the water or, more commonly, one block above it.
      */
     @SuppressWarnings("null")
     public static BlockPos waterEndpoint(LevelReader level, BlockState state, BlockPos dock)
@@ -82,8 +137,8 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
     @SuppressWarnings("null")
     private static boolean isNavigableWater(LevelReader level, @Nonnull BlockPos pos)
     {
-        return level.getFluidState(pos).is(NullnessBridge.assumeNonnull(FluidTags.WATER))
-            && level.getBlockState(pos.above()).getCollisionShape(level, pos.above()).isEmpty();
+        return level.getFluidState(pos).is(NullnessBridge.assumeNonnull(FluidTags.WATER)) &&
+            level.getBlockState(pos.above()).getCollisionShape(level, pos.above()).isEmpty();
     }
 
     @SuppressWarnings("null")
@@ -120,7 +175,11 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
     }
 
     @Override
-    protected void onPlace(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState oldState, boolean movedByPiston)
+    protected void onPlace(@Nonnull BlockState state,
+        @Nonnull Level level,
+        @Nonnull BlockPos pos,
+        @Nonnull BlockState oldState,
+        boolean movedByPiston)
     {
         super.onPlace(state, level, pos, oldState, movedByPiston);
         if (level instanceof ServerLevel serverLevel) TradeDockRegistry.get(serverLevel).add(pos);
@@ -128,9 +187,17 @@ public class BlockTradeDock extends HorizontalDirectionalBlock
 
     @SuppressWarnings("null")
     @Override
-    protected void onRemove(@Nonnull BlockState state, @Nonnull Level level, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean movedByPiston)
+    protected void onRemove(@Nonnull BlockState state,
+        @Nonnull Level level,
+        @Nonnull BlockPos pos,
+        @Nonnull BlockState newState,
+        boolean movedByPiston)
     {
-        if (level instanceof ServerLevel serverLevel && !state.is(newState.getBlock())) TradeDockRegistry.get(serverLevel).remove(pos);
+        if (level instanceof ServerLevel serverLevel && !state.is(newState.getBlock()))
+        {
+            TradeDockRegistry.get(serverLevel).remove(pos);
+            WaterRouteRegistry.get(serverLevel).removeDock(pos);
+        }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

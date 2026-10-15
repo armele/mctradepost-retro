@@ -4,6 +4,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
+
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -241,12 +243,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param quantity The quantity of the item to export.
      * @return The newly added export data.
      */
-    public ExportData addExport(StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
+    public ExportData addExport(@Nonnull StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
     {
         return addExport((ITradeCapable) building, destinationStation, itemToDeliver, cost);
     }
 
-    public ExportData addExport(ITradeCapable source, StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
+    public ExportData addExport(ITradeCapable source, @Nonnull StationData destinationStation, final ItemStorage itemToDeliver, final int cost)
     {
         ExportData addedExport = new ExportData(source, destinationStation, itemToDeliver, cost);
         exportList.add(addedExport);

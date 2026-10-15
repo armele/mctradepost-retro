@@ -12,6 +12,8 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.core.blocks.BlockMooringBay;
 import com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.FailureKind;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.RouteFailureDiagnostic;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import net.minecraft.core.BlockPos;
@@ -81,12 +83,26 @@ public final class AirRouteConnection
         if (sourceBays.isEmpty() || destinationBays.isEmpty()) return null;
 
         Map<BlockPos, TrackRoute> sourceLegs = new LinkedHashMap<>();
+        RouteFailureDiagnostic sourceFailure = null;
+        double sourceFailureDistance = Double.POSITIVE_INFINITY;
         for (BlockPos sourceBay : sourceBays)
         {
             if (!validateCandidateBay(level, sourceBay, loadChunks)) continue;
             TrackPathConnection.TrackConnectionResult sourceLeg =
                 MultimodalRouteConnection.findRoute(level, source.getRailStartPosition(), sourceBay, loadChunks, allowWater);
-            if (sourceLeg.isConnected() && sourceLeg.getRoute() != null) sourceLegs.put(sourceBay, sourceLeg.getRoute());
+            if (sourceLeg.isConnected() && sourceLeg.getRoute() != null)
+            {
+                sourceLegs.put(sourceBay, sourceLeg.getRoute());
+            }
+            else if (sourceLeg.failureDiagnostic != null)
+            {
+                double distance = sourceLeg.failureDiagnostic.position().pos().distSqr(sourceBay);
+                if (distance < sourceFailureDistance)
+                {
+                    sourceFailure = sourceLeg.failureDiagnostic;
+                    sourceFailureDistance = distance;
+                }
+            }
         }
 
         Map<BlockPos, TrackRoute> destinationLegs = new LinkedHashMap<>();
@@ -126,12 +142,22 @@ public final class AirRouteConnection
             }
         }
 
-        return bestRoute == null ? null :
-            new TrackPathConnection.TrackConnectionResult(true,
+        if (bestRoute != null)
+        {
+            return new TrackPathConnection.TrackConnectionResult(true,
                 destination.getRailStartPosition(),
                 bestRoute.firstPath(),
                 level.getGameTime(),
                 bestRoute);
+        }
+        if (!sourceLegs.isEmpty())
+        {
+            BlockPos reachedBay = sourceLegs.keySet().iterator().next();
+            sourceFailure = new RouteFailureDiagnostic(
+                new DimPos(level.dimension(), reachedBay), TrackRoute.SegmentType.AIR, FailureKind.PATH_ENDED);
+        }
+        return sourceFailure == null ? null : new TrackPathConnection.TrackConnectionResult(false,
+            sourceFailure.position().pos(), List.of(), level.getGameTime(), null, sourceFailure);
     }
 
     /**

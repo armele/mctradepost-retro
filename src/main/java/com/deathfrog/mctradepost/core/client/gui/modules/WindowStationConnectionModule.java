@@ -3,6 +3,9 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.StationConnectionModuleView.LinkageViewData;
@@ -10,11 +13,14 @@ import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecor
 import com.deathfrog.mctradepost.api.colony.buildings.views.StationView;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage.LinkageAction;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationConnectionAttemptMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationRouteRefreshMessage;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.DimPos;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRoute;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.FailureKind;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult.RouteFailureDiagnostic;
 import com.ldtteam.blockui.Pane;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.AbstractTextBuilder;
@@ -29,9 +35,9 @@ import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 
 public class WindowStationConnectionModule extends AbstractModuleWindow<StationConnectionModuleView>
 {
@@ -39,9 +45,12 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
     private static final String PANE_LINKAGES = "linkages";
     private static final String BUTTON_REMOVE_LINKAGE = "removeLinkage";
     private static final String BUTTON_REFRESH_ROUTE = "refreshRoute";
+    private static final String BUTTON_ATTEMPT_CONNECTION = "attemptConnection";
+    private static final String TEXTURE_CHECKED = "minecolonies:textures/gui/builderhut/builder_button_mini_check.png";
+    private static final String TEXTURE_UNCHECKED = "minecolonies:textures/gui/builderhut/builder_button_mini.png";
     private static final String IMAGE_HELP = "help";
     private static final String STATIONCONNECTION_WINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layoutstationconnection.xml";
-    private Map<BlockPos, StationData> stations = null;
+    private Map<DimPos, StationData> stations = null;
     IBuildingView buildingView = null;
 
     /**
@@ -58,6 +67,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
 
         registerButton(BUTTON_REMOVE_LINKAGE, this::removeLinkage);
         registerButton(BUTTON_REFRESH_ROUTE, this::refreshRoute);
+        registerButton(BUTTON_ATTEMPT_CONNECTION, this::toggleConnectionAttempt);
         connectionDisplayList = findPaneOfTypeByID(PANE_STATIONS, ScrollingList.class);
         linkageDisplayList = findPaneOfTypeByID(PANE_LINKAGES, ScrollingList.class);
     }
@@ -76,9 +86,25 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
             return;
         }
 
-        final BlockPos destination = stations.keySet().toArray(new BlockPos[0])[row];
+        final StationData destination = stations.values().toArray(new StationData[0])[row];
         button.disable();
         new StationRouteRefreshMessage(buildingView, destination).sendToServer();
+    }
+
+    /** Toggles route discovery for the destination represented by the clicked row. */
+    private void toggleConnectionAttempt(Button button)
+    {
+        final int row = connectionDisplayList.getListElementIndexByPane(button);
+        if (row < 0 || stations == null || row >= stations.size())
+        {
+            return;
+        }
+        StationData station = stations.values().toArray(new StationData[0])[row];
+        StationView stationView = (StationView) buildingView;
+        boolean enabled = !stationView.shouldAttemptConnection(station);
+        stationView.setConnectionAttempt(station, enabled);
+        new StationConnectionAttemptMessage(buildingView, station, enabled).sendToServer();
+        updateConnections();
     }
 
     @Override
@@ -146,8 +172,7 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
                 helpPane.setVisible(false);
                 connectionDisplayList.setVisible(true);
 
-                final BlockPos pos = stations.keySet().toArray(new BlockPos[0])[index];
-                final StationData station = stations.get(pos);
+                final StationData station = stations.values().toArray(new StationData[0])[index];
 
                 final Box wrapperBox = rowPane.findPaneOfTypeByID("stationx", Box.class);
                 wrapperBox.setPosition(wrapperBox.getX(), wrapperBox.getY());
@@ -166,40 +191,114 @@ public class WindowStationConnectionModule extends AbstractModuleWindow<StationC
                 }
 
                 final Text status = wrapperBox.findPaneOfTypeByID("status", Text.class);
-                Component statusText = connectionStatusText((StationView) buildingView, station);
+                final Image statusIcon = wrapperBox.findPaneOfTypeByID("connectionIcon", Image.class);
+                StationData.TrackConnectionStatus connectionStatus = ((StationView) buildingView).stationConnectionStatus(station);
+                Component statusText = connectionStatusText((StationView) buildingView, station, connectionStatus);
                 status.setText(statusText);
-                PaneBuilders.tooltipBuilder().hoverPane(status).build().setText(statusText);
+                statusIcon.setVisible(connectionStatus != StationData.TrackConnectionStatus.UNKNOWN);
+                if (connectionStatus != StationData.TrackConnectionStatus.UNKNOWN)
+                {
+                    statusIcon.setImage(ResourceLocation.fromNamespaceAndPath("minecolonies", connectionStatus == StationData.TrackConnectionStatus.CONNECTED
+                        ? "textures/gui/research/icon_check.png"
+                        : "textures/gui/research/icon_cancel.png"), false);
+                }
+                Component tooltipText = connectionTooltipText((StationView) buildingView, station, connectionStatus, statusText);
+                PaneBuilders.tooltipBuilder().hoverPane(status).build().setText(tooltipText);
+                PaneBuilders.tooltipBuilder().hoverPane(statusIcon).build().setText(tooltipText);
 
                 final ButtonImage refresh = wrapperBox.findPaneOfTypeByID(BUTTON_REFRESH_ROUTE, ButtonImage.class);
                 refresh.setImage(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "textures/gui/refresh.png"));
-                refresh.setEnabled(moduleView.isStationmasterEmployed());
+                boolean attemptEnabled = ((StationView) buildingView).shouldAttemptConnection(station);
+                refresh.setEnabled(moduleView.isStationmasterEmployed() && attemptEnabled);
                 PaneBuilders.tooltipBuilder().hoverPane(refresh).build().setText(Component.translatable(
-                    moduleView.isStationmasterEmployed()
+                    !attemptEnabled
+                        ? "mctradepost.route_refresh.connection_disabled_tooltip"
+                        : moduleView.isStationmasterEmployed()
                         ? "mctradepost.route_refresh.tooltip"
                         : "mctradepost.route_refresh.no_stationmaster_tooltip"));
+
+                final ButtonImage attempt = wrapperBox.findPaneOfTypeByID(BUTTON_ATTEMPT_CONNECTION, ButtonImage.class);
+                attempt.setVisible(!station.isOutpost());
+                attempt.setEnabled(!station.isOutpost());
+                attempt.setImage(ResourceLocation.parse(attemptEnabled ? TEXTURE_CHECKED : TEXTURE_UNCHECKED));
+                PaneBuilders.tooltipBuilder().hoverPane(attempt).build()
+                    .setText(Component.translatable("mctradepost.connection_attempt.tooltip"));
             }
         });
     }
 
-    /** Builds the status label and its ordered, distinct transport-mode summary. */
-    private static Component connectionStatusText(StationView stationView, StationData station)
+    /** Builds the status label and its ordered, distinct transport-mode and dimension summary. */
+    private static Component connectionStatusText(StationView stationView, StationData station, StationData.TrackConnectionStatus status)
     {
-        StationData.TrackConnectionStatus status = stationView.stationConnectionStatus(station);
         if (status != StationData.TrackConnectionStatus.CONNECTED)
         {
-            return Component.literal(status.toString() + "");
+            if (status == StationData.TrackConnectionStatus.UNKNOWN)
+            {
+                return Component.literal(status.toString() + "");
+            }
+            RouteFailureDiagnostic failure = stationView.stationConnectionFailure(station);
+            return failure == null
+                ? Component.translatable("mctradepost.route_failure.none")
+                : Component.literal(failureLocation(failure));
         }
 
         List<TrackRoute.SegmentType> modes = stationView.stationConnectionModes(station);
-        if (modes.isEmpty())
+
+        List<String> summaryParts = modes.stream()
+            .map(WindowStationConnectionModule::modeName)
+            .collect(Collectors.toList());
+
+        summaryParts.addAll(stationView.stationConnectionDimensions(station).stream()
+            .map(WindowStationConnectionModule::dimensionName)
+            .toList());
+
+        if (summaryParts.isEmpty())
         {
-            return Component.literal(status.toString() + "");
+            return Component.empty();
         }
 
-        String modeSummary = modes.stream()
-            .map(WindowStationConnectionModule::modeName)
-            .collect(Collectors.joining(", "));
-        return Component.literal(status + " (" + modeSummary + ")");
+        return Component.literal("(" + String.join(", ", summaryParts) + ")");
+    }
+
+    @SuppressWarnings("null")
+    private static String dimensionName(ResourceLocation dimension)
+    {
+        return Component.translatableWithFallback(dimension.toLanguageKey("dimension"), dimension.getPath()).getString();
+    }
+
+    private static Component connectionTooltipText(StationView stationView, StationData station,
+        StationData.TrackConnectionStatus status, Component statusText)
+    {
+        if (status != StationData.TrackConnectionStatus.DISCONNECTED)
+        {
+            return status == StationData.TrackConnectionStatus.UNKNOWN
+                ? statusText
+                : Component.literal(status + (statusText.getString().isEmpty() ? "" : " " + statusText.getString()));
+        }
+
+        RouteFailureDiagnostic failure = stationView.stationConnectionFailure(station);
+        if (failure == null)
+        {
+            return Component.translatable("mctradepost.route_failure.none");
+        }
+        String mode = modeName(failure.attemptedMode());
+        String location = failureLocation(failure);
+        if (failure.reason() == FailureKind.ROUTE_BROKEN)
+        {
+            return Component.translatable("mctradepost.route_failure.broken", mode, location);
+        }
+        if (failure.reason() == FailureKind.SEARCH_LIMIT_REACHED)
+        {
+            return Component.translatable("mctradepost.route_failure.limit", mode, location);
+        }
+        return Component.translatable("mctradepost.route_failure.stopped", mode, location);
+    }
+
+    private static @Nonnull String failureLocation(RouteFailureDiagnostic failure)
+    {
+        String position = failure.position().pos().toShortString();
+        ResourceLocation dimension = failure.position().dimension().location();
+        return dimension.equals(Level.OVERWORLD.location()) ? position + "" : dimensionName(dimension) + ": " + position;
     }
 
     private static String modeName(TrackRoute.SegmentType mode)

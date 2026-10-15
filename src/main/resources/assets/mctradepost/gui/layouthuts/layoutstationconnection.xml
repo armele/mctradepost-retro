@@ -8,9 +8,12 @@
     <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
     <list id="stations" size="170 100" pos="13 46" emptytext="$(com.minecolonies.coremod.gui.station.connection.empty)" emptycolor="black">
         <box id="stationx" size="100% 25" linewidth="1">
-            <text id="location" size="138 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
-            <text id="status" size="138 11" pos="2 13" textalign="MIDDLE_LEFT" color="black"/>
-            <button id="refreshRoute" pos="144 5" size="14 14"
+            <text id="location" size="140 11" pos="2 2" textalign="MIDDLE_LEFT" color="black"/>
+            <image id="connectionIcon" size="10 10" pos="2 13" visible="false"/>
+            <text id="status" size="126 11" pos="14 13" textalign="MIDDLE_LEFT" color="black"/>
+            <button id="attemptConnection" pos="148 2" size="10 10"
+                    source="minecolonies:textures/gui/builderhut/builder_button_mini.png"/>
+            <button id="refreshRoute" pos="149 14" size="9 9"
                     source="mctradepost:textures/gui/refresh.png"
                     disabled="minecolonies:textures/gui/builderhut/builder_button_mini_disabled.png"/>
         </box>

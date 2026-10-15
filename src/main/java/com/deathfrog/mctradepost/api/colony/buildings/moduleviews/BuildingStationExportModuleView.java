@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.api.colony.buildings.moduleviews;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +44,8 @@ public class BuildingStationExportModuleView  extends AbstractBuildingModuleView
         final int size = buf.readInt();
         for (int i = 0; i < size; i++)
         {
-            StationData destinationStation = StationData.fromNBT(buf.readNbt());
+            StationData readStation = StationData.fromNBT(buf.readNbt());
+            @Nonnull StationData destinationStation = readStation == null ? StationData.EMPTY : readStation;
             ItemStack itemStack = Utils.deserializeCodecMess(buf);
             int cost = buf.readInt();
             int quantity = buf.readInt();

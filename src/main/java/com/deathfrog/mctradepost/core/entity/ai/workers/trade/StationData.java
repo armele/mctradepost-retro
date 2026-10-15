@@ -22,8 +22,10 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 public class StationData
 {
 
+    private static final String TAG_OUTPOST = "outpost";
     public static final ResourceLocation OVERWORLD = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
-    public static final StationData EMPTY =
+    @SuppressWarnings("null")
+    public static final @Nonnull StationData EMPTY =
         new StationData(ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), NullnessBridge.assumeNonnull(OVERWORLD)),
             -1,
             BlockPos.ZERO);
@@ -33,22 +35,41 @@ public class StationData
         CONNECTED, DISCONNECTED, UNKNOWN
     }
 
-    private BlockPos buildingposition = null;
+    private @Nonnull BlockPos buildingposition;
     private int colonyId = -1;
-    private ResourceKey<Level> dimension = null;
+    private @Nonnull ResourceKey<Level> dimension;
+    private boolean outpost;
+    private boolean outpostKnown;
 
+    /**
+     * Captures the identity and type of a trade-capable building.
+     *
+     * @param building building to describe
+     */
+    @SuppressWarnings("null")
     public StationData(ITradeCapable building)
     {
         this.buildingposition = building.getPosition();
         colonyId = building.getColony().getID();
         dimension = building.getColony().getDimension();
+        outpost = building instanceof BuildingOutpost;
+        outpostKnown = true;
     }
 
-    public StationData(ResourceKey<Level> dimension, int colonyId, BlockPos buildingpos)
+    /**
+     * Creates station data when only its persistent identity is available.
+     *
+     * @param dimension building dimension
+     * @param colonyId owning colony identifier
+     * @param buildingpos building position
+     */
+    public StationData(@Nonnull ResourceKey<Level> dimension, int colonyId, @Nonnull BlockPos buildingpos)
     {
         this.dimension = dimension;
         this.colonyId = colonyId;
         this.buildingposition = buildingpos;
+        this.outpost = false;
+        this.outpostKnown = false;
     }
 
     /**
@@ -84,7 +105,12 @@ public class StationData
      */
     public boolean isOutpost()
     {
-        return getStation() instanceof BuildingOutpost;
+        if (!outpostKnown)
+        {
+            outpost = getStation() instanceof BuildingOutpost;
+            outpostKnown = true;
+        }
+        return outpost;
     }
 
     /**
@@ -95,6 +121,16 @@ public class StationData
     public ResourceKey<Level> getDimension()
     {
         return dimension;
+    }
+
+    /**
+     * Returns the dimension-qualified building position used to identify this destination.
+     *
+     * @return dimension-qualified building position
+     */
+    public @Nonnull DimPos getDimensionalPosition()
+    {
+        return new DimPos(dimension, buildingposition);
     }
 
     /**
@@ -148,6 +184,7 @@ public class StationData
 
         tag.putString(BuildingUtil.TAG_DIMENSION, dimension.location().toString() + "");
         tag.putInt("colonyId", colonyId);
+        tag.putBoolean(TAG_OUTPOST, outpost);
 
         BlockPosUtil.write(tag, "buildingposition", buildingposition);
 
@@ -160,10 +197,10 @@ public class StationData
      * the x, y, and z coordinates of the station's block position. - The game time at which the track connection status was last
      * updated, in milliseconds.
      *
-     * @param level The level in which the station is located.
      * @param tag   The tag containing the serialized station data.
      * @return The deserialized station data.
      */
+    @SuppressWarnings("null")
     public static StationData fromNBT(CompoundTag tag)
     {
         BlockPos buildingposition = BlockPos.ZERO;
@@ -189,6 +226,11 @@ public class StationData
         ResourceKey<Level> levelKey = ResourceKey.create(NullnessBridge.assumeNonnull(Registries.DIMENSION), NullnessBridge.requireNonnull(level, "Null dimension: " + dimension));
 
         data = new StationData(levelKey, colonyId, buildingposition);
+        if (tag.contains(TAG_OUTPOST))
+        {
+            data.outpost = tag.getBoolean(TAG_OUTPOST);
+            data.outpostKnown = true;
+        }
 
         // BuildingStation.LOGGER.info("Deserialized station data: {}", data);
 

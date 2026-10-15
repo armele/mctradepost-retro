@@ -26,6 +26,7 @@ import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.entity.pets.PetWolf;
 import com.deathfrog.mctradepost.api.items.MCTPModDataComponents;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
+import com.deathfrog.mctradepost.api.items.datacomponent.NavigationChartRecord;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.tileentities.MCTradePostTileEntities;
 import com.deathfrog.mctradepost.api.util.ItemValueManager;
@@ -81,6 +82,7 @@ import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModul
 import com.deathfrog.mctradepost.core.colony.buildings.modules.PetMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ResortGuestMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationLinkageMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.StationConnectionAttemptMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StationRouteRefreshMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewIngredientMessage;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
@@ -120,6 +122,7 @@ import com.deathfrog.mctradepost.item.CoinItem;
 import com.deathfrog.mctradepost.item.CurrencyExchangeItem;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.item.RouteSurveyItem;
+import com.deathfrog.mctradepost.item.NavigationChartItem;
 import com.deathfrog.mctradepost.item.LiftingGasBucketItem;
 import com.deathfrog.mctradepost.item.ImmersionBlenderItem;
 import com.deathfrog.mctradepost.item.OutpostClaimMarkerItem;
@@ -338,6 +341,9 @@ public class MCTradePostMod
             throw new IllegalStateException("Missing Gasifier at " + pos);
         }));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<com.deathfrog.mctradepost.core.inventory.TradeDockMenu>> TRADE_DOCK_MENU =
+        MENUS.register(BlockTradeDock.ID, () -> IMenuTypeExtension.create(com.deathfrog.mctradepost.core.inventory.TradeDockMenu::new));
+
     public static final String CREATIVE_TRADEPOST_TABNAME = "tradepost";
 
     /*
@@ -536,6 +542,11 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredItem<RouteSurveyItem> ROUTE_SURVEY = ITEMS.register("route_survey",
         () -> new RouteSurveyItem(new Item.Properties().stacksTo(1)));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<NavigationChartItem> NAVIGATION_CHART = ITEMS.register(NavigationChartItem.ID,
+        () -> new NavigationChartItem(new Item.Properties().stacksTo(1)
+            .component(MCTPModDataComponents.NAVIGATION_CHART.get(), NavigationChartRecord.empty())));
         
     @SuppressWarnings("null")
     public static final DeferredItem<LiftingGasBucketItem> LIFTING_GAS_BUCKET = ITEMS.register("lifting_gas_bucket",
@@ -1362,6 +1373,7 @@ public class MCTradePostMod
                 output.accept(MCTP_COIN_GOLD.get());
                 output.accept(MCTP_COIN_DIAMOND.get());
                 output.accept(ROUTE_SURVEY.get());
+                output.accept(NAVIGATION_CHART.get());
                 output.accept(GASIFIER_ITEM.get());
                 output.accept(LIFTING_GAS_BUCKET.get());
                 output.accept(SCRAP_PILE.get());
@@ -1601,6 +1613,7 @@ public class MCTradePostMod
             CancelRecyclingMessage.TYPE.register(registrar);
             ResortGuestMessage.TYPE.register(registrar);
             StationLinkageMessage.TYPE.register(registrar);
+            StationConnectionAttemptMessage.TYPE.register(registrar);
             StationRouteRefreshMessage.TYPE.register(registrar);
             OutpostAssignMessage.TYPE.register(registrar);
             StewIngredientMessage.TYPE.register(registrar);
@@ -2297,6 +2310,7 @@ public class MCTradePostMod
             event.register(PET_WORKING_MENU.get(), com.deathfrog.mctradepost.core.client.gui.PetWorkingScreen::new);
             event.register(MOORING_BAY_MENU.get(), com.deathfrog.mctradepost.core.client.gui.MooringBayScreen::new);
             event.register(GASIFIER_MENU.get(), com.deathfrog.mctradepost.core.client.gui.GasifierScreen::new);
+            event.register(TRADE_DOCK_MENU.get(), com.deathfrog.mctradepost.core.client.gui.TradeDockScreen::new);
         }
     }
 

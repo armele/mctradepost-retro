@@ -11,17 +11,19 @@ route.
 
 The normal station workflow is:
 
-1. `EntityAIWorkStationMaster.checkConnection()` asks its building for a cached `TrackConnectionResult` for the remote station.
-2. If no connected result exists, it calls `TrackRouteConnection.findRoute(...)`. A first search may load rail chunks; retries of an
+1. A station discovers destination metadata without pathfinding. For another Trade Station, route work proceeds only when that
+   dimension-qualified destination is enabled in the local station's connection-attempt set. Same-colony outposts remain automatic.
+2. `EntityAIWorkStationMaster.checkConnection()` asks its building for a cached `TrackConnectionResult` for the remote station.
+3. If no connected result exists, it calls `TrackRouteConnection.findRoute(...)`. A first search may load rail chunks; retries of an
    existing disconnected result use the less invasive search policy selected by the caller.
-3. If a connected result is cached, the AI validates it instead of running the full searches again. Legacy path-only results use
+4. If a connected result is cached, the AI validates it instead of running the full searches again. Legacy path-only results use
    `TrackPathConnection.validateExistingPath(...)`; segmented results use `TrackRouteConnection.validateExistingRoute(...)`.
    Cached air routes additionally recheck research, ownership, registration, loaded Bay state, sky clearance, and loaded departure
    authorization without loading endpoint chunks.
-4. The building stores the result. `BuildingStation` also serializes segmented routes to NBT so connections survive a reload.
-5. Shipment dispatch consumes the cached route directly. Air routes receive a strict `AirRouteConnection.canLaunch(...)` check before
+5. The building stores the result. `BuildingStation` also serializes segmented routes to NBT so connections survive a reload.
+6. Shipment dispatch consumes the cached route directly. Air routes receive a strict `AirRouteConnection.canLaunch(...)` check before
    inventory or gas is charged; dispatch does not perform route discovery.
-6. When a shipment is visualized, `ExportData` consumes the `TrackRoute`, spawns the vehicle appropriate to each traversable segment,
+7. When a shipment is visualized, `ExportData` consumes the `TrackRoute`, spawns the vehicle appropriate to each traversable segment,
    performs effects at docks and interchanges, and removes/recreates the vehicle across dimensional transfers.
 
 In abbreviated form:
@@ -64,8 +66,8 @@ Handoff segments are explicit even though they add no distance. Consumers use th
 unrelated adjacent path segments. Transfer segments retain both `DimPos` endpoints because their origin and destination are in
 different dimensions.
 
-`TrackRoute.reversed()` reverses segment order and local paths and swaps transfer endpoints for return shipments. `firstPath()` and
-`firstRailPath()` exist primarily for compatibility with code written before segmented routes were introduced.
+`TrackRoute.reversed()` reverses segment order and local paths and swaps transfer endpoints for return shipments. `firstPath()` returns
+the first non-handoff traversal path for compatibility with code written before segmented routes were introduced.
 
 ### `TrackConnectionResult`
 
@@ -90,10 +92,12 @@ state before use, so stale saved-data entries do not become graph nodes.
 
 For each pair of nodes, the edge search behaves as follows:
 
-- Two docks may connect through `ModalPathConnection.water(...)` when the exporting colony has Maritime Trade research, subject to
-  `maximumWaterRouteDistance`. The `tradepath` debugging command deliberately bypasses this research restriction.
+- Two docks may connect only when `WaterRouteRegistry` contains a player-charted linkage. Discovery consumes its persisted path rather
+  than starting a new water search. Maritime Trade research remains required for production use; the `tradepath` debugging command
+  deliberately bypasses this research restriction.
 - Every node pair is tested for a rail path with `TrackPathConnection.arePointsConnectedByTracks(...)`.
-- Every node pair is also tested for a tagged-road path with `ModalPathConnection.road(...)`.
+- Every node pair is also tested for a tagged-road path with `ModalPathConnection.roadSearch(...)`, which retains the closest reachable
+  position and whether the bounded search limit was reached for failure diagnostics.
 - If both rail and road connect a pair, the shorter segment wins.
 
 After Dijkstra selects the least-distance node sequence, explicit `DOCK` or `INTERCHANGE` segments are inserted at intermediate
@@ -112,8 +116,9 @@ tickets and releases every ticket in a `finally` block.
 
 - Road search is a bounded breadth-first search over blocks in `ModTags.BLOCKS.TRADE_ROADS_TAG`. It permits one-block elevation
   changes and does not load missing chunks.
-- Water search is bounded A* over horizontal water positions with empty collision above the water. It may load chunks encountered by
-  the search and is bounded by both the configured maximum distance and the global visited-node limit.
+- Water charting is bounded, multi-tick A* over horizontal water positions with empty collision above the water. It is initiated by a
+  Navigation Chart rather than route discovery, limits global and per-player concurrency, expands a fixed number of nodes per tick,
+  requests at most one chunk at a time, and has hard visited-node and chunk limits.
 
 All reconstructed paths include their requested endpoints. Validation deliberately ignores the first and last path positions because
 they may be station, dock, interchange, or other connection blocks rather than the traversable material itself.
@@ -169,9 +174,10 @@ Other notable consumers are:
 
 ## Registries
 
-`TradeDockRegistry` and `TradeInterchangeRegistry` are per-dimension `SavedData` indexes. Their blocks are responsible for adding and
+`TradeDockRegistry`, `TradeInterchangeRegistry`, and `WaterRouteRegistry` are per-dimension `SavedData` indexes. Their blocks are responsible for adding and
 removing immutable positions as block lifecycle events occur. The multimodal search still verifies block states, but accurate removal
-keeps candidate selection fast and prevents stale entries from consuming the candidate cap.
+keeps candidate selection fast and prevents stale entries from consuming the candidate cap. Water linkages are undirected, retain the
+surveyed path across restarts, and are removed only when either endpoint dock is removed.
 
 `MooringBayRegistry` supplies candidates to `AirRouteConnection`. Air discovery ranks registry positions without loading terrain,
 then loads and validates at most four candidates per endpoint. Each Bay must belong to the endpoint colony and have all nine columns
@@ -184,13 +190,14 @@ Pathfinding executes on the server thread, so every search must remain bounded.
 
 - Rail BFS is limited to 10,000 visited positions.
 - Road search uses a 10,000-step distance bound and the modal visited-node cap.
-- Water search uses `maximumWaterRouteDistance` and the modal visited-node cap.
+- Water charting uses `maximumWaterRouteDistance`, fixed per-tick work, and hard total node/chunk caps; ordinary route discovery never
+  launches water A*.
 - Dock and interchange candidate lists are capped before graph construction.
 - Cross-dimension linkage-pair attempts are capped and local segment results are cached for one top-level search.
 
 Do not casually make all modes load chunks. Rail chunk loading is caller-controlled because it uses tickets; roads intentionally stop
-at unloaded chunks. Water currently loads chunks directly, so increasing its configured distance can materially affect server stalls
-and memory pressure.
+at unloaded chunks. Navigation Chart jobs request water-route chunks asynchronously and under global limits, while routine linkage
+validation never loads chunks.
 
 ## Diagnostics
 
