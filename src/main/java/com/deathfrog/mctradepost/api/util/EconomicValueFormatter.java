@@ -2,6 +2,8 @@ package com.deathfrog.mctradepost.api.util;
 
 import java.util.Locale;
 
+import javax.annotation.Nonnull;
+
 /** Formats economic values consistently for compact labels and exact hover text. */
 public final class EconomicValueFormatter
 {
@@ -22,7 +24,7 @@ public final class EconomicValueFormatter
      * @param value signed economic amount, including long-valued daily totals
      * @return compact amount with the economic currency symbol
      */
-    public static String compact(final long value)
+    public static @Nonnull String compact(final long value)
     {
         if (value > MILLION_DISPLAY_THRESHOLD || value < -MILLION_DISPLAY_THRESHOLD)
         {
@@ -47,7 +49,7 @@ public final class EconomicValueFormatter
      * @param value signed economic amount
      * @return full amount with the economic currency symbol
      */
-    public static String exact(final long value)
+    public static @Nonnull String exact(final long value)
     {
         return Long.toString(value) + CURRENCY_SYMBOL;
     }

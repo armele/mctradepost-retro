@@ -31,6 +31,7 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.DredgerForageRan
 import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengeProfile;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -1649,7 +1650,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                 return false;
             }
 
-            if (!econ.tryWithdraw(rescueCost))
+            if (!econ.tryWithdraw(rescueCost, EconomicReductionReason.PET_RESCUE, Component.literal(getAnimalType())))
             {
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unable to rescue pet {} because colony {} has insufficient funds. Cost: {}, balance: {}.",
                     localAnimal.getUUID(), petshop.getColony().getID(), rescueCost, econ.getTotalBalance()));

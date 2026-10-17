@@ -17,10 +17,10 @@ The server's Trade Post configuration contains:
 ```toml
 [incentives]
     incentiveCostPerSkillPoint = 1000
-    incentivePayCycleDays = 5
+    incentivePayCycleDays = 3
 ```
 
-Price is in colony economic units per point per pay cycle, independent of the Trade Coin denomination. The pay cycle can range from 1 to 30 MineColonies days and defaults to 5. For example, +2 Strength and +2 Dexterity cost 4,000 for the entire five-day cycle at the defaults. Changing the cycle length affects each citizen at their next renewal; it does not shorten, extend, or rebill a cycle already purchased.
+Price is in colony economic units per point per pay cycle, independent of the Trade Coin denomination. The pay cycle can range from 1 to 30 MineColonies days and defaults to 3. For example, +2 Strength and +2 Dexterity cost 4,000 for the entire five-day cycle at the defaults. Changing the cycle length affects each citizen at their next renewal; it does not shorten, extend, or rebill a cycle already purchased.
 
 ## Payment rules
 

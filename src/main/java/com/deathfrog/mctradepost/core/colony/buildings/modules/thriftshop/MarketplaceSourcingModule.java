@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -303,11 +304,17 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
                 continue;
             }
 
-            econ.deposit(-price);
             ItemStack remainder = ItemHandlerHelper.insertItemStacked(building.getItemHandlerCap(), purchase.copy(), false);
             if (!remainder.isEmpty())
             {
-                econ.deposit(price);
+                subscriptions.set(index, new Subscription(subscription.stack(), subscription.tier(), currentDay));
+                index++;
+                continue;
+            }
+            if (!econ.tryWithdraw(price, EconomicReductionReason.SUBSCRIPTION_RENEWAL, purchase.getHoverName()))
+            {
+                com.deathfrog.mctradepost.MCTradePostMod.LOGGER.error("Subscription delivery for {} completed after its validated treasury withdrawal unexpectedly failed in colony {}.",
+                    purchase.getHoverName(), building.getColony().getID());
                 subscriptions.set(index, new Subscription(subscription.stack(), subscription.tier(), currentDay));
                 index++;
                 continue;

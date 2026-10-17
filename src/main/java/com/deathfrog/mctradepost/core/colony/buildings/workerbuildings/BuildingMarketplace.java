@@ -44,6 +44,7 @@ import com.deathfrog.mctradepost.api.colony.buildings.ModBuildings;
 import com.deathfrog.mctradepost.api.colony.buildings.jobs.MCTPModJobs;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.FrameLikeAccess;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
@@ -597,8 +598,13 @@ public class BuildingMarketplace extends AbstractBuilding
                     CoinItem.setMintColony(coinStack, colony.getName());
                     coinStacks.add(coinStack);
                 }
+                if (!econ.tryWithdraw((int) valueToRemove, EconomicReductionReason.COIN_WITHDRAWAL,
+                    Component.translatable(coinItem.getDescriptionId()+"")))
+                {
+                    coinStacks.clear();
+                    return coinStacks;
+                }
                 econ.incrementBy(WindowEconModule.COINS_MINTED, coinsToMint);
-                econ.deposit(-(int) valueToRemove);
 
             }
             else

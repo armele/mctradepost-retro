@@ -16,6 +16,7 @@ import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.sounds.MCTPModSoundEvents;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
@@ -479,13 +480,17 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         final int rerollResearch = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.THRIFTSHOP_REROLL);  
         final BuildingEconModule econ = building.getModule(MCTPBuildingModules.ECON_MODULE);
 
-        if (rerollCost > econ.getTotalBalance() || rerollResearch < 1)
+        if (rerollCost > econ.getTotalBalance() || rerollResearch < 1 || ((BuildingMarketplace) building).shopkeeper() == null)
         {
             MessageUtils.format("mctradepost.thriftshop.reroll.nsf").sendTo(player);
             return;
         }
 
-        econ.deposit(-rerollCost);
+        if (!econ.tryWithdraw(rerollCost, EconomicReductionReason.RARE_FIND_REROLL))
+        {
+            MessageUtils.format("mctradepost.thriftshop.reroll.nsf").sendTo(player);
+            return;
+        }
 
         rerollCooldown = REROLL_COOLDOWN_MIN;
         rerollCost = rerollCost * CoinItem.GOLD_MULTIPLIER;
@@ -598,11 +603,16 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
         }
         long currentDay = building.getColony().getWorld().getDayTime() / MarketDailyRoller.TICKS_PER_DAY;
         if (!sourcing.activateSubscription(offer, currentDay)) return;
-        econ.deposit(-subscriptionPrice);
         ItemStack remainder = ItemHandlerHelper.insertItemStacked(building.getItemHandlerCap(), offer.stack().copy(), false);
         if (!remainder.isEmpty())
         {
-            econ.deposit(subscriptionPrice);
+            sourcing.cancelSubscription(offer.stack());
+            return;
+        }
+        if (!econ.tryWithdraw(subscriptionPrice, EconomicReductionReason.SUBSCRIPTION_INITIAL, offer.stack().getHoverName()))
+        {
+            LOGGER.error("Initial subscription delivery for {} completed after its validated treasury withdrawal unexpectedly failed in colony {}.",
+                offer.stack().getHoverName(), building.getColony().getID());
             sourcing.cancelSubscription(offer.stack());
             return;
         }
@@ -649,11 +659,14 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             }
         }
 
-        StatsUtil.trackStat(building, RARE_FIND_PURCHASE, 1);
+        if (!econ.tryWithdraw(offer.price(), EconomicReductionReason.RARE_FIND_PURCHASE, offer.stack().getHoverName()))
+        {
+            MessageUtils.format("mctradepost.thriftshop.nsf").sendTo(player);
+            return;
+        }
 
         InventoryUtils.putItemToHotbarAndSelectOrDrop(offer.stack().copy(), player);
-
-        econ.deposit(-offer.price());
+        StatsUtil.trackStat(building, RARE_FIND_PURCHASE, 1);
 
         // Remove the offer from the list if the bottomless research has not been done, or the tier is too high for it to apply.
         if (bottomlessOffers < 1 || MarketTierSources.isUniquePurchase(offer.stack())

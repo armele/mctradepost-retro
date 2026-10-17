@@ -27,8 +27,10 @@ import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
 import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
+import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
@@ -544,7 +546,6 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
      */
     public IAIState emptyWorkSites()
     {
-
         if (currentWorkLocation == null)
         {
             currentWorkLocation = getOldestUnload();
@@ -557,20 +558,52 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
             return DECIDE;
         }
 
-        if (!walkToSafePos(localCurrentWorkPos))
+        Level level = worker.level();
+
+        if (level == null) return DECIDE;
+
+        if (!isValidWorkLocation(level, localCurrentWorkPos))
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Abandoning invalid work station at {}.", localCurrentWorkPos));
+            currentWorkLocation = null;
+            return DECIDE;
+        }
+
+        boolean withinReach = worker.blockPosition().closerThan(localCurrentWorkPos, 5.0);
+        if (!withinReach && !walkToSafePos(localCurrentWorkPos))
         {
             setDelay(2);
             return getState();
         }
 
+        if (withinReach)
+        {
+            TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
+                () -> LOGGER.info("Animal Trainer is within reach of work station at {}; proceeding without waiting for navigation completion.",
+                    localCurrentWorkPos));
+        }
+
         TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Unloading work station at {}.", localCurrentWorkPos));
         unloadWorkLocation(localCurrentWorkPos);
-        workStations.put(localCurrentWorkPos, worker.level().getGameTime());
-
-        currentWorkLocation = getOldestUnload();
+        workStations.put(localCurrentWorkPos, level.getGameTime());
+        currentWorkLocation = null;
 
         return DUMPING;
-        
+    }
+
+
+    /**
+     * Checks whether a selected pet workstation is still eligible to be emptied.
+     *
+     * @param level the world containing the workstation
+     * @param workLocation the selected workstation position
+     * @return {@code true} when the location remains tracked, is not a hauler, and exposes an item handler
+     */
+    private boolean isValidWorkLocation(@Nonnull Level level, @Nonnull BlockPos workLocation)
+    {
+        return workStations.containsKey(workLocation)
+            && !isHaulerWorkLocation(workLocation)
+            && ItemHandlerHelpers.getProvider(level, workLocation, null).isPresent();
     }
 
 
@@ -844,21 +877,6 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 }
             }
 
-            if (!econ.tryWithdraw(costNeeded))
-            {
-                int complaints = job.tickNSF();
-
-                TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER, () -> LOGGER.info("Colony {} animal trainer: Has insufficient funds ({} tries).", building.getColony().getID(), complaints));
-
-                if (job.checkNSF())
-                {
-                    worker.getCitizenData().triggerInteraction(new StandardInteraction(Component.translatable(MCTPInteractionInitializer.ANIMAL_NSF), ChatPriority.BLOCKING));
-                }
-                continue;
-            }
-
-            MCTPInventoryUtils.combinedInventoryRemoval(building, new ItemStorage(trainingStack), trainingStack.getCount());
-            
             try
             {
                 // Instantiate the pet
@@ -869,36 +887,56 @@ public class EntityAIWorkAnimalTrainer extends AbstractEntityAICrafting<JobAnima
                 TraceUtils.dynamicTrace(TRACE_ANIMALTRAINER,
                     () -> LOGGER.info("Raising a pet: {}", petType.getPetClass().getSimpleName()));
 
-                if (pet instanceof ITradePostPet)
+                Optional<BlockPos> spawnPos = PetHelper.findNearbyValidSpawn(pet, building.getPosition(), 3);
+                if (spawnPos.isEmpty())
+                {
+                    MCTradePostMod.LOGGER.warn("Unable to find a safe spawn position near pet shop {} for animal {}.",
+                        building.getPosition(), pet);
+                    continue;
+                }
+
+                if (!MCTPInventoryUtils.combinedInventoryRemoval(building, new ItemStorage(trainingStack), trainingStack.getCount()))
+                {
+                    MCTradePostMod.LOGGER.warn("Unable to remove training items for {} after validating the available count in colony {}.",
+                        petType.getTypeName(), building.getColony().getID());
+                    continue;
+                }
+
+                BlockPos safeSpawnPos = spawnPos.get();
+                pet.setPos(safeSpawnPos.getX() + 0.5, safeSpawnPos.getY(), safeSpawnPos.getZ() + 0.5);
+                if (pet instanceof ITradePostPet tradePostPet)
+                {
+                    tradePostPet.setTrainerBuilding(building);
+                }
+                if (!building.getColony().getWorld().addFreshEntity(pet))
+                {
+                    MCTradePostMod.LOGGER.warn("Unable to add trained animal {} to the world in colony {}.",
+                        petType.getTypeName(), building.getColony().getID());
+                    continue;
+                }
+
+                if (!econ.tryWithdraw(costNeeded, EconomicReductionReason.ANIMAL_ACQUISITION, Component.literal(petType.getTypeName())))
+                {
+                    pet.discard();
+                    MCTradePostMod.LOGGER.error("Animal {} was prepared after its validated treasury withdrawal unexpectedly failed in colony {}.",
+                        petType.getTypeName(), building.getColony().getID());
+                    continue;
+                }
+
+                if (pet instanceof ITradePostPet tradePostPet)
                 {
                     AdvancementUtils.TriggerAdvancementPlayersForColony(building.getColony(),
                             player -> MCTPAdvancementTriggers.PET_TRAINED.get().trigger(NullnessBridge.assumeNonnull(player)));
-
                     StatsUtil.trackStat(building, PETS_TRAINED, 1);
                     worker.getCitizenExperienceHandler().addExperience(2.0);
-
-                    @SuppressWarnings({"rawtypes", "unchecked"})
-                    PetHelper helper = new PetHelper(pet);
-                    helper.doRegistration(building);
+                    PetRegistryUtil.register(tradePostPet);
+                    building.markPetsDirty();
                 }
                 else
                 {
-                    Optional<BlockPos> spawnPos = PetHelper.findNearbyValidSpawn(pet, building.getPosition(), 3);
-                    if (spawnPos.isEmpty())
-                    {
-                        MCTradePostMod.LOGGER.warn("Unable to find a safe spawn position near pet shop {} for animal {}.",
-                            building.getPosition(), pet);
-                        return DECIDE;
-                    }
-
-                    BlockPos safeSpawnPos = spawnPos.get();
-                    pet.setPos(safeSpawnPos.getX() + 0.5, safeSpawnPos.getY(), safeSpawnPos.getZ() + 0.5);
-                    building.getColony().getWorld().addFreshEntity(pet);
-                    
                     StatsUtil.trackStat(building, OTHER_ACQUIRED, 1);
                     worker.getCitizenExperienceHandler().addExperience(1.0);
                 }
-                
             }
             catch (ReflectiveOperationException e)
             {

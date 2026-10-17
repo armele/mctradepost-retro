@@ -4,6 +4,7 @@ import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.event.CitizenIncentivesPaidEvent;
 import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
 import com.deathfrog.mctradepost.api.util.EconomicConstants;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.minecolonies.api.IMinecoloniesAPI;
 import com.minecolonies.api.colony.ICitizenData;
@@ -13,7 +14,6 @@ import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IBuildingEventsModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.buildings.modules.ITickingModule;
-import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.api.eventbus.EventBus;
 import com.minecolonies.api.eventbus.events.colony.buildings.BuildingRemovedModEvent;
@@ -37,7 +37,7 @@ import java.util.UUID;
 /** Town Hall payroll. Map order is the player-controlled payment priority. */
 public class CitizenIncentiveModule extends AbstractBuildingModule implements IPersistentModule, ITickingModule, IBuildingEventsModule
 {
-    public static final String EXPENSE_STAT = "incentive_expenses";
+    public static final String EXPENSE_STAT = BuildingEconModule.EXPENSE_REASON_PREFIX + "citizen_incentive";
     public static final String TAG_INCENTIVES = "incentives";
     public static final String TAG_CITIZEN_ID = "citizenId";
     private static final String TAG_REVISION = "revision";
@@ -256,13 +256,11 @@ public class CitizenIncentiveModule extends AbstractBuildingModule implements IP
      */
     private boolean withdraw(final IColony colony, final long amount)
     {
-        // The existing treasury is an int-valued colony statistic. Calculate prices as longs first.
-        final IStatisticsManager  stats = colony.getStatisticsManager();
-        if (amount <= 0 || amount > Integer.MAX_VALUE || stats.getStatTotal(EconomicConstants.CURRENT_BALANCE) < amount) return false;
-        stats.incrementBy(EconomicConstants.CURRENT_BALANCE, -(int) amount, colony.getDay());
-        stats.incrementBy(EXPENSE_STAT, (int) amount, colony.getDay());
-        colony.markDirty();
-        return true;
+        if (amount <= 0 || amount > Integer.MAX_VALUE)
+        {
+            return false;
+        }
+        return BuildingEconModule.tryWithdraw(colony, (int) amount, EconomicReductionReason.CITIZEN_INCENTIVE);
     }
 
     /**

@@ -3,9 +3,12 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.EconomicConstants;
+import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
+import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.EconModuleView;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.WithdrawMessage;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.BuildingEconModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.ldtteam.blockui.PaneBuilders;
 import com.ldtteam.blockui.controls.Button;
@@ -21,7 +24,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import java.text.NumberFormat;
 import java.util.*;
 
 import org.jetbrains.annotations.NotNull;
@@ -59,9 +61,21 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
      * Util tags.
      */
     private static final String ECONWINDOW_RESOURCE_SUFFIX = "gui/layouthuts/layouteconmodule.xml";
+    private static final List<ExpenseRow> EXPENSE_ROWS = List.of(
+        new ExpenseRow(EconomicReductionReason.COIN_WITHDRAWAL, "expenseCoinWithdrawal"),
+        new ExpenseRow(EconomicReductionReason.RARE_FIND_PURCHASE, "expenseRareFind"),
+        new ExpenseRow(EconomicReductionReason.SUBSCRIPTION_INITIAL, "expenseSubscriptionInitial"),
+        new ExpenseRow(EconomicReductionReason.SUBSCRIPTION_RENEWAL, "expenseSubscriptionRenewal"),
+        new ExpenseRow(EconomicReductionReason.RARE_FIND_REROLL, "expenseReroll"),
+        new ExpenseRow(EconomicReductionReason.ANIMAL_ACQUISITION, "expenseAnimal"),
+        new ExpenseRow(EconomicReductionReason.PET_RESCUE, "expensePetRescue"),
+        new ExpenseRow(EconomicReductionReason.CITIZEN_INCENTIVE, "expenseIncentive")
+    );
 
     private final EconModuleView econModuleView;
     private int currentBalance = 0;
+
+    private record ExpenseRow(EconomicReductionReason reason, String paneId) {}
 
     public WindowEconModule(EconModuleView econModuleView, IStatisticsManager statsManager) {
         super(econModuleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, ECONWINDOW_RESOURCE_SUFFIX));
@@ -123,9 +137,7 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 
         currentBalance = getStatFor(buildingView.getColony().getStatisticsManager(), EconomicConstants.CURRENT_BALANCE, "com.mctradepost.coremod.gui.interval.alltime");
         final Text balanceLabel = findPaneOfTypeByID("currentbalance", Text.class);
-        NumberFormat formatter = NumberFormat.getIntegerInstance(); // or getCurrencyInstance() if using symbols
-        String formattedSales = "‡" + formatter.format(currentBalance);        
-        balanceLabel.setText(Component.literal(formattedSales));  
+        setEconomicAmount(balanceLabel, currentBalance);
 
         int itemCount = getStatFor(statsManager, ITEM_SOLD, selectedInterval);
         final Text countLabel = findPaneOfTypeByID("itemcount", Text.class);
@@ -133,8 +145,15 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 
         int cashGenerated = getStatFor(statsManager, CASH_GENERATED, selectedInterval);
         final Text cashLabel = findPaneOfTypeByID("totalcash", Text.class);
-        formattedSales = "‡" + formatter.format(cashGenerated);        
-        cashLabel.setText(Component.literal(formattedSales));  
+        setEconomicAmount(cashLabel, cashGenerated);
+
+        final IStatisticsManager colonyStats = buildingView.getColony().getStatisticsManager();
+        for (ExpenseRow row : EXPENSE_ROWS)
+        {
+            final String statisticKey = BuildingEconModule.EXPENSE_REASON_PREFIX + row.reason().statisticSuffix();
+            final int amount = getStatFor(colonyStats, statisticKey, selectedInterval);
+            setEconomicAmount(findPaneOfTypeByID(row.paneId(), Text.class), amount);
+        }
 
         final ItemIcon coinIcon = findPaneOfTypeByID("coinicon", ItemIcon.class);   
         Item coinItem = BuildingMarketplace.tradeCurrency();  
@@ -142,8 +161,9 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 
         int coinValue = MCTPConfig.tradeCoinValue.get();
         final Text coinValueLabel = findPaneOfTypeByID("coinvalue", Text.class);
-        String formattedLabel = "= ‡" + formatter.format(coinValue);        
-        coinValueLabel.setText(Component.literal(formattedLabel));  
+        coinValueLabel.setText(Component.literal("= " + EconomicValueFormatter.compact(coinValue)));
+        PaneBuilders.tooltipBuilder().hoverPane(coinValueLabel).build()
+            .setText(Component.literal(EconomicValueFormatter.exact(coinValue)));
 
         // MCTradePostMod.LOGGER.info("Stats: {} items sold, {} cash generated (formatted as {})", itemCount, cashGenerated, formattedSales);
 
@@ -168,6 +188,13 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
         intervalDropdown.setSelectedIndex(new ArrayList<>(INTERVAL.keySet()).indexOf(selectedInterval));
 
         updateWithdrawButton();
+    }
+
+    private void setEconomicAmount(final Text pane, final int amount)
+    {
+        pane.setText(Component.literal(EconomicValueFormatter.compact(amount)));
+        PaneBuilders.tooltipBuilder().hoverPane(pane).build()
+            .setText(Component.literal(EconomicValueFormatter.exact(amount)));
     }
 
     private void onDropDownListChanged(final DropDownList dropDownList)

@@ -99,6 +99,7 @@ class CitizenIncentiveModuleTest
             final ICitizenData citizen = proxy(ICitizenData.class, (p, method, args) -> switch (method.getName()) {
                 case "getId" -> id;
                 case "getUUID" -> uuid;
+                case "getName" -> "Citizen " + id;
                 case "getCitizenSkillHandler" -> skills;
                 case "getColony" -> colony;
                 case "markDirty", "getJob" -> null;
@@ -165,6 +166,8 @@ class CitizenIncentiveModuleTest
         assertEquals(20, joe.getCitizenSkillHandler().getLevel(STRENGTH));
         assertEquals(1000, town.balance());
         assertEquals(2000, town.stats.getStatTotal(CitizenIncentiveModule.EXPENSE_STAT));
+        assertEquals(2000, town.stats.getStatTotal(BuildingEconModule.TOTAL_EXPENSES));
+        assertFalse(town.stats.getStatTypes().stream().anyMatch(stat -> stat.startsWith(BuildingEconModule.EXPENSE_DETAIL_PREFIX)));
         town.module.serializeNBT(null, saved);
         town.module = town.newModule();
         town.module.deserializeNBT(null, saved);
