@@ -40,6 +40,8 @@ Main categories:
   - `registerSoundChance`: chance for sale sound effects
   - `shoppingChance`: visitor shopping chance per marketplace level
   - `tradeCurrency`: item id used as trade currency
+  - `rareFindsEnabled`: enables Marketplace Rare Finds, retained searches, and subscriptions (default `true`); disabling it clears
+    offers and suspends processing without deleting saved searches or subscriptions
 - `resort`
   - `vacationMaxChance`
   - `advertisingCooldown`

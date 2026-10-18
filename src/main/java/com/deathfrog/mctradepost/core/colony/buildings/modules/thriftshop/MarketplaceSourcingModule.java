@@ -95,6 +95,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
 
     /**
      * Adds an explicitly tier-tagged item with a configured value to the retained-search list.
+     * The selection is rejected while Rare Finds are disabled.
      *
      * @param stack selected item
      * @return whether the selection was accepted
@@ -102,6 +103,11 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     @SuppressWarnings("null")
     public boolean addSearch(ItemStack stack)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return false;
+        }
+
         MarketTier tier = MarketTierSources.retainedSearchTier(stack);
         int unlockedTier = (int) building.getColony().getResearchManager().getResearchEffects()
             .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER);
@@ -126,6 +132,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
 
     /**
      * Prepays or extends an investment. Extensions must use the active investment level.
+     * The investment is rejected while Rare Finds are disabled.
      *
      * @param stack retained item
      * @param level requested investment level, from one through three
@@ -135,6 +142,10 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
      */
     public boolean invest(@Nonnull ItemStack stack, int level, ServerPlayer player, long currentDay)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return false;
+        }
         if (level < 1 || level > 3) return false;
         int unlockedTier = (int) building.getColony().getResearchManager().getResearchEffects()
             .getEffectStrength(MCTPResearchConstants.THRIFTSHOP_TIER);
@@ -179,6 +190,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
 
     /**
      * Creates a subscription after its first purchase has been completed by the Rare Finds module.
+     * The subscription is rejected while Rare Finds are disabled.
      *
      * @param offer subscribed offer
      * @param currentDay activation day
@@ -187,9 +199,12 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     @SuppressWarnings("null")
     public boolean activateSubscription(@Nonnull MarketOffer offer, long currentDay)
     {
-        if (MarketTierSources.isUniquePurchase(offer.stack())
+        if (!MCTPConfig.rareFindsEnabled.get() || MarketTierSources.isUniquePurchase(offer.stack())
             || subscriptions.size() >= capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS)
-            || containsSubscription(offer.stack())) return false;
+            || containsSubscription(offer.stack()))
+        {
+            return false;
+        }
         subscriptions.add(new Subscription(offer.stack().copy(), offer.tier(), currentDay));
         markDirty();
         return true;
@@ -227,12 +242,18 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
 
     /**
      * Builds informational Rare Finds rows for active subscriptions.
+     * Returns an empty list while Rare Finds are disabled without deleting the subscriptions.
      *
      * @return subscription offers priced at their current recurring cost
      */
     @SuppressWarnings("null")
     public List<MarketOffer> subscriptionOffers()
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return List.of();
+        }
+
         int limit = Math.min(capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS), subscriptions.size());
         List<MarketOffer> result = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++)
@@ -258,12 +279,18 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     /**
      * Processes at most one renewal for each due subscription on a natural game day.
      * Unstaffed Marketplaces leave subscriptions untouched and do not create backlog.
+     * Disabled Rare Finds also leave subscriptions untouched and do not create backlog.
      *
      * @param currentDay current MineColonies day
      */
     @SuppressWarnings("null")
     public void processSubscriptions(long currentDay)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return;
+        }
+
         if (building.getBuildingLevel() < 3 || capacity(MCTPResearchConstants.MARKETPLACE_SUBSCRIPTIONS) == 0
             || ((com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace) building).shopkeeper() == null) return;
 
@@ -329,6 +356,7 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
 
     /**
      * Replaces eligible ordinary offers with successful retained searches without changing tier slot counts.
+     * No searches are promoted while Rare Finds are disabled.
      *
      * @param offers rolled offers
      * @param day current MineColonies day
@@ -337,6 +365,10 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
      */
     public boolean promoteRetainedSearches(List<MarketOffer> offers, long day, RandomSource random)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return false;
+        }
         if (capacity(MCTPResearchConstants.RETAINED_SEARCH) == 0) return false;
         List<RetainedSearch> candidates = new ArrayList<>(searches.subList(0, Math.min(searches.size(), capacity(MCTPResearchConstants.RETAINED_SEARCH))));
         java.util.Collections.shuffle(candidates, new java.util.Random(random.nextLong()));

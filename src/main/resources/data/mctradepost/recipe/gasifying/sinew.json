@@ -1,0 +1,10 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "silentgear:sinew" },
+  "burn_time": 200,
+  "gas": 250,
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "silentgear" },
+    { "type": "neoforge:item_exists", "item": "silentgear:sinew" }
+  ]
+}

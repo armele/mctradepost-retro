@@ -36,6 +36,10 @@ import org.jetbrains.annotations.NotNull;
 /** Marketplace tab used to select retained searches and manage their prepaid investment. */
 public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<MarketplaceSourcingModuleView>
 {
+    private static final String ADD_SEARCH = "addSearch";
+    private static final String CAPACITY = "capacity";
+    private static final String DISABLED_MESSAGE = "disabledMessage";
+
     private final IBuildingView buildingView;
     private final ScrollingList searchList;
     private int displayedSearchCount = -1;
@@ -54,7 +58,7 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
         super(moduleView, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/layouthuts/layoutretainedsearch.xml"));
         this.buildingView = buildingView;
         this.searchList = window.findPaneOfTypeByID("searchlist", ScrollingList.class);
-        registerButton("addSearch", this::addSearch);
+        registerButton(ADD_SEARCH, this::addSearch);
         registerButton("removeSearch", this::removeSearch);
         registerButton("invest", this::toggleSearch);
     }
@@ -114,6 +118,16 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
         Image help = findPaneOfTypeByID("help", Image.class);
         PaneBuilders.tooltipBuilder().hoverPane(help).build()
             .setText(Component.translatable("mctradepost.retained_search.help.tooltip"));
+
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            searchList.hide();
+            window.findPaneOfTypeByID(ADD_SEARCH, Button.class).hide();
+            window.findPaneOfTypeByID(CAPACITY, Text.class).hide();
+            window.findPaneOfTypeByID(DISABLED_MESSAGE, Text.class).show();
+            return;
+        }
+
         updateList();
     }
 
@@ -122,6 +136,11 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
     public void onUpdate()
     {
         super.onUpdate();
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return;
+        }
+
         if (displayedSearchCount != moduleView.getSearches().size()
             || displayedSearchCapacity != moduleView.getSearchCapacity()
             || displayedShopkeeperPrimarySkill != moduleView.getShopkeeperPrimarySkill())
@@ -202,10 +221,10 @@ public class WindowMarketplaceSourcingModule extends AbstractModuleWindow<Market
         displayedSearchCount = moduleView.getSearches().size();
         displayedSearchCapacity = moduleView.getSearchCapacity();
         displayedShopkeeperPrimarySkill = moduleView.getShopkeeperPrimarySkill();
-        window.findPaneOfTypeByID("capacity", Text.class).setText(Component.literal(
+        window.findPaneOfTypeByID(CAPACITY, Text.class).setText(Component.literal(
             displayedSearchCount + " / " + displayedSearchCapacity));
 
-        Button add = window.findPaneOfTypeByID("addSearch", Button.class);
+        Button add = window.findPaneOfTypeByID(ADD_SEARCH, Button.class);
         add.enable();
         PaneBuilders.tooltipBuilder().hoverPane(add).build().setText(Component.empty());
         if (displayedSearchCapacity <= displayedSearchCount)

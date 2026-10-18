@@ -406,6 +406,7 @@
     "mctradepost.thriftshop.nsf": "Not enough funds to make this purchase.",
     "mctradepost.thriftshop.reroll.nsf": "Not enough funds to reroll the Rare Finds selections.",
     "mctradepost.thriftshop.reroll.success" :  "New Rare Finds are available in the Marketplace.",
+    "mctradepost.thriftshop.disabled": "Rare Finds have been disabled by the server operator.",
     "com.mctradepost.coremod.gui.interval.yesterday": "Yesterday",
     "com.mctradepost.coremod.gui.interval.lastweek": "Last Week",
     "com.mctradepost.coremod.gui.interval.100days": "Last Month",

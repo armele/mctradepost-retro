@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "minecraft:rotten_flesh" },
+  "burn_time": 100,
+  "gas": 120
+}

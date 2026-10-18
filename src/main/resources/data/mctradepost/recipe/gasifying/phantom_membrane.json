@@ -1,0 +1,6 @@
+{
+  "type": "mctradepost:gasifying",
+  "input": { "item": "minecraft:phantom_membrane" },
+  "burn_time": 400,
+  "gas": 1250
+}

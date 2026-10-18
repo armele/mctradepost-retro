@@ -25,7 +25,7 @@
         <text size="95 10" pos="20 76" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.item.sold)"/>
         <text size="50 10" pos="120 76" textalign="MIDDLE_RIGHT" color="black" id="itemcount"/>
 
-        <text size="150 10" pos="20 90" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.expenses)"/>
+        <text id="expensesHeader" size="150 10" pos="20 90" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.expenses)"/>
         <text size="105 10" pos="25 101" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.expense.coin_withdrawal)"/>
         <text size="40 10" pos="130 101" textalign="MIDDLE_RIGHT" color="black" id="expenseCoinWithdrawal"/>
         <text size="105 10" pos="25 111" textalign="MIDDLE_LEFT" color="black" label="$(com.mctradepost.coremod.gui.econ.expense.rare_find_purchase)"/>

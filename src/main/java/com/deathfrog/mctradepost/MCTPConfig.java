@@ -34,6 +34,7 @@ public class MCTPConfig
     public static final ConfigValue<Double> registerSoundChance;
     public static final ConfigValue<Integer> shoppingChance;
     public static final ConfigValue<String> tradeCurrency;
+    public static final ConfigValue<Boolean> rareFindsEnabled;
     public static final ConfigValue<Double> retainedSearchInvestmentLevelBonus;
     public static final ConfigValue<Double> retainedSearchTierDifficulty;
     public static final ConfigValue<Integer> retainedSearchInvestmentBaseXp;
@@ -106,6 +107,9 @@ public class MCTPConfig
         tradeCurrency = BUILDER.comment(
             "What currency is used to facilitate trades, and will be extracted from the marketplace? (Restart required if changed.)")
             .define("tradeCurrency", "mctradepost:mctp_coin");
+
+        rareFindsEnabled = BUILDER.comment("Allow Marketplace Rare Finds, retained searches, and subscriptions.")
+            .define("rareFindsEnabled", true);
 
         retainedSearchInvestmentLevelBonus = BUILDER.comment("Chance added per retained-search investment level.")
             .defineInRange("retainedSearchInvestmentLevelBonus", 0.11D, 0.0D, 1.0D);

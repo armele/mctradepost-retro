@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.client.gui.modules;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
+import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
@@ -47,6 +48,7 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
     private static final String OFFER_SUBSCRIPTION_STATUS = "offerSubscriptionStatus";
     private static final String REROLL_OFFERS  = "rerollOffers";
     private static final String REROLL_PRICE  = "rerollPrice";
+    private static final String DISABLED_MESSAGE = "disabledMessage";
 
     /**
      * Ingredient scrolling list.
@@ -89,6 +91,16 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
         final Image help = findPaneOfTypeByID("help", Image.class);
         PaneBuilders.tooltipBuilder().hoverPane(help).build()
             .setText(Component.translatable("mctradepost.thriftshop.help.tooltip"));
+
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            offerList.hide();
+            this.window.findPaneOfTypeByID(REROLL_PRICE, Text.class).hide();
+            this.window.findPaneOfTypeByID(REROLL_OFFERS, Button.class).hide();
+            this.window.findPaneOfTypeByID(DISABLED_MESSAGE, Text.class).show();
+            return;
+        }
+
         updateOfferList();
     }
 

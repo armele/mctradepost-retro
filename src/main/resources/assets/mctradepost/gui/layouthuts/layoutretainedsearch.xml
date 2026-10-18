@@ -2,6 +2,8 @@
     <image source="minecolonies:textures/gui/builderhut/builder_paper.png" size="190 244"/>
     <text size="150 11" pos="20 13" textalign="MIDDLE" color="black" label="$(mctradepost.retained_search.title)"/>
     <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="166 13" visible="true"/>
+    <text id="disabledMessage" size="165 40" pos="13 88" textalign="MIDDLE" color="black" visible="false"
+          label="$(mctradepost.thriftshop.disabled)"/>
     <button id="addSearch" size="70 17" pos="18 30" color="black" source="minecolonies:textures/gui/builderhut/builder_button_medium.png" label="$(mctradepost.retained_search.add)"/>
     <text id="capacity" size="60 12" pos="110 33" color="black"/>
     <list id="searchlist" size="170 137" pos="12 52" emptytext="$(mctradepost.retained_search.empty)" emptycolor="black">

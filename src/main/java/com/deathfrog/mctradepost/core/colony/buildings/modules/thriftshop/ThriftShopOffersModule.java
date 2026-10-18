@@ -382,10 +382,23 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
     /**
      * Rolls the daily offers for the thrift shop. This is called automatically by the building module on server side.
-     * The rolled offers are stored in the offers field of this class.
+     * The rolled offers are stored in the offers field of this class. When Rare Finds are disabled, existing offers are cleared
+     * instead.
+     *
+     * @param reroll whether this roll was explicitly purchased as a reroll
      */
     public void rollDailyOffers(boolean reroll)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            if (!offers.isEmpty())
+            {
+                offers.clear();
+                markDirty();
+            }
+            return;
+        }
+
         Level level = building.getColony().getWorld();
 
         if (level == null || level.isClientSide)
@@ -471,10 +484,17 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
      * The cost of rerolling is stored in rerollCost and is taken from the colony's economy.
      * If the colony does not have enough money to reroll, a message is sent to the player.
      * The cost of rerolling is increased by a factor of CoinItem.GOLD_MULTIPLIER each time it is called.
+     * No action is taken while Rare Finds are disabled.
+     *
      * @param player the player who triggered the reroll
      */
     public void rerollSelections(Player player) 
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return;
+        }
+
         TraceUtils.dynamicTrace(TRACE_RAREFINDS, () -> LOGGER.info("Colony {}: Processing reroll request.", building.getColony().getID()));
 
         final int rerollResearch = (int) building.getColony().getResearchManager().getResearchEffects().getEffectStrength(MCTPResearchConstants.THRIFTSHOP_REROLL);  
@@ -510,6 +530,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
      * Purchases an item from the daily offers of the thrift shop building.
      * If the item is found in the daily offers, it is removed from the list and the player's hotbar is updated.
      * The price of the item is removed from the building's economy.
+     * No action is taken while Rare Finds are disabled.
      * 
      * @param stack the item to purchase
      * @param price the price of the item
@@ -517,6 +538,11 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
      */
     public void purchaseItem(@Nonnull ItemStack stack, int price, Player player)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return;
+        }
+
         TraceUtils.dynamicTrace(TRACE_RAREFINDS, () -> LOGGER.info("Colony {}: Processing purchase of {} at cost {}", building.getColony().getID(), stack.getHoverName(), price));
 
         boolean found = false;
@@ -559,6 +585,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
     /**
      * Activates a subscription from a live offer and completes its first delivery immediately.
+     * No action is taken while Rare Finds are disabled.
      *
      * @param stack offered item
      * @param player subscribing player
@@ -566,6 +593,11 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
     @SuppressWarnings("null")
     public void subscribe(@Nonnull ItemStack stack, Player player)
     {
+        if (!MCTPConfig.rareFindsEnabled.get())
+        {
+            return;
+        }
+
         MarketplaceSourcingModule sourcing = building.getModule(MCTPBuildingModules.MARKETPLACE_SOURCING);
         if (sourcing == null) return;
         MarketOffer offer = offers.stream().filter(candidate -> ItemStack.isSameItemSameComponents(candidate.stack(), stack)).findFirst().orElse(null);

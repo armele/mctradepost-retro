@@ -4,6 +4,8 @@
             <text size="130 11" pos="30 14" textalign="MIDDLE" color="black"
                    label="$(com.minecolonies.coremod.gui.thriftshop.offers)"/>
             <image id="help" source="mctradepost:textures/gui/modules/help.png" size="11 11" pos="150 14" visible="true"/>
+            <text id="disabledMessage" size="165 40" pos="13 88" textalign="MIDDLE" color="black" visible="false"
+                  label="$(mctradepost.thriftshop.disabled)"/>
             <list id="offerlist" size="165 190" pos="13 28" emptytext="$(com.minecolonies.coremod.gui.thriftshop.empty)" emptycolor="black">
                 <box size="100% 32" linewidth="1">
                 <gradient id="gradient" size="157 30" pos="1 1"/>

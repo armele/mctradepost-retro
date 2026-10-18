@@ -18,6 +18,7 @@ import com.ldtteam.blockui.controls.TextField;
 import com.ldtteam.blockui.views.DropDownList;
 import com.minecolonies.api.colony.managers.interfaces.IStatisticsManager;
 import com.minecolonies.core.client.gui.AbstractModuleWindow;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -111,10 +112,13 @@ public class WindowEconModule extends AbstractModuleWindow<EconModuleView>
 
 
 
+    /** {@inheritDoc} */
     @Override
     public void onOpened()
     {
         super.onOpened();
+        findPaneOfTypeByID("expensesHeader", Text.class).setText(
+            Component.translatable("com.mctradepost.coremod.gui.econ.expenses").withStyle(ChatFormatting.BOLD));
         updateStats();
     }
 
