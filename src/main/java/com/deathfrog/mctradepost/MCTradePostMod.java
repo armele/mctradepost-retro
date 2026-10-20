@@ -119,6 +119,7 @@ import com.deathfrog.mctradepost.item.BlockSideSlabInterleavedItem;
 import com.deathfrog.mctradepost.item.BlockSideSlabItem;
 import com.deathfrog.mctradepost.item.BlockStackedSlabItem;
 import com.deathfrog.mctradepost.item.CoinItem;
+import com.deathfrog.mctradepost.item.CompanionStaffItem;
 import com.deathfrog.mctradepost.item.CurrencyExchangeItem;
 import com.deathfrog.mctradepost.item.DimensionalLinkageItem;
 import com.deathfrog.mctradepost.item.RouteSurveyItem;
@@ -244,6 +245,7 @@ import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
@@ -538,6 +540,10 @@ public class MCTradePostMod
     public static final DeferredItem<DimensionalLinkageItem> DIMENSIONAL_LINKAGE = ITEMS.register("dimensional_linkage",
         () -> new DimensionalLinkageItem(new Item.Properties().stacksTo(1)
             .component(MCTPModDataComponents.DIMENSIONAL_LINKAGE.get(), DimensionalLinkageRecord.uninitialized())));
+
+    @SuppressWarnings("null")
+    public static final DeferredItem<CompanionStaffItem> COMPANION_STAFF = ITEMS.register(CompanionStaffItem.ID,
+        () -> new CompanionStaffItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
             
     @SuppressWarnings("null")
     public static final DeferredItem<RouteSurveyItem> ROUTE_SURVEY = ITEMS.register("route_survey",
@@ -644,7 +650,7 @@ public class MCTradePostMod
     @SuppressWarnings("null")
     public static final DeferredHolder<EntityType<?>, EntityType<PetDragon>> PET_DRAGON = ENTITIES.register("pet_dragon",
         () -> EntityType.Builder.of(PetDragon::new, MobCategory.CREATURE)
-            .sized(0.9F, 1.8F)
+            .sized(0.8F, 1.8F)
             .eyeHeight(1.62F)
             .clientTrackingRange(10)
             .build(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "pet_dragon").toString()));
@@ -1372,6 +1378,7 @@ public class MCTradePostMod
                 output.accept(MCTP_COIN_ITEM.get());
                 output.accept(MCTP_COIN_GOLD.get());
                 output.accept(MCTP_COIN_DIAMOND.get());
+                output.accept(COMPANION_STAFF.get());
                 output.accept(ROUTE_SURVEY.get());
                 output.accept(NAVIGATION_CHART.get());
                 output.accept(GASIFIER_ITEM.get());
@@ -1455,6 +1462,7 @@ public class MCTradePostMod
 
         // Add a listener for entities joining the world.
         NeoForge.EVENT_BUS.addListener(MCTradePostMod::onEntityJoinWorld);
+        NeoForge.EVENT_BUS.addListener(MCTradePostMod::onItemExpire);
 
 
         // Add a listener for the completion of the load.
@@ -1677,7 +1685,8 @@ public class MCTradePostMod
 
         if (!(event.getLevel() instanceof ServerLevel)) return;
 
-        if (event.getEntity() instanceof ITradePostPet pet) {
+        if (event.getEntity() instanceof ITradePostPet pet
+            && (!(event.getEntity() instanceof PetDragon dragon) || !dragon.isCompanion())) {
             // MCTradePostMod.LOGGER.info("Registering pet: {}", pet);
             try {
                 PetRegistryUtil.register(pet);
@@ -1688,6 +1697,25 @@ public class MCTradePostMod
         }
     }
 
+    /**
+     * Cleans up persistent companion state when a dropped Companion Staff expires naturally.
+     *
+     * @param event item-expiration event
+     */
+    @SuppressWarnings("null")
+    public static void onItemExpire(ItemExpireEvent event)
+    {
+        if (event.getEntity().getItem().getItem() instanceof CompanionStaffItem)
+        {
+            java.util.UUID binding = com.deathfrog.mctradepost.core.entity.pets.companion.CompanionManager
+                .bindingId(event.getEntity().getItem());
+
+            if (binding != null)
+            {
+                com.deathfrog.mctradepost.core.entity.pets.companion.CompanionManager.destroy(event.getEntity(), binding);
+            }
+        }
+    }
 
     /**
      * Events that can safely take place at world loading.

@@ -32,6 +32,7 @@ import com.deathfrog.mctradepost.api.entity.pets.goals.scavenge.WaterScavengePro
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.BuildingUtil;
 import com.deathfrog.mctradepost.api.util.EconomicReductionReason;
+import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -68,9 +69,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity.RemovalReason;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -81,11 +84,14 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Wolf;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -94,6 +100,9 @@ import static com.deathfrog.mctradepost.api.util.TraceUtils.*;
 
 public class  PetData<P extends Animal & ITradePostPet & IHerdingPet> 
 {
+    public static final int BASE_INVENTORY_SIZE = 9;
+    public static final int SLOTS_PER_INVENTORY_RESEARCH_LEVEL = 9;
+    public static final int MAX_INVENTORY_SIZE = 27;
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final int LOG_COOLDOWN_INTERVAL = 200;
 
@@ -142,7 +151,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
     protected BlockPos trainerBuildingID = BlockPos.ZERO;
     protected BlockPos workLocation = BlockPos.ZERO;
     private ResourceKey<Level> dimension = null;
-    private final ItemStackHandler inventory = new ItemStackHandler(9);
+    private final ItemStackHandler inventory = new ItemStackHandler(BASE_INVENTORY_SIZE);
     public PetTypes petType = null;
     
     private Component originalName = null;
@@ -315,6 +324,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
                         if (registryAccess != null) 
                         {
                             inventory.deserializeNBT(registryAccess, invTag);
+                            updateInventoryCapacity();
                             applied = true;
                         }
                     }
@@ -350,7 +360,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             {
                 this.updateDebugNameTag();
             }
-            
+
             tryApplyPendingInventory(level);
             tickPetWasteProduction(level);
         }
@@ -417,6 +427,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         this.dimension = building.getColony().getDimension();
         this.trainerBuildingID = building.getID();
+        updateInventoryCapacity();
     }
 
     public BlockPos getWorkLocation()
@@ -524,7 +535,10 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
         }
         animal.goalSelector.addGoal(1, new FloatGoal(animal));
         animal.goalSelector.addGoal(2, new OpenGateOrDoorGoal(animal, true, 20));
-        animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.4f));
+        if (!(animal instanceof PetDragon dragon) || !dragon.isCompanion())
+        {
+            animal.goalSelector.addGoal(3, new UnloadInventoryToWorkLocationGoal<>(animal, 0.4f));
+        }
         animal.goalSelector.addGoal(4, new PetDefensiveAttackGoal<>(animal, 1.15D));
         animal.targetSelector.addGoal(4, new PetHurtByTargetGoal<>(animal, animal instanceof PetParrot));
         animal.getNavigation().getNodeEvaluator().setCanOpenDoors(true);
@@ -537,7 +551,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
 
         animal.goalSelector.addGoal(6, new EatFromInventoryHealGoal<P>(animal, 300));
 
-        if (getTrainerBuilding() != null)
+        if ((!(animal instanceof PetDragon dragon) || !dragon.isCompanion()) && getTrainerBuilding() != null)
         {
             BlockPos trainerPos = getTrainerBuilding().getPosition();
             if (trainerPos != null && !trainerPos.equals(BlockPos.ZERO))
@@ -795,7 +809,67 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
      */
     public ItemStackHandler getInventory() 
     {
+        updateInventoryCapacity();
         return inventory;
+    }
+
+    /**
+     * Expands this pet's inventory to the capacity unlocked by its colony.
+     * Inventory expansion is monotonic so items remain safe if trainer or
+     * research data is temporarily unavailable.
+     */
+    public void updateInventoryCapacity()
+    {
+        IBuilding trainerBuilding = getTrainerBuilding();
+        if (trainerBuilding == null)
+        {
+            return;
+        }
+
+        int researchLevel = (int) trainerBuilding.getColony().getResearchManager().getResearchEffects()
+            .getEffectStrength(MCTPResearchConstants.PET_INVENTORY_CAPACITY);
+        int unlockedSize = Math.min(MAX_INVENTORY_SIZE,
+            BASE_INVENTORY_SIZE + Math.max(0, researchLevel) * SLOTS_PER_INVENTORY_RESEARCH_LEVEL);
+        if (inventory.getSlots() < unlockedSize)
+        {
+            List<ItemStack> existingStacks = new ArrayList<>();
+            for (int slot = 0; slot < inventory.getSlots(); slot++)
+            {
+                existingStacks.add(inventory.getStackInSlot(slot).copy());
+            }
+            inventory.setSize(unlockedSize);
+            for (int slot = 0; slot < existingStacks.size(); slot++)
+            {
+                ItemStack stackInSlot = existingStacks.get(slot);
+
+                if (stackInSlot == null) continue;
+
+                inventory.setStackInSlot(slot, stackInSlot);
+            }
+        }
+    }
+
+    /**
+     * Opens a vanilla chest menu with the number of rows carried by this pet.
+     *
+     * @param player player interacting with the pet
+     */
+    public void openInventory(@Nonnull Player player)
+    {
+        updateInventoryCapacity();
+        ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(inventory);
+        int rows = Math.max(1, Math.min(3, inventory.getSlots() / BASE_INVENTORY_SIZE));
+        MenuType<ChestMenu> menuType = switch (rows)
+        {
+            case 2 -> MenuType.GENERIC_9x2;
+            case 3 -> MenuType.GENERIC_9x3;
+            default -> MenuType.GENERIC_9x1;
+        };
+        Component displayName = animal.getDisplayName();
+
+        player.openMenu(new SimpleMenuProvider((windowId, playerInventory, interactingPlayer) ->
+            new ChestMenu(NullnessBridge.assumeNonnull(menuType), windowId, playerInventory, inventoryWrapper, rows),
+            displayName == null ? NullnessBridge.assumeNonnull(Component.translatable("entity.mctradepost.pet_inventory")) : displayName));
     }
 
     /**
@@ -1521,6 +1595,7 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             if (access == null || localPendingInv == null) return;
 
             inventory.deserializeNBT(access, localPendingInv);
+            updateInventoryCapacity();
         } 
         catch (Throwable err) 
         {
@@ -1625,8 +1700,33 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             return false;
         }
 
-        if (!(petshop.getColony().getWorld() instanceof ServerLevel trainerLevel) || trainerLevel != localAnimal.level())
+        if (!(petshop.getColony().getWorld() instanceof ServerLevel trainerLevel))
         {
+            return false;
+        }
+
+        if (trainerLevel != localAnimal.level())
+        {
+            if (!(localAnimal instanceof PetDragon dragon) || !dragon.isCompanion())
+            {
+                return false;
+            }
+
+            BlockPos trainerPosition = petshop.getPosition();
+            @SuppressWarnings("null")
+            Entity changedEntity = localAnimal.changeDimension(new DimensionTransition(
+                trainerLevel,
+                new Vec3(trainerPosition.getX() + 0.5D, trainerPosition.getY() + 1.0D, trainerPosition.getZ() + 0.5D),
+                Vec3.ZERO,
+                localAnimal.getYRot(),
+                localAnimal.getXRot(),
+                DimensionTransition.DO_NOTHING));
+
+            if (changedEntity instanceof PetDragon movedDragon)
+            {
+                return movedDragon.getPetData().tryRescueFromDeath(source);
+            }
+
             return false;
         }
 
@@ -1669,10 +1769,13 @@ public class  PetData<P extends Animal & ITradePostPet & IHerdingPet>
             localAnimal.teleportTo(safeTargetPos.getX() + 0.5D, safeTargetPos.getY(), safeTargetPos.getZ() + 0.5D);
             playRescueEffects(trainerLevel, localAnimal);
 
-            PetRegistryUtil.register(localAnimal);
-            PetAnimalManagerUtil.ensureManaged(localAnimal);
-            petshop.rememberPetData(localAnimal);
-            petshop.markPetsDirty();
+            if (!(localAnimal instanceof PetDragon dragon) || !dragon.isCompanion())
+            {
+                PetRegistryUtil.register(localAnimal);
+                PetAnimalManagerUtil.ensureManaged(localAnimal);
+                petshop.rememberPetData(localAnimal);
+                petshop.markPetsDirty();
+            }
             StatsUtil.trackStat(petshop, STATS_PETS_SAVED, 1);
 
             localAnimal.resetGoals();

@@ -1,0 +1,36 @@
+{
+  "subtitle": "com.mctradepost.research.economic.carry_capacity.subtitle",
+  "branch": "economic",
+  "parentResearch": "mctradepost:economic/bestfriend",
+  "researchLevel": 2,
+  "sortOrder": 4,
+  "exclusiveChildResearch": false,
+  "no-reset": true,
+  "hidden": false,
+  "autostart": false,
+  "instant": false,
+  "requirements": [
+    {
+      "type": "minecolonies:building",
+      "building": "mctradepost:petshop",
+      "level": 2
+    }
+  ],
+  "costs": [
+    {
+      "count": 3,
+      "item": "mctradepost:mctp_coin"
+    },
+    {
+      "count": 16,
+      "item": "minecraft:leather"
+    }
+  ],
+  "effects": [
+    {
+      "id": "mctradepost:effects/pet_inventory_capacity",
+      "level": 1
+    }
+  ],
+  "icon": "minecraft:chest"
+}

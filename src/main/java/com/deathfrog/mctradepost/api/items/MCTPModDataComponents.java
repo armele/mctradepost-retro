@@ -2,6 +2,7 @@ package com.deathfrog.mctradepost.api.items;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecord;
+import com.deathfrog.mctradepost.api.items.datacomponent.CompanionStaffRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.ResurrectionWishRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RouteSurveyRecord;
@@ -72,4 +73,9 @@ public class MCTPModDataComponents
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<NavigationChartRecord>> NAVIGATION_CHART =
         REGISTRAR.registerComponentType(NavigationChartItem.ID,
             builder -> builder.persistent(NavigationChartRecord.CODEC).networkSynchronized(NavigationChartRecord.STREAM_CODEC));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CompanionStaffRecord>> COMPANION_STAFF =
+        REGISTRAR.registerComponentType("companion_staff",
+            builder -> builder.persistent(CompanionStaffRecord.CODEC).networkSynchronized(CompanionStaffRecord.STREAM_CODEC));
 }

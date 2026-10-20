@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.IPetNavResult;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.MinecoloniesNavResultProxy;
 import com.deathfrog.mctradepost.api.entity.pets.navigation.VanillaNavResult;
-import com.deathfrog.mctradepost.api.util.ItemStackHandlerContainerWrapper;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.PetAnimalManagerUtil;
 import com.deathfrog.mctradepost.api.util.PetRegistryUtil;
@@ -32,7 +31,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -47,8 +45,6 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.pathfinder.PathType;
-import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -596,16 +592,7 @@ public class PetParrot extends Parrot implements ITradePostPet, IHerdingPet, IMa
     {
         if (!level().isClientSide && hand == InteractionHand.MAIN_HAND)
         {
-            ItemStackHandlerContainerWrapper inventoryWrapper = new ItemStackHandlerContainerWrapper(this.getInventory());
-
-            Component displayName = this.getDisplayName();
-
-            player.openMenu(new SimpleMenuProvider((windowId, playerInventory, p) -> new ChestMenu(NullnessBridge.assumeNonnull(MenuType.GENERIC_9x1), // 1-row menu
-                windowId,
-                playerInventory,
-                inventoryWrapper,
-                1 // number of rows
-            ), displayName == null ? NullnessBridge.assumeNonnull(Component.translatable("entity.mctradepost.pet_inventory")) : displayName));
+            petData.openInventory(player);
             return InteractionResult.CONSUME;
         }
 

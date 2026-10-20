@@ -1,0 +1,23 @@
+{
+  "type": "recipe",
+  "crafter": "enchanter_custom",
+  "inputs": [
+    {
+      "count": 4,
+      "id": "minecraft:amethyst_shard"
+    },
+    {
+      "id": "mctradepost:mctp_coin_diamond"
+    },
+    {
+      "id": "minecraft:blaze_rod"
+    }
+  ],
+  "intermediate": "minecraft:air",
+  "result": {
+    "id": "mctradepost:companion_staff"
+  },
+  "min-building-level": 3,
+  "research-id": "mctradepost:economic/mythical_companions",
+  "show-tooltip": true
+}

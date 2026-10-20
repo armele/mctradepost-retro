@@ -26,6 +26,7 @@ public class MCTPResearchConstants {
     public static final ResourceLocation MARITIME_TRADE             = getResearchEffectID("maritime_trade");
     public static final ResourceLocation AIR_TRADE                  = getResearchEffectID("air_trade");
     public static final ResourceLocation INCENTIVE_PLANS            = getResearchEffectID("incentive_plans");
+    public static final ResourceLocation PET_INVENTORY_CAPACITY     = getResearchEffectID("pet_inventory_capacity");
 
     public static ResourceLocation getResearchEffectID(String researchName) {
         return ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "effects/" + researchName);
