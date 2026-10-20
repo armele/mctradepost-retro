@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.deathfrog.mctradepost.MCTPConfig;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.MarketplaceItemListModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.item.CoinItem;
 
@@ -26,13 +27,43 @@ public final class MarketDailyRoller
         @Nonnull ItemStack stack,
         @Nonnull MarketTier tier,
         int price,
-        boolean retainedSearchResult)
+        boolean retainedSearchResult,
+        int subscriptionPrice)
     {
+        /**
+         * Creates an ordinary market offer whose synchronized subscription price has not yet been assigned.
+         *
+         * @param stack offered stack
+         * @param tier offer tier
+         * @param price one-time purchase price
+         */
         public MarketOffer(@Nonnull ItemStack stack, @Nonnull MarketTier tier, int price)
         {
-            this(stack, tier, price, false);
+            this(stack, tier, price, false, -1);
         }
 
+        /**
+         * Creates a market offer whose synchronized subscription price has not yet been assigned.
+         *
+         * @param stack offered stack
+         * @param tier offer tier
+         * @param price one-time purchase price
+         * @param retainedSearchResult whether a retained search produced the offer
+         */
+        public MarketOffer(@Nonnull ItemStack stack, @Nonnull MarketTier tier, int price, boolean retainedSearchResult)
+        {
+            this(stack, tier, price, retainedSearchResult, -1);
+        }
+
+        /**
+         * Validates a fully populated market offer.
+         *
+         * @param stack offered stack
+         * @param tier offer tier
+         * @param price one-time purchase price
+         * @param retainedSearchResult whether a retained search produced the offer
+         * @param subscriptionPrice server-authoritative recurring price, or a negative value before synchronization
+         */
         public MarketOffer
         {
             Objects.requireNonNull(stack, "stack");
@@ -196,27 +227,63 @@ public final class MarketDailyRoller
      */
     public static int priceForTier(MarketTier tier, RandomSource rand)
     {
-        return switch (tier)
-        {
-            case TIER1_COMMON -> priceForMultiplier(0.80, rand);
-            case TIER2_UNCOMMON -> priceForMultiplier(1.20, rand);
-            case TIER3_RARE -> priceForMultiplier(CoinItem.GOLD_MULTIPLIER, rand);
-            case TIER4_EPIC -> priceForMultiplier(CoinItem.DIAMOND_MULTIPLIER, rand);
-        };
+        return randomizedPrice(normalPriceForTier(tier), rand);
     }
 
     /**
-     * Prices a tier by multiplying the configured coin value by the target multiplier, then applying triangular noise.
-     * @param targetMultiplier the target multiplier of the configured trade coin value
-     * @param rand the RandomSource to use for generating the random price
-     * @return the randomized price
+     * Calculates a randomized one-time price without allowing the complete stack
+     * to sell below its configured economic value.
+     *
+     * @param stack offered stack
+     * @param tier market tier supplying the randomized reference price
+     * @param rand random source used for market variation
+     * @return positive one-time purchase price for the complete stack
      */
-    private static int priceForMultiplier(double targetMultiplier, RandomSource rand)
+    public static int priceForOffer(ItemStack stack, MarketTier tier, RandomSource rand)
     {
-        int baseValue = MCTPConfig.tradeCoinValue.get();
-        double centeredNoise = rand.nextFloat() + rand.nextFloat() - 1.0;
-        double multiplier = targetMultiplier * (1.0 + PRICE_SPREAD * centeredNoise);
+        final long stackValue = (long) MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
+        final long marketReference = Math.max(stackValue, normalPriceForTier(tier));
+        return applyStackValueFloor(stack, randomizedPrice(marketReference, rand));
+    }
 
-        return Math.max(1, (int) Math.round(baseValue * multiplier));
+    /**
+     * Prevents a one-time offer for a complete stack from falling below its configured economic value.
+     *
+     * @param stack offered stack
+     * @param candidatePrice randomized or premium-adjusted candidate price
+     * @return bounded price no lower than the complete stack value
+     */
+    public static int applyStackValueFloor(ItemStack stack, long candidatePrice)
+    {
+        final long stackValue = (long) MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, Math.max(stackValue, candidatePrice)));
+    }
+
+    /**
+     * Returns the non-randomized normal price represented by a market tier.
+     *
+     * @param tier market tier
+     * @return positive normal tier price
+     */
+    public static int normalPriceForTier(MarketTier tier)
+    {
+        final int coin = MCTPConfig.tradeCoinValue.get();
+        final long price = switch (tier)
+        {
+            case TIER1_COMMON -> (long) Math.ceil(coin * 0.8D);
+            case TIER2_UNCOMMON -> (long) Math.ceil(coin * 1.2D);
+            case TIER3_RARE -> (long) coin * CoinItem.GOLD_MULTIPLIER;
+            case TIER4_EPIC -> (long) coin * CoinItem.DIAMOND_MULTIPLIER;
+        };
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, price));
+    }
+
+    /** Applies triangular market variation to a positive reference price. */
+    private static int randomizedPrice(long referencePrice, RandomSource rand)
+    {
+        double centeredNoise = rand.nextFloat() + rand.nextFloat() - 1.0;
+        double multiplier = 1.0D + PRICE_SPREAD * centeredNoise;
+
+        return (int) Math.max(1L, Math.min(Integer.MAX_VALUE, Math.round(referencePrice * multiplier)));
     }
 }

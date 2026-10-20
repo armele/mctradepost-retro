@@ -160,8 +160,9 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
 
             // LOGGER.info("Colony {} - Offer read: {} at {}", building.getColony().getID(), stack.getHoverName(), price);
 
-            if (!stack.isEmpty() && price > 0)
+            if (!stack.isEmpty() && price > 0 && tier != null)
             {
+                price = MarketDailyRoller.applyStackValueFloor(stack, price);
                 loaded.add(new MarketOffer(stack, tier, price, offerTag.getBoolean(TAG_RETAINED_SEARCH_RESULT)));
             }
         }
@@ -268,6 +269,7 @@ public class ThriftShopOffersModule extends AbstractBuildingModule implements IP
             // ItemStack: MineColonies commonly uses a helper (Utils.serializeCodecMess / deserializeCodecMess).
             Utils.serializeCodecMess(buf, stack);
             buf.writeVarInt(price);
+            buf.writeVarInt(offer == null ? -1 : MarketplaceSourcingModule.subscriptionPrice(stack, tier));
 
             // Tier: write enum ordinal (smaller), or name (more stable).
             // For view packets, ordinal is fine as long as you control both ends.

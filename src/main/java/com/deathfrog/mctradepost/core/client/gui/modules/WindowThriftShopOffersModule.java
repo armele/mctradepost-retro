@@ -3,6 +3,7 @@ package com.deathfrog.mctradepost.core.client.gui.modules;
 import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.colony.buildings.moduleviews.ThriftShopOffersModuleView;
+import com.deathfrog.mctradepost.api.util.EconomicConstants;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.EconomicValueFormatter;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.ThriftShopMessage;
@@ -45,10 +46,15 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
     private static final String OFFER_TAKE  = "offerTake";
     private static final String OFFER_PRICE = "offerPrice";
     private static final String OFFER_SUBSCRIBE = "offerSubscribe";
+    private static final String OFFER_RETAINED_SEARCH_STATUS = "offerRetainedSearchStatus";
     private static final String OFFER_SUBSCRIPTION_STATUS = "offerSubscriptionStatus";
     private static final String REROLL_OFFERS  = "rerollOffers";
     private static final String REROLL_PRICE  = "rerollPrice";
     private static final String DISABLED_MESSAGE = "disabledMessage";
+    private static final int SUBSCRIBE_BUTTON_X = 47;
+    private static final int SUBSCRIBE_BUTTON_WIDTH = 110;
+    private static final int CANCEL_BUTTON_X = 101;
+    private static final int CANCEL_BUTTON_WIDTH = 56;
 
     /**
      * Ingredient scrolling list.
@@ -104,6 +110,17 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
         updateOfferList();
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public void onUpdate()
+    {
+        super.onUpdate();
+        if (MCTPConfig.rareFindsEnabled.get())
+        {
+            updateRerollPrice();
+        }
+    }
+
 
     /**
      * Updates the reroll price pane to display the current reroll cost.
@@ -112,20 +129,30 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
      */
     protected void updateRerollPrice()
     {
-        int rerollPrice = moduleView.getRerollCost();
+        final int rerollPrice = moduleView.getRerollCost();
 
-        Text rerollPricePane = this.window.findPaneOfTypeByID(REROLL_PRICE, Text.class);
+        final Text rerollPricePane = this.window.findPaneOfTypeByID(REROLL_PRICE, Text.class);
+        final Button rerollButton = this.window.findPaneOfTypeByID(REROLL_OFFERS, Button.class);
 
         if (rerollPrice > 0)
         {
-            String formattedDefault = NumberFormat.getIntegerInstance().format(rerollPrice);
+            final String formattedDefault = NumberFormat.getIntegerInstance().format(rerollPrice);
+            final int currentBalance = buildingView.getColony().getStatisticsManager()
+                .getStatTotal(EconomicConstants.CURRENT_BALANCE);
+            final boolean canAffordReroll = currentBalance >= rerollPrice;
+
+            rerollPricePane.show();
+            rerollButton.show();
+            rerollButton.setEnabled(canAffordReroll);
+            PaneBuilders.tooltipBuilder().hoverPane(rerollButton).build().setText(canAffordReroll
+                ? Component.empty()
+                : Component.translatable("mctradepost.thriftshop.reroll.insufficient_balance.tooltip"));
 
             rerollPricePane.setText(Component.literal(formattedDefault + "‡"));
         }
         else
         {
             rerollPricePane.hide();
-            Button rerollButton = this.window.findPaneOfTypeByID(REROLL_OFFERS, Button.class);
             rerollButton.hide();
         }
     }
@@ -245,18 +272,29 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
 
                 Button subscribeButton = rowPane.findPaneOfTypeByID(OFFER_SUBSCRIBE, Button.class);
                 Button buyButton = rowPane.findPaneOfTypeByID(OFFER_TAKE, Button.class);
-                Text subscriptionStatus = rowPane.findPaneOfTypeByID(OFFER_SUBSCRIPTION_STATUS, Text.class);
+                Image retainedSearchStatus = rowPane.findPaneOfTypeByID(OFFER_RETAINED_SEARCH_STATUS, Image.class);
+                Image subscriptionStatus = rowPane.findPaneOfTypeByID(OFFER_SUBSCRIPTION_STATUS, Image.class);
                 boolean subscribed = moduleView.isSubscribed(resource);
                 subscribeButton.enable();
                 buyButton.enable();
-                subscribeButton.setText(Component.translatable(subscribed
-                    ? "mctradepost.subscription.cancel"
-                    : "mctradepost.subscription.subscribe"));
-                subscriptionStatus.setText(subscribed
-                    ? Component.translatable("mctradepost.subscription.status")
-                    : offer.retainedSearchResult()
-                        ? Component.translatable("mctradepost.retained_search.found")
-                        : Component.empty());
+                retainedSearchStatus.setVisible(offer.retainedSearchResult() && !subscribed);
+                subscriptionStatus.setVisible(subscribed);
+                subscribeButton.setPosition(subscribed ? CANCEL_BUTTON_X : SUBSCRIBE_BUTTON_X, subscribeButton.getY());
+                subscribeButton.setSize(subscribed ? CANCEL_BUTTON_WIDTH : SUBSCRIBE_BUTTON_WIDTH, subscribeButton.getHeight());
+                if (retainedSearchStatus.isVisible())
+                {
+                    PaneBuilders.tooltipBuilder().hoverPane(retainedSearchStatus).build()
+                        .setText(Component.translatable("mctradepost.retained_search.found"));
+                }
+                if (subscriptionStatus.isVisible())
+                {
+                    PaneBuilders.tooltipBuilder().hoverPane(subscriptionStatus).build()
+                        .setText(Component.translatable("mctradepost.subscription.status"));
+                }
+                subscribeButton.setText(subscribed
+                    ? Component.translatable("mctradepost.subscription.cancel")
+                    : Component.translatable("mctradepost.subscription.create.price",
+                        EconomicValueFormatter.compact(offer.subscriptionPrice())));
                 PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build().setText(Component.empty());
                 if (subscribed)
                 {
@@ -285,7 +323,8 @@ public class WindowThriftShopOffersModule extends AbstractModuleWindow<ThriftSho
                 else
                 {
                     PaneBuilders.tooltipBuilder().hoverPane(subscribeButton).build()
-                        .setText(Component.translatable("mctradepost.subscription.create.tooltip"));
+                        .setText(Component.translatable("mctradepost.subscription.create.price.tooltip",
+                            EconomicValueFormatter.exact(offer.subscriptionPrice())));
                 }
             }
         });

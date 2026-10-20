@@ -12,10 +12,11 @@
                     <itemicon id="offerIcon" size="17 17" pos="1 0"/>
                     <text id="offerName" size="99 12" pos="19 2" color="black"/>
                     <text id="offerPrice" size="38 12" pos="118 2" textalign="MIDDLE_RIGHT" color="black"/>
-                    <text id="offerSubscriptionStatus" size="66 12" pos="1 17" textalign="MIDDLE_LEFT" color="green"/>
-                    <button label="Buy" id="offerTake" pos="70 15" size="28 15"
+                    <image id="offerRetainedSearchStatus" source="mctradepost:textures/gui/modules/search.png" size="13 13" pos="1 16"/>
+                    <image id="offerSubscriptionStatus" source="mctradepost:textures/gui/modules/subscribe.png" size="13 13" pos="1 16"/>
+                    <button label="Buy" id="offerTake" pos="18 16" size="28 14"
                                  source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
-                    <button label="$(mctradepost.subscription.subscribe)" id="offerSubscribe" pos="101 15" size="56 15"
+                    <button label="$(mctradepost.subscription.subscribe)" id="offerSubscribe" pos="47 16" size="110 14"
                                  source="minecolonies:textures/gui/builderhut/builder_button_very_small.png" color="black"/>
                 </box>
             </list>

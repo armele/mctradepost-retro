@@ -120,7 +120,7 @@ public class MCTPConfig
         retainedSearchInvestmentDays = BUILDER.comment("MineColonies days added by each retained-search investment purchase.")
             .defineInRange("retainedSearchInvestmentDays", 5, 1, 99);
         subscriptionPriceMultiplier = BUILDER.comment("Multiplier applied to the greater of an item's economic value and tier price floor for subscriptions.")
-            .defineInRange("subscriptionPriceMultiplier", 2.0D, 1.0D, 100.0D);
+            .defineInRange("subscriptionPriceMultiplier", 1.4D, 1.0D, 100.0D);
 
         BUILDER.pop();
 

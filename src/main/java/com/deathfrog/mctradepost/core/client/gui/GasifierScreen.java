@@ -164,7 +164,7 @@ public class GasifierScreen extends AbstractContainerScreen<GasifierMenu>
             renderTiledGas(g, fillLeft, fillTop, fillRight, fillBottom);
 
             // Draw the lighter highlight over the texture; its first and third arguments set its X bounds.
-            g.fill(x + fillInset + 2, fillTop, x + 4, y + METER_HEIGHT - 1, 0xFF8BAFF6);
+            g.fill(x + fillInset + 2, fillTop, x + 4, y + METER_HEIGHT - 1, 0xC08BAFF6);
         }
     }
 

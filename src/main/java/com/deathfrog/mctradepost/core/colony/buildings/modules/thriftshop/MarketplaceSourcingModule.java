@@ -13,7 +13,6 @@ import com.deathfrog.mctradepost.core.rarefinds.blacklist.RareFindBlacklistManag
 import com.deathfrog.mctradepost.core.colony.jobs.JobShopkeeper;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketOffer;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.thriftshop.MarketDailyRoller.MarketTier;
-import com.deathfrog.mctradepost.item.CoinItem;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IPersistentModule;
 import com.minecolonies.api.colony.ICitizenData;
@@ -369,41 +368,72 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
         {
             return false;
         }
-        if (capacity(MCTPResearchConstants.RETAINED_SEARCH) == 0) return false;
+
+        if (capacity(MCTPResearchConstants.RETAINED_SEARCH) == 0)
+        {
+            return false;
+        }
         List<RetainedSearch> candidates = new ArrayList<>(searches.subList(0, Math.min(searches.size(), capacity(MCTPResearchConstants.RETAINED_SEARCH))));
         java.util.Collections.shuffle(candidates, new java.util.Random(random.nextLong()));
         java.util.EnumSet<MarketTier> promotedTiers = java.util.EnumSet.noneOf(MarketTier.class);
+
         for (RetainedSearch search : candidates)
         {
-            if (RareFindBlacklistManager.isBlacklisted(search.stack())) continue;
-            if (search.investmentLevel() == 0 || search.investmentUntil() <= day) continue;
-            if (promotedTiers.contains(search.tier())) continue;
-            if (containsSubscription(search.stack()) || offers.stream().anyMatch(o -> ItemStack.isSameItemSameComponents(o.stack(), search.stack()))) continue;
+            if (RareFindBlacklistManager.isBlacklisted(search.stack()))
+            {
+                continue;
+            }
+            if (search.investmentLevel() == 0 || search.investmentUntil() <= day)
+            {
+                continue;
+            }
+            if (promotedTiers.contains(search.tier()))
+            {
+                continue;
+            }
+            if (containsSubscription(search.stack()) || offers.stream().anyMatch(o -> ItemStack.isSameItemSameComponents(o.stack(), search.stack())))
+            {
+                continue;
+            }
             double chance = investmentChance(search.stack(), search.investmentLevel(), shopkeeperPrimarySkill());
-            if (random.nextDouble() >= Math.min(1.0D, chance)) continue;
+            if (random.nextDouble() >= Math.min(1.0D, chance))
+            {
+                continue;
+            }
             for (int i = 0; i < offers.size(); i++)
             {
                 MarketOffer replaced = offers.get(i);
-                if (replaced.tier() == search.tier())
+                MarketTier searchTier = search.tier();
+
+                if (searchTier == null)
+                {
+                    continue;
+                }
+
+                if (replaced.tier() == searchTier)
                 {
                     final boolean tierZero = MarketTierSources.isTierZero(search.stack());
                     ItemStack promoted = search.stack().copyWithCount(tierZero
                         ? search.stack().getMaxStackSize()
                         : replaced.stack().getCount());
 
-                    if (promoted == null) continue;
+                    if (promoted == null)
+                    {
+                        continue;
+                    }
 
                     int promotedPrice = tierZero
                         ? tierZeroPrice(promoted)
-                        : (int) Math.min(Integer.MAX_VALUE, (long) replaced.price() * 2L);
-                    offers.set(i, new MarketOffer(promoted, search.tier(), promotedPrice, true));
-                    promotedTiers.add(search.tier());
+                        : MarketDailyRoller.applyStackValueFloor(promoted, (long) replaced.price() * 2L);
+                    offers.set(i, new MarketOffer(promoted, searchTier, promotedPrice, true));
+                    promotedTiers.add(searchTier);
                     awardShopkeeperExperience();
                     completeRetainedSearch(search);
                     break;
                 }
             }
         }
+
         return !promotedTiers.isEmpty();
     }
 
@@ -424,7 +454,8 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     }
 
     /**
-     * Computes the recurring subscription price from item value, stack size, tier floor, and configured premium.
+     * Computes the recurring subscription price from the current normal stack price and configured premium.
+     * Daily offer discounts, premiums, and retained-search premiums do not affect this price.
      *
      * @param stack delivered stack
      * @param tier original offer tier
@@ -434,15 +465,10 @@ public class MarketplaceSourcingModule extends AbstractBuildingModule implements
     {
         long itemValue = (long) MarketplaceItemListModule.marketplaceValue(stack) * stack.getCount();
         if (MarketTierSources.isTierZero(stack))
-            return boundedPrice(itemValue * MCTPConfig.subscriptionPriceMultiplier.get());
-        int coin = MCTPConfig.tradeCoinValue.get();
-        int floor = switch (tier)
         {
-            case TIER1_COMMON -> (int) Math.ceil(coin * 0.8D);
-            case TIER2_UNCOMMON -> (int) Math.ceil(coin * 1.2D);
-            case TIER3_RARE -> coin * CoinItem.GOLD_MULTIPLIER;
-            case TIER4_EPIC -> coin * CoinItem.DIAMOND_MULTIPLIER;
-        };
+            return boundedPrice(itemValue * MCTPConfig.subscriptionPriceMultiplier.get());
+        }
+        int floor = MarketDailyRoller.normalPriceForTier(tier);
         return boundedPrice(Math.max(itemValue, floor) * MCTPConfig.subscriptionPriceMultiplier.get());
     }
 

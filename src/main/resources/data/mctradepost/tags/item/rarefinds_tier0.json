@@ -8,10 +8,6 @@
     "#c:strings",
     "#c:mushrooms",
     {
-      "id": "#c:fruits",
-      "required": false
-    },
-    {
       "id": "#c:vegetables",
       "required": false
     },
@@ -23,7 +19,9 @@
     "#minecraft:cow_food",
     "#minecraft:chicken_food",
     "#minecraft:planks",
-    "#mctradepost:vegetable",
+    "#mctradepost:stew_ingredients",
+    "#mctradepost:fruit",
+    "minecraft:pufferfish",
     {"id": "mekanism:block_salt", "required": false},
     {"id": "mekanism:bio_fuel", "required": false},
     {"id": "mekanism:structural_glass", "required": false},

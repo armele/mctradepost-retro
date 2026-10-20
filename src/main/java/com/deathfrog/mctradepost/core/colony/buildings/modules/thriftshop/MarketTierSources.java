@@ -97,9 +97,15 @@ public final class MarketTierSources
                 case TIER4_EPIC     -> rollTier4(level, marketplace, rand);
             };
 
-            if (rolled.isEmpty()) continue;
+            if (rolled.isEmpty())
+            {
+                continue;
+            }
 
-            if (!isSellable(rolled, tier)) continue;
+            if (!isSellable(rolled, tier))
+            {
+                continue;
+            }
 
             stacks.add(normalizeForSale(rolled, tier));
         }
@@ -108,9 +114,12 @@ public final class MarketTierSources
         List<MarketOffer> offers = new ArrayList<>();
         for (ItemStack s : stacks)
         {
-            if (s == null) continue;
+            if (s == null)
+            {
+                continue;
+            }
 
-            offers.add(new MarketOffer(s, tier, MarketDailyRoller.priceForTier(tier, rand)));
+            offers.add(new MarketOffer(s, tier, MarketDailyRoller.priceForOffer(s, tier, rand)));
         }
         return offers;
     }
