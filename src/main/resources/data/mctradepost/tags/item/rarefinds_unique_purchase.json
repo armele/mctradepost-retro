@@ -19,6 +19,7 @@
     "minecraft:netherite_sword",
     "#c:music_discs",
     "#minecraft:decorated_pot_sherds",
-    "#minecraft:trim_templates"
+    "#minecraft:trim_templates",
+    "minecolonies:ancienttome"
   ]
 }

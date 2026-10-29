@@ -1,21 +1,296 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "java",
-            "request": "attach",
-            "name": "Attach by Process ID",
-            "processId": "${command:PickJavaProcess}"
-        },
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}",
-            "workingDirectory": "${workspaceFolder}/run"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "attach",
+      "name": "Attach by Process ID",
+      "processId": "${command:PickJavaProcess}"
+    },
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}",
+      "workingDirectory": "${workspaceFolder}/run"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Mctradepost-retro - Client",
+      "presentation": {
+        "group": "NG - mctradepost-retro",
+        "order": 0
+      },
+      "projectName": "mctradepost-retro",
+      "mainClass": "cpw.mods.bootstraplauncher.BootstrapLauncher",
+      "args": [
+        "--launchTarget",
+        "forgeclientdev",
+        "--version",
+        "21.1.262",
+        "--assetIndex",
+        "asset-index",
+        "--assetsDir",
+        "C:\\Users\\amele\\.gradle\\caches\\minecraft\\assets",
+        "--gameDir",
+        ".",
+        "--fml.fmlVersion",
+        "4.0.45",
+        "--fml.mcVersion",
+        "1.21.1",
+        "--fml.neoForgeVersion",
+        "21.1.262",
+        "--fml.neoFormVersion",
+        "20240808.144430"
+      ],
+      "vmArgs": [
+        "-p",
+        "C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\bootstraplauncher\\2.0.2\\1a2d076cbc33b0520cbacd591224427b2a20047d\\bootstraplauncher-2.0.2.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\securejarhandler\\3.0.8\\c0ef95cecd8699a0449053ac7d9c160748d902cd\\securejarhandler-3.0.8.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-commons\\9.10.1\\4229e4c55fd8e01c23f9fe9884075cc628aacc50\\asm-commons-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-util\\9.10.1\\7bb9d450e8d4cbf9f9e04096c44bbfe7fba80b15\\asm-util-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-analysis\\9.10.1\\8d49f14d51f632cb1d87c88d1ceaf50db0d8af1b\\asm-analysis-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-tree\\9.10.1\\e244332a17564c1d1572449399a842de35881be2\\asm-tree-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm\\9.10.1\\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\\asm-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\net.neoforged\\JarJarFileSystems\\0.4.1\\78f59f89defcd032ed788b151ca6a0d40ace796a\\JarJarFileSystems-0.4.1.jar",
+        "--add-modules",
+        "ALL-MODULE-PATH",
+        "--add-opens",
+        "java.base/java.util.jar\u003dcpw.mods.securejarhandler",
+        "--add-opens",
+        "java.base/java.lang.invoke\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "java.base/sun.security.util\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "jdk.naming.dns/com.sun.jndi.dns\u003djava.naming",
+        "-XX:HeapDumpPath\u003dMojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump",
+        "-Dforge.logging.markers\u003dREGISTRIES",
+        "-Dforge.logging.console.level\u003ddebug",
+        "-Dforge.enabledGameTestNamespaces\u003dmctradepost",
+        "-Dneoforge.enableGameTest\u003dtrue",
+        "-DlegacyClassPath.file\u003dC:\\Programming\\mctradepost-retro\\build\\neoForm\\neoFormJoined1.21.1-20240808.144430\\steps\\writeMinecraftClasspathClient\\classpath.txt",
+        "-DignoreList\u003dmixinextras-neoforge-0.5.5.jar,client-extra,neoforge-",
+        "-Djava.net.preferIPv6Addresses\u003dsystem"
+      ],
+      "cwd": "${workspaceFolder}\\run",
+      "env": {
+        "MOD_CLASSES": "mctradepost-retro%%C:\\Programming\\mctradepost-retro\\bin\\main"
+      },
+      "shortenCommandLine": "argfile"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Mctradepost-retro - Data",
+      "presentation": {
+        "group": "NG - mctradepost-retro",
+        "order": 1
+      },
+      "projectName": "mctradepost-retro",
+      "mainClass": "cpw.mods.bootstraplauncher.BootstrapLauncher",
+      "args": [
+        "--mod",
+        "mctradepost",
+        "--all",
+        "--output",
+        "C:\\Programming\\mctradepost-retro\\src\\generated\\resources",
+        "--existing",
+        "C:\\Programming\\mctradepost-retro\\src\\main\\resources",
+        "--launchTarget",
+        "forgedatadev",
+        "--assetIndex",
+        "asset-index",
+        "--assetsDir",
+        "C:\\Users\\amele\\.gradle\\caches\\minecraft\\assets",
+        "--gameDir",
+        ".",
+        "--fml.fmlVersion",
+        "4.0.45",
+        "--fml.mcVersion",
+        "1.21.1",
+        "--fml.neoForgeVersion",
+        "21.1.262",
+        "--fml.neoFormVersion",
+        "20240808.144430"
+      ],
+      "vmArgs": [
+        "-p",
+        "C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\bootstraplauncher\\2.0.2\\1a2d076cbc33b0520cbacd591224427b2a20047d\\bootstraplauncher-2.0.2.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\securejarhandler\\3.0.8\\c0ef95cecd8699a0449053ac7d9c160748d902cd\\securejarhandler-3.0.8.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-commons\\9.10.1\\4229e4c55fd8e01c23f9fe9884075cc628aacc50\\asm-commons-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-util\\9.10.1\\7bb9d450e8d4cbf9f9e04096c44bbfe7fba80b15\\asm-util-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-analysis\\9.10.1\\8d49f14d51f632cb1d87c88d1ceaf50db0d8af1b\\asm-analysis-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-tree\\9.10.1\\e244332a17564c1d1572449399a842de35881be2\\asm-tree-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm\\9.10.1\\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\\asm-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\net.neoforged\\JarJarFileSystems\\0.4.1\\78f59f89defcd032ed788b151ca6a0d40ace796a\\JarJarFileSystems-0.4.1.jar",
+        "--add-modules",
+        "ALL-MODULE-PATH",
+        "--add-opens",
+        "java.base/java.util.jar\u003dcpw.mods.securejarhandler",
+        "--add-opens",
+        "java.base/java.lang.invoke\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "java.base/sun.security.util\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "jdk.naming.dns/com.sun.jndi.dns\u003djava.naming",
+        "-Dforge.logging.markers\u003dREGISTRIES",
+        "-Dforge.logging.console.level\u003ddebug",
+        "-Dmctradepost.projectDir\u003dC:\\Programming\\mctradepost-retro",
+        "-DlegacyClassPath.file\u003dC:\\Programming\\mctradepost-retro\\build\\neoForm\\neoFormJoined1.21.1-20240808.144430\\steps\\writeMinecraftClasspathData\\classpath.txt",
+        "-DignoreList\u003dmixinextras-neoforge-0.5.5.jar,client-extra,neoforge-",
+        "-Djava.net.preferIPv6Addresses\u003dsystem"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\data",
+      "env": {
+        "MOD_CLASSES": "mctradepost-retro%%C:\\Programming\\mctradepost-retro\\bin\\main"
+      },
+      "shortenCommandLine": "argfile"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Mctradepost-retro - GameTestServer",
+      "presentation": {
+        "group": "NG - mctradepost-retro",
+        "order": 2
+      },
+      "projectName": "mctradepost-retro",
+      "mainClass": "cpw.mods.bootstraplauncher.BootstrapLauncher",
+      "args": [
+        "--launchTarget",
+        "forgeserverdev",
+        "--gameDir",
+        ".",
+        "--fml.fmlVersion",
+        "4.0.45",
+        "--fml.mcVersion",
+        "1.21.1",
+        "--fml.neoForgeVersion",
+        "21.1.262",
+        "--fml.neoFormVersion",
+        "20240808.144430"
+      ],
+      "vmArgs": [
+        "-p",
+        "C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\bootstraplauncher\\2.0.2\\1a2d076cbc33b0520cbacd591224427b2a20047d\\bootstraplauncher-2.0.2.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\securejarhandler\\3.0.8\\c0ef95cecd8699a0449053ac7d9c160748d902cd\\securejarhandler-3.0.8.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-commons\\9.10.1\\4229e4c55fd8e01c23f9fe9884075cc628aacc50\\asm-commons-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-util\\9.10.1\\7bb9d450e8d4cbf9f9e04096c44bbfe7fba80b15\\asm-util-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-analysis\\9.10.1\\8d49f14d51f632cb1d87c88d1ceaf50db0d8af1b\\asm-analysis-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-tree\\9.10.1\\e244332a17564c1d1572449399a842de35881be2\\asm-tree-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm\\9.10.1\\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\\asm-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\net.neoforged\\JarJarFileSystems\\0.4.1\\78f59f89defcd032ed788b151ca6a0d40ace796a\\JarJarFileSystems-0.4.1.jar",
+        "--add-modules",
+        "ALL-MODULE-PATH",
+        "--add-opens",
+        "java.base/java.util.jar\u003dcpw.mods.securejarhandler",
+        "--add-opens",
+        "java.base/java.lang.invoke\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "java.base/sun.security.util\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "jdk.naming.dns/com.sun.jndi.dns\u003djava.naming",
+        "-Dforge.logging.markers\u003dREGISTRIES",
+        "-Dforge.logging.console.level\u003ddebug",
+        "-Dforge.enabledGameTestNamespaces\u003dmctradepost",
+        "-Dneoforge.enableGameTest\u003dtrue",
+        "-Dneoforge.gameTestServer\u003dtrue",
+        "-DlegacyClassPath.file\u003dC:\\Programming\\mctradepost-retro\\build\\neoForm\\neoFormJoined1.21.1-20240808.144430\\steps\\writeMinecraftClasspathGameTestServer\\classpath.txt",
+        "-DignoreList\u003dmixinextras-neoforge-0.5.5.jar,client-extra,neoforge-",
+        "-Djava.net.preferIPv6Addresses\u003dsystem"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\gameTestServer",
+      "env": {
+        "MOD_CLASSES": "mctradepost-retro%%C:\\Programming\\mctradepost-retro\\bin\\main"
+      },
+      "shortenCommandLine": "argfile"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Mctradepost-retro - Junit",
+      "presentation": {
+        "group": "NG - mctradepost-retro",
+        "order": 3
+      },
+      "projectName": "mctradepost-retro",
+      "mainClass": "cpw.mods.bootstraplauncher.BootstrapLauncher",
+      "args": [
+        "--launchTarget",
+        "forgejunitdev",
+        "--version",
+        "21.1.262",
+        "--assetIndex",
+        "asset-index",
+        "--assetsDir",
+        "C:\\Users\\amele\\.gradle\\caches\\minecraft\\assets",
+        "--gameDir",
+        ".",
+        "--fml.fmlVersion",
+        "4.0.45",
+        "--fml.mcVersion",
+        "1.21.1",
+        "--fml.neoForgeVersion",
+        "21.1.262",
+        "--fml.neoFormVersion",
+        "20240808.144430"
+      ],
+      "vmArgs": [
+        "-p",
+        "C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\bootstraplauncher\\2.0.2\\1a2d076cbc33b0520cbacd591224427b2a20047d\\bootstraplauncher-2.0.2.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\securejarhandler\\3.0.8\\c0ef95cecd8699a0449053ac7d9c160748d902cd\\securejarhandler-3.0.8.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-commons\\9.10.1\\4229e4c55fd8e01c23f9fe9884075cc628aacc50\\asm-commons-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-util\\9.10.1\\7bb9d450e8d4cbf9f9e04096c44bbfe7fba80b15\\asm-util-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-analysis\\9.10.1\\8d49f14d51f632cb1d87c88d1ceaf50db0d8af1b\\asm-analysis-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-tree\\9.10.1\\e244332a17564c1d1572449399a842de35881be2\\asm-tree-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm\\9.10.1\\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\\asm-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\net.neoforged\\JarJarFileSystems\\0.4.1\\78f59f89defcd032ed788b151ca6a0d40ace796a\\JarJarFileSystems-0.4.1.jar",
+        "--add-modules",
+        "ALL-MODULE-PATH",
+        "--add-opens",
+        "java.base/java.util.jar\u003dcpw.mods.securejarhandler",
+        "--add-opens",
+        "java.base/java.lang.invoke\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "java.base/sun.security.util\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "jdk.naming.dns/com.sun.jndi.dns\u003djava.naming",
+        "-XX:HeapDumpPath\u003dMojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump",
+        "-Dforge.logging.markers\u003dREGISTRIES",
+        "-Dforge.logging.console.level\u003ddebug",
+        "-DlegacyClassPath.file\u003dC:\\Programming\\mctradepost-retro\\build\\neoForm\\neoFormJoined1.21.1-20240808.144430\\steps\\writeMinecraftClasspathJunit\\classpath.txt",
+        "-DignoreList\u003dmixinextras-neoforge-0.5.5.jar,client-extra,neoforge-",
+        "-Djava.net.preferIPv6Addresses\u003dsystem"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\junit",
+      "env": {
+        "MOD_CLASSES": "mctradepost-retro%%C:\\Programming\\mctradepost-retro\\bin\\main"
+      },
+      "shortenCommandLine": "argfile"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Mctradepost-retro - Server",
+      "presentation": {
+        "group": "NG - mctradepost-retro",
+        "order": 4
+      },
+      "projectName": "mctradepost-retro",
+      "mainClass": "cpw.mods.bootstraplauncher.BootstrapLauncher",
+      "args": [
+        "--nogui",
+        "--launchTarget",
+        "forgeserverdev",
+        "--gameDir",
+        ".",
+        "--fml.fmlVersion",
+        "4.0.45",
+        "--fml.mcVersion",
+        "1.21.1",
+        "--fml.neoForgeVersion",
+        "21.1.262",
+        "--fml.neoFormVersion",
+        "20240808.144430"
+      ],
+      "vmArgs": [
+        "-p",
+        "C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\bootstraplauncher\\2.0.2\\1a2d076cbc33b0520cbacd591224427b2a20047d\\bootstraplauncher-2.0.2.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\cpw.mods\\securejarhandler\\3.0.8\\c0ef95cecd8699a0449053ac7d9c160748d902cd\\securejarhandler-3.0.8.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-commons\\9.10.1\\4229e4c55fd8e01c23f9fe9884075cc628aacc50\\asm-commons-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-util\\9.10.1\\7bb9d450e8d4cbf9f9e04096c44bbfe7fba80b15\\asm-util-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-analysis\\9.10.1\\8d49f14d51f632cb1d87c88d1ceaf50db0d8af1b\\asm-analysis-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm-tree\\9.10.1\\e244332a17564c1d1572449399a842de35881be2\\asm-tree-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\org.ow2.asm\\asm\\9.10.1\\ada2141c0cc52ee8f5c48cd5fa4ce0e794f22236\\asm-9.10.1.jar;C:\\Users\\amele\\.gradle\\caches\\modules-2\\files-2.1\\net.neoforged\\JarJarFileSystems\\0.4.1\\78f59f89defcd032ed788b151ca6a0d40ace796a\\JarJarFileSystems-0.4.1.jar",
+        "--add-modules",
+        "ALL-MODULE-PATH",
+        "--add-opens",
+        "java.base/java.util.jar\u003dcpw.mods.securejarhandler",
+        "--add-opens",
+        "java.base/java.lang.invoke\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "java.base/sun.security.util\u003dcpw.mods.securejarhandler",
+        "--add-exports",
+        "jdk.naming.dns/com.sun.jndi.dns\u003djava.naming",
+        "-Dforge.logging.markers\u003dREGISTRIES",
+        "-Dforge.logging.console.level\u003ddebug",
+        "-Dforge.enabledGameTestNamespaces\u003dmctradepost",
+        "-DlegacyClassPath.file\u003dC:\\Programming\\mctradepost-retro\\build\\neoForm\\neoFormJoined1.21.1-20240808.144430\\steps\\writeMinecraftClasspathServer\\classpath.txt",
+        "-DignoreList\u003dmixinextras-neoforge-0.5.5.jar,client-extra,neoforge-",
+        "-Djava.net.preferIPv6Addresses\u003dsystem"
+      ],
+      "cwd": "${workspaceFolder}\\runs\\server",
+      "env": {
+        "MOD_CLASSES": "mctradepost-retro%%C:\\Programming\\mctradepost-retro\\bin\\main"
+      },
+      "shortenCommandLine": "argfile"
+    }
+  ]
 }

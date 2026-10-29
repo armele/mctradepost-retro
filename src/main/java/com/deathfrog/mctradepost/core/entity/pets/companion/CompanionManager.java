@@ -25,6 +25,7 @@ import com.minecolonies.api.colony.buildings.workerbuildings.IWareHouse;
 import com.minecolonies.api.util.InventoryUtils;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,8 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -175,6 +178,7 @@ public final class CompanionManager
         applyVisualCooldown(player, stack, COOLDOWN_TICKS);
         snapshot(dragon, record);
         registry.changed();
+        playSummonEffects(dragon);
         message(player, "item.mctradepost.companion_staff.summoned");
         return true;
     }
@@ -227,6 +231,7 @@ public final class CompanionManager
         record.cooldownUntil = localServer.overworld().getGameTime() + COOLDOWN_TICKS;
         applyVisualCooldown(player, staff, COOLDOWN_TICKS);
         snapshot(dragon, record);
+        playDismissEffects(dragon);
         dragon.discardForCompanionDismissal();
         registry.changed();
 
@@ -382,6 +387,40 @@ public final class CompanionManager
         Entity changed = dragon.changeDimension(new DimensionTransition(player.serverLevel(), new Vec3(x, y, z),
             Vec3.ZERO, dragon.getYRot(), dragon.getXRot(), DimensionTransition.DO_NOTHING));
         return changed instanceof PetDragon moved ? moved : dragon;
+    }
+
+    @SuppressWarnings("null")
+    private static void playSummonEffects(PetDragon dragon)
+    {
+        if (!(dragon.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        double effectY = dragon.getY() + dragon.getBbHeight() * 0.5D;
+        level.sendParticles(ParticleTypes.REVERSE_PORTAL, dragon.getX(), effectY, dragon.getZ(),
+            45, 0.65D, 0.8D, 0.65D, 0.08D);
+        level.sendParticles(ParticleTypes.END_ROD, dragon.getX(), effectY, dragon.getZ(),
+            16, 0.45D, 0.65D, 0.45D, 0.025D);
+        level.playSound(null, dragon.blockPosition(), SoundEvents.ILLUSIONER_MIRROR_MOVE,
+            SoundSource.NEUTRAL, 1.0F, 0.9F);
+    }
+
+    @SuppressWarnings("null")
+    private static void playDismissEffects(PetDragon dragon)
+    {
+        if (!(dragon.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+
+        double effectY = dragon.getY() + dragon.getBbHeight() * 0.5D;
+        level.sendParticles(ParticleTypes.PORTAL, dragon.getX(), effectY, dragon.getZ(),
+            36, 0.6D, 0.75D, 0.6D, 0.15D);
+        level.sendParticles(ParticleTypes.POOF, dragon.getX(), effectY, dragon.getZ(),
+            18, 0.5D, 0.6D, 0.5D, 0.04D);
+        level.playSound(null, dragon.blockPosition(), SoundEvents.CHORUS_FRUIT_TELEPORT,
+            SoundSource.NEUTRAL, 0.9F, 1.15F);
     }
 
     @SuppressWarnings("null")
