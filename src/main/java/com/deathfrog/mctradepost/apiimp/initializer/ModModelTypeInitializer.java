@@ -3,9 +3,7 @@ package com.deathfrog.mctradepost.apiimp.initializer;
 import com.deathfrog.mctradepost.api.client.render.modeltype.MCTPSimpleModelType;
 import com.deathfrog.mctradepost.api.client.render.modeltype.ModModelTypes;
 import com.minecolonies.api.client.render.modeltype.registry.IModelTypeRegistry;
-import com.minecolonies.core.client.model.FemaleAlchemistModel;
 import com.minecolonies.core.client.model.FemaleCrafterModel;
-import com.minecolonies.core.client.model.MaleAlchemistModel;
 import com.minecolonies.core.client.model.MaleCrafterModel;
 
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -31,12 +29,6 @@ public class ModModelTypeInitializer
     public static void init(final EntityRendererProvider.Context context)
     {
         final IModelTypeRegistry reg = IModelTypeRegistry.getInstance();
-
-        ModModelTypes.SHOPKEEPER = new MCTPSimpleModelType(ModModelTypes.SHOPKEEPER_MODEL_ID, 1, 
-            new MaleAlchemistModel(context.bakeLayer(ModelRegistryHandler.MALE_SHOPKEEPER)), 
-            new FemaleAlchemistModel(context.bakeLayer(ModelRegistryHandler.FEMALE_SHOPKEEPER)));
-            
-        reg.register(ModModelTypes.SHOPKEEPER);
 
         ModModelTypes.GUESTSERVICES = new MCTPSimpleModelType(ModModelTypes.GUESTSERVICES_MODEL_ID, 1, 
             new MaleCrafterModel(context.bakeLayer(ModelRegistryHandler.MALE_GUESTSERVICES)), 

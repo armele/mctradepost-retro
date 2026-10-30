@@ -6,8 +6,6 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class ModModelTypes
 {
-
-    public static final ResourceLocation SHOPKEEPER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "shopkeeper");
     public static final ResourceLocation GUESTSERVICES_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "guestservices");
     public static final ResourceLocation BARTENDER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "bartender");
     public static final ResourceLocation ANIMALTRAINER_MODEL_ID = ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "animaltrainer");

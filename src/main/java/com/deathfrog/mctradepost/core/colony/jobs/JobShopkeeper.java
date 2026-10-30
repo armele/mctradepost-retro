@@ -11,6 +11,7 @@ import com.minecolonies.core.colony.jobs.AbstractJobCrafter;
  * Class of the Shopkeeper job.
  * 
  */
+@SuppressWarnings("unused")
 public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, JobShopkeeper>
 {
     public static final int COUNTER_TRIGGER = 4;
@@ -45,7 +46,7 @@ public class JobShopkeeper extends AbstractJobCrafter<EntityAIWorkShopkeeper, Jo
     @Override
     public ResourceLocation getModel()
     {
-        return ModModelTypes.SHOPKEEPER_MODEL_ID;
+        return com.minecolonies.api.client.render.modeltype.ModModelTypes.NOBLE_ID;
     }
 
     /**

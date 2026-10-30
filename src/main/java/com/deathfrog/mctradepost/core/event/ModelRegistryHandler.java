@@ -2,9 +2,7 @@ package com.deathfrog.mctradepost.core.event;
 
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.minecolonies.core.client.model.FemaleAlchemistModel;
 import com.minecolonies.core.client.model.FemaleCrafterModel;
-import com.minecolonies.core.client.model.MaleAlchemistModel;
 import com.minecolonies.core.client.model.MaleCrafterModel;
 
 import net.minecraft.client.model.geom.ModelLayerLocation;
@@ -29,11 +27,6 @@ public class ModelRegistryHandler
      * Most of these are currently unused until usable citizen skins can be designed.
      * Note that MineColonies citizens use custom models and the skins need to be designed around those models.
     */
-
-    @SuppressWarnings("null")
-    public static final ModelLayerLocation MALE_SHOPKEEPER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_shopkeeper"), "male_shopkeeper");
-    @SuppressWarnings("null")
-    public static final ModelLayerLocation FEMALE_SHOPKEEPER = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "female_shopkeeper"), "female_shopkeeper");
 
     @SuppressWarnings("null")
     public static final ModelLayerLocation MALE_GUESTSERVICES = new ModelLayerLocation(ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "male_guestservices"), "male_guestservices");
@@ -76,8 +69,6 @@ public class ModelRegistryHandler
         event.registerLayerDefinition(AIRSHIP, com.deathfrog.mctradepost.core.client.model.AirshipModel::createBodyLayer);
         event.registerLayerDefinition(TRADE_CART, com.deathfrog.mctradepost.core.client.model.TradeCartModel::createBodyLayer);
         event.registerLayerDefinition(PET_DRAGON, com.deathfrog.mctradepost.core.client.model.PetDragonModel::createBodyLayer);
-        event.registerLayerDefinition(MALE_SHOPKEEPER, MaleAlchemistModel::createMesh);
-        event.registerLayerDefinition(FEMALE_SHOPKEEPER, FemaleAlchemistModel::createMesh);
 
         event.registerLayerDefinition(MALE_GUESTSERVICES, MaleCrafterModel::createMesh);
         event.registerLayerDefinition(FEMALE_GUESTSERVICES, FemaleCrafterModel::createMesh);
