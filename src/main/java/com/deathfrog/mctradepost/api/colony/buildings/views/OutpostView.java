@@ -3,11 +3,11 @@ package com.deathfrog.mctradepost.api.colony.buildings.views;
 import org.jetbrains.annotations.NotNull;
 
 import com.minecolonies.api.colony.IColonyView;
-import com.minecolonies.core.colony.buildings.views.AbstractBuildingBuilderView;
+import com.minecolonies.core.colony.buildings.views.AbstractBuildingView;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
-public class OutpostView extends AbstractBuildingBuilderView 
+public class OutpostView extends AbstractBuildingView
 {
     protected int outpostLevel = 0;
 
