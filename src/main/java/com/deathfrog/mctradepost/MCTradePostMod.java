@@ -526,11 +526,11 @@ public class MCTradePostMod
 
     @SuppressWarnings("null")
     public static final DeferredItem<ImmersionBlenderItem> IMMERSION_BLENDER = ITEMS.register("immersion_blender",
-        () -> new ImmersionBlenderItem(new Item.Properties().durability(100)));
+        () -> new ImmersionBlenderItem(new Item.Properties().durability(100).setNoRepair()));
 
     @SuppressWarnings("null")
     public static final DeferredItem<CurrencyExchangeItem> CURRENCY_EXCHANGE = ITEMS.register("currency_exchange",
-        () -> new CurrencyExchangeItem(new Item.Properties().durability(100)));
+        () -> new CurrencyExchangeItem(new Item.Properties().durability(100).setNoRepair()));
 
     @SuppressWarnings("null")
     public static final DeferredItem<SouvenirItem> SOUVENIR = ITEMS.register("souvenir",
