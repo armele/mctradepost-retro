@@ -277,7 +277,7 @@ public class EntityAIShoppingTask
             return ShoppingState.DONE_SHOPPING;
         }
 
-        if (!EntityNavigationUtils.walkToPos(visitor.getEntity().get(), currentDisplay.getPos().below(), 1, true))
+        if (!EntityNavigationUtils.walkToPos(visitor.getEntity().get(), currentDisplay.getPos().below(), 2, true))
         {
             return ShoppingState.PICK_DISPLAY;
         }
