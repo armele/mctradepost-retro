@@ -236,6 +236,10 @@ public class RitualDefinitionHelper
                 {
                     benefit = "optimizes citizen housing.";
                 }
+                else if (companionItem.equals(MCTradePostMod.WISH_MOON.get()))
+                {
+                    benefit = "reveals sleepless citizens.";
+                }
                 else
                 {
                     benefit = "UNKNOWN (" + companionItem().toString() + ")) report to mod author.";

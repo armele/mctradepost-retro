@@ -17,6 +17,7 @@ import com.minecolonies.api.blocks.ModBlocks;
 import com.minecolonies.api.colony.ICitizenData;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.entity.citizen.citizenhandlers.ICitizenMournHandler;
 import com.minecolonies.core.util.AdvancementUtils;
 import com.minecolonies.api.advancements.AdvancementTriggers;
 
@@ -160,10 +161,22 @@ public final class ResurrectionRitualProcessor
         {
             MCTPAdvancementTriggers.RESURRECT_CITIZEN_WISH.get().trigger(wishingPlayer);
         }
+
+        // End citizen mourning this death.
+        for (ICitizenData colonyCitizen : marketplace.getColony().getCitizenManager().getCitizens())
+        {
+            ICitizenMournHandler mournHandler = colonyCitizen.getCitizenMournHandler();
+            if (!mournHandler.shouldMourn())
+            {
+                mournHandler.setMourning(false);
+            }
+        }
+
         WishingWellHandler.showRitualEffect(level, wellPos);
         notify(level, notificationPlayer, appearedAtWell
             ? "ritual.mctradepost.resurrection.success"
             : "ritual.mctradepost.resurrection.restored_without_entity", citizen.getName());
+
         return RitualState.RitualResult.COMPLETED;
     }
 

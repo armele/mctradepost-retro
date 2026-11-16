@@ -12,6 +12,11 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 @EventBusSubscriber(modid = MCTradePostMod.MODID)
 public class TooltipHandler
 {
+    /**
+     * Adds Trade Post-specific explanatory text to supported item tooltips.
+     *
+     * @param event tooltip event containing the displayed item and mutable tooltip
+     */
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event)
     {
@@ -28,6 +33,10 @@ public class TooltipHandler
         else if (stack.is(NullnessBridge.assumeNonnull(MCTradePostMod.WISH_SHELTER.get())))
         {
             event.getToolTip().add(Component.translatable("com.mctradepost.wishshelter.tooltip"));
+        }
+        else if (stack.is(NullnessBridge.assumeNonnull(MCTradePostMod.WISH_MOON.get())))
+        {
+            event.getToolTip().add(Component.translatable("com.mctradepost.wishmoon.tooltip"));
         }
         else if (stack.is(NullnessBridge.assumeNonnull(MCTradePostMod.blockHutOutpost.get().asItem())))
         {

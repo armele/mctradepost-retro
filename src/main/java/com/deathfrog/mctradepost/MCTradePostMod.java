@@ -506,6 +506,9 @@ public class MCTradePostMod
     public static final DeferredItem<Item> WISH_KNOWLEDGE = ITEMS.register("wish_knowledge",
         () -> new Item(new Item.Properties()));
 
+    public static final DeferredItem<Item> WISH_MOON = ITEMS.register("wish_moon",
+        () -> new Item(new Item.Properties()));
+
     public static final DeferredItem<WishGatheringItem> WISH_GATHERING_COW = ITEMS.register("wish_gathering_cow",
         () -> new WishGatheringItem(new Item.Properties(), PetTypes.COW));
         
@@ -517,6 +520,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<WishGatheringItem> WISH_GATHERING_SHEEP = ITEMS.register("wish_gathering_sheep",
         () -> new WishGatheringItem(new Item.Properties(), PetTypes.SHEEP));
+
+    public static final DeferredItem<WishGatheringItem> WISH_GATHERING_HORSE = ITEMS.register("wish_gathering_horse",
+        () -> new WishGatheringItem(new Item.Properties(), PetTypes.HORSE));
 
     public static final DeferredItem<Item> WISH_SHELTER = ITEMS.register("wish_shelter",
         () -> new Item(new Item.Properties()));
@@ -2168,10 +2174,12 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_PLENTY.get());
                     event.accept(MCTradePostMod.WISH_HEALTH.get());
                     event.accept(MCTradePostMod.WISH_KNOWLEDGE.get());
+                    event.accept(MCTradePostMod.WISH_MOON.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_COW.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_PIG.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_CHICKEN.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_SHEEP.get());
+                    event.accept(MCTradePostMod.WISH_GATHERING_HORSE.get());
                     event.accept(MCTradePostMod.WISH_SHELTER.get());
                     event.accept(MCTradePostMod.WISH_RESURRECTION.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());

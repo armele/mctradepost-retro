@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "A": { "item": "minecraft:andesite" },
+    "C": { "item": "mctradepost:mctp_coin" },
+    "T": { "item": "minecraft:torch" }
+  },
+  "pattern": [
+    "TAT",
+    "ACA",
+    "TAT"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:wish_moon"
+  }
+}

@@ -135,6 +135,8 @@
     "mctradepost:marine_basalt_stairs",
     "mctradepost:marine_basalt_wall",
     "mctradepost:marine_basalt_slab",
+    "mctradepost:wish_knowledge",
+    "mctradepost:wish_shelter",
     "minecraft:enchanted_golden_apple",
     {
       "id": "#mysticalagriculture:mysticalagriculture_seeds_elemental",

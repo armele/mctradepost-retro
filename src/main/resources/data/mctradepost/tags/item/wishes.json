@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "mctradepost:wish_plenty",
+    "mctradepost:wish_health",
+    "mctradepost:wish_knowledge",
+    "mctradepost:wish_moon",
+    "mctradepost:wish_gathering_cow",
+    "mctradepost:wish_gathering_pig",
+    "mctradepost:wish_gathering_chicken",
+    "mctradepost:wish_gathering_sheep",
+    "mctradepost:wish_gathering_horse",
+    "mctradepost:wish_shelter",
+    "mctradepost:wish_resurrection"
+  ]
+}

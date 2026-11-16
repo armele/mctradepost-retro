@@ -116,6 +116,11 @@ public class CommunityRitualProcessor
         }
 
         Item companionItem = BuiltInRegistries.ITEM.get(ritual.companionItem());
+        if (companionItem.equals(MCTradePostMod.WISH_MOON.get()))
+        {
+            return MoonRitualProcessor.process(marketplace, pos, ritual, state);
+        }
+
         if (companionItem.equals(MCTradePostMod.WISH_SHELTER.get()))
         {
             return processRitualShelter(marketplace, pos, ritual, state);

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "#mctradepost:wishes",
     "minecraft:enchanted_book",
     "minecraft:mace",
     "minecraft:heavy_core",
