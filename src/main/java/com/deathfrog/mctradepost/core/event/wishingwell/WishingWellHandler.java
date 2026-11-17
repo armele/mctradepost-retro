@@ -14,6 +14,7 @@ import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionH
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.ResurrectionRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.SowingRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState.RitualResult;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.SummonRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.TransformRitualProcessor;
@@ -491,6 +492,10 @@ public class WishingWellHandler
 
                     case RitualManager.RITUAL_EFFECT_RESURRECTION:
                         result = ResurrectionRitualProcessor.process(marketplace, pos, state);
+                        break;
+
+                    case RitualManager.RITUAL_EFFECT_SOWING:
+                        result = SowingRitualProcessor.process(marketplace, pos, state);
                         break;
 
                     default:

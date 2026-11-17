@@ -260,6 +260,10 @@ public class RitualDefinitionHelper
                 text = "Resurrects the recently buried citizen bound to this wish. Cost increases the longer ago the citizen was buried.";
                 break;
 
+            case RitualManager.RITUAL_EFFECT_SOWING:
+                text = "Plants empty positions in the bound farm field.";
+                break;
+
             default:
                 text = "Broken ritual! Ritual type not recognized: " + ritualDefinition.effect();
                 break;

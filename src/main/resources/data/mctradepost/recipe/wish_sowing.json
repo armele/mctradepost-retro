@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": { "item": "minecraft:bone_meal" },
+    "G": { "item": "mctradepost:mctp_coin_gold" },
+    "S": { "item": "minecraft:wheat_seeds" }
+  },
+  "pattern": [
+    "SBS",
+    "BGB",
+    "SBS"
+  ],
+  "result": {
+    "count": 1,
+    "id": "mctradepost:wish_sowing"
+  }
+}

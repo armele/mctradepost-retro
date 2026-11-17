@@ -132,6 +132,7 @@ import com.deathfrog.mctradepost.item.ScrapPileItem;
 import com.deathfrog.mctradepost.item.SouvenirItem.SouvenirRecord;
 import com.deathfrog.mctradepost.item.WishGatheringItem;
 import com.deathfrog.mctradepost.item.WishResurrectionItem;
+import com.deathfrog.mctradepost.item.WishSowingItem;
 import com.deathfrog.mctradepost.network.ConfigurationPacket;
 import com.deathfrog.mctradepost.network.ItemValueSyncPacket;
 import com.deathfrog.mctradepost.recipe.DeconstructionRecipe;
@@ -526,6 +527,9 @@ public class MCTradePostMod
 
     public static final DeferredItem<Item> WISH_SHELTER = ITEMS.register("wish_shelter",
         () -> new Item(new Item.Properties()));
+
+    public static final DeferredItem<WishSowingItem> WISH_SOWING = ITEMS.register("wish_sowing",
+        () -> new WishSowingItem(new Item.Properties()));
 
     public static final DeferredItem<WishResurrectionItem> WISH_RESURRECTION = ITEMS.register("wish_resurrection",
         () -> new WishResurrectionItem(new Item.Properties()));
@@ -2181,6 +2185,7 @@ public class MCTradePostMod
                     event.accept(MCTradePostMod.WISH_GATHERING_SHEEP.get());
                     event.accept(MCTradePostMod.WISH_GATHERING_HORSE.get());
                     event.accept(MCTradePostMod.WISH_SHELTER.get());
+                    event.accept(MCTradePostMod.WISH_SOWING.get());
                     event.accept(MCTradePostMod.WISH_RESURRECTION.get());
                     event.accept(MCTradePostMod.OUTPOST_CLAIM.get());
                     event.accept(MCTradePostMod.STEWPOT_FILLED.get());

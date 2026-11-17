@@ -5,6 +5,7 @@ import com.deathfrog.mctradepost.api.items.datacomponent.DimensionalLinkageRecor
 import com.deathfrog.mctradepost.api.items.datacomponent.CompanionStaffRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RecyclableRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.ResurrectionWishRecord;
+import com.deathfrog.mctradepost.api.items.datacomponent.SowingWishRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.RouteSurveyRecord;
 import com.deathfrog.mctradepost.api.items.datacomponent.NavigationChartRecord;
 import com.deathfrog.mctradepost.item.NavigationChartItem;
@@ -63,6 +64,12 @@ public class MCTPModDataComponents
         REGISTRAR.registerComponentType("resurrection_wish",
             builder -> builder.persistent(ResurrectionWishRecord.CODEC)
                 .networkSynchronized(ResurrectionWishRecord.STREAM_CODEC));
+
+    @SuppressWarnings("null")
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SowingWishRecord>> SOWING_WISH =
+        REGISTRAR.registerComponentType("sowing_wish",
+            builder -> builder.persistent(SowingWishRecord.CODEC)
+                .networkSynchronized(SowingWishRecord.STREAM_CODEC));
 
     @SuppressWarnings("null")
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<RouteSurveyRecord>> ROUTE_SURVEY =
