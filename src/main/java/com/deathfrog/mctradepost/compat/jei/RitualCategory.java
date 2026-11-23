@@ -6,6 +6,7 @@ import com.deathfrog.mctradepost.MCTradePostMod;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.UnderstandingGuideBook;
 import com.deathfrog.mctradepost.item.CoinItem;
 
 import mezz.jei.api.constants.VanillaTypes;
@@ -135,6 +136,10 @@ public class RitualCategory implements IRecipeCategory<RitualDefinitionHelper>
         if (recipe.effect().equals(RitualManager.RITUAL_EFFECT_TRANSFORM) && targetItem != null)
         {
             result = new ItemStack(targetItem, recipe.companionItemCount());
+        }
+        else if (recipe.effect().equals(RitualManager.RITUAL_EFFECT_UNDERSTANDING))
+        {
+            result = UnderstandingGuideBook.create();
         }
 
         // MCTradePostMod.LOGGER.info("Setting up ritual in the JEI for companion item: {}", recipe.companionItem());

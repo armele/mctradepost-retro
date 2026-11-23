@@ -1,0 +1,9 @@
+{
+  "companion_item": "minecraft:book",
+  "companion_item_count": 1,
+  "effect_type": "understanding",
+  "target": "",
+  "radius": -1,
+  "coin_cost": 1,
+  "coin_type": "mctradepost:mctp_coin"
+}

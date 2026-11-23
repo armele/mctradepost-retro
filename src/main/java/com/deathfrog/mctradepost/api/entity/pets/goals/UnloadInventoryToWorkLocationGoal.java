@@ -27,6 +27,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 
 import com.deathfrog.mctradepost.api.entity.pets.ITradePostPet;
 import com.deathfrog.mctradepost.api.entity.pets.PetRoles;
+import com.deathfrog.mctradepost.api.entity.pets.PetTypes;
 import com.deathfrog.mctradepost.api.util.ItemHandlerHelpers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
@@ -104,10 +105,8 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     }
 
     /**
-     * Determines if the pet needs to unload its inventory at its current work location. This method checks if the pet has an
-     * inventory, and if so, counts the number of non-empty slots in the inventory. If the pet has an inventory and the fraction of
-     * non-empty slots in the inventory is greater than or equal to the unload threshold, it returns true, indicating that the pet
-     * needs to unload its inventory.
+     * Determines if the pet needs to unload its inventory at its current work location. A full stackable non-food stack triggers an
+     * early unload. Otherwise, unloading is required when the fraction of occupied inventory slots reaches the configured threshold.
      * 
      * @return true if the pet needs to unload its inventory, false otherwise
      */
@@ -115,30 +114,44 @@ public class UnloadInventoryToWorkLocationGoal<P extends Animal & ITradePostPet>
     {
         ItemStackHandler petInventory = pet.getInventory();
 
-        if (petInventory == null) return false;
+        if (petInventory == null)
+        {
+            return false;
+        }
         
         // TraceUtils.dynamicTrace(TRACE_PETGOALS, () -> LOGGER.info("Pet {} inventory handler: {} (hash={})", pet.getUUID(), petInventory.getClass().getName(), System.identityHashCode(petInventory)));
 
-        int fullSlots = 0;
+        int occupiedSlots = 0;
         int totalSlots = petInventory.getSlots();
 
-        if (totalSlots <= 0) return false;
+        if (totalSlots <= 0)
+        {
+            return false;
+        }
 
         for (int i = 0; i < totalSlots; i++)
         {
-            ItemStack s = petInventory.getStackInSlot(i);
-            // LOGGER.info("  Pet {} slot {}: {} x {}", pet.getUUID(),i, s.getCount(), s.getItem());
+            ItemStack stack = petInventory.getStackInSlot(i);
+            // LOGGER.info("  Pet {} slot {}: {} x {}", pet.getUUID(), i, stack.getCount(), stack.getItem());
 
-            if (!s.isEmpty())
+            if (stack.isEmpty())
             {
-                fullSlots++;
+                continue;
+            }
+
+            occupiedSlots++;
+
+            int stackCapacity = Math.min(stack.getMaxStackSize(), petInventory.getSlotLimit(i));
+            if (stackCapacity > 1 && stack.getCount() >= stackCapacity && !PetTypes.isPetFood(stack))
+            {
+                return true;
             }
         }
 
-        float fillPct = ((float) fullSlots / totalSlots);
+        float fillPct = ((float) occupiedSlots / totalSlots);
 
-        final int fullSlotsForLogging = fullSlots;
-        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, full slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, fullSlotsForLogging, totalSlots));
+        final int occupiedSlotsForLogging = occupiedSlots;
+        TraceUtils.dynamicTrace(TRACE_PETOTHERGOALS, () -> LOGGER.info("Unload threshold for pet {}: {}, fill pct: {}, occupied slots: {}, total slots: {}", pet.getUUID(), unloadThreshold, fillPct, occupiedSlotsForLogging, totalSlots));
 
         return fillPct >= unloadThreshold;
     }

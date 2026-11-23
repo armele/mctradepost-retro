@@ -264,6 +264,10 @@ public class RitualDefinitionHelper
                 text = "Plants empty positions in the bound farm field.";
                 break;
 
+            case RitualManager.RITUAL_EFFECT_UNDERSTANDING:
+                text = "Creates a guide to Trade Post wishing-well rituals.";
+                break;
+
             default:
                 text = "Broken ritual! Ritual type not recognized: " + ritualDefinition.effect();
                 break;

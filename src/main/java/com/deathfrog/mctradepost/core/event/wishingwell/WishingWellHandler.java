@@ -2,7 +2,6 @@
 package com.deathfrog.mctradepost.core.event.wishingwell;
 
 import com.deathfrog.mctradepost.MCTradePostMod;
-import com.deathfrog.mctradepost.api.advancements.MCTPAdvancementTriggers;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.core.blocks.BlockMixedStone;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
@@ -10,6 +9,7 @@ import com.deathfrog.mctradepost.core.entity.CoinEntity;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.CommunityRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.OutpostRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.KnowledgeRitualProcessor;
+import com.deathfrog.mctradepost.core.event.wishingwell.ritual.UnderstandingRitualProcessor;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualDefinitionHelper;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualManager;
 import com.deathfrog.mctradepost.core.event.wishingwell.ritual.RitualState;
@@ -24,7 +24,6 @@ import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.core.util.AdvancementUtils;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -33,7 +32,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -113,7 +111,6 @@ public class WishingWellHandler
      * @param level       The server level containing the marketplace building.
      * @param marketplace The marketplace building containing the wishing wells.
      */
-    @SuppressWarnings("null")
     protected static void processMarketplaceRituals(@Nonnull ServerLevel level, @Nonnull BuildingMarketplace marketplace)
     {
         WellLocations data = marketplace.getRitualData();
@@ -204,15 +201,7 @@ public class WishingWellHandler
 
                     case COMPLETED:
                         LOGGER.info("Wishing well {} at {} with companion item {}", result, center, companionType);
-                        sameTypeCompanions.forEach(Entity::discard); // remove every companion
                         rituals.remove(pos);
-
-                        AdvancementUtils.TriggerAdvancementPlayersForColony(marketplace.getColony(), player -> {
-                            if (player != null)
-                            {
-                                MCTPAdvancementTriggers.MAKE_WISH.get().trigger(player);
-                            }
-                        });
 
                         break;
 
@@ -498,6 +487,10 @@ public class WishingWellHandler
                         result = SowingRitualProcessor.process(marketplace, pos, state);
                         break;
 
+                    case RitualManager.RITUAL_EFFECT_UNDERSTANDING:
+                        result = UnderstandingRitualProcessor.process(marketplace, pos, ritual, state);
+                        break;
+
                     default:
                         LOGGER.warn("Unknown ritual effect: {}", ritual.effect());
                         break;
@@ -505,6 +498,7 @@ public class WishingWellHandler
 
                 if (result == RitualResult.COMPLETED)
                 {
+                    state.burnCompanionItems(ritual.companionItemCount());
                     state.burnCoins(requiredCoins);
                 }
 

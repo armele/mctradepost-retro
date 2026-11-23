@@ -133,6 +133,42 @@ public class RitualState
     }
 
     /**
+     * Removes the requested number of companion items while preserving any excess items in their original entities.
+     *
+     * @param amount number of companion items to consume
+     */
+    public void burnCompanionItems(int amount)
+    {
+        int toBurn = amount;
+        if (toBurn <= 0 || this.companionItems == null)
+        {
+            return;
+        }
+
+        for (ItemEntity entity : this.companionItems)
+        {
+            if (toBurn <= 0)
+            {
+                break;
+            }
+
+            ItemStack stack = entity.getItem();
+            int inStack = stack.getCount();
+
+            if (inStack > toBurn)
+            {
+                stack.shrink(toBurn);
+                toBurn = 0;
+            }
+            else
+            {
+                toBurn -= inStack;
+                entity.discard();
+            }
+        }
+    }
+
+    /**
      * Returns the total number of items in the companion items list.
      * @return the total number of companion items
      */

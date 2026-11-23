@@ -3,7 +3,7 @@
   "display": {
     "icon": {
       "count": 1,
-      "id": "mctradepost:quartz_mortar"
+      "id": "minecraft:written_book"
     },
     "title": {
       "translate": "advancement.mctradepost.make_a_wish.title"
@@ -20,7 +20,7 @@
     "experience": 100
   },
   "criteria": {
-    "make_wish": {
+    "wish_of_understanding": {
       "trigger": "mctradepost:make_wish"
     }
   }
