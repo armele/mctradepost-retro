@@ -19,6 +19,7 @@
             <text id="tierBadge" size="28 12" pos="143 1" textalign="MIDDLE" color="white"/>
             <button label="$(com.minecolonies.coremod.gui.scantool.select)" id="select" pos="174 1" size="72 17"
                          source="minecolonies:textures/gui/builderhut/builder_button_medium.png" color="black"/>
+            <text id="rowValue" size="38 12" pos="249 1" textalign="MIDDLE_RIGHT" color="white"/>
         </box>
     </list>
 

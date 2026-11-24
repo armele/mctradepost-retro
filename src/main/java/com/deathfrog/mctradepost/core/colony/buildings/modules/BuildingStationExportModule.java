@@ -1,6 +1,7 @@
 package com.deathfrog.mctradepost.core.colony.buildings.modules;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
@@ -12,13 +13,18 @@ import org.slf4j.Logger;
 
 import com.deathfrog.mctradepost.MCTPConfig;
 import com.deathfrog.mctradepost.api.entity.GhostCartEntity;
+import com.deathfrog.mctradepost.core.blocks.blockentity.MooringBayBlockEntity;
 import com.deathfrog.mctradepost.api.research.MCTPResearchConstants;
 import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.NullnessBridge;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingStation;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.AirRouteConnection;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.EntityAIWorkStationMaster;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection;
+import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRouteConnection;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.buildings.modules.AbstractBuildingModule;
 import com.minecolonies.api.colony.buildings.modules.IAltersRequiredItems;
@@ -30,6 +36,7 @@ import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.NbtTagConstants;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -47,6 +54,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public static final int BASE_TICK_MOVEMENT = 10;
+    private static final int RETURN_ROUTE_RETRY_DELAY = 20;
 
     /**
      * The import tag name.
@@ -74,6 +82,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     private static final String TAG_SHIPMENT_COUNTDOWN = "shipCountdown";
 
     private static final String TAG_REVERSE = "reverse";
+    private static final String TAG_SHIPMENT_ID = "shipmentId";
+    private static final String TAG_SOURCE_STATION = "sourceStation";
+    private static final String TAG_RETURN_STATE = "returnState";
+    private static final String TAG_LAUNCH_DELAY = "launchDelay";
+    private static final String TAG_GAS_CHARGED = "gasCharged";
+    private static final String TAG_RETURN_WAIT_REASON = "returnWaitReason";
 
     /**
      * Tag for the last day this export was shipped.
@@ -104,6 +118,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param compound The CompoundTag containing the serialized state of the
      *                 trade list.
      */
+    @SuppressWarnings("null")
     @Override
     public void deserializeNBT(@NotNull final HolderLookup.Provider provider, final CompoundTag compound)
     {
@@ -133,22 +148,69 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             boolean nsf = compoundNBT.getBoolean(TAG_NSF);
             boolean reverse = compoundNBT.getBoolean(TAG_REVERSE);
             IToken<?> requestToken = null;
-
-            if (compound.contains(TAG_REQUEST_TOKEN)) 
+            UUID shipmentId = compoundNBT.hasUUID(TAG_SHIPMENT_ID) ? compoundNBT.getUUID(TAG_SHIPMENT_ID) : UUID.randomUUID();
+            StationData sourceStation = compoundNBT.contains(TAG_SOURCE_STATION)
+                ? StationData.fromNBT(compoundNBT.getCompound(TAG_SOURCE_STATION)) : null;
+            if (sourceStation == null && !reverse)
             {
-                requestToken = StandardFactoryController.getInstance().deserializeTag(provider, compound.getCompound(TAG_REQUEST_TOKEN));
+                // Older ordinary exports always originated at their queue-owning station. Preserve that behavior across migration.
+                sourceStation = new StationData((ITradeCapable) building);
+            }
+
+            if (compoundNBT.contains(TAG_REQUEST_TOKEN))
+            {
+                requestToken = StandardFactoryController.getInstance().deserializeTag(provider,
+                    compoundNBT.getCompound(TAG_REQUEST_TOKEN));
+            }
+            else if (exportListTag.size() == 1 && compound.contains(TAG_REQUEST_TOKEN))
+            {
+                requestToken = StandardFactoryController.getInstance().deserializeTag(provider,
+                    compound.getCompound(TAG_REQUEST_TOKEN));
             }
 
 
             if (station != null)
             {
-                ExportData exportData = new ExportData((BuildingStation) building, station, itemStorage, cost, reverse);
+                ExportData exportData = new ExportData(shipmentId, sourceStation, station, itemStorage, cost, reverse);
                 exportData.setTrackDistance(trackDistance);
                 exportData.setLastShipDay(lastShipDay);
                 exportData.setShipDistance(shipDistance);
                 exportData.setInsufficientFunds(nsf);
                 exportData.setShipmentCountdown(shipmentCountdown);
                 exportData.setRequestToken(requestToken);
+                if (reverse)
+                {
+                    ExportData.ReturnShipmentState state = shipDistance >= 0
+                        ? ExportData.ReturnShipmentState.IN_TRANSIT : ExportData.ReturnShipmentState.READY;
+                    if (compoundNBT.contains(TAG_RETURN_STATE))
+                    {
+                        try
+                        {
+                            state = ExportData.ReturnShipmentState.valueOf(compoundNBT.getString(TAG_RETURN_STATE));
+                        }
+                        catch (IllegalArgumentException exception)
+                        {
+                            LOGGER.warn("Unknown return shipment state '{}' for shipment {}; using {}.",
+                                compoundNBT.getString(TAG_RETURN_STATE), shipmentId, state);
+                        }
+                    }
+                    exportData.setReturnShipmentState(state);
+                    exportData.setLaunchDelay(compoundNBT.getInt(TAG_LAUNCH_DELAY));
+                    exportData.setGasCharged(compoundNBT.getBoolean(TAG_GAS_CHARGED));
+                    if (compoundNBT.contains(TAG_RETURN_WAIT_REASON))
+                    {
+                        try
+                        {
+                            exportData.setReturnWaitReason(ExportData.ReturnWaitReason.valueOf(
+                                compoundNBT.getString(TAG_RETURN_WAIT_REASON)));
+                        }
+                        catch (IllegalArgumentException exception)
+                        {
+                            LOGGER.warn("Unknown return wait reason '{}' for shipment {}; clearing it.",
+                                compoundNBT.getString(TAG_RETURN_WAIT_REASON), shipmentId);
+                        }
+                    }
+                }
                 exportList.add(exportData);
             }
         }
@@ -162,9 +224,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
      * @param compound The CompoundTag containing the serialized state of the
      *                 trade list.
      */
+    @SuppressWarnings("null")
     @Override
     public void serializeNBT(@NotNull final HolderLookup.Provider provider, CompoundTag compound)
     {
+        // Remove the pre-per-export token location so stale saves cannot re-associate it with a later single export.
+        compound.remove(TAG_REQUEST_TOKEN);
         @NotNull final ListTag exportListTag = new ListTag();
         for (ExportData exportData : exportList)
         {
@@ -191,6 +256,19 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
             compoundNBT.putBoolean(TAG_NSF, exportData.isInsufficientFunds());
             compoundNBT.putInt(TAG_SHIPMENT_COUNTDOWN, exportData.getShipmentCountdown());
             compoundNBT.putBoolean(TAG_REVERSE, exportData.isReverse());
+            compoundNBT.putUUID(TAG_SHIPMENT_ID, exportData.getShipmentId());
+
+            if (exportData.getSourceStationData() != null)
+            {
+                compoundNBT.put(TAG_SOURCE_STATION, exportData.getSourceStationData().toNBT());
+            }
+            if (exportData.isReverse() && exportData.getReturnShipmentState() != null)
+            {
+                compoundNBT.putString(TAG_RETURN_STATE, exportData.getReturnShipmentState().name());
+                compoundNBT.putInt(TAG_LAUNCH_DELAY, exportData.getLaunchDelay());
+                compoundNBT.putBoolean(TAG_GAS_CHARGED, exportData.isGasCharged());
+                compoundNBT.putString(TAG_RETURN_WAIT_REASON, exportData.getReturnWaitReason().name());
+            }
 
             if (exportData.getRequestToken() != null)
             {
@@ -198,7 +276,7 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
                 if (outpostToken != null)
                 {
-                    compound.put(TAG_REQUEST_TOKEN, outpostToken);
+                    compoundNBT.put(TAG_REQUEST_TOKEN, outpostToken);
                 }
             }
 
@@ -286,9 +364,65 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     }
 
     /**
+     * Recovers an escrowed return shipment to the main station and removes its queue entry.
+     *
+     * @param exportData return shipment to recover
+     * @return true when the shipment was present and recovered
+     */
+    public boolean recoverReturnToMain(ExportData exportData)
+    {
+        if (exportData == null || !exportData.isReverse() || !exportList.contains(exportData))
+        {
+            return false;
+        }
+
+        MCTPInventoryUtils.insertOrDropByQuantity(building, exportData.getTradeItem());
+        exportData.setReturnShipmentState(ExportData.ReturnShipmentState.DELIVERED);
+        return removeExport(exportData);
+    }
+
+    /**
+     * Removes a return record whose creation did not commit. The caller still owns the cargo, so this operation performs no recovery.
+     *
+     * @param exportData uncommitted return record
+     */
+    public void discardUncommittedReturn(ExportData exportData)
+    {
+        if (exportData != null && exportList.remove(exportData))
+        {
+            exportData.discardCart();
+            markDirty();
+        }
+    }
+
+    /**
+     * Tests whether this queue contains a ready return from an endpoint waiting for the specified reason.
+     *
+     * @param source source outpost identity
+     * @param reason wait reason to match
+     * @return true when a matching return is waiting
+     */
+    public boolean hasWaitingReturnFrom(StationData source, ExportData.ReturnWaitReason reason)
+    {
+        for (ExportData exportData : exportList)
+        {
+            if (exportData.isReverse()
+                && exportData.getReturnShipmentState() == ExportData.ReturnShipmentState.READY
+                && source.equals(exportData.getSourceStationData())
+                && exportData.getReturnWaitReason() == reason)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Removes the given export data from the list of configured exports for this station.
      * If the export data is found in the list, it is removed and the module is marked as dirty.
      * 
+     * Escrowed return cargo is recovered to the queue-owning main station before removal unless it was already delivered.
+     *
      * @param exportData the export data to remove.
      * @return true if the export data was found and removed, false otherwise.
      */
@@ -297,6 +431,14 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         if (exportData == null)
         {
             return false;
+        }
+
+        if (exportData.isReverse()
+            && exportData.getReturnShipmentState() != ExportData.ReturnShipmentState.DELIVERED
+            && exportList.contains(exportData))
+        {
+            MCTPInventoryUtils.insertOrDropByQuantity(building, exportData.getTradeItem());
+            exportData.setReturnShipmentState(ExportData.ReturnShipmentState.DELIVERED);
         }
 
         boolean removed = exportList.remove(exportData);
@@ -382,7 +524,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     {
         for (ExportData exportData : exportList) 
         {
-            if (exportData.getShipDistance() >= 0)
+            if (exportData.isReverse())
+            {
+                MCTPInventoryUtils.insertOrDropByQuantity(building, exportData.getTradeItem());
+                exportData.setReturnShipmentState(ExportData.ReturnShipmentState.DELIVERED);
+            }
+            else if (exportData.getShipDistance() >= 0)
             {
                 // Refund trade-in-progress items to the building.
                 MCTPInventoryUtils.insertOrDropByQuantity(building, exportData.getTradeItem());
@@ -412,6 +559,12 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
 
         for (ExportData exportData : exportList) 
         {
+            if (exportData.isReverse() && exportData.getReturnShipmentState() == ExportData.ReturnShipmentState.READY)
+            {
+                dispatchReturnShipment(exportData);
+                continue;
+            }
+
             int shipDistance = exportData.getShipDistance();
             if (shipDistance >= 0)
             { 
@@ -448,6 +601,117 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
     }
 
     /**
+     * Attempts to launch an escrowed outpost return using the main station's cached forward route and Lifting Gas.
+     * Ordinary station exports never enter this method.
+     *
+     * @param exportData ready return shipment
+     */
+    private void dispatchReturnShipment(ExportData exportData)
+    {
+        if (exportData.getLaunchDelay() > 0)
+        {
+            exportData.decrementLaunchDelay();
+            markDirty();
+            return;
+        }
+
+        StationData sourceData = exportData.getSourceStationData();
+        ITradeCapable source = exportData.getSourceStation();
+        if (sourceData == null || source == null)
+        {
+            LOGGER.warn("Recovering return shipment {} to the main station because its source is unavailable.",
+                exportData.getShipmentId());
+            recoverReturnToMain(exportData);
+            return;
+        }
+
+        BuildingStation owner = (BuildingStation) building;
+        TrackPathConnection.TrackConnectionResult connection = owner.getTrackConnectionResult(sourceData);
+        if (connection == null || !connection.isConnected())
+        {
+            connection = TrackRouteConnection.findRoute(owner, sourceData, true);
+            if (connection != null)
+            {
+                owner.putTrackConnectionResult(sourceData, connection);
+            }
+            if (connection == null || !connection.isConnected())
+            {
+                exportData.setReturnWaitReason(ExportData.ReturnWaitReason.ROUTE_UNAVAILABLE);
+                exportData.setLaunchDelay(RETURN_ROUTE_RETRY_DELAY);
+                markDirty();
+                return;
+            }
+        }
+
+        net.minecraft.server.level.ServerLevel serverLevel =
+            (net.minecraft.server.level.ServerLevel) building.getColony().getWorld();
+        boolean routeValid = connection.getRoute() == null
+            ? TrackPathConnection.validateExistingPath(serverLevel, connection)
+            : TrackRouteConnection.validateExistingRoute(serverLevel.getServer(), connection);
+        if (!routeValid)
+        {
+            TrackPathConnection.TrackConnectionResult replacement = TrackRouteConnection.findRoute(owner, sourceData, true);
+            if (replacement != null)
+            {
+                owner.putTrackConnectionResult(sourceData, replacement);
+            }
+            if (replacement == null || !replacement.isConnected())
+            {
+                exportData.setReturnWaitReason(ExportData.ReturnWaitReason.ROUTE_UNAVAILABLE);
+                exportData.setLaunchDelay(RETURN_ROUTE_RETRY_DELAY);
+            }
+            markDirty();
+            return;
+        }
+
+        if (!AirRouteConnection.canLaunch(owner, source, connection.getRoute()))
+        {
+            exportData.setReturnWaitReason(ExportData.ReturnWaitReason.AIR_ROUTE_UNAVAILABLE);
+            markDirty();
+            return;
+        }
+
+        int roundTripGasCost = roundTripGasCost(AirRouteConnection.liftingGasCost(connection.getRoute()));
+        MooringBayBlockEntity departureBay = AirRouteConnection.departureBay(
+            serverLevel, connection.getRoute());
+
+        if (roundTripGasCost > 0 && (departureBay == null || departureBay.drainGas(roundTripGasCost, true) < roundTripGasCost))
+        {
+            exportData.setReturnWaitReason(ExportData.ReturnWaitReason.INSUFFICIENT_GAS);
+            markDirty();
+            return;
+        }
+
+        int gasDebited = roundTripGasCost > 0 && departureBay != null ? departureBay.drainGas(roundTripGasCost, false) : 0;
+        if (gasDebited < roundTripGasCost)
+        {
+            exportData.setReturnWaitReason(ExportData.ReturnWaitReason.INSUFFICIENT_GAS);
+            markDirty();
+            return;
+        }
+
+        if (gasDebited > 0)
+        {
+            building.getModule(BuildingModules.STATS_MODULE)
+                .incrementBy(EntityAIWorkStationMaster.LIFTING_GAS_USED, gasDebited);
+        }
+
+        exportData.setGasCharged(true);
+        exportData.setReturnWaitReason(ExportData.ReturnWaitReason.NONE);
+        exportData.setTrackDistance(connection.getRouteDistance());
+        exportData.setShipDistance(0);
+        exportData.setReturnShipmentState(ExportData.ReturnShipmentState.IN_TRANSIT);
+        exportData.setLastShipDay(building.getColony().getDay());
+        markDirty();
+    }
+
+    /** Calculates the main-funded outbound-and-return gas debit with overflow protection. */
+    static int roundTripGasCost(int oneWayGasCost)
+    {
+        return oneWayGasCost > Integer.MAX_VALUE / 2 ? Integer.MAX_VALUE : oneWayGasCost * 2;
+    }
+
+    /**
      * Modifies the items to be kept in the inventory. This method is called when the inventory is about to be cleared.
      * Any items expected to be exported are added to the list of items to be kept.
      * @param consumer The consumer to call for each item in the inventory.
@@ -459,6 +723,11 @@ public class BuildingStationExportModule extends AbstractBuildingModule implemen
         {
             for(ExportData data : exportList)
             {
+                if (data.isReverse())
+                {
+                    continue;
+                }
+
                 ItemStorage item = data.getTradeItem();
                 int quantity = data.getQuantity();
                 consumer.accept(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(stack, item.getItemStack(), false, true), quantity, false);

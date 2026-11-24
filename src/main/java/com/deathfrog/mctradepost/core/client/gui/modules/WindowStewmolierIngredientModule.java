@@ -119,7 +119,10 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
             stack -> null,
             this::ingredientBadge,
             this::ingredientBadgeTooltip,
-            this::warehouseCountTooltip).open();
+            this::warehouseCountTooltip,
+            this::warehouseCountLabel,
+            this::warehouseCountTooltip,
+            moduleView::getWarehouseSnapshotVersion).open();
         
         updateIngredientList();
 
@@ -225,6 +228,20 @@ public class WindowStewmolierIngredientModule extends AbstractModuleWindow<Stewm
             ? Component.translatable("mctradepost.stewmelier.ingredient.selection.availability",
                 moduleView.getWarehouseItemCount(stack))
             : Component.translatable("mctradepost.stewmelier.ingredient.availability.no_warehouse");
+    }
+
+    /**
+     * Builds the compact warehouse count displayed in an ingredient selection row.
+     *
+     * @param stack candidate stew ingredient
+     * @return raw warehouse quantity, or an em dash when no warehouse is available
+     */
+    @SuppressWarnings("null")
+    private Component warehouseCountLabel(final ItemStack stack)
+    {
+        return moduleView.isWarehouseAvailable()
+            ? Component.literal(Integer.toString(moduleView.getWarehouseItemCount(stack)))
+            : Component.literal("\u2014");
     }
 
     /** Updates tier availability, tooltips, and current pot progress. */

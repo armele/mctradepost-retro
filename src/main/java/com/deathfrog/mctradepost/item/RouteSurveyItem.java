@@ -104,12 +104,14 @@ public class RouteSurveyItem extends Item
             return InteractionResult.FAIL;
         }
 
+        /*
         if (record.originColonyId() == colony.getID())
         {
             player.displayClientMessage(Component.translatable("item.mctradepost.route_survey.same_colony"), true);
             return InteractionResult.FAIL;
         }
-
+        */
+       
         stack.set(MCTPModDataComponents.ROUTE_SURVEY.get(), record.withDestination(endpoint, colony.getName(), colony.getID()));
         player.displayClientMessage(
             Component.translatable("item.mctradepost.route_survey.complete", colony.getName(), pos.toShortString()),

@@ -1,15 +1,20 @@
 package com.deathfrog.mctradepost.apiimp.initializer;
 
 import com.minecolonies.api.colony.interactionhandling.InteractionValidatorRegistry;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCowboy;
 import com.minecolonies.core.colony.buildings.workerbuildings.BuildingKitchen;
+import com.minecolonies.core.colony.buildings.workerbuildings.BuildingCook;
+import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 
 import net.minecraft.network.chat.Component;
 
 import static com.deathfrog.mctradepost.core.entity.ai.workers.minimal.EntityAIBurnoutTask.GREAT_VACATION;
 
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.StewTier;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingMarketplace;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
@@ -27,6 +32,11 @@ public class MCTPInteractionInitializer
     public static final String DISCONNECTED_OUTPOST         = "com.mctradepost.outpost.disconnected";
     public static final String MISSING_OUTPOST_BUILDINGS    = "com.mctradepost.outpost.missing";
     public static final String OUTPOST_INVENTORY_FULL       = "com.mctradepost.outpost.full_inventory";
+    public static final String OUTPOST_NO_RESTAURANT        = "com.mctradepost.outpost.no_restaurant";
+    public static final String OUTPOST_RESTAURANT_NO_MENU   = "com.mctradepost.outpost.restaurant_no_menu";
+    public static final String OUTPOST_RETURN_ROUTE         = "com.mctradepost.outpost.return_route";
+    public static final String OUTPOST_RETURN_AIR_ROUTE     = "com.mctradepost.outpost.return_air_route";
+    public static final String OUTPOST_RETURN_GAS           = "com.mctradepost.outpost.return_gas";
     public static final String NO_COWS                      = "entity.dairyworker.nocows";
     public static final String NO_STEWPOT                   = "entity.stewmelier.nostewpot";
     public static final String NO_INGREDIENTS               = "entity.stewmelier.noingredients";
@@ -42,6 +52,9 @@ public class MCTPInteractionInitializer
     public static final String ANIMAL_NSF                   = "entity.animaltrainier.nsf";
     public static final String NO_LIFTING_GAS               = "entity.stationmaster.no_lifting_gas";
 
+    /**
+     * Registers the validators that keep Trade Post citizen interactions current as their underlying problems are resolved.
+     */
     public static void injectInteractionHandlers() 
     {
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(GREAT_VACATION),
@@ -65,6 +78,29 @@ public class MCTPInteractionInitializer
             && citizen.getWorkBuilding() != null 
             && (citizen.getWorkBuilding() instanceof BuildingOutpost workOutpost && InventoryUtils.isBuildingFull(workOutpost))
         );
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(OUTPOST_NO_RESTAURANT),
+            citizen -> citizen.getColony() != null
+                && citizen.getWorkBuilding() instanceof BuildingOutpost
+                && !hasRestaurant(citizen.getColony()));
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(OUTPOST_RESTAURANT_NO_MENU),
+            citizen -> citizen.getColony() != null
+                && citizen.getWorkBuilding() instanceof BuildingOutpost
+                && hasRestaurant(citizen.getColony())
+                && !hasRestaurantWithMenu(citizen.getColony()));
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(OUTPOST_RETURN_ROUTE),
+            citizen -> citizen.getWorkBuilding() instanceof BuildingOutpost outpost
+                && outpost.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.ROUTE_UNAVAILABLE));
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(OUTPOST_RETURN_AIR_ROUTE),
+            citizen -> citizen.getWorkBuilding() instanceof BuildingOutpost outpost
+                && outpost.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.AIR_ROUTE_UNAVAILABLE));
+
+        InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(OUTPOST_RETURN_GAS),
+            citizen -> citizen.getWorkBuilding() instanceof BuildingOutpost outpost
+                && outpost.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.INSUFFICIENT_GAS));
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_COWS),
           citizen -> citizen.getWorkBuilding() instanceof BuildingCowboy && citizen.getJob(JobDairyworker.class).checkForCowInteraction());
@@ -113,5 +149,31 @@ public class MCTPInteractionInitializer
 
         InteractionValidatorRegistry.registerStandardPredicate(Component.translatable(NO_LIFTING_GAS),
           citizen -> citizen.getWorkBuilding() instanceof BuildingStation && citizen.getJob(JobStationMaster.class).hasGasShortage());
+    }
+
+    private static boolean hasRestaurant(final IColony colony)
+    {
+        for (final IBuilding building : colony.getServerBuildingManager().getBuildings().values())
+        {
+            if (building instanceof BuildingCook)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasRestaurantWithMenu(final IColony colony)
+    {
+        for (final IBuilding building : colony.getServerBuildingManager().getBuildings().values())
+        {
+            if (building instanceof BuildingCook
+                && building.getModule(BuildingModules.RESTAURANT_MENU) != null
+                && !building.getModule(BuildingModules.RESTAURANT_MENU).getMenu().isEmpty())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1163,6 +1163,12 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      */
     public void completeExport(ExportData exportData)
     {
+        if (exportData.isReverse())
+        {
+            completeReturnExport(exportData);
+            return;
+        }
+
         TraceUtils.dynamicTrace(TRACE_STATION,
             () -> LOGGER.info("Shipment completed of {} for {} at {}",
                 exportData.getTradeItem().getItem(),
@@ -1304,6 +1310,43 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
             cart.discard();
             exportData.setCart(null);
         }
+    }
+
+    /**
+     * Completes escrowed outpost cargo at its main-station processing owner. This path is intentionally separate from ordinary
+     * station trade so it cannot affect payment, inventory removal, or recurring-export behavior.
+     *
+     * @param exportData return shipment to complete
+     */
+    private void completeReturnExport(ExportData exportData)
+    {
+        if (exportData.getReturnShipmentState() == ExportData.ReturnShipmentState.DELIVERED)
+        {
+            getModule(MCTPBuildingModules.EXPORTS).removeExport(exportData);
+            return;
+        }
+
+        exportData.setReturnShipmentState(ExportData.ReturnShipmentState.DELIVERED);
+        MCTPInventoryUtils.insertOrDropByQuantity(this, exportData.getTradeItem());
+        StatsUtil.trackStatByName(this,
+            IMPORTS_RECEIVED,
+            exportData.getTradeItem().getItemStack().getHoverName(),
+            exportData.getQuantity());
+
+        onShipmentReceived(exportData);
+        ITradeCapable source = exportData.getSourceStation();
+        if (source != null)
+        {
+            StatsUtil.trackStatByName(source,
+                EXPORTS_SHIPPED,
+                exportData.getTradeItem().getItemStack().getHoverName(),
+                exportData.getQuantity());
+            source.onShipmentDelivered(exportData);
+        }
+
+        exportData.discardCart();
+        getModule(MCTPBuildingModules.EXPORTS).removeExport(exportData);
+        markTradesDirty();
     }
 
     /**
@@ -1746,47 +1789,54 @@ public class BuildingStation extends AbstractBuilding implements ITradeCapable, 
      * Initiates a return shipment of goods to this station. It is the caller's responsibility to eliminate the items from the source
      * inventory. The cost of shipping is hardcoded to 0 (no charge to the outpost for shipping).
      * 
+     * @param returningFrom the outpost source of the shipment
      * @param thingsToDeliver the items to ship
      * @param carNumber       the carNumber is used to space out cars when many are being sent in a short time frame.
+     * @return true when the extracted cargo was accepted into the persistent return queue
      */
-    public void initiateReturn(StationData returningFrom, ItemStorage thingsToDeliver, int carNumber)
+    public boolean initiateReturn(StationData returningFrom, ItemStorage thingsToDeliver, int carNumber)
     {
         BuildingStationExportModule exports = this.getModule(MCTPBuildingModules.EXPORTS);
 
         if (exports == null)
         {
             LOGGER.error("No export module - cannot place return order.");
-            return;
+            return false;
         }
 
         if (thingsToDeliver == null || thingsToDeliver.isEmpty())
         {
             LOGGER.error("Shipments should not be initiated with nothing to deliver. Item being returned is null.");
-            return;
+            return false;
         }
 
-        int trackDistance = 0;
-
-        ExportData export = exports.addReturn(returningFrom.getStation(), thingsToDeliver);
-        export.setShipmentCountdown(1);
-        export.setShipDistance(carNumber);
-
-        TrackConnectionResult tcr = getTrackConnectionResult(returningFrom);
-        if (tcr != null)
+        ITradeCapable source = returningFrom == null ? null : returningFrom.getStation();
+        if (source == null)
         {
-            trackDistance = tcr.getRouteDistance();
-        }
-        else
-        {
-            // Fallback: This should only be needed if the connection got broken between the two stations between checks.
-            // If the connection got broken between the two stations, just use the block positions of the rail start locations.
-            trackDistance = (int) BlockPosUtil.dist(returningFrom.getRailStartPosition(), this.getRailStartPosition());
+            LOGGER.error("No return source found - cannot place return order.");
+            return false;
         }
 
-        export.setTrackDistance(trackDistance);
+        ExportData export = null;
+        try
+        {
+            export = exports.addReturn(source, thingsToDeliver);
+            export.setShipmentCountdown(1);
+            export.setLaunchDelay(carNumber);
+            export.setShipDistance(-1);
+            export.setReturnShipmentState(ExportData.ReturnShipmentState.READY);
+            exports.markDirty();
+        }
+        catch (RuntimeException exception)
+        {
+            exports.discardUncommittedReturn(export);
+            LOGGER.error("Unable to commit return shipment of {} from {}.", thingsToDeliver, returningFrom, exception);
+            return false;
+        }
 
         TraceUtils.dynamicTrace(TRACE_OUTPOST,
             () -> LOGGER.info("Set up return for {} to {}.", thingsToDeliver, this.getBuildingDisplayName()));
+        return true;
     }
 
     /**

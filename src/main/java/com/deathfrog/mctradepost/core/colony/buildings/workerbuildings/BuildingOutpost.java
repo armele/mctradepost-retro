@@ -38,6 +38,7 @@ import com.deathfrog.mctradepost.core.entity.ai.workers.trade.ITradeCapable;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.StationData;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackPathConnection.TrackConnectionResult;
 import com.deathfrog.mctradepost.core.entity.ai.workers.trade.TrackRouteConnection;
+import com.deathfrog.mctradepost.core.outpost.OutpostChildBuildingBootstrapper;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
@@ -85,6 +86,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     private static final String TAG_CHILD_BOOTSTRAP_COMPLETE = "mctp_child_bootstrap_complete";
     private static final String TAG_BOOTSTRAPPED_CHILDREN = "mctp_bootstrapped_children";
     private static final String TAG_BOOTSTRAPPED_CHILD_POS = "pos";
+    private static final String TAG_INITIAL_CONSTRUCTION_PENDING = "mctp_initial_construction_pending";
+    private static final String TAG_INITIAL_REPAIR_QUEUED = "mctp_initial_repair_queued";
 
     protected int stationValidationCooldown = 0;
     protected BuildingStation connectedStation = null;
@@ -92,6 +95,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     protected IToken<?> outpostResolverToken = null;
     protected boolean childBootstrapComplete = false;
     protected Set<BlockPos> bootstrappedChildren = new HashSet<>();
+    private boolean initialConstructionPending = false;
+    private boolean initialRepairQueued = false;
 
 
     // Map of request tokens to shipment tracking objects.
@@ -235,6 +240,24 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     }
 
     /**
+     * Tests whether cargo from this outpost is waiting at its connected station for a particular launch condition.
+     *
+     * @param reason return-shipment wait reason
+     * @return true when at least one matching return is waiting
+     */
+    public boolean hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason reason)
+    {
+        BuildingStation station = getConnectedStation();
+        if (station == null)
+        {
+            return false;
+        }
+
+        BuildingStationExportModule exports = station.getModule(MCTPBuildingModules.EXPORTS);
+        return exports != null && exports.hasWaitingReturnFrom(new StationData(this), reason);
+    }
+
+    /**
      * Returns true if the outpost is not connected to any other station, false otherwise.
      * 
      * @return true if the outpost is not connected, false otherwise
@@ -290,6 +313,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         }
 
         compound.putBoolean(TAG_CHILD_BOOTSTRAP_COMPLETE, childBootstrapComplete);
+        compound.putBoolean(TAG_INITIAL_CONSTRUCTION_PENDING, initialConstructionPending);
+        compound.putBoolean(TAG_INITIAL_REPAIR_QUEUED, initialRepairQueued);
         if (!bootstrappedChildren.isEmpty())
         {
             final ListTag children = new ListTag();
@@ -340,6 +365,8 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
         readRequestTrackingFromNbt(provider, compound);
 
         childBootstrapComplete = compound.getBoolean(TAG_CHILD_BOOTSTRAP_COMPLETE);
+        initialConstructionPending = compound.getBoolean(TAG_INITIAL_CONSTRUCTION_PENDING);
+        initialRepairQueued = compound.getBoolean(TAG_INITIAL_REPAIR_QUEUED);
         bootstrappedChildren.clear();
         if (compound.contains(TAG_BOOTSTRAPPED_CHILDREN, net.minecraft.nbt.Tag.TAG_LIST))
         {
@@ -548,6 +575,26 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     {
         super.onColonyTick(colony);
 
+        if (getBuildingLevel() == 0)
+        {
+            final OutpostChildBuildingBootstrapper.BootstrapResult result =
+                OutpostChildBuildingBootstrapper.initExisting(this, null);
+            LOGGER.info(
+                "Server-side outpost bootstrap at {} placed {}, adopted {}, collided {}, and failed {} child builders.",
+                getPosition(),
+                result.placed,
+                result.adopted,
+                result.collisions,
+                result.failed);
+            if (!startInitialConstruction(null))
+            {
+                LOGGER.warn(
+                    "Outpost at {} was promoted to level 1 without a usable child builder: {}",
+                    getPosition(),
+                    result.message);
+            }
+        }
+
         if (stationValidationCooldown-- <= 0)
         {
             establishConnectedStation();
@@ -587,8 +634,10 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
             requestTracking.remove(requestId);
         }
 
-        // if the outpost is pending construction and has no level, force chunk loading
-        if (isPendingConstruction() && getBuildingLevel() == 0)
+        advanceInitialConstruction();
+
+        // Keep the remote worksite loaded throughout the builder-hut build and outpost repair.
+        if (initialConstructionPending || (isPendingConstruction() && getBuildingLevel() == 0))
         {
             forceChunkForBuilding(true);
         }
@@ -642,6 +691,84 @@ public class BuildingOutpost extends AbstractBuilding implements ITradeCapable, 
     public Set<BlockPos> getBootstrappedChildren()
     {
         return Set.copyOf(bootstrappedChildren);
+    }
+
+    /**
+     * Establishes the placed outpost as level 1 and starts construction of its embedded builder hut.
+     * The outpost repair is queued automatically after the builder hut reaches level 1.
+     *
+     * @param player the player placing the outpost, or null during server-side recovery.
+     * @return true if the initial builder-hut work order was requested.
+     */
+    public boolean startInitialConstruction(@Nullable final Player player)
+    {
+        setBuildingLevel(1);
+        onUpgradeComplete(null, 1);
+
+        final BlockPos builderPosition = getBootstrappedBuilderPosition();
+        if (builderPosition == null)
+        {
+            markDirty();
+            return false;
+        }
+
+        final IBuilding builderBuilding = colony.getServerBuildingManager().getBuilding(builderPosition);
+        if (!(builderBuilding instanceof AbstractBuildingStructureBuilder))
+        {
+            markDirty();
+            return false;
+        }
+
+        initialConstructionPending = true;
+        initialRepairQueued = false;
+        forceChunkForBuilding(true);
+        if (builderBuilding.getBuildingLevel() == 0)
+        {
+            builderBuilding.requestUpgrade(player, builderPosition);
+        }
+        markDirty();
+        return builderBuilding.getBuildingLevel() >= 1 || builderBuilding.isPendingConstruction();
+    }
+
+    /**
+     * Advances the two-step initial construction sequence after the embedded builder hut is complete.
+     */
+    private void advanceInitialConstruction()
+    {
+        if (!initialConstructionPending)
+        {
+            return;
+        }
+
+        final BlockPos builderPosition = getBootstrappedBuilderPosition();
+        if (builderPosition == null)
+        {
+            return;
+        }
+
+        final IBuilding builderBuilding = colony.getServerBuildingManager().getBuilding(builderPosition);
+        if (builderBuilding == null || builderBuilding.getBuildingLevel() < 1)
+        {
+            return;
+        }
+
+        if (!initialRepairQueued)
+        {
+            requestRepair(builderPosition);
+            if (isPendingConstruction())
+            {
+                initialRepairQueued = true;
+                markDirty();
+            }
+            return;
+        }
+
+        if (!isPendingConstruction())
+        {
+            initialConstructionPending = false;
+            initialRepairQueued = false;
+            markDirty();
+        }
     }
 
     /**

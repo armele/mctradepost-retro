@@ -18,6 +18,7 @@ import com.minecolonies.api.blocks.AbstractBlockHut;
 import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.core.tileentities.TileEntityColonyBuilding;
+import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.mojang.logging.LogUtils;
 
 import net.minecraft.core.BlockPos;
@@ -149,18 +150,21 @@ public final class OutpostChildBuildingBootstrapper
                     outpost.addBootstrappedChild(worldPos);
                     result.adopted++;
                 }
+                else if (existing instanceof AbstractBuildingStructureBuilder && BlockPos.ZERO.equals(existing.getParent()))
+                {
+                    existing.setStructurePack(blueprint.getPackName());
+                    existing.setRotationMirror(effectiveRotationMirror);
+                    existing.setParent(outpost.getID());
+                    existing.markDirty();
+                    outpost.registerBlockPosition(childState, worldPos, world);
+                    outpost.addBootstrappedChild(worldPos);
+                    result.adopted++;
+                }
                 else
                 {
                     result.collisions++;
                     result.message = "Existing building at " + worldPos.toShortString() + " is not an outpost child.";
                 }
-                continue;
-            }
-
-            if (!canPlaceChildAt(world, worldPos, childState))
-            {
-                result.collisions++;
-                result.message = "Cannot place builder hut at " + worldPos.toShortString() + ".";
                 continue;
             }
 
@@ -257,22 +261,6 @@ public final class OutpostChildBuildingBootstrapper
     }
 
     /**
-     * Checks whether the builder hut block can be placed at the target location without destroying an existing building block.
-     *
-     * @param world the server world containing the target position.
-     * @param worldPos the world position where the child hut would be placed.
-     * @param childState the builder hut block state from the rotated blueprint.
-     * @return true if the position is empty, replaceable, or already contains the same hut block.
-     */
-    private static boolean canPlaceChildAt(final Level world, final @Nonnull BlockPos worldPos, final BlockState childState)
-    {
-        final BlockState existingState = world.getBlockState(worldPos);
-        return existingState.isAir()
-            || existingState.canBeReplaced()
-            || existingState.getBlock() == childState.getBlock();
-    }
-
-    /**
      * Places one embedded builder hut, applies its schematic metadata, and registers it as an outpost child.
      *
      * @param outpost the outpost that should own the child builder hut.
@@ -299,6 +287,11 @@ public final class OutpostChildBuildingBootstrapper
         if (blockOffset == null) return false;
 
         final CompoundTag tileEntityData = blueprint.getTileEntityData(outpost.getPosition().subtract(blockOffset), localPos);
+
+        if (world.getBlockState(worldPos).getBlock() != childState.getBlock())
+        {
+            world.destroyBlock(worldPos, true);
+        }
 
         if (!world.setBlockAndUpdate(worldPos, childState))
         {

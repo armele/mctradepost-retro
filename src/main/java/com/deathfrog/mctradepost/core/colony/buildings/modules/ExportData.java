@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
@@ -55,7 +56,26 @@ public class ExportData
     {
     };
 
-    private final @Nullable ITradeCapable sourceStation;
+    /** Lifecycle used only by one-shot return shipments. */
+    public enum ReturnShipmentState
+    {
+        READY,
+        IN_TRANSIT,
+        DELIVERED
+    }
+
+    /** Reason a ready return shipment cannot currently launch. */
+    public enum ReturnWaitReason
+    {
+        NONE,
+        ROUTE_UNAVAILABLE,
+        AIR_ROUTE_UNAVAILABLE,
+        INSUFFICIENT_GAS
+    }
+
+    private final @Nonnull UUID shipmentId;
+    private @Nullable ITradeCapable sourceStation;
+    private final @Nullable StationData sourceStationData;
     private final @Nonnull StationData destinationStationData;
     private final ItemStorage tradeItem;
     private final int cost;
@@ -73,14 +93,55 @@ public class ExportData
     private int activeRouteSegmentIndex = -1;
     private final Deque<VisualLeg> pendingVisualLegs = new ArrayDeque<>();
     private long nextVisualTransitionTick = Long.MAX_VALUE;
+    private ReturnShipmentState returnShipmentState;
+    private int launchDelay;
+    private boolean gasCharged;
+    private ReturnWaitReason returnWaitReason;
 
     private record VisualLeg(int segmentIndex, TrackRoute.Segment segment, int targetIndex, int durationTicks) { }
 
 
 
-    public ExportData(@Nullable ITradeCapable sourceStation, @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
+    /**
+     * Creates an export with a newly generated shipment identity.
+     *
+     * @param sourceStation source trade building
+     * @param destinationStationData destination identity
+     * @param tradeItem shipment cargo
+     * @param cost trade price
+     * @param reverse whether this is an outpost return shipment
+     */
+    @SuppressWarnings("null")
+    public ExportData(@Nullable ITradeCapable sourceStation, @Nonnull StationData destinationStationData, ItemStorage tradeItem,
+        int cost, boolean reverse)
     {
+        this(UUID.randomUUID(), sourceStation, sourceStation == null ? null : new StationData(sourceStation), destinationStationData,
+            tradeItem, cost, reverse);
+    }
+
+    /**
+     * Restores an export with its persistent endpoint and shipment identity.
+     *
+     * @param shipmentId persistent shipment identifier
+     * @param sourceStationData source endpoint, or null for legacy records without one
+     * @param destinationStationData destination endpoint
+     * @param tradeItem shipment cargo
+     * @param cost trade price
+     * @param reverse whether this is a one-shot outpost return
+     */
+    public ExportData(@Nonnull UUID shipmentId, @Nullable StationData sourceStationData,
+        @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost, boolean reverse)
+    {
+        this(shipmentId, null, sourceStationData, destinationStationData, tradeItem, cost, reverse);
+    }
+
+    private ExportData(@Nonnull UUID shipmentId, @Nullable ITradeCapable sourceStation,
+        @Nullable StationData sourceStationData, @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost,
+        boolean reverse)
+    {
+        this.shipmentId = shipmentId;
         this.sourceStation = sourceStation;
+        this.sourceStationData = sourceStationData;
         this.destinationStationData = destinationStationData;
         this.tradeItem = tradeItem;
         this.cost = cost;
@@ -90,8 +151,20 @@ public class ExportData
         this.shipmentCountdown = -1;
         this.insufficientFunds = false;
         this.reverse = reverse;
+        this.returnShipmentState = reverse ? ReturnShipmentState.READY : null;
+        this.launchDelay = 0;
+        this.gasCharged = false;
+        this.returnWaitReason = ReturnWaitReason.NONE;
     }
 
+    /**
+     * Creates an ordinary forward export.
+     *
+     * @param sourceStation source trade building
+     * @param destinationStationData destination identity
+     * @param tradeItem shipment cargo
+     * @param cost trade price
+     */
     public ExportData(ITradeCapable sourceStation, @Nonnull StationData destinationStationData, ItemStorage tradeItem, int cost)
     {
         this(sourceStation, destinationStationData, tradeItem, cost, false);
@@ -102,9 +175,38 @@ public class ExportData
         return destinationStationData;
     }
 
+    /**
+     * Resolves the current source building from its persistent identity when necessary.
+     *
+     * @return source building, or null when a legacy or removed source cannot be resolved
+     */
     public @Nullable ITradeCapable getSourceStation()
     {
+        if (sourceStation == null && sourceStationData != null)
+        {
+            sourceStation = sourceStationData.getStation();
+        }
         return sourceStation;
+    }
+
+    /**
+     * Gets the persistent identity of the shipment source.
+     *
+     * @return source station data, or null for a legacy shipment whose source was not saved
+     */
+    public @Nullable StationData getSourceStationData()
+    {
+        return sourceStationData;
+    }
+
+    /**
+     * Gets the stable identity of this shipment.
+     *
+     * @return shipment UUID
+     */
+    public @Nonnull UUID getShipmentId()
+    {
+        return shipmentId;
     }
 
     public int getCost()
@@ -150,8 +252,111 @@ public class ExportData
     /** @return whether the active shipment route uses an airship leg */
     public boolean usesAirship()
     {
-        return activeRoute != null && activeRoute.segments().stream()
-            .anyMatch(segment -> segment.type() == TrackRoute.SegmentType.AIR);
+        if (activeRoute == null)
+        {
+            return false;
+        }
+
+        for (TrackRoute.Segment segment : activeRoute.segments())
+        {
+            if (segment.type() == TrackRoute.SegmentType.AIR)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the lifecycle state of a return shipment.
+     *
+     * @return return state, or null for an ordinary station export
+     */
+    public @Nullable ReturnShipmentState getReturnShipmentState()
+    {
+        return returnShipmentState;
+    }
+
+    /**
+     * Updates the lifecycle state of a return shipment.
+     *
+     * @param state new state
+     */
+    public void setReturnShipmentState(@Nonnull ReturnShipmentState state)
+    {
+        this.returnShipmentState = state;
+    }
+
+    /**
+     * Gets the remaining launch staggering delay.
+     *
+     * @return delay in colony ticks
+     */
+    public int getLaunchDelay()
+    {
+        return launchDelay;
+    }
+
+    /**
+     * Sets the launch staggering delay.
+     *
+     * @param launchDelay nonnegative delay in colony ticks
+     */
+    public void setLaunchDelay(int launchDelay)
+    {
+        this.launchDelay = Math.max(0, launchDelay);
+    }
+
+    /**
+     * Decrements a positive launch delay by one tick.
+     */
+    public void decrementLaunchDelay()
+    {
+        if (launchDelay > 0)
+        {
+            launchDelay--;
+        }
+    }
+
+    /**
+     * Reports whether the return shipment's round-trip gas has been debited.
+     *
+     * @return true after a successful debit
+     */
+    public boolean isGasCharged()
+    {
+        return gasCharged;
+    }
+
+    /**
+     * Records whether the return shipment's round-trip gas has been debited.
+     *
+     * @param gasCharged true after a successful debit
+     */
+    public void setGasCharged(boolean gasCharged)
+    {
+        this.gasCharged = gasCharged;
+    }
+
+    /**
+     * Gets the current reason a ready return cannot launch.
+     *
+     * @return wait reason, or {@link ReturnWaitReason#NONE}
+     */
+    @SuppressWarnings("null")
+    public @Nonnull ReturnWaitReason getReturnWaitReason()
+    {
+        return returnWaitReason;
+    }
+
+    /**
+     * Records why a ready return cannot launch.
+     *
+     * @param returnWaitReason current wait reason
+     */
+    public void setReturnWaitReason(@Nonnull ReturnWaitReason returnWaitReason)
+    {
+        this.returnWaitReason = returnWaitReason;
     }
 
     /**
@@ -262,13 +467,26 @@ public class ExportData
         
         if (!isReverse())
         {
-            if (sourceStation == null) return null;
+            ITradeCapable resolvedSource = getSourceStation();
+            if (resolvedSource == null)
+            {
+                return null;
+            }
 
-            tcr = sourceStation.getTrackConnectionResult(this.getDestinationStationData());
+            tcr = resolvedSource.getTrackConnectionResult(this.getDestinationStationData());
         }
         else
         {
-            StationData returningLocation = new StationData(this.getSourceStation());
+            ITradeCapable returnSource = this.getSourceStation();
+            if (returnSource == null)
+            {
+                TraceUtils.dynamicTrace(TRACE_CART,
+                    () -> LOGGER.warn("Continuing legacy return shipment {} without animation because its source was not persisted.",
+                        shipmentId));
+                return null;
+            }
+
+            StationData returningLocation = new StationData(returnSource);
             ITradeCapable destinationStation = this.getDestinationStationData().getStation();
 
             if (destinationStation != null)

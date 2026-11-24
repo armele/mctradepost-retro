@@ -10,6 +10,7 @@ import com.deathfrog.mctradepost.api.util.MCTPInventoryUtils;
 import com.deathfrog.mctradepost.api.util.TraceUtils;
 import com.deathfrog.mctradepost.core.ModTags;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.MCTPBuildingModules;
+import com.deathfrog.mctradepost.core.colony.buildings.modules.ExportData;
 import com.deathfrog.mctradepost.core.colony.buildings.modules.OutpostExportModule;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost;
 import com.deathfrog.mctradepost.core.colony.buildings.workerbuildings.BuildingOutpost.OutpostOrderState;
@@ -23,15 +24,16 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.colony.interactionhandling.ChatPriority;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
+import com.minecolonies.api.colony.requestsystem.requestable.StackList;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.VisibleCitizenStatus;
-import com.minecolonies.api.util.FoodUtils;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.constant.Constants;
+import com.minecolonies.api.util.constant.translation.RequestSystemTranslationConstants;
 import com.minecolonies.core.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.core.colony.buildings.modules.BuildingModules;
 import com.minecolonies.core.colony.buildings.modules.RestaurantMenuModule;
@@ -51,19 +53,25 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.DISCONNECTED_OUTPOST;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_NO_RESTAURANT;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_RESTAURANT_NO_MENU;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_RETURN_AIR_ROUTE;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_RETURN_GAS;
+import static com.deathfrog.mctradepost.apiimp.initializer.MCTPInteractionInitializer.OUTPOST_RETURN_ROUTE;
 import static com.deathfrog.mctradepost.api.util.TraceUtils.TRACE_OUTPOST;
 
 public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, BuildingOutpost>
@@ -78,12 +86,15 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     protected static final int FOOD_DELIVERY_RESERVE = 2;
     protected static final int FOOD_ORDERING_THRESHOLD = 3;
     protected static final int FOOD_ORDERING_SIZE = 8;
+    protected static final int FOOD_ORDERING_MAXIMUM = 64;
+    protected static final long FOOD_ORDER_RETRY_TICKS = 1200L;
     protected static final int FOOD_TRANSFER_SOURCE_SLOT_LIMIT = 64;
     protected static final int FOOD_TRANSFER_TARGET_SLOT_LIMIT = 64;
     protected static final long FOOD_DELIVERY_TARGET_RETRY_DAYS = 1;
     protected static final int BUILDER_SUPPORT_COOLDOWN_TIMER = 20;
 
     protected long lastFoodOrderCheck = 0;
+    protected long nextFoodOrderRetryTick = Long.MAX_VALUE;
     protected long lastFoodDeliveryCheck = 0;
     protected long lastReturnProductsCheck = 0;
     protected int exceptionTimer = 1;
@@ -110,6 +121,19 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     protected ItemStack currentFoodDeliveryStack = ItemStack.EMPTY;
     protected BlockPos currentFoodDeliveryTarget = null;
     protected final Map<BlockPos, Long> failedFoodDeliveryTargets = new HashMap<>();
+
+    /**
+     * Outcomes of a scheduled outpost food-ordering check.
+     */
+    public enum FoodOrderResult
+    {
+        ORDERED,
+        NOT_NEEDED,
+        REQUEST_ALREADY_OPEN,
+        NO_RESTAURANT,
+        NO_MENU,
+        REQUEST_FAILED
+    }
 
     /**
      * Current goto path
@@ -164,6 +188,8 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                     ChatPriority.BLOCKING));
         }
 
+        reportReturnShipmentWait();
+
         if (outpostCooldown-- <= 0)
         {
             outpostCooldown = OUTPOST_COOLDOWN_TIMER;
@@ -184,7 +210,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         }
 
         long today = building.getColony().getDay();
-        if (today > lastFoodOrderCheck)
+        if (today > lastFoodOrderCheck || building.getColony().getWorld().getGameTime() >= nextFoodOrderRetryTick)
         {
             TraceUtils.dynamicTrace(TRACE_OUTPOST,
                 () -> LOGGER.info("Checking outpost food ordering status for day {} (last checked on {}) in colony {}.",
@@ -229,17 +255,59 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
         return DECIDE;
     }
 
+    /** Reports persistent return-shipment launch problems through the outpost Scout. */
+    private void reportReturnShipmentWait()
+    {
+        String interactionKey = null;
+        if (building.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.ROUTE_UNAVAILABLE))
+        {
+            interactionKey = OUTPOST_RETURN_ROUTE;
+        }
+        else if (building.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.AIR_ROUTE_UNAVAILABLE))
+        {
+            interactionKey = OUTPOST_RETURN_AIR_ROUTE;
+        }
+        else if (building.hasReturnShipmentWaitingFor(ExportData.ReturnWaitReason.INSUFFICIENT_GAS))
+        {
+            interactionKey = OUTPOST_RETURN_GAS;
+        }
+
+        if (interactionKey != null)
+        {
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(
+                Component.translatable(interactionKey), ChatPriority.BLOCKING));
+        }
+    }
+
     /**
-     * Orders food for the outpost if it is needed. The scout will attempt to order food from the nearest warehouse. If the scout is
-     * successful in ordering food, the lastFoodOrderCheck variable will be updated to the current day.
+     * Runs the scheduled food-ordering check, reports restaurant configuration problems, and schedules a non-blocking retry when needed.
+     * The daily check is recorded for every outcome so a restaurant problem cannot prevent lower-priority scout work.
      * 
-     * @return The DECIDE state, which will cause the scout to decide what to do next.
+     * @return the {@link #DECIDE} state.
      */
     public IAIState orderFood()
     {
-        if (orderFoodForOutpost())
+        final FoodOrderResult result = orderFoodForOutpost();
+        lastFoodOrderCheck = building.getColony().getDay();
+
+        if (result == FoodOrderResult.NO_RESTAURANT)
         {
-            lastFoodOrderCheck = building.getColony().getDay();
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(
+                Component.translatable(OUTPOST_NO_RESTAURANT), ChatPriority.BLOCKING));
+        }
+        else if (result == FoodOrderResult.NO_MENU)
+        {
+            worker.getCitizenData().triggerInteraction(new StandardInteraction(
+                Component.translatable(OUTPOST_RESTAURANT_NO_MENU), ChatPriority.BLOCKING));
+        }
+
+        if (result == FoodOrderResult.NO_RESTAURANT || result == FoodOrderResult.NO_MENU || result == FoodOrderResult.REQUEST_FAILED)
+        {
+            nextFoodOrderRetryTick = building.getColony().getWorld().getGameTime() + FOOD_ORDER_RETRY_TICKS;
+        }
+        else
+        {
+            nextFoodOrderRetryTick = Long.MAX_VALUE;
         }
 
         return DECIDE;
@@ -314,17 +382,10 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
                         {
                             // Pass the *extracted* items forward so counts are exact
                             ItemStorage shipped = new ItemStorage(extracted.copy());
-                            try
+                            boolean accepted = connectedStation.initiateReturn(new StationData(building), shipped, returnCount);
+                            if (!accepted)
                             {
-                                connectedStation.initiateReturn(new StationData(building), shipped, returnCount);
-                            }
-                            catch (NullPointerException e)
-                            {
-                                LOGGER.warn("Unable to initiate return of {} from {} to {} due to missing station data.",
-                                    shipped,
-                                    building.getBuildingDisplayName(),
-                                    connectedStation.getBuildingDisplayName(),
-                                    e);
+                                MCTPInventoryUtils.insertOrDropByQuantity(connectedStation, shipped);
                                 continue;
                             }
                             returnCount++;
@@ -917,105 +978,172 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
     }
 
     /**
-     * Attempts to order food for the outpost workers using the nearest restaurant.
+     * Attempts to order food for the outpost workers using the nearest configured restaurant menu.
      * 
-     * @return The DECIDE state, which will cause the scout to decide what to do next.
+     * @return the outcome of the ordering check.
      */
-    public boolean orderFoodForOutpost()
+    @SuppressWarnings("null")
+    public FoodOrderResult orderFoodForOutpost()
     {
-        BlockPos restaurantPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
-        boolean didOrder = false;
-
-        if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
-        {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant in the colony for food ordering."));
-            return false;
-        }
-
-        IBuilding restaurant = building.getColony().getServerBuildingManager().getBuilding(restaurantPos);
-
+        final BuildingCook restaurant = findNearestRestaurantWithMenu();
         if (restaurant == null)
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                () -> LOGGER.info("Unable to find a restaurant at position {} in the colony for food ordering.", restaurantPos));
-            return false;
+            if (hasRestaurant())
+            {
+                TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant with a configured menu for food ordering."));
+                return FoodOrderResult.NO_MENU;
+            }
+
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant in the colony for food ordering."));
+            return FoodOrderResult.NO_RESTAURANT;
         }
 
         final RestaurantMenuModule module = restaurant.getModule(BuildingModules.RESTAURANT_MENU);
+        final Set<ItemStorage> menu = module.getMenu();
+        int workerCount = 0;
 
-        if (module == null)
+        int availableFood = countMenuFood(building, menu);
+
+        for (final BlockPos outpostWorkPos : building.getWorkBuildings())
         {
-            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Unable to find a restaurant menu module for food ordering."));
-            return false;
-        }
-
-        for (BlockPos outpostWorkPos : building.getWorkBuildings())
-        {
-            IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
-
-            for (ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
+            final IBuilding outpostWorksite = building.getColony().getServerBuildingManager().getBuilding(outpostWorkPos);
+            if (outpostWorksite == null)
             {
-                int foodCount = 0;
-                final ItemStorage foodWeHave = FoodUtils.checkForFoodInBuilding(citizen, module.getMenu(), outpostWorksite);
-                final ItemStorage foodAvailable = FoodUtils.checkForFoodInBuilding(citizen, module.getMenu(), restaurant);
+                continue;
+            }
 
-                if (foodWeHave != null)
+            availableFood += countMenuFood(outpostWorksite, menu);
+            for (final ICitizenData citizen : outpostWorksite.getAllAssignedCitizen())
+            {
+                if (citizen.getJob() != null)
                 {
-                    foodCount = foodWeHave.getAmount();
-                }
-
-                if (foodCount <= FOOD_ORDERING_THRESHOLD)
-                {
-                    if (foodAvailable != null && foodAvailable.getItem() != null)
-                    {
-                        ItemStorage toOrder = new ItemStorage(foodAvailable.getItem(), FOOD_ORDERING_SIZE);
-                        Stack requestStack = new Stack(toOrder);
-                        
-                        if (citizen.getJob() != null)
-                        {
-                            try
-                            {
-                                @SuppressWarnings("null")
-                                boolean outstandingRequest = building.hasWorkerOpenRequestsFiltered(
-                                    worker.getCitizenData().getId(),
-                                    request -> request.getRequest() instanceof Stack stackRequest
-                                        && stackRequest.getStack().is(foodAvailable.getItem())
-                                );
-
-                                if (!outstandingRequest)
-                                {
-                                    building.createRequest(worker.getCitizenData(), requestStack, true);
-                                    didOrder = true;
-                                }
-                            }
-                            catch (IllegalArgumentException e)
-                            {
-                                TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                                    () -> LOGGER.info("Request system error ordering food for outpost."));
-                            }
-                        }
-                    }
-                    else
-                    {
-                        TraceUtils.dynamicTrace(TRACE_OUTPOST,
-                            () -> LOGGER.info("Unable to find food to request for {}.", citizen.getName()));
-                        // IDEA: Consider an alert here to warn about food availability.
-                    }
-                }
-                else
-                {
-                    TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Already have enough food for {}.", citizen.getName()));
+                    workerCount++;
                 }
             }
         }
 
-        if (didOrder)
+        if (workerCount == 0 || availableFood > workerCount * FOOD_ORDERING_THRESHOLD)
         {
-            incrementActionsDoneAndDecSaturation();
-            worker.getCitizenExperienceHandler().addExperience(SMALL_SCOUT_XP);
+            return FoodOrderResult.NOT_NEEDED;
         }
 
-        return true;
+        final boolean outstandingRequest = building.hasWorkerOpenRequestsFiltered(worker.getCitizenData().getId(),
+            request -> request.getRequest() instanceof StackList
+                && RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD.equals(((StackList) request.getRequest()).getDescription()));
+        if (outstandingRequest)
+        {
+            return FoodOrderResult.REQUEST_ALREADY_OPEN;
+        }
+
+        final int orderSize = Math.min(workerCount * FOOD_ORDERING_SIZE - availableFood, FOOD_ORDERING_MAXIMUM);
+        final List<ItemStack> menuItems = new ArrayList<>();
+        for (final ItemStorage menuItem : menu)
+        {
+            menuItems.add(menuItem.getItemStack());
+        }
+        try
+        {
+            building.createRequest(worker.getCitizenData(),
+                new StackList(menuItems, RequestSystemTranslationConstants.REQUESTS_TYPE_FOOD, orderSize, 1), true);
+            incrementActionsDoneAndDecSaturation();
+            worker.getCitizenExperienceHandler().addExperience(SMALL_SCOUT_XP);
+            return FoodOrderResult.ORDERED;
+        }
+        catch (IllegalArgumentException e)
+        {
+            TraceUtils.dynamicTrace(TRACE_OUTPOST, () -> LOGGER.info("Request system error ordering food for outpost.", e));
+            return FoodOrderResult.REQUEST_FAILED;
+        }
+    }
+
+    /**
+     * Find the nearest restaurant that has at least one configured menu item.
+     *
+     * @return the nearest usable restaurant, or null when none has a menu.
+     */
+    protected @Nullable BuildingCook findNearestRestaurantWithMenu()
+    {
+        BuildingCook nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (final IBuilding candidate : building.getColony().getServerBuildingManager().getBuildings().values())
+        {
+            if (!(candidate instanceof BuildingCook restaurant))
+            {
+                continue;
+            }
+
+            final RestaurantMenuModule module = restaurant.getModule(BuildingModules.RESTAURANT_MENU);
+
+            @SuppressWarnings("null")
+            final double distance = restaurant.getPosition().distSqr(building.getPosition());
+            if (module != null && !module.getMenu().isEmpty() && distance < nearestDistance)
+            {
+                nearest = restaurant;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    /**
+     * Check whether the colony contains any restaurant.
+     *
+     * @return true when at least one restaurant exists.
+     */
+    protected boolean hasRestaurant()
+    {
+        for (final IBuilding candidate : building.getColony().getServerBuildingManager().getBuildings().values())
+        {
+            if (candidate instanceof BuildingCook)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Count configured menu food in a building inventory.
+     *
+     * @param targetBuilding the building whose inventory is counted.
+     * @param menu the configured restaurant menu.
+     * @return the number of matching food items.
+     */
+    protected int countMenuFood(@Nonnull final IBuilding targetBuilding, @Nonnull final Set<ItemStorage> menu)
+    {
+        final IItemHandler inventory = getSafeItemHandler(targetBuilding, "outpost food ordering");
+        if (inventory == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        for (int slot = 0; slot < inventory.getSlots(); slot++)
+        {
+            final ItemStack stack = inventory.getStackInSlot(slot);
+
+            if (stack == null)
+            {
+                continue;
+            }
+
+            for (final ItemStorage menuItem : menu)
+            {
+                ItemStack menuStack = menuItem.getItemStack();
+
+                if (menuStack == null)
+                {
+                    continue;
+                }
+
+                if (ItemStack.isSameItemSameComponents(stack, menuStack))
+                {
+                    count += stack.getCount();
+                    break;
+                }
+            }
+        }
+        return count;
     }
 
 
@@ -1226,13 +1354,7 @@ public class EntityAIWorkScout extends AbstractEntityAIInteract<JobScout, Buildi
      */
     protected @Nullable RestaurantMenuModule getNearestRestaurantMenuModule()
     {
-        final BlockPos restaurantPos = building.getColony().getServerBuildingManager().getBestBuilding(building.getPosition(), BuildingCook.class);
-        if (restaurantPos == null || restaurantPos.equals(BlockPos.ZERO))
-        {
-            return null;
-        }
-
-        final IBuilding restaurant = building.getColony().getServerBuildingManager().getBuilding(restaurantPos);
+        final BuildingCook restaurant = findNearestRestaurantWithMenu();
         if (restaurant == null)
         {
             return null;

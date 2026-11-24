@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
 import static com.minecolonies.api.util.constant.WindowConstants.BUTTON_SELECT;
@@ -69,6 +70,10 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     private final Function<ItemStack, Component> badgeLabel;
     private final Function<ItemStack, Component> badgeTooltip;
     private final Function<ItemStack, Component> rowTooltip;
+    private final Function<ItemStack, Component> rowValue;
+    private final Function<ItemStack, Component> rowValueTooltip;
+    private final IntSupplier rowValueVersion;
+    private int displayedRowValueVersion;
 
     /**
      * The filter string.
@@ -102,7 +107,8 @@ public class WindowSelectItems extends AbstractWindowSkeleton
     public WindowSelectItems(final BOWindow origin, final Predicate<ItemStack> test,
         final BiConsumer<ItemStack, Integer> consumer, final boolean simpleSelection)
     {
-        this(origin, test, consumer, simpleSelection, stack -> null, stack -> null, stack -> null, stack -> null);
+        this(origin, test, consumer, simpleSelection, stack -> null, stack -> null, stack -> null, stack -> null,
+            stack -> null, stack -> null, () -> 0);
     }
 
     /** Creates a selector whose rows may expose a badge or be disabled with an explanation. */
@@ -112,7 +118,8 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         final Function<ItemStack, Component> badgeLabel,
         final Function<ItemStack, Component> badgeTooltip)
     {
-        this(origin, test, consumer, simpleSelection, disabledReason, badgeLabel, badgeTooltip, stack -> null);
+        this(origin, test, consumer, simpleSelection, disabledReason, badgeLabel, badgeTooltip, stack -> null,
+            stack -> null, stack -> null, () -> 0);
     }
 
     /**
@@ -134,6 +141,35 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         final Function<ItemStack, Component> badgeTooltip,
         final Function<ItemStack, Component> rowTooltip)
     {
+        this(origin, test, consumer, simpleSelection, disabledReason, badgeLabel, badgeTooltip, rowTooltip,
+            stack -> null, stack -> null, () -> 0);
+    }
+
+    /**
+     * Creates a selector whose rows may expose badges, informational tooltips, and a versioned value column.
+     *
+     * @param origin originating window
+     * @param test item eligibility predicate
+     * @param consumer selected-item consumer
+     * @param simpleSelection whether quantity controls are hidden
+     * @param disabledReason optional reason a row cannot be selected
+     * @param badgeLabel optional compact row badge
+     * @param badgeTooltip optional badge explanation
+     * @param rowTooltip optional informational tooltip for the item name
+     * @param rowValue optional value displayed after the Select button
+     * @param rowValueTooltip optional explanation for the displayed row value
+     * @param rowValueVersion version that changes when displayed row values should be refreshed
+     */
+    public WindowSelectItems(final BOWindow origin, final Predicate<ItemStack> test,
+        final BiConsumer<ItemStack, Integer> consumer, final boolean simpleSelection,
+        final Function<ItemStack, Component> disabledReason,
+        final Function<ItemStack, Component> badgeLabel,
+        final Function<ItemStack, Component> badgeTooltip,
+        final Function<ItemStack, Component> rowTooltip,
+        final Function<ItemStack, Component> rowValue,
+        final Function<ItemStack, Component> rowValueTooltip,
+        final IntSupplier rowValueVersion)
+    {
         super(origin, ResourceLocation.fromNamespaceAndPath(MCTradePostMod.MODID, "gui/windowselectstewingredients.xml"));
         this.resourceList = this.findPaneOfTypeByID("resources", ScrollingList.class);
         registerButton(BUTTON_DONE, this::doneClicked);
@@ -153,6 +189,10 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         this.badgeLabel = badgeLabel;
         this.badgeTooltip = badgeTooltip;
         this.rowTooltip = rowTooltip;
+        this.rowValue = rowValue;
+        this.rowValueTooltip = rowValueTooltip;
+        this.rowValueVersion = rowValueVersion;
+        this.displayedRowValueVersion = rowValueVersion.getAsInt();
         if (simpleSelection)
         {
             quantityInput.hide();
@@ -252,6 +292,12 @@ public class WindowSelectItems extends AbstractWindowSkeleton
         {
             updateResources();
         }
+        final int currentRowValueVersion = rowValueVersion.getAsInt();
+        if (displayedRowValueVersion != currentRowValueVersion)
+        {
+            displayedRowValueVersion = currentRowValueVersion;
+            resourceList.refreshElementPanes();
+        }
     }
 
     /**
@@ -293,6 +339,13 @@ public class WindowSelectItems extends AbstractWindowSkeleton
                 PaneBuilders.tooltipBuilder().hoverPane(select).build()
                     .setText(reason == null ? Component.empty() : reason);
                 if (reason != null) select.disable();
+
+                final Text value = rowPane.findPaneOfTypeByID("rowValue", Text.class);
+                final Component valueText = rowValue.apply(resource);
+                value.setText(valueText == null ? Component.empty() : valueText);
+                final Component valueInformation = rowValueTooltip.apply(resource);
+                PaneBuilders.tooltipBuilder().hoverPane(value).build()
+                    .setText(valueInformation == null ? Component.empty() : valueInformation);
             }
         });
     }

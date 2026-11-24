@@ -176,7 +176,22 @@ public class BlockHutOutpost extends MCTPBaseBlockHut
                 final IBuilding building = IColonyManager.getInstance().getBuilding(world, pos);
                 if (building instanceof BuildingOutpost outpost)
                 {
-                    OutpostChildBuildingBootstrapper.initFromBlueprint(outpost, blueprint, rotationMirror, player);
+                    final OutpostChildBuildingBootstrapper.BootstrapResult result =
+                        OutpostChildBuildingBootstrapper.initFromBlueprint(outpost, blueprint, rotationMirror, player);
+                    LOGGER.info(
+                        "Outpost bootstrap at {} placed {}, adopted {}, collided {}, and failed {} child builders.",
+                        pos,
+                        result.placed,
+                        result.adopted,
+                        result.collisions,
+                        result.failed);
+                    if (!outpost.startInitialConstruction(player))
+                    {
+                        LOGGER.warn(
+                            "Outpost at {} was promoted to level 1, but no usable child builder was available to start initial construction: {}",
+                            pos,
+                            result.message);
+                    }
                 }
             }
             return placed;

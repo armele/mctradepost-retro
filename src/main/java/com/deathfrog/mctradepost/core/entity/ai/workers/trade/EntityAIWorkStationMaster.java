@@ -248,6 +248,13 @@ public class EntityAIWorkStationMaster extends AbstractEntityAIInteract<JobStati
 
         for (ExportData exportData : exportsModule.getExports())
         {
+            // Return cargo is already escrowed and is dispatched by the export module. Keeping it out of this loop preserves the
+            // inventory, payment, and route semantics of ordinary station-to-station exports.
+            if (exportData.isReverse())
+            {
+                continue;
+            }
+
             if (exportData.getTradeItem().getItemStack().isEmpty())
             {
                 currentExport = exportData;
